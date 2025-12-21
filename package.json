@@ -1,0 +1,30 @@
+{
+  "name": "hanmed-cdss",
+  "version": "1.0.0",
+  "private": true,
+  "description": "온고지신 AI - 한의학 임상 의사결정 지원 시스템",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:web & npm run dev:api & npm run dev:ai",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && npm run start:dev",
+    "dev:ai": "cd apps/ai-engine && python -m uvicorn app.main:app --reload --port 8000",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "cd apps/web && npm run build",
+    "build:api": "cd apps/api && npm run build",
+    "test": "cd apps/api && npm run test",
+    "lint": "cd apps/web && npm run lint",
+    "install:all": "npm install && cd apps/web && npm install && cd ../api && npm install",
+    "docker:up": "docker-compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f infra/docker/docker-compose.yml down",
+    "docker:logs": "docker-compose -f infra/docker/docker-compose.yml logs -f",
+    "db:migrate": "cd apps/api && npm run migration:run",
+    "db:seed": "cd apps/api && npm run seed"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

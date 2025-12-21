@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:16-alpine
+    container_name: hanmed-postgres
+    environment:
+      POSTGRES_USER: hanmed
+      POSTGRES_PASSWORD: hanmed_dev_password
+      POSTGRES_DB: hanmed_cdss
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hanmed -d hanmed_cdss"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hanmed-network
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    container_name: hanmed-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hanmed-network
+
+  # pgAdmin (선택적 - DB 관리 UI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hanmed-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hanmed.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - hanmed-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  hanmed-network:
+    driver: bridge
