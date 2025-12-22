@@ -327,7 +327,7 @@ export default function HerbDetailPage() {
   )
 }
 
-function getDemoHerb(id: string): HerbDetail {
+function getDemoHerb(_id: string): HerbDetail {
   return {
     id: '1',
     standardName: '당귀',
