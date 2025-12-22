@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Plus,
   X,
@@ -13,6 +14,12 @@ import {
   ChevronRight,
   Info,
   Shield,
+  BookOpen,
+  Beaker,
+  AlertTriangle,
+  FileText,
+  Copy,
+  Check,
 } from 'lucide-react'
 import api from '@/services/api'
 
@@ -26,6 +33,78 @@ interface Recommendation {
   confidence_score: number
   herbs: Array<{ name: string; amount: string; role: string }>
   rationale: string
+}
+
+// 처방 상세 정보 데이터
+const formulaDetails: Record<string, {
+  hanja: string
+  source: string
+  category: string
+  indication: string
+  pathogenesis: string
+  contraindications: string[]
+  modifications: Array<{ condition: string; action: string }>
+  modernUsage: string[]
+  cautions: string[]
+}> = {
+  '이중탕(理中湯)': {
+    hanja: '理中湯',
+    source: '상한론(傷寒論)',
+    category: '온리제(溫裏劑)',
+    indication: '비위허한증(脾胃虛寒證). 자리청희(自利清稀), 복만불식(腹滿不食), 구토복통(嘔吐腹痛), 설질담백(舌質淡白), 맥침세(脈沈細)',
+    pathogenesis: '중초허한(中焦虛寒)으로 인해 비위의 운화기능이 약화되어 발생합니다. 비양부족으로 음식을 소화시키지 못하고, 수습이 정체되어 설사와 복통이 나타납니다.',
+    contraindications: [
+      '음허화왕(陰虛火旺) 환자',
+      '실열(實熱) 증상이 있는 경우',
+      '임산부 (건강 성분 주의)',
+    ],
+    modifications: [
+      { condition: '복통이 심하면', action: '인삼을 증량하고 백작약 6g 가미' },
+      { condition: '구토가 심하면', action: '반하 9g, 생강 6g 가미' },
+      { condition: '설사가 심하면', action: '백출을 창출로 대체, 복령 9g 가미' },
+      { condition: '수족냉증이 심하면', action: '부자 3g 가미 (부자이중탕)' },
+    ],
+    modernUsage: [
+      '만성 위염, 위궤양',
+      '기능성 소화불량',
+      '과민성 대장 증후군 (설사형)',
+      '만성 장염',
+    ],
+    cautions: [
+      '건강(乾薑)은 열성이 강하므로 복용 중 열감이 있으면 용량 조절',
+      '장기 복용 시 정기적인 상태 평가 필요',
+      '와파린 복용자는 인삼 상호작용 주의',
+    ],
+  },
+  '보중익기탕(補中益氣湯)': {
+    hanja: '補中益氣湯',
+    source: '비위론(脾胃論)',
+    category: '보익제(補益劑) - 보기제(補氣劑)',
+    indication: '비위기허(脾胃氣虛), 중기하함(中氣下陷). 기단나언(氣短懶言), 사지권태(四肢倦怠), 식소복창(食少腹脹), 자한(自汗), 내장하수(內臟下垂)',
+    pathogenesis: '비기허약(脾氣虛弱)으로 청양불승(清陽不升)하여 중기하함(中氣下陷)이 발생합니다. 기허로 인해 피로, 숨참, 자한 등의 증상이 나타납니다.',
+    contraindications: [
+      '음허화왕(陰虛火旺) 환자',
+      '간양상항(肝陽上亢) 환자',
+      '고혈압 환자 주의 (승마, 시호)',
+    ],
+    modifications: [
+      { condition: '두통이 있으면', action: '만형자 9g, 천궁 6g 가미' },
+      { condition: '기침이 있으면', action: '행인 9g, 오미자 6g 가미' },
+      { condition: '불면이 있으면', action: '산조인 12g, 용안육 9g 가미' },
+      { condition: '자궁하수가 있으면', action: '승마, 시호 증량' },
+    ],
+    modernUsage: [
+      '만성 피로 증후군',
+      '위하수, 자궁하수, 탈항',
+      '반복성 감기',
+      '수술 후 회복기',
+    ],
+    cautions: [
+      '황기는 혈압을 올릴 수 있으므로 고혈압 환자 주의',
+      '감기 급성기에는 사용을 피함',
+      '인삼은 다른 약물과 상호작용 가능성이 있음',
+    ],
+  },
 }
 
 const roleColors: Record<string, string> = {
@@ -47,6 +126,15 @@ export default function ConsultationPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [analysis, setAnalysis] = useState('')
   const [error, setError] = useState('')
+
+  // 상세 정보 모달
+  const [selectedFormula, setSelectedFormula] = useState<Recommendation | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // 처방 선택 확인 모달
+  const [showSelectConfirm, setShowSelectConfirm] = useState(false)
+  const [selectedForSelect, setSelectedForSelect] = useState<Recommendation | null>(null)
 
   const addSymptom = () => {
     if (newSymptom.trim()) {
@@ -119,6 +207,39 @@ export default function ConsultationPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const openDetailModal = (rec: Recommendation) => {
+    setSelectedFormula(rec)
+    setShowDetailModal(true)
+  }
+
+  const handleSelectFormula = (rec: Recommendation) => {
+    setSelectedForSelect(rec)
+    setShowSelectConfirm(true)
+  }
+
+  const confirmSelectFormula = () => {
+    // 처방 선택 완료 - 실제로는 환자 차트에 저장
+    setShowSelectConfirm(false)
+    alert(`${selectedForSelect?.formula_name} 처방이 선택되었습니다.\n환자 차트에 기록됩니다.`)
+  }
+
+  const copyToClipboard = () => {
+    if (!selectedFormula) return
+
+    const detail = formulaDetails[selectedFormula.formula_name]
+    const herbsText = selectedFormula.herbs.map(h => `${h.name} ${h.amount}`).join(', ')
+
+    const text = `【${selectedFormula.formula_name}】
+출전: ${detail?.source || '미상'}
+구성: ${herbsText}
+적응증: ${detail?.indication || selectedFormula.rationale}
+`
+
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -391,10 +512,16 @@ export default function ConsultationPage() {
 
                       {/* Action buttons */}
                       <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="flex-1 py-2 px-4 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors">
+                        <button
+                          onClick={() => handleSelectFormula(rec)}
+                          className="flex-1 py-2 px-4 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                        >
                           이 처방 선택
                         </button>
-                        <button className="py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1">
+                        <button
+                          onClick={() => openDetailModal(rec)}
+                          className="py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+                        >
                           <Info className="h-4 w-4" />
                           상세 정보
                         </button>
@@ -416,10 +543,13 @@ export default function ConsultationPage() {
                       환자가 복용 중인 양약과의 상호작용을 확인하세요
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1">
+                  <Link
+                    to="/interactions"
+                    className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1"
+                  >
                     검사하기
                     <ChevronRight className="h-4 w-4" />
-                  </button>
+                  </Link>
                 </div>
               )}
             </>
@@ -441,6 +571,221 @@ export default function ConsultationPage() {
           )}
         </div>
       </div>
+
+      {/* 처방 상세 정보 모달 */}
+      {showDetailModal && selectedFormula && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            {/* 모달 헤더 */}
+            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">{selectedFormula.formula_name}</h2>
+                  <p className="text-teal-100 text-sm">
+                    {formulaDetails[selectedFormula.formula_name]?.source || '출전 미상'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="복사"
+                  >
+                    {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                  </button>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 모달 본문 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] space-y-6">
+              {/* 구성 약재 */}
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Beaker className="h-5 w-5 text-teal-500" />
+                  구성 약재
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {selectedFormula.herbs.map((herb, i) => (
+                    <div
+                      key={i}
+                      className={`p-3 rounded-xl border-2 ${roleColors[herb.role] || 'bg-gray-50 border-gray-200'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold">{herb.name}</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-white/50 rounded">{herb.role}</span>
+                      </div>
+                      <span className="text-sm opacity-70">{herb.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {formulaDetails[selectedFormula.formula_name] && (
+                <>
+                  {/* 주치 */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      주치 (적응증)
+                    </h3>
+                    <p className="text-gray-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
+                      {formulaDetails[selectedFormula.formula_name].indication}
+                    </p>
+                  </div>
+
+                  {/* 병기 */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-purple-500" />
+                      병기 설명
+                    </h3>
+                    <p className="text-gray-700 bg-purple-50 p-4 rounded-xl leading-relaxed">
+                      {formulaDetails[selectedFormula.formula_name].pathogenesis}
+                    </p>
+                  </div>
+
+                  {/* 가감법 */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-amber-500" />
+                      가감법
+                    </h3>
+                    <div className="space-y-2">
+                      {formulaDetails[selectedFormula.formula_name].modifications.map((mod, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl">
+                          <span className="text-amber-600 font-medium whitespace-nowrap">{mod.condition}</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-gray-700">{mod.action}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 현대 임상 응용 */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-emerald-500" />
+                      현대 임상 응용
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {formulaDetails[selectedFormula.formula_name].modernUsage.map((usage, i) => (
+                        <span key={i} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                          {usage}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 금기 및 주의사항 */}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      금기 및 주의사항
+                    </h3>
+                    <div className="bg-red-50 p-4 rounded-xl space-y-2">
+                      {formulaDetails[selectedFormula.formula_name].contraindications.map((ci, i) => (
+                        <div key={i} className="flex items-start gap-2 text-red-700">
+                          <span className="text-red-500">•</span>
+                          <span>{ci}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-red-200 pt-2 mt-3">
+                        {formulaDetails[selectedFormula.formula_name].cautions.map((c, i) => (
+                          <div key={i} className="flex items-start gap-2 text-amber-700">
+                            <span className="text-amber-500">⚠</span>
+                            <span className="text-sm">{c}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* AI 추천 근거 */}
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-teal-500" />
+                  AI 추천 근거
+                </h3>
+                <p className="text-gray-700 bg-teal-50 p-4 rounded-xl leading-relaxed">
+                  {selectedFormula.rationale}
+                </p>
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false)
+                  handleSelectFormula(selectedFormula)
+                }}
+                className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+              >
+                이 처방 선택
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 처방 선택 확인 모달 */}
+      {showSelectConfirm && selectedForSelect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-teal-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-teal-500" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">처방 선택 확인</h2>
+              <p className="text-gray-500 mt-2">
+                <span className="font-bold text-teal-600">{selectedForSelect.formula_name}</span>을(를)
+                <br />선택하시겠습니까?
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-gray-600 mb-2">선택한 처방 정보:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedForSelect.herbs.map((herb, i) => (
+                  <span key={i} className="text-xs px-2 py-1 bg-white rounded border">
+                    {herb.name} {herb.amount}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSelectConfirm(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmSelectFormula}
+                className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

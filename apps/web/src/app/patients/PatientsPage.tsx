@@ -9,6 +9,9 @@ import {
   User,
   Clock,
   Filter,
+  X,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +28,7 @@ interface Patient {
   status: 'active' | 'inactive'
 }
 
-const demoPatients: Patient[] = [
+const initialPatients: Patient[] = [
   {
     id: '1',
     name: '김영희',
@@ -87,19 +90,41 @@ const demoPatients: Patient[] = [
   },
 ]
 
+interface NewPatientForm {
+  name: string
+  birthDate: string
+  gender: 'M' | 'F'
+  phone: string
+  constitution: string
+  mainComplaint: string
+}
+
 export default function PatientsPage() {
+  const [patients, setPatients] = useState<Patient[]>(initialPatients)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [newPatientName, setNewPatientName] = useState('')
 
-  const filteredPatients = demoPatients.filter((patient) => {
+  // 새 환자 폼
+  const [newPatient, setNewPatient] = useState<NewPatientForm>({
+    name: '',
+    birthDate: '',
+    gender: 'F',
+    phone: '',
+    constitution: '',
+    mainComplaint: '',
+  })
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof NewPatientForm, string>>>({})
+
+  const filteredPatients = patients.filter((patient) => {
     const matchesSearch =
       patient.name.includes(searchQuery) ||
       patient.phone.includes(searchQuery) ||
       patient.mainComplaint.includes(searchQuery)
 
-    const matchesStatus =
-      filterStatus === 'all' || patient.status === filterStatus
+    const matchesStatus = filterStatus === 'all' || patient.status === filterStatus
 
     return matchesSearch && matchesStatus
   })
@@ -120,6 +145,74 @@ export default function PatientsPage() {
     return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<keyof NewPatientForm, string>> = {}
+
+    if (!newPatient.name.trim()) {
+      errors.name = '이름을 입력해주세요'
+    }
+    if (!newPatient.birthDate) {
+      errors.birthDate = '생년월일을 입력해주세요'
+    }
+    if (!newPatient.phone.trim()) {
+      errors.phone = '전화번호를 입력해주세요'
+    } else if (!/^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/.test(newPatient.phone.replace(/-/g, ''))) {
+      errors.phone = '올바른 전화번호 형식이 아닙니다'
+    }
+    if (!newPatient.mainComplaint.trim()) {
+      errors.mainComplaint = '주소증을 입력해주세요'
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleAddPatient = () => {
+    if (!validateForm()) return
+
+    const today = new Date().toISOString().split('T')[0]
+    const newId = (Math.max(...patients.map((p) => parseInt(p.id))) + 1).toString()
+
+    const patient: Patient = {
+      id: newId,
+      name: newPatient.name.trim(),
+      birthDate: newPatient.birthDate,
+      gender: newPatient.gender,
+      phone: newPatient.phone.trim(),
+      constitution: newPatient.constitution || undefined,
+      lastVisit: today,
+      totalVisits: 0,
+      mainComplaint: newPatient.mainComplaint.trim(),
+      status: 'active',
+    }
+
+    setPatients([patient, ...patients])
+    setNewPatientName(patient.name)
+    setShowNewPatientModal(false)
+    setShowSuccessToast(true)
+
+    // 폼 초기화
+    setNewPatient({
+      name: '',
+      birthDate: '',
+      gender: 'F',
+      phone: '',
+      constitution: '',
+      mainComplaint: '',
+    })
+    setFormErrors({})
+
+    // 3초 후 토스트 숨기기
+    setTimeout(() => setShowSuccessToast(false), 3000)
+  }
+
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^0-9]/g, '')
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -129,9 +222,7 @@ export default function PatientsPage() {
             <Users className="h-7 w-7 text-blue-500" />
             환자 관리
           </h1>
-          <p className="mt-1 text-gray-500">
-            환자 차트와 진료 기록을 관리합니다
-          </p>
+          <p className="mt-1 text-gray-500">환자 차트와 진료 기록을 관리합니다</p>
         </div>
         <button
           onClick={() => setShowNewPatientModal(true)}
@@ -146,13 +237,11 @@ export default function PatientsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">전체 환자</p>
-          <p className="text-2xl font-bold text-gray-900">{demoPatients.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{patients.length}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">활성 환자</p>
-          <p className="text-2xl font-bold text-green-600">
-            {demoPatients.filter((p) => p.status === 'active').length}
-          </p>
+          <p className="text-2xl font-bold text-green-600">{patients.filter((p) => p.status === 'active').length}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">이번 달 방문</p>
@@ -183,9 +272,7 @@ export default function PatientsPage() {
               onClick={() => setFilterStatus('all')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                filterStatus === 'all'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                filterStatus === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
               전체
@@ -194,9 +281,7 @@ export default function PatientsPage() {
               onClick={() => setFilterStatus('active')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                filterStatus === 'active'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                filterStatus === 'active' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
               활성
@@ -205,9 +290,7 @@ export default function PatientsPage() {
               onClick={() => setFilterStatus('inactive')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                filterStatus === 'inactive'
-                  ? 'bg-gray-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                filterStatus === 'inactive' ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
               비활성
@@ -237,9 +320,7 @@ export default function PatientsPage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   최근 방문
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-
-                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -247,14 +328,15 @@ export default function PatientsPage() {
                 <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-10 h-10 rounded-full flex items-center justify-center',
-                        patient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
-                      )}>
-                        <User className={cn(
-                          'h-5 w-5',
-                          patient.gender === 'F' ? 'text-pink-500' : 'text-blue-500'
-                        )} />
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-full flex items-center justify-center',
+                          patient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
+                        )}
+                      >
+                        <User
+                          className={cn('h-5 w-5', patient.gender === 'F' ? 'text-pink-500' : 'text-blue-500')}
+                        />
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">{patient.name}</p>
@@ -316,31 +398,66 @@ export default function PatientsPage() {
 
       {/* New Patient Modal */}
       {showNewPatientModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">새 환자 등록</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white flex items-center justify-between">
+              <h2 className="text-xl font-bold">새 환자 등록</h2>
+              <button onClick={() => setShowNewPatientModal(false)} className="p-1 hover:bg-white/20 rounded-lg">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-            <div className="space-y-4">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">이름</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  이름 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newPatient.name}
+                  onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                    formErrors.name ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="환자 이름"
                 />
+                {formErrors.name && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.name}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">생년월일</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    생년월일 <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    value={newPatient.birthDate}
+                    onChange={(e) => setNewPatient({ ...newPatient, birthDate: e.target.value })}
+                    className={cn(
+                      'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                      formErrors.birthDate ? 'border-red-300' : 'border-gray-200'
+                    )}
                   />
+                  {formErrors.birthDate && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {formErrors.birthDate}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">성별</label>
-                  <select className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    성별 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={newPatient.gender}
+                    onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value as 'M' | 'F' })}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                  >
                     <option value="F">여성</option>
                     <option value="M">남성</option>
                   </select>
@@ -348,39 +465,99 @@ export default function PatientsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">전화번호</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  전화번호 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="tel"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newPatient.phone}
+                  onChange={(e) => setNewPatient({ ...newPatient, phone: formatPhoneNumber(e.target.value) })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                    formErrors.phone ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="010-0000-0000"
                 />
+                {formErrors.phone && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.phone}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">주소증</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">체질 (선택)</label>
+                <select
+                  value={newPatient.constitution}
+                  onChange={(e) => setNewPatient({ ...newPatient, constitution: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                >
+                  <option value="">미정 / 미진단</option>
+                  <option value="태양인">태양인</option>
+                  <option value="태음인">태음인</option>
+                  <option value="소양인">소양인</option>
+                  <option value="소음인">소음인</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  주소증 <span className="text-red-500">*</span>
+                </label>
                 <textarea
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none h-24"
+                  value={newPatient.mainComplaint}
+                  onChange={(e) => setNewPatient({ ...newPatient, mainComplaint: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none h-24',
+                    formErrors.mainComplaint ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="주요 증상을 입력하세요"
                 />
+                {formErrors.mainComplaint && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.mainComplaint}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="px-6 pb-6 flex gap-3">
               <button
-                onClick={() => setShowNewPatientModal(false)}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setShowNewPatientModal(false)
+                  setFormErrors({})
+                  setNewPatient({
+                    name: '',
+                    birthDate: '',
+                    gender: 'F',
+                    phone: '',
+                    constitution: '',
+                    mainComplaint: '',
+                  })
+                }}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
               >
                 취소
               </button>
               <button
-                onClick={() => {
-                  alert('환자가 등록되었습니다.')
-                  setShowNewPatientModal(false)
-                }}
-                className="flex-1 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+                onClick={handleAddPatient}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
               >
                 등록
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5" />
+            <div>
+              <p className="font-medium">{newPatientName} 환자가 등록되었습니다</p>
+              <p className="text-sm text-green-100">환자 차트에서 진료를 시작하세요</p>
             </div>
           </div>
         </div>

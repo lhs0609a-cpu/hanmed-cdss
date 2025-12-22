@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   User,
@@ -13,6 +13,10 @@ import {
   Pill,
   Stethoscope,
   Save,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Brain,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +37,15 @@ interface ProgressData {
   symptomCount: number
 }
 
+interface NewVisitForm {
+  symptoms: string
+  diagnosis: string
+  prescription: string
+  pulseNote: string
+  painScore: number
+  notes: string
+}
+
 const demoPatient = {
   id: '1',
   name: '김영희',
@@ -47,7 +60,7 @@ const demoPatient = {
   medicalHistory: '2020년 위염 진단',
 }
 
-const demoVisits: VisitRecord[] = [
+const initialVisits: VisitRecord[] = [
   {
     id: '1',
     date: '2024-01-15',
@@ -80,17 +93,24 @@ const demoVisits: VisitRecord[] = [
   },
 ]
 
-const progressData: ProgressData[] = [
-  { date: '12/15', painScore: 8, symptomCount: 4 },
-  { date: '01/01', painScore: 7, symptomCount: 5 },
-  { date: '01/15', painScore: 6, symptomCount: 4 },
-]
-
 export default function PatientDetailPage() {
   const { id: _id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'progress'>('overview')
   const [showNewVisitModal, setShowNewVisitModal] = useState(false)
+  const [visits, setVisits] = useState<VisitRecord[]>(initialVisits)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+
+  // 새 진료 기록 폼
+  const [newVisit, setNewVisit] = useState<NewVisitForm>({
+    symptoms: '',
+    diagnosis: '',
+    prescription: '',
+    pulseNote: '',
+    painScore: 5,
+    notes: '',
+  })
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof NewVisitForm, string>>>({})
 
   const calculateAge = (birthDate: string) => {
     const today = new Date()
@@ -109,31 +129,96 @@ export default function PatientDetailPage() {
     return { icon: Minus, color: 'text-gray-500', label: '유지' }
   }
 
-  const latestVisit = demoVisits[0]
-  const previousVisit = demoVisits[1]
+  const latestVisit = visits[0]
+  const previousVisit = visits[1]
   const trend = getTrend(latestVisit.painScore, previousVisit?.painScore || latestVisit.painScore)
   const TrendIcon = trend.icon
+
+  // 경과 데이터 계산
+  const progressData: ProgressData[] = visits
+    .slice(0, 5)
+    .reverse()
+    .map((v) => ({
+      date: v.date.slice(5).replace('-', '/'),
+      painScore: v.painScore,
+      symptomCount: v.symptoms.length,
+    }))
+
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<keyof NewVisitForm, string>> = {}
+
+    if (!newVisit.symptoms.trim()) {
+      errors.symptoms = '증상을 입력해주세요'
+    }
+    if (!newVisit.diagnosis.trim()) {
+      errors.diagnosis = '진단을 입력해주세요'
+    }
+    if (!newVisit.prescription.trim()) {
+      errors.prescription = '처방을 입력해주세요'
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleAddVisit = () => {
+    if (!validateForm()) return
+
+    const today = new Date().toISOString().split('T')[0]
+    const newId = (Math.max(...visits.map((v) => parseInt(v.id))) + 1).toString()
+
+    const visit: VisitRecord = {
+      id: newId,
+      date: today,
+      symptoms: newVisit.symptoms.split(',').map((s) => s.trim()).filter(Boolean),
+      diagnosis: newVisit.diagnosis.trim(),
+      prescription: newVisit.prescription.trim(),
+      pulseNote: newVisit.pulseNote.trim(),
+      painScore: newVisit.painScore,
+      notes: newVisit.notes.trim(),
+    }
+
+    setVisits([visit, ...visits])
+    setShowNewVisitModal(false)
+    setShowSuccessToast(true)
+    setActiveTab('visits')
+
+    // 폼 초기화
+    setNewVisit({
+      symptoms: '',
+      diagnosis: '',
+      prescription: '',
+      pulseNote: '',
+      painScore: 5,
+      notes: '',
+    })
+    setFormErrors({})
+
+    setTimeout(() => setShowSuccessToast(false), 3000)
+  }
+
+  const getPainScoreColor = (score: number) => {
+    if (score <= 3) return 'bg-green-100 text-green-700'
+    if (score <= 6) return 'bg-yellow-100 text-yellow-700'
+    return 'bg-red-100 text-red-700'
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              'w-12 h-12 rounded-full flex items-center justify-center',
-              demoPatient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
-            )}>
-              <User className={cn(
-                'h-6 w-6',
-                demoPatient.gender === 'F' ? 'text-pink-500' : 'text-blue-500'
-              )} />
+            <div
+              className={cn(
+                'w-12 h-12 rounded-full flex items-center justify-center',
+                demoPatient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
+              )}
+            >
+              <User className={cn('h-6 w-6', demoPatient.gender === 'F' ? 'text-pink-500' : 'text-blue-500')} />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{demoPatient.name}</h1>
@@ -148,6 +233,13 @@ export default function PatientDetailPage() {
             </div>
           </div>
         </div>
+        <Link
+          to="/consultation"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all mr-2"
+        >
+          <Brain className="h-5 w-5" />
+          AI 진료
+        </Link>
         <button
           onClick={() => setShowNewVisitModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
@@ -161,7 +253,7 @@ export default function PatientDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">총 내원 횟수</p>
-          <p className="text-2xl font-bold text-gray-900">{demoVisits.length}회</p>
+          <p className="text-2xl font-bold text-gray-900">{visits.length}회</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">현재 통증 점수</p>
@@ -202,7 +294,7 @@ export default function PatientDetailPage() {
               : 'text-gray-500 border-transparent hover:text-gray-700'
           )}
         >
-          진료 기록
+          진료 기록 ({visits.length})
         </button>
         <button
           onClick={() => setActiveTab('progress')}
@@ -288,7 +380,7 @@ export default function PatientDetailPage() {
 
       {activeTab === 'visits' && (
         <div className="space-y-4">
-          {demoVisits.map((visit, index) => (
+          {visits.map((visit, index) => (
             <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -297,19 +389,12 @@ export default function PatientDetailPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">{visit.date}</p>
-                    <p className="text-sm text-gray-500">
-                      {index === 0 ? '최근 진료' : `${index + 1}번째 전`}
-                    </p>
+                    <p className="text-sm text-gray-500">{index === 0 ? '최근 진료' : `${index + 1}번째 전`}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">통증 점수</span>
-                  <span className={cn(
-                    'px-3 py-1 rounded-full font-bold',
-                    visit.painScore <= 3 ? 'bg-green-100 text-green-700' :
-                    visit.painScore <= 6 ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  )}>
+                  <span className={cn('px-3 py-1 rounded-full font-bold', getPainScoreColor(visit.painScore))}>
                     {visit.painScore}/10
                   </span>
                 </div>
@@ -344,7 +429,7 @@ export default function PatientDetailPage() {
                   <p className="text-sm font-medium text-gray-700 mb-2">맥진</p>
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-red-500" />
-                    <span className="text-gray-900">{visit.pulseNote}</span>
+                    <span className="text-gray-900">{visit.pulseNote || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -375,9 +460,7 @@ export default function PatientDetailPage() {
                     <div
                       className={cn(
                         'w-full max-w-16 rounded-t-lg transition-all',
-                        data.painScore <= 3 ? 'bg-green-400' :
-                        data.painScore <= 6 ? 'bg-yellow-400' :
-                        'bg-red-400'
+                        data.painScore <= 3 ? 'bg-green-400' : data.painScore <= 6 ? 'bg-yellow-400' : 'bg-red-400'
                       )}
                       style={{ height: `${data.painScore * 20}px` }}
                     />
@@ -431,16 +514,30 @@ export default function PatientDetailPage() {
               <div className="bg-white/70 rounded-xl p-4">
                 <p className="text-sm text-gray-600">통증 점수 변화</p>
                 <p className="text-2xl font-bold text-green-600">
-                  -2점 <span className="text-sm font-normal">(25% 감소)</span>
+                  {visits.length > 1 ? (
+                    <>
+                      {visits[visits.length - 1].painScore - visits[0].painScore > 0 ? '+' : ''}
+                      {visits[0].painScore - visits[visits.length - 1].painScore}점
+                      <span className="text-sm font-normal ml-1">
+                        ({Math.round(((visits[visits.length - 1].painScore - visits[0].painScore) / visits[visits.length - 1].painScore) * -100)}% 감소)
+                      </span>
+                    </>
+                  ) : (
+                    '데이터 부족'
+                  )}
                 </p>
               </div>
               <div className="bg-white/70 rounded-xl p-4">
                 <p className="text-sm text-gray-600">치료 기간</p>
-                <p className="text-2xl font-bold text-gray-900">1개월</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {visits.length > 1
+                    ? `${Math.ceil((new Date(visits[0].date).getTime() - new Date(visits[visits.length - 1].date).getTime()) / (1000 * 60 * 60 * 24))}일`
+                    : '1일'}
+                </p>
               </div>
               <div className="bg-white/70 rounded-xl p-4">
                 <p className="text-sm text-gray-600">총 진료 횟수</p>
-                <p className="text-2xl font-bold text-gray-900">{demoVisits.length}회</p>
+                <p className="text-2xl font-bold text-gray-900">{visits.length}회</p>
               </div>
             </div>
           </div>
@@ -449,85 +546,161 @@ export default function PatientDetailPage() {
 
       {/* New Visit Modal */}
       {showNewVisitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">새 진료 기록</h2>
-
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">증상 (쉼표로 구분)</label>
+                <h2 className="text-xl font-bold">새 진료 기록</h2>
+                <p className="text-blue-100 text-sm">{demoPatient.name} 환자</p>
+              </div>
+              <button onClick={() => setShowNewVisitModal(false)} className="p-1 hover:bg-white/20 rounded-lg">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  증상 <span className="text-red-500">*</span>
+                  <span className="text-gray-400 font-normal ml-1">(쉼표로 구분)</span>
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newVisit.symptoms}
+                  onChange={(e) => setNewVisit({ ...newVisit, symptoms: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                    formErrors.symptoms ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="소화불량, 피로, 두통..."
                 />
+                {formErrors.symptoms && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.symptoms}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">진단</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  진단 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newVisit.diagnosis}
+                  onChange={(e) => setNewVisit({ ...newVisit, diagnosis: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                    formErrors.diagnosis ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="비기허(脾氣虛)..."
                 />
+                {formErrors.diagnosis && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.diagnosis}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">처방</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  처방 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newVisit.prescription}
+                  onChange={(e) => setNewVisit({ ...newVisit, prescription: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all',
+                    formErrors.prescription ? 'border-red-300' : 'border-gray-200'
+                  )}
                   placeholder="육군자탕 가미..."
                 />
+                {formErrors.prescription && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> {formErrors.prescription}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">맥진 소견</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">맥진 소견 (선택)</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={newVisit.pulseNote}
+                  onChange={(e) => setNewVisit({ ...newVisit, pulseNote: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                   placeholder="좌촌: 부삭, 우관: 허완..."
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  통증 점수 (0-10)
+                  통증 점수: <span className="text-blue-600 font-bold">{newVisit.painScore}/10</span>
                 </label>
                 <input
                   type="range"
                   min="0"
                   max="10"
-                  className="w-full"
+                  value={newVisit.painScore}
+                  onChange={(e) => setNewVisit({ ...newVisit, painScore: parseInt(e.target.value) })}
+                  className="w-full accent-blue-500"
                 />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>0 (통증 없음)</span>
+                  <span>10 (극심한 통증)</span>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">메모 (선택)</label>
                 <textarea
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none h-24"
+                  value={newVisit.notes}
+                  onChange={(e) => setNewVisit({ ...newVisit, notes: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none h-24"
                   placeholder="추가 메모..."
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
               <button
-                onClick={() => setShowNewVisitModal(false)}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setShowNewVisitModal(false)
+                  setFormErrors({})
+                  setNewVisit({
+                    symptoms: '',
+                    diagnosis: '',
+                    prescription: '',
+                    pulseNote: '',
+                    painScore: 5,
+                    notes: '',
+                  })
+                }}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
               >
                 취소
               </button>
               <button
-                onClick={() => {
-                  alert('진료 기록이 저장되었습니다.')
-                  setShowNewVisitModal(false)
-                }}
-                className="flex-1 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                onClick={handleAddVisit}
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center justify-center gap-2"
               >
                 <Save className="h-5 w-5" />
                 저장
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5" />
+            <div>
+              <p className="font-medium">진료 기록이 저장되었습니다</p>
+              <p className="text-sm text-green-100">{new Date().toLocaleDateString('ko-KR')} 기록 추가</p>
             </div>
           </div>
         </div>
