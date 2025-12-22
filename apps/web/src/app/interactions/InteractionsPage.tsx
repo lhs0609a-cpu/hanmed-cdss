@@ -10,7 +10,6 @@ import {
   Leaf,
   AlertOctagon,
   Info,
-  ChevronDown,
   FileText,
 } from 'lucide-react'
 import api from '@/services/api'

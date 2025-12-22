@@ -9,8 +9,6 @@ import {
   TrendingUp,
   ArrowRight,
   Sparkles,
-  Activity,
-  FileText,
   ChevronRight,
   Zap,
 } from 'lucide-react'
