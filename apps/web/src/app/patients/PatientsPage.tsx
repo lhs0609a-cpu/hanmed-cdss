@@ -5,13 +5,10 @@ import {
   Search,
   Plus,
   Phone,
-  Calendar,
   ChevronRight,
   User,
-  FileText,
   Clock,
   Filter,
-  MoreVertical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

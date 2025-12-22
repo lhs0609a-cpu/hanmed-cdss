@@ -11,7 +11,6 @@ import {
   X,
   Bell,
   Search,
-  ChevronRight,
   Sparkles,
   FlaskConical,
   Leaf,

@@ -5,7 +5,6 @@ import {
   Copy,
   Check,
   Filter,
-  ChevronRight,
   Info,
   DollarSign,
   Tag,

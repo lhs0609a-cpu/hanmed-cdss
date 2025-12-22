@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import {
   FileText,
-  Download,
   Printer,
   Copy,
   Check,
   FileEdit,
-  AlertTriangle,
   Info,
   ChevronRight,
   User,
-  Calendar,
   Pill,
   Stethoscope,
 } from 'lucide-react'
@@ -183,7 +180,6 @@ const herbalInfoContent = `
 export default function DocumentsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null)
   const [formData, setFormData] = useState<Record<string, string>>({})
-  const [showPreview, setShowPreview] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const handleFieldChange = (field: string, value: string) => {
@@ -209,7 +205,7 @@ export default function DocumentsPage() {
     }
 
     // Replace placeholders with form data
-    Object.entries(formData).forEach(([key, value]) => {
+    Object.entries(formData).forEach(([_key, value]) => {
       const placeholder = `____________`
       if (value) {
         content = content.replace(placeholder, value)
@@ -275,7 +271,6 @@ export default function DocumentsPage() {
             onClick={() => {
               setSelectedTemplate(null)
               setFormData({})
-              setShowPreview(false)
             }}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
@@ -328,12 +323,9 @@ export default function DocumentsPage() {
                 ))}
               </div>
 
-              <button
-                onClick={() => setShowPreview(true)}
-                className="w-full mt-6 py-3 bg-violet-500 text-white rounded-xl hover:bg-violet-600 transition-colors font-medium"
-              >
-                미리보기
-              </button>
+              <div className="w-full mt-6 py-3 bg-violet-100 text-violet-700 rounded-xl text-center font-medium">
+                미리보기가 오른쪽에 표시됩니다
+              </div>
             </div>
 
             {/* Preview */}

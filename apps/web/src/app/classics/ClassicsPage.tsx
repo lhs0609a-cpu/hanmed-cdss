@@ -6,7 +6,6 @@ import {
   BookMarked,
   ScrollText,
   Quote,
-  ExternalLink,
   Star,
   Filter,
 } from 'lucide-react'

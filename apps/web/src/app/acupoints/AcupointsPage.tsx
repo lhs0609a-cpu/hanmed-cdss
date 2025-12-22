@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Search,
   MapPin,
-  ChevronRight,
   Filter,
   Zap,
   Target,
@@ -43,10 +42,6 @@ const meridians = [
   { code: 'LR', name: '족궐음간경', color: 'bg-green-700' },
   { code: 'GV', name: '독맥', color: 'bg-indigo-500' },
   { code: 'CV', name: '임맥', color: 'bg-pink-500' },
-]
-
-const bodyParts = [
-  '머리/얼굴', '목/어깨', '가슴/등', '복부', '허리/엉덩이', '팔/손', '다리/발'
 ]
 
 const symptomCategories = [
@@ -182,7 +177,6 @@ const demoAcupoints: Acupoint[] = [
 export default function AcupointsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMeridian, setSelectedMeridian] = useState<string | null>(null)
-  const [selectedBodyPart, setSelectedBodyPart] = useState<string | null>(null)
   const [selectedSymptom, setSelectedSymptom] = useState<string | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<Acupoint | null>(null)
 

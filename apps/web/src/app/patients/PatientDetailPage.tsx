@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   User,
-  Phone,
   Calendar,
   FileText,
   Activity,
@@ -11,12 +10,9 @@ import {
   TrendingDown,
   Minus,
   Plus,
-  Clock,
   Pill,
   Stethoscope,
-  Edit2,
   Save,
-  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -91,7 +87,7 @@ const progressData: ProgressData[] = [
 ]
 
 export default function PatientDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { id: _id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'progress'>('overview')
   const [showNewVisitModal, setShowNewVisitModal] = useState(false)
