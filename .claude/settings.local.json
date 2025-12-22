@@ -11,7 +11,8 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(vercel inspect:*)",
-      "Bash(npx vercel:*)"
+      "Bash(npx vercel:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

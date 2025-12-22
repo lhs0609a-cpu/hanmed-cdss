@@ -51,37 +51,6 @@ const processTranscriptToSOAP = (transcript: string): SOAPNote => {
   const assessment: string[] = []
   const plan: string[] = []
 
-  // Common patterns for Korean medical speech
-  const subjectivePatterns = [
-    /주소증[은는이가]?\s*([^,\.]+)/g,
-    /([^,\.]+)[이가]\s*아프/g,
-    /([^,\.]+)\s*(있|없)/g,
-    /(\d+)일\s*전부터/g,
-    /([^,\.]+)\s*호소/g,
-  ]
-
-  const objectivePatterns = [
-    /맥[은는이가]?\s*([^,\.]+)/g,
-    /설[은는이가]?\s*([^,\.]+)/g,
-    /혈압\s*([0-9\/]+)/g,
-    /체온\s*([\d\.]+)/g,
-    /([촌관척]+)\s*맥/g,
-  ]
-
-  const assessmentPatterns = [
-    /([^,\.]+)\s*의심/g,
-    /변증[은는이가]?\s*([^,\.]+)/g,
-    /([^,\.]+)[증후군]/g,
-  ]
-
-  const planPatterns = [
-    /처방[은는이가]?\s*([^,\.]+)/g,
-    /([^,\.]+)\s*(탕|환|산)/g,
-    /침\s*([^,\.]+)/g,
-    /뜸\s*([^,\.]+)/g,
-    /추나/g,
-  ]
-
   // Simple keyword-based extraction for demo
   const lines = transcript.split(/[,\.]/);
 
@@ -137,7 +106,7 @@ export default function VoiceChartPage() {
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
 
   // Check microphone permission
   useEffect(() => {
@@ -646,10 +615,48 @@ ${soapNote.plan}
   )
 }
 
-// Add TypeScript declarations for Web Speech API
+// Web Speech API type declarations
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+}
+
+interface SpeechRecognitionResultList {
+  length: number
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean
+  [index: number]: SpeechRecognitionAlternative
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start(): void
+  stop(): void
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+}
+
+interface SpeechRecognitionConstructor {
+  new(): SpeechRecognitionInstance
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition
-    webkitSpeechRecognition: typeof SpeechRecognition
+    SpeechRecognition: SpeechRecognitionConstructor
+    webkitSpeechRecognition: SpeechRecognitionConstructor
   }
 }

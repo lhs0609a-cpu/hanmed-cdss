@@ -657,7 +657,7 @@ export default function FormulaComparePage() {
               <h3 className="font-bold text-red-900">금기 사항</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {selectedPair.formulas.map((formula, index) => (
+              {selectedPair.formulas.map((formula) => (
                 <div key={formula.id}>
                   <p className="text-sm font-semibold text-red-800 mb-2">{formula.name}</p>
                   <ul className="space-y-1">

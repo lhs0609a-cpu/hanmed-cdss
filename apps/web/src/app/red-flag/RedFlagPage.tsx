@@ -11,7 +11,6 @@ import {
   Heart,
   Brain,
   Bone,
-  Eye,
   Stethoscope,
   Thermometer,
   Activity,

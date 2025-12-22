@@ -415,7 +415,7 @@ export default function ClaimCheckPage() {
                   </div>
                   {'point' in code && (
                     <p className="text-xs text-gray-500 mt-1">
-                      {code.point.toLocaleString()}점
+                      {(code as ProcedureCode).point.toLocaleString()}점
                     </p>
                   )}
                 </button>

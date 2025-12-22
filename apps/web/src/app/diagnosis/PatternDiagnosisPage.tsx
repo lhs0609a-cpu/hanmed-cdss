@@ -10,7 +10,6 @@ import {
   Moon,
   Utensils,
   Heart,
-  Wind,
   Droplets,
   Flame,
   CircleDot,

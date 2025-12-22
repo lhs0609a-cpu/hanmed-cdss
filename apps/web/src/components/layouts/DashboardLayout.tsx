@@ -45,7 +45,7 @@ const coreFeatures = [
   { name: '음성 차트', href: '/voice-chart', icon: Mic, description: 'STT→SOAP', badge: 'NEW' },
 ]
 
-const clinicalTools = [
+const clinicalTools: Array<{ name: string; href: string; icon: React.ComponentType<{ className?: string }>; description: string; badge?: string }> = [
   { name: '체질 진단', href: '/constitution', icon: User, description: '사상체질' },
   { name: '증상→처방', href: '/symptom-search', icon: Search, description: '역검색' },
   { name: '경혈 검색', href: '/acupoints', icon: MapPin, description: '경락/혈위' },
