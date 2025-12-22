@@ -22,6 +22,7 @@ import {
   Check,
 } from 'lucide-react'
 import api from '@/services/api'
+import PageGuide from '@/components/common/PageGuide'
 
 interface Symptom {
   name: string
@@ -786,6 +787,50 @@ export default function ConsultationPage() {
           </div>
         </div>
       )}
+
+      {/* Page Guide */}
+      <PageGuide
+        pageId="consultation"
+        pageTitle="AI 진료 상담"
+        pageDescription="환자의 증상을 입력하면 AI가 최적의 한방 처방을 추천해드립니다."
+        whenToUse={[
+          '새로운 환자를 진료할 때',
+          '복잡한 증상에 대한 처방 결정이 필요할 때',
+          '다양한 처방 옵션을 비교하고 싶을 때',
+          '처방의 근거와 구성을 확인하고 싶을 때',
+        ]}
+        steps={[
+          {
+            title: '환자 정보 입력',
+            description: '왼쪽 패널에서 환자의 이름, 나이, 성별을 입력합니다. 정확한 정보가 더 나은 추천에 도움됩니다.',
+            tip: '기존 환자는 "환자 선택" 버튼으로 불러올 수 있어요!',
+          },
+          {
+            title: '증상 추가하기',
+            description: '"증상 추가" 버튼을 눌러 환자의 증상을 입력합니다. 각 증상의 심한 정도(1-10)도 함께 설정하세요.',
+            tip: '주증상을 먼저 입력하고, 부증상을 추가하면 더 정확해요',
+          },
+          {
+            title: 'AI 분석 시작',
+            description: '"AI 분석 시작" 버튼을 클릭하면 AI가 증상을 분석하고 적합한 처방을 추천합니다. 분석에는 몇 초가 걸릴 수 있습니다.',
+          },
+          {
+            title: '추천 결과 확인',
+            description: 'AI가 추천한 처방 목록이 표시됩니다. 각 처방의 신뢰도, 구성 약재, 추천 이유를 확인하세요.',
+          },
+          {
+            title: '상세 정보 보기',
+            description: '"상세정보" 버튼을 클릭하면 처방의 출전, 주치, 가감법, 현대 임상 적응증 등 자세한 정보를 볼 수 있습니다.',
+            tip: '처방 정보는 클립보드에 복사할 수도 있어요!',
+          },
+        ]}
+        tips={[
+          '증상을 구체적으로 입력할수록 AI 추천 정확도가 높아져요',
+          '복수의 처방이 추천되면 환자 체질과 병력을 고려해 선택하세요',
+          '상호작용 검사를 통해 복용 중인 양약과의 안전성을 확인하세요',
+          '"처방 선택" 후 환자 기록에 자동 저장됩니다',
+        ]}
+      />
     </div>
   )
 }

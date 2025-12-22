@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import PageGuide from '@/components/common/PageGuide'
 
 interface Patient {
   id: string
@@ -562,6 +563,44 @@ export default function PatientsPage() {
           </div>
         </div>
       )}
+
+      {/* Page Guide */}
+      <PageGuide
+        pageId="patients"
+        pageTitle="환자 관리"
+        pageDescription="등록된 환자 목록을 확인하고 새 환자를 등록하거나 차트를 열람합니다."
+        whenToUse={[
+          '새 환자를 등록할 때',
+          '기존 환자의 차트를 확인할 때',
+          '환자 정보를 검색하거나 필터링할 때',
+          '환자의 내원 이력을 파악할 때',
+        ]}
+        steps={[
+          {
+            title: '환자 검색하기',
+            description: '상단 검색창에 환자 이름, 전화번호 또는 주소증을 입력하여 환자를 빠르게 찾을 수 있습니다.',
+            tip: '전화번호 뒷자리만으로도 검색이 가능해요!',
+          },
+          {
+            title: '새 환자 등록',
+            description: '"+ 새 환자 등록" 버튼을 클릭하여 신규 환자를 등록합니다. 이름, 생년월일, 연락처, 체질, 주소증을 입력하세요.',
+          },
+          {
+            title: '필터 사용하기',
+            description: '필터 버튼을 통해 상태별(진료 중/완료), 체질별로 환자를 분류하여 볼 수 있습니다.',
+          },
+          {
+            title: '환자 차트 열기',
+            description: '환자 카드를 클릭하면 상세 차트로 이동합니다. 내원 이력, 처방 기록, 진료 경과를 확인할 수 있습니다.',
+            tip: '화살표 버튼을 클릭해도 차트로 이동해요',
+          },
+        ]}
+        tips={[
+          '환자 등록 시 체질을 미리 입력하면 AI 추천이 더 정확해져요',
+          '주소증을 상세히 기록하면 나중에 검색이 편리해요',
+          '정기 내원 환자는 "활성" 상태로 분류됩니다',
+        ]}
+      />
     </div>
   )
 }

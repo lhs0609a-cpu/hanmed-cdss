@@ -13,6 +13,7 @@ import {
   FileText,
 } from 'lucide-react'
 import api from '@/services/api'
+import PageGuide from '@/components/common/PageGuide'
 
 interface InteractionResult {
   has_interactions: boolean
@@ -425,6 +426,44 @@ export default function InteractionsPage() {
           )}
         </div>
       </div>
+
+      {/* Page Guide */}
+      <PageGuide
+        pageId="interactions"
+        pageTitle="상호작용 검사"
+        pageDescription="한약재와 양약 간의 상호작용을 검사하여 안전한 처방을 도와드립니다."
+        whenToUse={[
+          '양약을 복용 중인 환자에게 한약을 처방할 때',
+          '처방의 안전성을 확인하고 싶을 때',
+          '환자에게 병용 금기 사항을 설명할 때',
+          '다제 복용 환자의 약물 검토 시',
+        ]}
+        steps={[
+          {
+            title: '한약재 입력',
+            description: '왼쪽 패널에서 "약재 추가"를 클릭하여 처방할 한약재를 입력합니다. 여러 약재를 추가할 수 있습니다.',
+            tip: '전체 처방 구성을 입력하면 더 정확한 검사가 가능해요',
+          },
+          {
+            title: '양약 입력',
+            description: '"양약 추가"를 클릭하여 환자가 복용 중인 양약을 입력합니다. 성분명이나 상품명 모두 검색 가능합니다.',
+          },
+          {
+            title: '검사 실행',
+            description: '"상호작용 검사" 버튼을 클릭하면 AI가 입력된 약물들 간의 상호작용을 분석합니다.',
+          },
+          {
+            title: '결과 확인',
+            description: '검사 결과는 중증도별(병용금기/주의)로 분류되어 표시됩니다. 각 상호작용의 메커니즘과 권고사항을 확인하세요.',
+            tip: '빨간색 경고는 반드시 주의가 필요한 항목이에요!',
+          },
+        ]}
+        tips={[
+          '와파린, 항혈소판제 복용 환자는 활혈약 사용에 특히 주의하세요',
+          '당뇨약 복용 환자는 인삼, 황기 등 혈당에 영향을 줄 수 있는 약재를 확인하세요',
+          '결과를 인쇄하여 환자 상담 시 활용할 수 있어요',
+        ]}
+      />
     </div>
   )
 }

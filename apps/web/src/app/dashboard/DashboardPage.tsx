@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import PageGuide from '@/components/common/PageGuide'
 import {
   Stethoscope,
   BookOpen,
@@ -314,6 +315,42 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Page Guide */}
+      <PageGuide
+        pageId="dashboard"
+        pageTitle="대시보드"
+        pageDescription="온고지신 AI의 메인 화면입니다. 주요 기능에 빠르게 접근하고 활동 현황을 확인하세요."
+        whenToUse={[
+          '시스템에 처음 접속했을 때',
+          '오늘의 진료 현황을 확인하고 싶을 때',
+          '자주 사용하는 기능에 빠르게 접근하고 싶을 때',
+        ]}
+        steps={[
+          {
+            title: '새 진료 시작하기',
+            description: '상단 "새 진료 시작" 버튼을 클릭하면 AI 진료 상담 페이지로 이동합니다. 환자 증상을 입력하면 AI가 처방을 추천해드립니다.',
+            tip: '증상을 구체적으로 입력할수록 더 정확한 추천을 받을 수 있어요!',
+          },
+          {
+            title: '빠른 실행 메뉴 활용',
+            description: '중앙의 빠른 실행 카드를 통해 자주 사용하는 기능에 바로 접근하세요. 치험례 검색, 상호작용 검사 등을 바로 시작할 수 있습니다.',
+          },
+          {
+            title: '최근 활동 확인',
+            description: '왼쪽 하단에서 최근 진료 기록과 검색 이력을 확인할 수 있습니다. 이전 환자의 기록을 빠르게 찾아볼 수 있어요.',
+          },
+          {
+            title: '사용량 확인하기',
+            description: '오른쪽 하단에서 이번 달 AI 추천, 검색 사용량을 확인하세요. Pro 업그레이드 시 무제한으로 사용 가능합니다.',
+          },
+        ]}
+        tips={[
+          '왼쪽 사이드바 메뉴를 통해 모든 기능에 접근할 수 있어요',
+          '오른쪽 하단 도움말(?) 버튼은 언제든 다시 누를 수 있어요',
+          '자주 사용하는 기능은 즐겨찾기에 추가할 수 있어요',
+        ]}
+      />
     </div>
   )
 }
