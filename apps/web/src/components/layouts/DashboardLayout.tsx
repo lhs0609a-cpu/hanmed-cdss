@@ -22,6 +22,10 @@ import {
   FileText,
   Scale,
   ScrollText,
+  Brain,
+  Shield,
+  Mic,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -33,8 +37,16 @@ const mainNavigation = [
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
 ]
 
+const coreFeatures = [
+  { name: 'AI 변증', href: '/pattern-diagnosis', icon: Brain, description: '변증 분석', badge: 'HOT' },
+  { name: '삭감 예측', href: '/claim-check', icon: Shield, description: '보험 청구', badge: 'NEW' },
+  { name: '처방 비교', href: '/formula-compare', icon: ArrowLeftRight, description: '유사 처방' },
+  { name: 'Red Flag', href: '/red-flag', icon: AlertTriangle, description: '위험 신호' },
+  { name: '음성 차트', href: '/voice-chart', icon: Mic, description: 'STT→SOAP', badge: 'NEW' },
+]
+
 const clinicalTools = [
-  { name: '체질 진단', href: '/constitution', icon: User, description: '사상체질', badge: 'NEW' },
+  { name: '체질 진단', href: '/constitution', icon: User, description: '사상체질' },
   { name: '증상→처방', href: '/symptom-search', icon: Search, description: '역검색' },
   { name: '경혈 검색', href: '/acupoints', icon: MapPin, description: '경락/혈위' },
   { name: '맥진 기록', href: '/pulse', icon: Activity, description: '육부위 맥진' },
@@ -153,6 +165,42 @@ export default function DashboardLayout() {
                         <span className={cn(
                           'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
                           isActive ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Core Features - 핵심 기능 */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-red-500 uppercase tracking-wider">
+                🔥 핵심 기능
+              </p>
+              <div className="space-y-1">
+                {coreFeatures.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30'
+                          : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-purple-400')} />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
+                          isActive ? 'bg-white/20 text-white' : item.badge === 'HOT' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'
                         )}>
                           {item.badge}
                         </span>

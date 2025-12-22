@@ -10,7 +10,8 @@
       "Bash(cat:*)",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(vercel inspect:*)"
+      "Bash(vercel inspect:*)",
+      "Bash(npx vercel:*)"
     ]
   }
 }

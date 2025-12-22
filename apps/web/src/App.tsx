@@ -30,6 +30,13 @@ import ClassicsPage from '@/app/classics/ClassicsPage'
 import InsuranceCodePage from '@/app/insurance/InsuranceCodePage'
 import DocumentsPage from '@/app/documents/DocumentsPage'
 
+// Core Features - New
+import PatternDiagnosisPage from '@/app/diagnosis/PatternDiagnosisPage'
+import ClaimCheckPage from '@/app/claim-check/ClaimCheckPage'
+import FormulaComparePage from '@/app/formula-compare/FormulaComparePage'
+import RedFlagPage from '@/app/red-flag/RedFlagPage'
+import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -79,6 +86,13 @@ function App() {
           <Route path="classics" element={<ClassicsPage />} />
           <Route path="insurance" element={<InsuranceCodePage />} />
           <Route path="documents" element={<DocumentsPage />} />
+
+          {/* Core Features - New */}
+          <Route path="pattern-diagnosis" element={<PatternDiagnosisPage />} />
+          <Route path="claim-check" element={<ClaimCheckPage />} />
+          <Route path="formula-compare" element={<FormulaComparePage />} />
+          <Route path="red-flag" element={<RedFlagPage />} />
+          <Route path="voice-chart" element={<VoiceChartPage />} />
         </Route>
 
         {/* Fallback */}
