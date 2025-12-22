@@ -16,18 +16,43 @@ import {
   FlaskConical,
   Leaf,
   Calculator,
+  User,
+  MapPin,
+  Activity,
+  Users,
+  FileText,
+  Scale,
+  ScrollText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
-const navigation = [
+const mainNavigation = [
   { name: '대시보드', href: '/', icon: LayoutDashboard, description: '전체 현황' },
   { name: 'AI 진료', href: '/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
+  { name: '환자 관리', href: '/patients', icon: Users, description: 'EMR/차트' },
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
-  { name: '상호작용', href: '/interactions', icon: AlertTriangle, description: '안전성 검사' },
+]
+
+const clinicalTools = [
+  { name: '체질 진단', href: '/constitution', icon: User, description: '사상체질', badge: 'NEW' },
+  { name: '증상→처방', href: '/symptom-search', icon: Search, description: '역검색' },
+  { name: '경혈 검색', href: '/acupoints', icon: MapPin, description: '경락/혈위' },
+  { name: '맥진 기록', href: '/pulse', icon: Activity, description: '육부위 맥진' },
+  { name: '용량 계산', href: '/dosage', icon: Scale, description: '소아/임산부' },
+]
+
+const referenceTools = [
   { name: '처방 검색', href: '/formulas', icon: FlaskConical, description: '방제 정보' },
   { name: '약재 검색', href: '/herbs', icon: Leaf, description: '성분 정보' },
-  { name: '합방 계산기', href: '/combo', icon: Calculator, description: '처방 조합', badge: 'NEW' },
+  { name: '합방 계산기', href: '/combo', icon: Calculator, description: '처방 조합' },
+  { name: '상호작용', href: '/interactions', icon: AlertTriangle, description: '안전성 검사' },
+  { name: '고전 검색', href: '/classics', icon: ScrollText, description: '원문/해석' },
+]
+
+const adminTools = [
+  { name: '보험 코드', href: '/insurance', icon: FileText, description: '청구 코드' },
+  { name: '문서 템플릿', href: '/documents', icon: FileText, description: '동의서/안내문' },
 ]
 
 export default function DashboardLayout() {
@@ -102,33 +127,29 @@ export default function DashboardLayout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              메인 메뉴
-            </p>
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    'group flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-                    isActive
-                      ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
-                      : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
-                  )}
-                >
-                  <div className={cn(
-                    'p-2 rounded-lg transition-colors',
-                    isActive ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-gray-200/80'
-                  )}>
-                    <item.icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      {item.name}
+          <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+            {/* Main Navigation */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                메인 메뉴
+              </p>
+              <div className="space-y-1">
+                {mainNavigation.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                          : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
+                      <span className="flex-1">{item.name}</span>
                       {item.badge && (
                         <span className={cn(
                           'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
@@ -137,21 +158,103 @@ export default function DashboardLayout() {
                           {item.badge}
                         </span>
                       )}
-                    </div>
-                    <p className={cn(
-                      'text-[11px] mt-0.5',
-                      isActive ? 'text-white/70' : 'text-gray-400'
-                    )}>
-                      {item.description}
-                    </p>
-                  </div>
-                  <ChevronRight className={cn(
-                    'h-4 w-4 opacity-0 -translate-x-2 transition-all',
-                    isActive ? 'opacity-70' : 'group-hover:opacity-50 group-hover:translate-x-0'
-                  )} />
-                </Link>
-              )
-            })}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Clinical Tools */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                진료 도구
+              </p>
+              <div className="space-y-1">
+                {clinicalTools.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                          : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
+                          isActive ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-700'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Reference Tools */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                참고 자료
+              </p>
+              <div className="space-y-1">
+                {referenceTools.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                          : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
+                      <span className="flex-1">{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Admin Tools */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                관리
+              </p>
+              <div className="space-y-1">
+                {adminTools.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                          : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
+                      <span className="flex-1">{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
           </nav>
 
           {/* Upgrade banner */}

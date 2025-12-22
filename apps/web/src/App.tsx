@@ -18,6 +18,18 @@ import HerbsPage from '@/app/herbs/HerbsPage'
 import HerbDetailPage from '@/app/herbs/HerbDetailPage'
 import ComboPage from '@/app/combo/ComboPage'
 
+// New Pages
+import ConstitutionPage from '@/app/constitution/ConstitutionPage'
+import AcupointsPage from '@/app/acupoints/AcupointsPage'
+import SymptomSearchPage from '@/app/symptom-search/SymptomSearchPage'
+import PulseDiagnosisPage from '@/app/pulse/PulseDiagnosisPage'
+import DosageCalculatorPage from '@/app/dosage/DosageCalculatorPage'
+import PatientsPage from '@/app/patients/PatientsPage'
+import PatientDetailPage from '@/app/patients/PatientDetailPage'
+import ClassicsPage from '@/app/classics/ClassicsPage'
+import InsuranceCodePage from '@/app/insurance/InsuranceCodePage'
+import DocumentsPage from '@/app/documents/DocumentsPage'
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -55,6 +67,18 @@ function App() {
           <Route path="herbs" element={<HerbsPage />} />
           <Route path="herbs/:id" element={<HerbDetailPage />} />
           <Route path="combo" element={<ComboPage />} />
+
+          {/* New Routes */}
+          <Route path="constitution" element={<ConstitutionPage />} />
+          <Route path="acupoints" element={<AcupointsPage />} />
+          <Route path="symptom-search" element={<SymptomSearchPage />} />
+          <Route path="pulse" element={<PulseDiagnosisPage />} />
+          <Route path="dosage" element={<DosageCalculatorPage />} />
+          <Route path="patients" element={<PatientsPage />} />
+          <Route path="patients/:id" element={<PatientDetailPage />} />
+          <Route path="classics" element={<ClassicsPage />} />
+          <Route path="insurance" element={<InsuranceCodePage />} />
+          <Route path="documents" element={<DocumentsPage />} />
         </Route>
 
         {/* Fallback */}
