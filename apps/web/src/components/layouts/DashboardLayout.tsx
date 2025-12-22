@@ -13,6 +13,9 @@ import {
   Search,
   ChevronRight,
   Sparkles,
+  FlaskConical,
+  Leaf,
+  Calculator,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -22,6 +25,9 @@ const navigation = [
   { name: 'AI 진료', href: '/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
   { name: '상호작용', href: '/interactions', icon: AlertTriangle, description: '안전성 검사' },
+  { name: '처방 검색', href: '/formulas', icon: FlaskConical, description: '방제 정보' },
+  { name: '약재 검색', href: '/herbs', icon: Leaf, description: '성분 정보' },
+  { name: '합방 계산기', href: '/combo', icon: Calculator, description: '처방 조합', badge: 'NEW' },
 ]
 
 export default function DashboardLayout() {

@@ -12,6 +12,11 @@ import DashboardPage from '@/app/dashboard/DashboardPage'
 import ConsultationPage from '@/app/consultation/ConsultationPage'
 import CasesPage from '@/app/cases/CasesPage'
 import InteractionsPage from '@/app/interactions/InteractionsPage'
+import FormulasPage from '@/app/formulas/FormulasPage'
+import FormulaDetailPage from '@/app/formulas/FormulaDetailPage'
+import HerbsPage from '@/app/herbs/HerbsPage'
+import HerbDetailPage from '@/app/herbs/HerbDetailPage'
+import ComboPage from '@/app/combo/ComboPage'
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +50,11 @@ function App() {
           <Route path="consultation" element={<ConsultationPage />} />
           <Route path="cases" element={<CasesPage />} />
           <Route path="interactions" element={<InteractionsPage />} />
+          <Route path="formulas" element={<FormulasPage />} />
+          <Route path="formulas/:id" element={<FormulaDetailPage />} />
+          <Route path="herbs" element={<HerbsPage />} />
+          <Route path="herbs/:id" element={<HerbDetailPage />} />
+          <Route path="combo" element={<ComboPage />} />
         </Route>
 
         {/* Fallback */}

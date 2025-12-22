@@ -8,6 +8,9 @@ import { PatientsModule } from './modules/patients/patients.module';
 import { CasesModule } from './modules/cases/cases.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
+import { FormulasModule } from './modules/formulas/formulas.module';
+import { HerbsModule } from './modules/herbs/herbs.module';
+import { CombosModule } from './modules/combos/combos.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -41,6 +44,9 @@ import { HealthController } from './health.controller';
     CasesModule,
     PrescriptionsModule,
     InteractionsModule,
+    FormulasModule,
+    HerbsModule,
+    CombosModule,
   ],
   controllers: [HealthController],
 })

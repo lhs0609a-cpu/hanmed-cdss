@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { HerbCompound } from './herb-compound.entity';
+import { FormulaHerb } from './formula-herb.entity';
 
 @Entity('herbs_master')
 export class Herb {
@@ -46,6 +49,12 @@ export class Herb {
 
   @Column('text', { array: true, nullable: true })
   pubmedReferences: string[]; // 관련 논문 PMID
+
+  @OneToMany(() => HerbCompound, (hc) => hc.herb)
+  compounds: HerbCompound[];
+
+  @OneToMany(() => FormulaHerb, (fh) => fh.herb)
+  formulaHerbs: FormulaHerb[];
 
   @CreateDateColumn()
   createdAt: Date;
