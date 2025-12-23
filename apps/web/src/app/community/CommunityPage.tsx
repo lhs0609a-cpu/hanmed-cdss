@@ -11,13 +11,11 @@ import {
   Eye,
   Heart,
   MessageCircle,
-  TrendingUp,
   Clock,
   CheckCircle,
   Shield,
   Star,
   ChevronRight,
-  Filter,
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 
@@ -387,10 +385,10 @@ export default function CommunityPage() {
                   <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       {post.author.isLicenseVerified && (
-                        <Shield className="h-4 w-4 text-blue-500" title="인증된 한의사" />
+                        <Shield className="h-4 w-4 text-blue-500" />
                       )}
                       {post.author.subscriptionTier === 'master' && (
-                        <Star className="h-4 w-4 text-yellow-500" title="MASTER" />
+                        <Star className="h-4 w-4 text-yellow-500" />
                       )}
                       <span className="font-medium text-gray-700">{post.author.name}</span>
                     </div>

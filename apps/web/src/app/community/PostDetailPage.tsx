@@ -9,10 +9,8 @@ import {
   Share2,
   MoreVertical,
   Shield,
-  Star,
   CheckCircle,
   Flag,
-  BookOpen,
   Send,
   ThumbsUp,
   Reply,
@@ -142,7 +140,7 @@ const dummyComments: CommunityComment[] = [
 ]
 
 export default function PostDetailPage() {
-  const { id } = useParams()
+  const { id: _id } = useParams()
   const navigate = useNavigate()
   const [isLiked, setIsLiked] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
@@ -211,7 +209,7 @@ export default function PostDetailPage() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-gray-900">{dummyPost.author.name}</span>
                   {dummyPost.author.isLicenseVerified && (
-                    <Shield className="h-4 w-4 text-blue-500" title="인증된 한의사" />
+                    <Shield className="h-4 w-4 text-blue-500" />
                   )}
                   {dummyPost.author.subscriptionTier === 'master' && (
                     <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-medium">
