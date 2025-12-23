@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Search,
@@ -13,7 +13,6 @@ import {
   Activity,
   Brain,
 } from 'lucide-react'
-import PageGuide from '@/components/common/PageGuide'
 
 // 더미 치험례 데이터 (상세 정보 포함)
 interface CaseRecord {
@@ -236,24 +235,27 @@ export default function CasesPage() {
   const [selectedCase, setSelectedCase] = useState<CaseRecord | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
-  const filteredCases = dummyCases.filter((c) => {
-    const matchesQuery =
-      !searchQuery ||
-      c.chiefComplaint.includes(searchQuery) ||
-      c.symptoms.includes(searchQuery) ||
-      c.formulaName.includes(searchQuery) ||
-      c.diagnosis.pattern.includes(searchQuery)
-    const matchesConstitution = !selectedConstitution || c.constitution === selectedConstitution
-    const matchesOutcome = !selectedOutcome || c.outcome === selectedOutcome
-    return matchesQuery && matchesConstitution && matchesOutcome
-  })
+  // 필터링된 치험례 목록 (메모이제이션으로 성능 최적화)
+  const filteredCases = useMemo(() => {
+    return dummyCases.filter((c) => {
+      const matchesQuery =
+        !searchQuery ||
+        c.chiefComplaint.includes(searchQuery) ||
+        c.symptoms.includes(searchQuery) ||
+        c.formulaName.includes(searchQuery) ||
+        c.diagnosis.pattern.includes(searchQuery)
+      const matchesConstitution = !selectedConstitution || c.constitution === selectedConstitution
+      const matchesOutcome = !selectedOutcome || c.outcome === selectedOutcome
+      return matchesQuery && matchesConstitution && matchesOutcome
+    })
+  }, [searchQuery, selectedConstitution, selectedOutcome])
 
-  const openDetailModal = (caseItem: CaseRecord) => {
+  const openDetailModal = useCallback((caseItem: CaseRecord) => {
     setSelectedCase(caseItem)
     setShowDetailModal(true)
-  }
+  }, [])
 
-  const getOutcomeColor = (outcome: string) => {
+  const getOutcomeColor = useCallback((outcome: string) => {
     switch (outcome) {
       case '완치':
         return 'bg-green-100 text-green-700'
@@ -264,7 +266,7 @@ export default function CasesPage() {
       default:
         return 'bg-gray-100 text-gray-700'
     }
-  }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -414,7 +416,12 @@ export default function CasesPage() {
 
       {/* 상세 정보 모달 */}
       {showDetailModal && selectedCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="case-detail-title"
+        >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
             {/* 모달 헤더 */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white">
@@ -434,13 +441,14 @@ export default function CasesPage() {
                       {selectedCase.outcome}
                     </span>
                   </div>
-                  <h2 className="text-xl font-bold">{selectedCase.chiefComplaint}</h2>
+                  <h2 id="case-detail-title" className="text-xl font-bold">{selectedCase.chiefComplaint}</h2>
                 </div>
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  aria-label="닫기"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -612,7 +620,7 @@ export default function CasesPage() {
                 닫기
               </button>
               <Link
-                to={`/consultation?formula=${selectedCase.formulaName}`}
+                to={`/consultation?formula=${encodeURIComponent(selectedCase.formulaName)}`}
                 className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-medium text-center"
               >
                 이 처방으로 진료 시작
@@ -622,43 +630,6 @@ export default function CasesPage() {
         </div>
       )}
 
-      {/* Page Guide */}
-      <PageGuide
-        pageId="cases"
-        pageTitle="치험례 검색"
-        pageDescription="6,000건의 임상 치험례 데이터베이스에서 유사 사례를 찾아 진료에 활용하세요."
-        whenToUse={[
-          '유사한 증상의 치료 사례를 참고하고 싶을 때',
-          '특정 처방의 실제 임상 적용 사례가 궁금할 때',
-          '변증 및 치료 방법에 대한 영감이 필요할 때',
-          '치료 예후를 예측하고 싶을 때',
-        ]}
-        steps={[
-          {
-            title: '키워드 검색',
-            description: '검색창에 증상, 진단명, 처방명 등을 입력하여 관련 치험례를 찾습니다.',
-            tip: '복합 증상은 띄어쓰기로 구분하여 검색하세요 (예: "두통 어지러움")',
-          },
-          {
-            title: '결과 필터링',
-            description: '치료 결과(완치/호전/무효)별로 필터링하여 원하는 사례만 볼 수 있습니다.',
-          },
-          {
-            title: '상세 정보 확인',
-            description: '치험례 카드의 "상세보기"를 클릭하면 환자 정보, 변증, 처방 구성, 치료 경과를 상세히 볼 수 있습니다.',
-          },
-          {
-            title: '진료에 적용하기',
-            description: '마음에 드는 사례를 발견하면 "이 처방으로 진료 시작" 버튼으로 바로 AI 진료 화면으로 이동할 수 있습니다.',
-            tip: '치험례의 가감법을 참고하여 환자에 맞게 수정하세요',
-          },
-        ]}
-        tips={[
-          '체질 정보가 있는 치험례는 체질 의학적 관점을 함께 참고하세요',
-          '치료 기간과 경과를 참고하여 환자에게 예후 설명이 가능해요',
-          '통계 카드에서 전체 치험례의 분포를 확인할 수 있어요',
-        ]}
-      />
     </div>
   )
 }

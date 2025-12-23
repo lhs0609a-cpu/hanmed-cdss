@@ -151,7 +151,11 @@ export default function VoiceChartPage() {
         }
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error)
+          // 음성 인식 오류 처리 (사용자에게는 UI로 표시)
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.error('Speech recognition error:', event.error)
+          }
           if (event.error === 'not-allowed') {
             setMicPermission('denied')
           }
@@ -189,7 +193,11 @@ export default function VoiceChartPage() {
         recognitionRef.current.start()
       }
     } catch (error) {
-      console.error('Error starting recording:', error)
+      // 마이크 접근 오류 (사용자에게는 UI로 권한 거부 표시)
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.error('Error starting recording:', error)
+      }
       setMicPermission('denied')
     }
   }

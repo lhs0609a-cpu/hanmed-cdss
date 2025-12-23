@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import PageGuide from '@/components/common/PageGuide'
+import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import {
   Stethoscope,
   BookOpen,
@@ -13,6 +14,41 @@ import {
   ChevronRight,
   Zap,
 } from 'lucide-react'
+
+const dashboardTourSteps = [
+  {
+    target: '[data-tour="welcome-header"]',
+    title: '환영합니다!',
+    content: '온고지신 AI 대시보드입니다. 여기서 오늘의 진료 현황과 AI 활용 통계를 한눈에 볼 수 있어요.',
+    placement: 'bottom' as const,
+  },
+  {
+    target: '[data-tour="start-consultation"]',
+    title: '새 진료 시작',
+    content: '이 버튼을 클릭하면 AI 진료 상담 페이지로 이동합니다. 환자 증상을 입력하면 AI가 최적의 처방을 추천해드려요.',
+    placement: 'bottom' as const,
+    tip: '가장 자주 사용하게 될 버튼이에요!',
+  },
+  {
+    target: '[data-tour="quick-actions"]',
+    title: '빠른 실행 메뉴',
+    content: '자주 사용하는 기능에 빠르게 접근할 수 있어요. AI 진료, 치험례 검색, 상호작용 검사를 바로 시작하세요.',
+    placement: 'top' as const,
+  },
+  {
+    target: '[data-tour="recent-activity"]',
+    title: '최근 활동',
+    content: '최근 진료 기록과 검색 이력을 확인할 수 있어요. 이전 환자의 기록을 빠르게 찾아볼 수 있습니다.',
+    placement: 'right' as const,
+  },
+  {
+    target: '[data-tour="usage-stats"]',
+    title: '사용량 현황',
+    content: '이번 달 AI 추천, 검색 사용량을 확인하세요. Pro로 업그레이드하면 무제한 사용이 가능합니다.',
+    placement: 'left' as const,
+    tip: '사이드바 메뉴로 다른 기능들도 탐색해보세요!',
+  },
+]
 
 const stats = [
   {
@@ -106,11 +142,15 @@ export default function DashboardPage() {
   const currentHour = new Date().getHours()
   const greeting =
     currentHour < 12 ? '좋은 아침이에요' : currentHour < 18 ? '안녕하세요' : '수고하셨어요'
+  const [showTour, setShowTour] = useState(true)
 
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-3xl p-8 text-white">
+      <div
+        data-tour="welcome-header"
+        className="relative overflow-hidden bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-3xl p-8 text-white"
+      >
         {/* Background decoration */}
         <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
@@ -132,6 +172,7 @@ export default function DashboardPage() {
 
           <Link
             to="/consultation"
+            data-tour="start-consultation"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-600 rounded-xl font-semibold hover:bg-teal-50 transition-colors shadow-lg"
           >
             <Zap className="h-5 w-5" />
@@ -174,7 +215,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div>
+      <div data-tour="quick-actions">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">빠른 실행</h2>
         </div>
@@ -222,7 +263,7 @@ export default function DashboardPage() {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Recent Activity */}
-        <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div data-tour="recent-activity" className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">최근 활동</h2>
             <button className="text-sm font-medium text-teal-600 hover:text-teal-700">
@@ -272,7 +313,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Usage Stats */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div data-tour="usage-stats" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4">이번 달 사용량</h3>
 
             <div className="space-y-4">
@@ -316,41 +357,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Page Guide */}
-      <PageGuide
-        pageId="dashboard"
-        pageTitle="대시보드"
-        pageDescription="온고지신 AI의 메인 화면입니다. 주요 기능에 빠르게 접근하고 활동 현황을 확인하세요."
-        whenToUse={[
-          '시스템에 처음 접속했을 때',
-          '오늘의 진료 현황을 확인하고 싶을 때',
-          '자주 사용하는 기능에 빠르게 접근하고 싶을 때',
-        ]}
-        steps={[
-          {
-            title: '새 진료 시작하기',
-            description: '상단 "새 진료 시작" 버튼을 클릭하면 AI 진료 상담 페이지로 이동합니다. 환자 증상을 입력하면 AI가 처방을 추천해드립니다.',
-            tip: '증상을 구체적으로 입력할수록 더 정확한 추천을 받을 수 있어요!',
-          },
-          {
-            title: '빠른 실행 메뉴 활용',
-            description: '중앙의 빠른 실행 카드를 통해 자주 사용하는 기능에 바로 접근하세요. 치험례 검색, 상호작용 검사 등을 바로 시작할 수 있습니다.',
-          },
-          {
-            title: '최근 활동 확인',
-            description: '왼쪽 하단에서 최근 진료 기록과 검색 이력을 확인할 수 있습니다. 이전 환자의 기록을 빠르게 찾아볼 수 있어요.',
-          },
-          {
-            title: '사용량 확인하기',
-            description: '오른쪽 하단에서 이번 달 AI 추천, 검색 사용량을 확인하세요. Pro 업그레이드 시 무제한으로 사용 가능합니다.',
-          },
-        ]}
-        tips={[
-          '왼쪽 사이드바 메뉴를 통해 모든 기능에 접근할 수 있어요',
-          '오른쪽 하단 도움말(?) 버튼은 언제든 다시 누를 수 있어요',
-          '자주 사용하는 기능은 즐겨찾기에 추가할 수 있어요',
-        ]}
-      />
+      {/* Tour Guide */}
+      {showTour && (
+        <TourGuide
+          tourId="dashboard"
+          steps={dashboardTourSteps}
+          onComplete={() => setShowTour(false)}
+        />
+      )}
+
+      {/* Restart Tour Button */}
+      <TourRestartButton tourId="dashboard" onClick={() => setShowTour(true)} />
     </div>
   )
 }

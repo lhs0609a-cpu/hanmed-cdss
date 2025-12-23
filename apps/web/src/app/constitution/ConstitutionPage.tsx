@@ -12,7 +12,6 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import PageGuide from '@/components/common/PageGuide'
 
 interface Question {
   id: number
@@ -528,42 +527,6 @@ export default function ConstitutionPage() {
         )}
       </div>
 
-      {/* Page Guide */}
-      <PageGuide
-        pageId="constitution"
-        pageTitle="사상체질 진단"
-        pageDescription="12가지 질문을 통해 환자의 사상체질(태양인, 태음인, 소양인, 소음인)을 진단합니다."
-        whenToUse={[
-          '새 환자의 체질을 파악하고 싶을 때',
-          '체질에 맞는 처방과 양생법을 안내할 때',
-          '기존 진단을 재확인하고 싶을 때',
-        ]}
-        steps={[
-          {
-            title: '질문에 답하기',
-            description: '12개의 질문이 순서대로 표시됩니다. 환자의 특성에 가장 가까운 보기를 선택하세요.',
-            tip: '모든 질문에 답해야 결과를 확인할 수 있어요',
-          },
-          {
-            title: '결과 확인',
-            description: '마지막 질문 후 "결과 확인"을 누르면 체질 진단 결과가 표시됩니다. 각 체질의 특징과 일치도를 확인하세요.',
-          },
-          {
-            title: '상세 정보 확인',
-            description: '진단된 체질의 체형, 성격, 강점, 주의점, 권장 음식, 맞는 한약재 정보를 확인할 수 있습니다.',
-          },
-          {
-            title: '환자 기록에 적용',
-            description: '진단 결과를 환자 차트에 기록하면 이후 AI 처방 추천에 반영됩니다.',
-            tip: '다시 진단하기 버튼으로 재검사도 가능해요',
-          },
-        ]}
-        tips={[
-          '체질 진단은 참고 자료로 활용하세요',
-          '환자의 병력과 현재 상태를 종합적으로 고려하세요',
-          '체질에 따른 식이 조언을 환자에게 안내하세요',
-        ]}
-      />
     </div>
   )
 }

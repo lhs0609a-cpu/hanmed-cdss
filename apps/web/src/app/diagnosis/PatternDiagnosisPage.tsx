@@ -179,6 +179,7 @@ interface PatternResult {
 }
 
 const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidence'>> = {
+  // ===== 허증 (虛證) =====
   '기허': {
     hanja: '氣虛',
     description: '원기가 부족하여 장부 기능이 저하된 상태',
@@ -203,6 +204,20 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
     treatment: '온양(溫陽)',
     formulas: ['팔미지황환', '우귀환', '진무탕'],
   },
+  '기혈양허': {
+    hanja: '氣血兩虛',
+    description: '기와 혈이 모두 부족한 상태',
+    treatment: '기혈쌍보(氣血雙補)',
+    formulas: ['팔진탕', '십전대보탕', '인삼양영탕'],
+  },
+  '음양양허': {
+    hanja: '陰陽兩虛',
+    description: '음과 양이 모두 부족한 상태',
+    treatment: '음양쌍보(陰陽雙補)',
+    formulas: ['지황음자', '귀기건중탕', '보원탕'],
+  },
+
+  // ===== 장부 변증 - 간 (肝) =====
   '간기울결': {
     hanja: '肝氣鬱結',
     description: '간의 소설 기능이 저하되어 기가 울체된 상태',
@@ -221,29 +236,275 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
     treatment: '청간사화(清肝瀉火)',
     formulas: ['용담사간탕', '당귀용회환', '좌금환'],
   },
+  '간화상염': {
+    hanja: '肝火上炎',
+    description: '간화가 위로 타올라 상부에 증상이 나타나는 상태',
+    treatment: '청간사화(清肝瀉火)',
+    formulas: ['용담사간탕', '시호청간탕', '하고초산'],
+  },
+  '간혈허': {
+    hanja: '肝血虛',
+    description: '간장의 혈이 부족하여 근맥과 눈을 영양하지 못하는 상태',
+    treatment: '보혈양간(補血養肝)',
+    formulas: ['사물탕', '보간탕', '일관전'],
+  },
+  '간음허': {
+    hanja: '肝陰虛',
+    description: '간장의 음액이 부족한 상태',
+    treatment: '자양간음(滋養肝陰)',
+    formulas: ['일관전', '보간탕', '기국지황환'],
+  },
+  '간풍내동': {
+    hanja: '肝風內動',
+    description: '간풍이 내부에서 일어나 경련, 진전 등이 나타나는 상태',
+    treatment: '식풍지경(息風止痙)',
+    formulas: ['천마구등음', '영양각구등탕', '진간식풍탕'],
+  },
+  '간담습열': {
+    hanja: '肝膽濕熱',
+    description: '간담에 습열이 울체된 상태',
+    treatment: '청리간담습열(清利肝膽濕熱)',
+    formulas: ['용담사간탕', '인진호탕', '시호청간탕'],
+  },
+  '간위불화': {
+    hanja: '肝胃不和',
+    description: '간기가 위를 범하여 위의 기능이 저하된 상태',
+    treatment: '소간화위(疏肝和胃)',
+    formulas: ['시호소간산', '좌금환', '사역산'],
+  },
+  '간기범위': {
+    hanja: '肝氣犯胃',
+    description: '간기가 횡역하여 위기능을 침범한 상태',
+    treatment: '소간화위(疏肝和胃)',
+    formulas: ['시호소간산', '사역산', '반하사심탕'],
+  },
+
+  // ===== 장부 변증 - 심 (心) =====
   '심혈허': {
     hanja: '心血虛',
     description: '심장의 혈이 부족한 상태',
     treatment: '보혈양심(補血養心)',
     formulas: ['귀비탕', '천왕보심단', '양심탕'],
   },
+  '심기허': {
+    hanja: '心氣虛',
+    description: '심장의 기가 허약한 상태',
+    treatment: '보심익기(補心益氣)',
+    formulas: ['양심탕', '안신정지환', '천왕보심단'],
+  },
+  '심양허': {
+    hanja: '心陽虛',
+    description: '심장의 양기가 부족한 상태',
+    treatment: '온보심양(溫補心陽)',
+    formulas: ['계지감초탕', '귀기탕', '보원탕'],
+  },
+  '심음허': {
+    hanja: '心陰虛',
+    description: '심장의 음액이 부족한 상태',
+    treatment: '자음양심(滋陰養心)',
+    formulas: ['천왕보심단', '생맥산', '자감초탕'],
+  },
+  '심담허': {
+    hanja: '心膽虛',
+    description: '심담이 함께 허약하여 놀람과 두려움이 쉽게 생기는 상태',
+    treatment: '보심담익기(補心膽益氣)',
+    formulas: ['안신정지환', '온담탕', '정지환'],
+  },
+  '심비양허': {
+    hanja: '心脾兩虛',
+    description: '심장과 비장이 함께 허약한 상태',
+    treatment: '보심건비(補心健脾)',
+    formulas: ['귀비탕', '양심탕', '삼령백출산'],
+  },
+  '심신불교': {
+    hanja: '心腎不交',
+    description: '심화와 신수가 상호 교류하지 못하는 상태',
+    treatment: '교통심신(交通心腎)',
+    formulas: ['황련아교탕', '교태환', '천왕보심단'],
+  },
+  '담화요심': {
+    hanja: '痰火擾心',
+    description: '담과 화가 심을 어지럽히는 상태',
+    treatment: '청열화담(清熱化痰)',
+    formulas: ['온담탕', '황련온담탕', '도담탕'],
+  },
+
+  // ===== 장부 변증 - 비 (脾) =====
   '비기허': {
     hanja: '脾氣虛',
     description: '비장의 기가 허약한 상태',
     treatment: '건비익기(健脾益氣)',
     formulas: ['사군자탕', '삼령백출산', '보중익기탕'],
   },
+  '비양허': {
+    hanja: '脾陽虛',
+    description: '비장의 양기가 부족하여 운화기능이 저하된 상태',
+    treatment: '온중건비(溫中健脾)',
+    formulas: ['이중탕', '부자이중환', '실비산'],
+  },
+  '비허습곤': {
+    hanja: '脾虛濕困',
+    description: '비허로 습이 정체되어 비장을 곤란하게 하는 상태',
+    treatment: '건비이습(健脾利濕)',
+    formulas: ['삼령백출산', '평위산', '위령탕'],
+  },
+  '습곤비': {
+    hanja: '濕困脾',
+    description: '습사가 비장을 곤란하게 하는 상태',
+    treatment: '운비화습(運脾化濕)',
+    formulas: ['평위산', '곽향정기산', '위령탕'],
+  },
+  '비불통혈': {
+    hanja: '脾不統血',
+    description: '비장이 혈을 통솔하지 못하여 출혈이 나타나는 상태',
+    treatment: '보기섭혈(補氣攝血)',
+    formulas: ['귀비탕', '보중익기탕가감', '십회산'],
+  },
+  '중기하함': {
+    hanja: '中氣下陷',
+    description: '비기가 하함하여 장기가 하수되는 상태',
+    treatment: '익기승양(益氣升陽)',
+    formulas: ['보중익기탕', '승양익위탕', '거원전'],
+  },
+
+  // ===== 장부 변증 - 폐 (肺) =====
+  '폐기허': {
+    hanja: '肺氣虛',
+    description: '폐의 기가 허약한 상태',
+    treatment: '보폐익기(補肺益氣)',
+    formulas: ['보폐탕', '옥병풍산', '생맥산'],
+  },
+  '폐음허': {
+    hanja: '肺陰虛',
+    description: '폐의 음액이 부족한 상태',
+    treatment: '자음윤폐(滋陰潤肺)',
+    formulas: ['백합고금탕', '사삼맥문동탕', '양음청폐탕'],
+  },
+  '폐열': {
+    hanja: '肺熱',
+    description: '폐에 열이 있는 상태',
+    treatment: '청폐사열(清肺瀉熱)',
+    formulas: ['사백산', '청폐탕', '마행감석탕'],
+  },
+  '풍한범폐': {
+    hanja: '風寒犯肺',
+    description: '풍한사가 폐를 침범한 상태',
+    treatment: '선폐산한(宣肺散寒)',
+    formulas: ['삼소음', '행소산', '마황탕'],
+  },
+  '풍열범폐': {
+    hanja: '風熱犯肺',
+    description: '풍열사가 폐를 침범한 상태',
+    treatment: '소풍청열(疏風清熱)',
+    formulas: ['상국음', '은교산', '마행감석탕'],
+  },
+  '조사범폐': {
+    hanja: '燥邪犯肺',
+    description: '조사가 폐를 침범하여 폐가 건조해진 상태',
+    treatment: '윤폐지해(潤肺止咳)',
+    formulas: ['상행탕', '청조구폐탕', '맥문동탕'],
+  },
+  '담습저폐': {
+    hanja: '痰濕阻肺',
+    description: '담습이 폐에 정체된 상태',
+    treatment: '조습화담(燥濕化痰)',
+    formulas: ['이진탕', '삼소음', '삼자양친탕'],
+  },
+  '담열옹폐': {
+    hanja: '痰熱壅肺',
+    description: '담열이 폐를 옹체시킨 상태',
+    treatment: '청폐화담(清肺化痰)',
+    formulas: ['청금화담탕', '소청룡탕', '마행감석탕'],
+  },
+
+  // ===== 장부 변증 - 신 (腎) =====
   '신양허': {
     hanja: '腎陽虛',
     description: '신장의 양기가 부족한 상태',
     treatment: '온보신양(溫補腎陽)',
     formulas: ['팔미지황환', '우귀환', '금궤신기환'],
   },
+  '신음허': {
+    hanja: '腎陰虛',
+    description: '신장의 음액이 부족한 상태',
+    treatment: '자보신음(滋補腎陰)',
+    formulas: ['육미지황환', '좌귀환', '대보음환'],
+  },
+  '신허': {
+    hanja: '腎虛',
+    description: '신장의 정기가 전반적으로 부족한 상태',
+    treatment: '보신(補腎)',
+    formulas: ['육미지황환', '팔미지황환', '좌귀환'],
+  },
+  '신정부족': {
+    hanja: '腎精不足',
+    description: '신장의 정기가 부족한 상태',
+    treatment: '보신익정(補腎益精)',
+    formulas: ['좌귀환', '우귀환', '하수오환'],
+  },
+  '신정휴손': {
+    hanja: '腎精虧損',
+    description: '신정이 휴손된 상태',
+    treatment: '보익신정(補益腎精)',
+    formulas: ['육미지황환', '좌귀환', '오자연종환'],
+  },
+  '신기불고': {
+    hanja: '腎氣不固',
+    description: '신기가 견고하지 못하여 정, 소변 등이 쉽게 빠져나가는 상태',
+    treatment: '보신고섭(補腎固攝)',
+    formulas: ['금쇄고정환', '축천환', '상표소산'],
+  },
+  '신불납기': {
+    hanja: '腎不納氣',
+    description: '신이 기를 받아들이지 못하여 호흡곤란이 나타나는 상태',
+    treatment: '보신납기(補腎納氣)',
+    formulas: ['금궤신기환', '인삼호도탕', '도기환'],
+  },
+
+  // ===== 장부 변증 - 위 (胃) =====
+  '위기허': {
+    hanja: '胃氣虛',
+    description: '위의 기가 허약한 상태',
+    treatment: '보기건위(補氣健胃)',
+    formulas: ['사군자탕', '향사육군자탕', '보중익기탕'],
+  },
+  '위음허': {
+    hanja: '胃陰虛',
+    description: '위의 음액이 부족한 상태',
+    treatment: '자양위음(滋養胃陰)',
+    formulas: ['익위탕', '사삼맥문동탕', '맥문동탕'],
+  },
+  '위열': {
+    hanja: '胃熱',
+    description: '위에 열이 있는 상태',
+    treatment: '청위사열(清胃瀉熱)',
+    formulas: ['청위산', '백호탕', '옥녀전'],
+  },
+  '위한': {
+    hanja: '胃寒',
+    description: '위에 한이 있는 상태',
+    treatment: '온위산한(溫胃散寒)',
+    formulas: ['이중탕', '오수유탕', '부자이중환'],
+  },
+
+  // ===== 병리 변증 =====
   '담음': {
     hanja: '痰飮',
     description: '체내에 담음(병리적 수액)이 정체된 상태',
     treatment: '화담(化痰)',
     formulas: ['이진탕', '온담탕', '도담탕'],
+  },
+  '담열': {
+    hanja: '痰熱',
+    description: '담과 열이 결합된 상태',
+    treatment: '청열화담(清熱化痰)',
+    formulas: ['청기화담환', '황련온담탕', '소함흉탕'],
+  },
+  '담습': {
+    hanja: '痰濕',
+    description: '담과 습이 결합된 상태',
+    treatment: '조습화담(燥濕化痰)',
+    formulas: ['이진탕', '평위산', '삼자양친탕'],
   },
   '어혈': {
     hanja: '瘀血',
@@ -251,17 +512,201 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
     treatment: '활혈거어(活血祛瘀)',
     formulas: ['혈부축어탕', '도핵승기탕', '통규활혈탕'],
   },
+  '기체혈어': {
+    hanja: '氣滯血瘀',
+    description: '기의 울체로 혈어가 생긴 상태',
+    treatment: '행기활혈(行氣活血)',
+    formulas: ['혈부축어탕', '시호소간산', '격하축어탕'],
+  },
+  '기체': {
+    hanja: '氣滯',
+    description: '기의 순환이 정체된 상태',
+    treatment: '행기(行氣)',
+    formulas: ['목향순기산', '지각산', '월국환'],
+  },
   '습열': {
     hanja: '濕熱',
     description: '습과 열이 결합된 병리 상태',
     treatment: '청열이습(清熱利濕)',
     formulas: ['인진호탕', '용담사간탕', '삼인탕'],
   },
+  '한습': {
+    hanja: '寒濕',
+    description: '한과 습이 결합된 병리 상태',
+    treatment: '온화한습(溫化寒濕)',
+    formulas: ['평위산', '위령탕', '오적산'],
+  },
+  '수습': {
+    hanja: '水濕',
+    description: '수습이 정체된 상태',
+    treatment: '이수삼습(利水滲濕)',
+    formulas: ['오령산', '저령탕', '오피산'],
+  },
+  '습': {
+    hanja: '濕',
+    description: '습사가 있는 상태',
+    treatment: '이습(利濕)',
+    formulas: ['평위산', '삼인탕', '오령산'],
+  },
+  '식적': {
+    hanja: '食積',
+    description: '음식이 소화되지 않고 체한 상태',
+    treatment: '소식도체(消食導滯)',
+    formulas: ['보화환', '지실도체환', '평위산'],
+  },
+
+  // ===== 외감 변증 =====
   '풍한': {
     hanja: '風寒',
     description: '풍한사가 침범한 표증',
     treatment: '신온해표(辛溫解表)',
     formulas: ['마황탕', '계지탕', '갈근탕'],
+  },
+  '풍열': {
+    hanja: '風熱',
+    description: '풍열사가 침범한 표증',
+    treatment: '신량해표(辛涼解表)',
+    formulas: ['은교산', '상국음', '승마갈근탕'],
+  },
+  '풍습': {
+    hanja: '風濕',
+    description: '풍습사가 침범한 상태',
+    treatment: '거풍제습(祛風除濕)',
+    formulas: ['강활승습탕', '독활기생탕', '방풍통성산'],
+  },
+  '표한': {
+    hanja: '表寒',
+    description: '표부에 한사가 있는 상태',
+    treatment: '해표산한(解表散寒)',
+    formulas: ['마황탕', '계지탕', '갈근탕'],
+  },
+  '표열': {
+    hanja: '表熱',
+    description: '표부에 열이 있는 상태',
+    treatment: '신량해표(辛涼解表)',
+    formulas: ['은교산', '상국음', '시호탕'],
+  },
+  '표증': {
+    hanja: '表證',
+    description: '외사가 표부에 있는 상태',
+    treatment: '해표(解表)',
+    formulas: ['마황탕', '계지탕', '갈근탕'],
+  },
+  '리증': {
+    hanja: '裏證',
+    description: '병사가 리에 있는 상태',
+    treatment: '청리(清裏) 또는 온리(溫裏)',
+    formulas: ['백호탕', '이중탕', '대승기탕'],
+  },
+  '한증': {
+    hanja: '寒證',
+    description: '한사로 인한 병증',
+    treatment: '온리산한(溫裏散寒)',
+    formulas: ['이중탕', '사역탕', '오수유탕'],
+  },
+  '열증': {
+    hanja: '熱證',
+    description: '열로 인한 병증',
+    treatment: '청열(清熱)',
+    formulas: ['백호탕', '황련해독탕', '청영탕'],
+  },
+  '실열': {
+    hanja: '實熱',
+    description: '실한 열이 있는 상태',
+    treatment: '청열사화(清熱瀉火)',
+    formulas: ['백호탕', '황련해독탕', '대승기탕'],
+  },
+  '음허화왕': {
+    hanja: '陰虛火旺',
+    description: '음허로 인해 허화가 왕성해진 상태',
+    treatment: '자음강화(滋陰降火)',
+    formulas: ['지백지황환', '대보음환', '청골산'],
+  },
+  '열입영혈': {
+    hanja: '熱入營血',
+    description: '열사가 영분과 혈분에 침입한 상태',
+    treatment: '청영양혈(清營凉血)',
+    formulas: ['청영탕', '서각지황탕', '황련해독탕'],
+  },
+
+  // ===== 기타 변증 =====
+  '소양증': {
+    hanja: '少陽證',
+    description: '병사가 반표반리에 있는 소양병 상태',
+    treatment: '화해소양(和解少陽)',
+    formulas: ['소시호탕', '시호가용골모려탕', '대시호탕'],
+  },
+  '소시호증': {
+    hanja: '少柴胡證',
+    description: '소시호탕증에 해당하는 상태',
+    treatment: '화해소양(和解少陽)',
+    formulas: ['소시호탕', '시호가용골모려탕', '시호계지탕'],
+  },
+  '양명두통': {
+    hanja: '陽明頭痛',
+    description: '양명경 부위(전두부)의 두통',
+    treatment: '청양명열(清陽明熱)',
+    formulas: ['백호탕', '갈근탕', '청위산'],
+  },
+  '태양두통': {
+    hanja: '太陽頭痛',
+    description: '태양경 부위(후두부)의 두통',
+    treatment: '해표산한(解表散寒)',
+    formulas: ['갈근탕', '천궁다조탕', '마황탕'],
+  },
+  '소양두통': {
+    hanja: '少陽頭痛',
+    description: '소양경 부위(측두부)의 두통',
+    treatment: '화해소양(和解少陽)',
+    formulas: ['소시호탕', '천궁다조탕', '시호탕'],
+  },
+  '궐음두통': {
+    hanja: '厥陰頭痛',
+    description: '궐음경 부위(두정부)의 두통',
+    treatment: '온간해울(溫肝解鬱)',
+    formulas: ['오수유탕', '천궁다조탕', '당귀사역탕'],
+  },
+  '한응': {
+    hanja: '寒凝',
+    description: '한사로 인해 기혈이 응체된 상태',
+    treatment: '온경산한(溫經散寒)',
+    formulas: ['당귀사역탕', '온경탕', '오수유탕'],
+  },
+  '장조': {
+    hanja: '腸燥',
+    description: '장에 진액이 부족하여 건조해진 상태',
+    treatment: '윤장통변(潤腸通便)',
+    formulas: ['마자인환', '오인환', '증액승기탕'],
+  },
+  '열결': {
+    hanja: '熱結',
+    description: '열이 장에 결체된 상태',
+    treatment: '청열사하(清熱瀉下)',
+    formulas: ['대승기탕', '소승기탕', '조위승기탕'],
+  },
+  '소갈': {
+    hanja: '消渴',
+    description: '당뇨병과 유사한 다음, 다식, 다뇨 증상',
+    treatment: '생진지갈(生津止渴)',
+    formulas: ['육미지황환', '백호가인삼탕', '지백지황환'],
+  },
+  '학질': {
+    hanja: '瘧疾',
+    description: '한열왕래가 규칙적으로 나타나는 말라리아 유사 상태',
+    treatment: '화해달학(和解達瘧)',
+    formulas: ['소시호탕', '청비음', '달원음'],
+  },
+  '실증': {
+    hanja: '實證',
+    description: '사기가 성한 상태',
+    treatment: '사실(瀉實)',
+    formulas: ['대승기탕', '도핵승기탕', '방풍통성산'],
+  },
+  '허증': {
+    hanja: '虛證',
+    description: '정기가 허약한 상태',
+    treatment: '보허(補虛)',
+    formulas: ['사군자탕', '사물탕', '팔진탕'],
   },
 }
 

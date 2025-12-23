@@ -2,7 +2,23 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
+import { getErrorMessage } from '@/lib/errors'
 import { Sparkles, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
+import type { LoginResponse } from '@/types'
+
+// 데모 모드 설정 (환경변수로 관리)
+const DEMO_CONFIG = {
+  user: {
+    id: import.meta.env.VITE_DEMO_USER_ID || 'demo-user',
+    email: import.meta.env.VITE_DEMO_EMAIL || 'demo@hanmed.com',
+    name: import.meta.env.VITE_DEMO_NAME || '데모 한의사',
+    subscriptionTier: 'pro' as const,
+    isVerified: true,
+  },
+  // 실제 운영에서는 서버에서 발급받아야 함
+  token: import.meta.env.VITE_DEMO_TOKEN || 'demo-token',
+  refreshToken: import.meta.env.VITE_DEMO_REFRESH_TOKEN || 'demo-refresh-token',
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -19,29 +35,19 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await api.post('/auth/login', { email, password })
+      const response = await api.post<LoginResponse>('/auth/login', { email, password })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
       navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.message || '로그인에 실패했습니다.')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleDemoLogin = () => {
-    login(
-      {
-        id: 'demo-user',
-        email: 'demo@hanmed.com',
-        name: '데모 한의사',
-        subscriptionTier: 'pro',
-        isVerified: true,
-      },
-      'demo-token',
-      'demo-refresh-token'
-    )
+    login(DEMO_CONFIG.user, DEMO_CONFIG.token, DEMO_CONFIG.refreshToken)
     navigate('/')
   }
 

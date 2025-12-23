@@ -12,7 +12,6 @@ import {
   Stethoscope,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import PageGuide from '@/components/common/PageGuide'
 
 interface DocumentTemplate {
   id: string
@@ -686,43 +685,6 @@ export default function DocumentsPage() {
         </>
       )}
 
-      {/* Page Guide */}
-      <PageGuide
-        pageId="documents"
-        pageTitle="문서 템플릿"
-        pageDescription="동의서, 안내문, 경과기록지 등 진료에 필요한 문서를 간편하게 생성합니다."
-        whenToUse={[
-          '치료 전 환자 동의서가 필요할 때',
-          '한약 복용 안내문을 출력할 때',
-          '추나요법 보험 청구용 동의서가 필요할 때',
-          '진료 경과를 기록할 때',
-        ]}
-        steps={[
-          {
-            title: '템플릿 선택',
-            description: '필요한 문서 종류를 카테고리(동의서/안내문/기록지)에서 선택합니다. 각 템플릿의 용도 설명을 참고하세요.',
-          },
-          {
-            title: '정보 입력',
-            description: '왼쪽 입력 폼에서 환자명, 날짜, 치료 내용 등 필요한 정보를 입력합니다. 필수 항목을 모두 채워주세요.',
-            tip: '날짜는 달력에서 선택할 수 있어요',
-          },
-          {
-            title: '미리보기 확인',
-            description: '오른쪽에서 실시간으로 문서 미리보기를 확인할 수 있습니다. 입력한 정보가 올바르게 반영되었는지 확인하세요.',
-          },
-          {
-            title: '출력 또는 복사',
-            description: '"인쇄" 버튼으로 문서를 출력하거나, "복사" 버튼으로 클립보드에 복사할 수 있습니다.',
-            tip: '복사 후 한글이나 워드에 붙여넣기 가능해요',
-          },
-        ]}
-        tips={[
-          '추나요법 동의서는 건강보험 청구 시 필수입니다',
-          '문서 양식은 필요에 따라 수정하여 사용하세요',
-          '환자 서명은 출력 후 직접 받으세요',
-        ]}
-      />
     </div>
   )
 }

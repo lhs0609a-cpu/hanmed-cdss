@@ -11,6 +11,7 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { FormulasModule } from './modules/formulas/formulas.module';
 import { HerbsModule } from './modules/herbs/herbs.module';
 import { CombosModule } from './modules/combos/combos.module';
+import { CommunityModule } from './modules/community/community.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -47,6 +48,7 @@ import { HealthController } from './health.controller';
     FormulasModule,
     HerbsModule,
     CombosModule,
+    CommunityModule,
   ],
   controllers: [HealthController],
 })

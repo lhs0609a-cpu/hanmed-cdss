@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
+import { getErrorMessage } from '@/lib/errors'
+import type { LoginResponse } from '@/types'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -38,7 +40,7 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const response = await api.post('/auth/register', {
+      const response = await api.post<LoginResponse>('/auth/register', {
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -48,8 +50,8 @@ export default function RegisterPage() {
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
       navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.message || '회원가입에 실패했습니다.')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err))
     } finally {
       setIsLoading(false)
     }

@@ -12,7 +12,10 @@
       "Bash(npx tsc:*)",
       "Bash(vercel inspect:*)",
       "Bash(npx vercel:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(grep:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)"
     ]
   }
 }

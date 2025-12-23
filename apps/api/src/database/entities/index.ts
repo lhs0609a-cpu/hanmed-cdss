@@ -6,3 +6,13 @@ export * from './formula.entity';
 export * from './formula-herb.entity';
 export * from './herb-compound.entity';
 export * from './formula-combo.entity';
+
+// Community entities
+export * from './post.entity';
+export * from './comment.entity';
+export * from './category.entity';
+export * from './tag.entity';
+export * from './attachment.entity';
+export * from './bookmark.entity';
+export * from './post-like.entity';
+export * from './report.entity';

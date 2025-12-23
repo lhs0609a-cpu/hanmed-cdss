@@ -51,6 +51,28 @@ export class User {
   @Column({ nullable: true })
   stripeCustomerId: string;
 
+  // Community 관련 필드
+  @Column({ default: false })
+  isLicenseVerified: boolean; // 면허 인증 완료 여부
+
+  @Column({ nullable: true })
+  licenseVerifiedAt: Date;
+
+  @Column({ nullable: true })
+  specialization: string; // 전문 분야 (본초학, 상한론 등)
+
+  @Column('text', { nullable: true })
+  bio: string; // 자기소개
+
+  @Column({ default: 0 })
+  postCount: number;
+
+  @Column({ default: 0 })
+  commentCount: number;
+
+  @Column({ default: 0 })
+  acceptedAnswerCount: number; // 채택된 답변 수
+
   @CreateDateColumn()
   createdAt: Date;
 

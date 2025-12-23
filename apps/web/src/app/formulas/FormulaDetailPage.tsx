@@ -254,7 +254,7 @@ export default function FormulaDetailPage() {
           {/* Actions */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3">
             <Link
-              to={`/combo?formula=${formula.id}`}
+              to={`/combo?formula=${encodeURIComponent(formula.id)}`}
               className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <Plus className="h-5 w-5" />

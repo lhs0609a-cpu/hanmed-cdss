@@ -26,6 +26,7 @@ import {
   Shield,
   Mic,
   ArrowLeftRight,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -35,6 +36,7 @@ const mainNavigation = [
   { name: 'AI 진료', href: '/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
   { name: '환자 관리', href: '/patients', icon: Users, description: 'EMR/차트' },
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
+  { name: '커뮤니티', href: '/community', icon: MessageSquare, description: '전문가 토론', badge: 'NEW' },
 ]
 
 const coreFeatures = [
@@ -73,24 +75,37 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal-500 focus:text-white focus:rounded-lg"
+      >
+        본문으로 건너뛰기
+      </a>
+
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass border-b border-white/20">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-xl hover:bg-white/50 transition-colors"
+            aria-label="메뉴 열기"
+            aria-expanded={sidebarOpen}
           >
-            <Menu className="h-5 w-5 text-gray-700" />
+            <Menu className="h-5 w-5 text-gray-700" aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 gradient-primary rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <Sparkles className="h-4 w-4 text-white" />
+              <Sparkles className="h-4 w-4 text-white" aria-hidden="true" />
             </div>
             <span className="font-bold text-gray-900">온고지신</span>
           </div>
-          <button className="p-2 rounded-xl hover:bg-white/50 transition-colors relative">
-            <Bell className="h-5 w-5 text-gray-700" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          <button
+            className="p-2 rounded-xl hover:bg-white/50 transition-colors relative"
+            aria-label="알림"
+          >
+            <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-label="새 알림 있음" />
           </button>
         </div>
       </header>
@@ -117,8 +132,9 @@ export default function DashboardLayout() {
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
+              aria-label="메뉴 닫기"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-gray-500" aria-hidden="true" />
             </button>
           </div>
 
@@ -138,7 +154,7 @@ export default function DashboardLayout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto" aria-label="주 메뉴">
             {/* Main Navigation */}
             <div>
               <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
@@ -364,7 +380,7 @@ export default function DashboardLayout() {
       )}
 
       {/* Main content */}
-      <main className="lg:pl-72 pt-16 lg:pt-0 min-h-screen">
+      <main id="main-content" className="lg:pl-72 pt-16 lg:pt-0 min-h-screen">
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>

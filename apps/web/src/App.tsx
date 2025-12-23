@@ -37,6 +37,11 @@ import FormulaComparePage from '@/app/formula-compare/FormulaComparePage'
 import RedFlagPage from '@/app/red-flag/RedFlagPage'
 import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
 
+// Community
+import CommunityPage from '@/app/community/CommunityPage'
+import PostDetailPage from '@/app/community/PostDetailPage'
+import WritePostPage from '@/app/community/WritePostPage'
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -93,6 +98,18 @@ function App() {
           <Route path="formula-compare" element={<FormulaComparePage />} />
           <Route path="red-flag" element={<RedFlagPage />} />
           <Route path="voice-chart" element={<VoiceChartPage />} />
+
+          {/* Community */}
+          <Route path="community" element={<CommunityPage />} />
+          <Route path="community/cases" element={<CommunityPage />} />
+          <Route path="community/qna" element={<CommunityPage />} />
+          <Route path="community/general" element={<CommunityPage />} />
+          <Route path="community/forum" element={<CommunityPage />} />
+          <Route path="community/forum/:slug" element={<CommunityPage />} />
+          <Route path="community/post/:id" element={<PostDetailPage />} />
+          <Route path="community/write" element={<WritePostPage />} />
+          <Route path="community/my/posts" element={<CommunityPage />} />
+          <Route path="community/my/bookmarks" element={<CommunityPage />} />
         </Route>
 
         {/* Fallback */}

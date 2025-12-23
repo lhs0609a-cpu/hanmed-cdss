@@ -33,18 +33,147 @@ interface HerbDosage {
 }
 
 const commonHerbs: HerbDosage[] = [
-  { name: '인삼', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8 },
-  { name: '황기', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0 },
-  { name: '당귀', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9 },
-  { name: '감초', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 0.8 },
-  { name: '백출', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0 },
-  { name: '복령', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0 },
-  { name: '마황', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.5, notes: '심혈관 질환 주의' },
+  // ===== 보기약 (補氣藥) =====
+  { name: '인삼', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '대보원기' },
+  { name: '황기', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보기승양' },
+  { name: '당삼', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보중익기' },
+  { name: '백출', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '건비조습' },
+  { name: '감초', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '조화제약' },
+  { name: '대추', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보중익기' },
+  { name: '산약', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보비익폐' },
+
+  // ===== 보혈약 (補血藥) =====
+  { name: '당귀', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '보혈활혈' },
+  { name: '숙지황', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음보혈' },
+  { name: '백작약', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '양혈렴음' },
+  { name: '하수오', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '보간신' },
+  { name: '아교', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보혈지혈' },
+  { name: '용안육', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보심비' },
+
+  // ===== 보양약 (補陽藥) =====
   { name: '부자', standardDose: 3, unit: 'g', maxDose: 9, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.5, notes: '독성 주의, 포제 필수' },
-  { name: '대황', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.6, notes: '설사 유발' },
-  { name: '반하', standardDose: 9, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.8 },
-  { name: '시호', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9 },
-  { name: '작약', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0 },
+  { name: '육계', standardDose: 3, unit: 'g', maxDose: 6, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.7, notes: '온신양' },
+  { name: '건강', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '온중산한' },
+  { name: '두충', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보간신강근골' },
+  { name: '속단', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보간신' },
+  { name: '음양곽', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: false, elderlyAdjustment: 0.8, notes: '보신양' },
+  { name: '파극천', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: false, elderlyAdjustment: 0.9, notes: '보신양' },
+  { name: '토사자', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보신익정' },
+  { name: '녹용', standardDose: 1, unit: 'g', maxDose: 3, pregnancyCategory: 'caution', pediatricAllowed: false, elderlyAdjustment: 0.8, notes: '대보정혈' },
+
+  // ===== 보음약 (補陰藥) =====
+  { name: '맥문동', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음윤폐' },
+  { name: '천문동', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음윤조' },
+  { name: '구기자', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자보간신' },
+  { name: '여정자', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자보간신' },
+  { name: '한련초', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음양혈' },
+  { name: '석곡', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음청열' },
+  { name: '옥죽', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '자음윤폐' },
+
+  // ===== 청열약 (清熱藥) =====
+  { name: '황금', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '청열조습' },
+  { name: '황련', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '청열조습' },
+  { name: '황백', standardDose: 6, unit: 'g', maxDose: 12, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '청열조습' },
+  { name: '치자', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '사화제번' },
+  { name: '금은화', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열해독' },
+  { name: '연교', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열해독' },
+  { name: '포공영', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열해독' },
+  { name: '생지황', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열양혈' },
+  { name: '현삼', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열양혈' },
+  { name: '목단피', standardDose: 6, unit: 'g', maxDose: 12, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '청열양혈' },
+  { name: '지모', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열사화' },
+  { name: '석고', standardDose: 15, unit: 'g', maxDose: 60, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '청열사화' },
+
+  // ===== 해표약 (解表藥) =====
+  { name: '마황', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.5, notes: '심혈관 질환 주의' },
+  { name: '계지', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '발한해기' },
+  { name: '갈근', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '해기퇴열' },
+  { name: '박하', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '발산풍열' },
+  { name: '시호', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '화해소양' },
+  { name: '자소엽', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '발표산한' },
+  { name: '형개', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '발표산풍' },
+  { name: '방풍', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '거풍해표' },
+  { name: '강활', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '거풍해표' },
+
+  // ===== 이기약 (理氣藥) =====
+  { name: '진피', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이기화담' },
+  { name: '향부자', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '소간이기' },
+  { name: '목향', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '행기지통' },
+  { name: '지각', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '행기화담' },
+  { name: '지실', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.8, notes: '파기소적' },
+  { name: '오약', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '순기지통' },
+  { name: '불수', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이기화담' },
+
+  // ===== 활혈거어약 (活血祛瘀藥) =====
+  { name: '천궁', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '활혈행기' },
+  { name: '도인', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.8, notes: '활혈거어' },
+  { name: '홍화', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.8, notes: '활혈거어' },
+  { name: '단삼', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '활혈거어' },
+  { name: '익모초', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '활혈조경' },
+  { name: '우슬', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '활혈거어' },
+  { name: '삼릉', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.7, notes: '파혈거어' },
+  { name: '아출', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.7, notes: '파혈거어' },
+
+  // ===== 화담지해약 (化痰止咳藥) =====
+  { name: '반하', standardDose: 9, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: true, elderlyAdjustment: 0.8, notes: '조습화담' },
+  { name: '패모', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열화담' },
+  { name: '행인', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '지해평천' },
+  { name: '길경', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '선폐거담' },
+  { name: '자완', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '윤폐지해' },
+  { name: '관동화', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '윤폐지해' },
+  { name: '백부', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '지해살충' },
+  { name: '천남성', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.6, notes: '독성 주의, 포제 필수' },
+
+  // ===== 거풍습약 (祛風濕藥) =====
+  { name: '독활', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '거풍습' },
+  { name: '위령선', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '거풍습통경' },
+  { name: '오가피', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '거풍습보간신' },
+  { name: '상지', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '거풍습통경' },
+  { name: '목과', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '거풍습서근' },
+
+  // ===== 이수삼습약 (利水滲濕藥) =====
+  { name: '복령', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수삼습' },
+  { name: '택사', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수삼습' },
+  { name: '저령', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수삼습' },
+  { name: '의이인', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수삼습' },
+  { name: '차전자', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수통림' },
+  { name: '인진호', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '청열이습퇴황' },
+  { name: '활석', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '이수통림' },
+
+  // ===== 사하약 (瀉下藥) =====
+  { name: '대황', standardDose: 6, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.6, notes: '사하공적' },
+  { name: '망초', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.6, notes: '사하연견' },
+  { name: '번사엽', standardDose: 3, unit: 'g', maxDose: 6, pregnancyCategory: 'contraindicated', pediatricAllowed: false, elderlyAdjustment: 0.7, notes: '사하통변' },
+  { name: '화마인', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '윤장통변' },
+
+  // ===== 수삽약 (收澁藥) =====
+  { name: '산수유', standardDose: 6, unit: 'g', maxDose: 12, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보익간신' },
+  { name: '오미자', standardDose: 3, unit: 'g', maxDose: 6, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '수렴고삽' },
+  { name: '오매', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '렴폐삽장' },
+  { name: '부소맥', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '염한지한' },
+  { name: '연자육', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '보비지사' },
+  { name: '금앵자', standardDose: 6, unit: 'g', maxDose: 12, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '고정삽정' },
+
+  // ===== 평간식풍약 (平肝息風藥) =====
+  { name: '천마', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '식풍지경' },
+  { name: '구등', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '식풍청열' },
+  { name: '석결명', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '평간잠양' },
+  { name: '자석', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 0.9, notes: '평간잠양' },
+
+  // ===== 안신약 (安神藥) =====
+  { name: '산조인', standardDose: 10, unit: 'g', maxDose: 20, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '양심안신' },
+  { name: '원지', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '안신익지' },
+  { name: '백자인', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '양심안신' },
+  { name: '복신', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '영심안신' },
+  { name: '용골', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '진심안신' },
+  { name: '모려', standardDose: 15, unit: 'g', maxDose: 30, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '중진안신' },
+
+  // ===== 소식약 (消食藥) =====
+  { name: '산사', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '소식화적' },
+  { name: '신곡', standardDose: 10, unit: 'g', maxDose: 15, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '소식화위' },
+  { name: '맥아', standardDose: 10, unit: 'g', maxDose: 30, pregnancyCategory: 'caution', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '소식화위' },
+  { name: '내복자', standardDose: 6, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '소식화담' },
+  { name: '계내금', standardDose: 3, unit: 'g', maxDose: 10, pregnancyCategory: 'safe', pediatricAllowed: true, elderlyAdjustment: 1.0, notes: '소식화적' },
 ]
 
 export default function DosageCalculatorPage() {
