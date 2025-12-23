@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Users,
   MessageSquare,
@@ -172,9 +172,26 @@ const postTypeConfig = {
 
 export default function CommunityPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
+
+  // URL 경로에 따라 selectedType 설정
+  useEffect(() => {
+    const path = location.pathname
+    if (path.includes('/community/cases')) {
+      setSelectedType('case_discussion')
+    } else if (path.includes('/community/qna')) {
+      setSelectedType('qna')
+    } else if (path.includes('/community/general')) {
+      setSelectedType('general')
+    } else if (path.includes('/community/forum')) {
+      setSelectedType('forum')
+    } else if (path === '/community' || path === '/community/') {
+      setSelectedType('')
+    }
+  }, [location.pathname])
 
   const filteredPosts = useMemo(() => {
     let filtered = dummyPosts.filter((post) => {
