@@ -45,10 +45,6 @@ import {
   Building2,
   Sparkles,
   Loader2,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
 } from 'lucide-react';
 import { toast } from 'sonner';
 

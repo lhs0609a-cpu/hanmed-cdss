@@ -18,7 +18,8 @@
       "Bash(find:*)",
       "WebSearch",
       "WebFetch(domain:developers.coupangpay.com)",
-      "WebFetch(domain:docs.tosspayments.com)"
+      "WebFetch(domain:docs.tosspayments.com)",
+      "WebFetch(domain:vercel.com)"
     ]
   }
 }

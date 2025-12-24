@@ -9,7 +9,7 @@ import {
   useCancelSubscription,
   useCancelSubscriptionImmediately,
 } from '@/hooks/useSubscription';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard, X } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 
 const planIcons: Record<string, React.ElementType> = {
