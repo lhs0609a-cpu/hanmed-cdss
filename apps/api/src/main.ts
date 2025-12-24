@@ -8,7 +8,9 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Stripe 웹훅을 위한 raw body 파싱 활성화
+  });
 
   // CORS 설정
   app.enableCors({
@@ -47,6 +49,8 @@ async function bootstrap() {
     .addTag('cases', '치험례')
     .addTag('prescriptions', '처방')
     .addTag('interactions', '상호작용 검증')
+    .addTag('subscription', '구독 관리')
+    .addTag('webhook', '웹훅')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

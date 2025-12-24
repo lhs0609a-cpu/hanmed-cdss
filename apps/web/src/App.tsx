@@ -42,6 +42,13 @@ import CommunityPage from '@/app/community/CommunityPage'
 import PostDetailPage from '@/app/community/PostDetailPage'
 import WritePostPage from '@/app/community/WritePostPage'
 
+// Subscription
+import SubscriptionPage from '@/app/subscription/SubscriptionPage'
+import SubscriptionSuccessPage from '@/app/subscription/SubscriptionSuccessPage'
+
+// Settings
+import SettingsPage from '@/app/settings/SettingsPage'
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -110,6 +117,13 @@ function App() {
           <Route path="community/write" element={<WritePostPage />} />
           <Route path="community/my/posts" element={<CommunityPage />} />
           <Route path="community/my/bookmarks" element={<CommunityPage />} />
+
+          {/* Subscription */}
+          <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
+
+          {/* Settings */}
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Fallback */}

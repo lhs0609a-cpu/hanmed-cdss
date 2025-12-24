@@ -16,3 +16,7 @@ export * from './attachment.entity';
 export * from './bookmark.entity';
 export * from './post-like.entity';
 export * from './report.entity';
+
+// Subscription entities
+export * from './subscription.entity';
+export * from './usage-tracking.entity';

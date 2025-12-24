@@ -31,7 +31,8 @@ export interface User {
   id: string
   email: string
   name: string
-  subscriptionTier: 'starter' | 'pro' | 'enterprise'
+  subscriptionTier: 'free' | 'basic' | 'professional' | 'clinic'
+  subscriptionExpiresAt?: string
   isVerified: boolean
   licenseNumber?: string
   clinicName?: string
@@ -289,7 +290,7 @@ export interface CommunityAuthor {
   id: string
   name: string
   isLicenseVerified?: boolean
-  subscriptionTier?: 'starter' | 'pro' | 'master'
+  subscriptionTier?: 'free' | 'basic' | 'professional' | 'clinic'
   contributionPoints?: number
   acceptedAnswerCount?: number
   specialization?: string
@@ -319,7 +320,7 @@ export interface Category {
   postType: PostType
   iconName?: string
   sortOrder: number
-  requiredTier: 'starter' | 'pro' | 'master'
+  requiredTier: 'free' | 'basic' | 'professional' | 'clinic'
 }
 
 export interface CommunityTag {

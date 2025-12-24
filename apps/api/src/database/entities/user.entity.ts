@@ -7,10 +7,19 @@ import {
 } from 'typeorm';
 
 export enum SubscriptionTier {
-  STARTER = 'starter',
-  PRO = 'pro',
-  MASTER = 'master',
+  FREE = 'free',
+  BASIC = 'basic',
+  PROFESSIONAL = 'professional',
+  CLINIC = 'clinic',
 }
+
+// 플랜별 AI 쿼리 제한
+export const PLAN_LIMITS: Record<SubscriptionTier, number> = {
+  [SubscriptionTier.FREE]: 10,
+  [SubscriptionTier.BASIC]: 50,
+  [SubscriptionTier.PROFESSIONAL]: 300,
+  [SubscriptionTier.CLINIC]: Infinity,
+};
 
 @Entity('users')
 export class User {
@@ -35,7 +44,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: SubscriptionTier,
-    default: SubscriptionTier.STARTER,
+    default: SubscriptionTier.FREE,
   })
   subscriptionTier: SubscriptionTier;
 

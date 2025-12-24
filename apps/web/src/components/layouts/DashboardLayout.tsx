@@ -321,20 +321,23 @@ export default function DashboardLayout() {
           </nav>
 
           {/* Upgrade banner */}
-          {user?.subscriptionTier === 'starter' && (
+          {(user?.subscriptionTier === 'free' || user?.subscriptionTier === 'basic') && (
             <div className="mx-4 mb-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-amber-100 rounded-xl">
                   <Sparkles className="h-4 w-4 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-900">Pro로 업그레이드</p>
-                  <p className="text-xs text-amber-700 mt-0.5">무제한 AI 추천 사용</p>
+                  <p className="text-sm font-semibold text-amber-900">플랜 업그레이드</p>
+                  <p className="text-xs text-amber-700 mt-0.5">더 많은 AI 쿼리 사용</p>
                 </div>
               </div>
-              <button className="w-full mt-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/30 transition-all">
+              <Link
+                to="/subscription"
+                className="block w-full mt-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-amber-500/30 transition-all text-center"
+              >
                 플랜 보기
-              </button>
+              </Link>
             </div>
           )}
 
