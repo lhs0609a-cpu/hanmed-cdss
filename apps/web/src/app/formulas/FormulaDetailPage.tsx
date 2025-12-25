@@ -11,6 +11,8 @@ import {
   Shield,
 } from 'lucide-react'
 import api from '@/services/api'
+import { MedicineSchool } from '@/types'
+import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
 
 interface FormulaHerb {
   id: string
@@ -37,6 +39,8 @@ interface FormulaDetail {
   contraindications?: string[]
   modifications?: Modification[]
   herbs: FormulaHerb[]
+  school?: MedicineSchool
+  schoolNotes?: string
 }
 
 const roleColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -122,6 +126,9 @@ export default function FormulaDetailPage() {
             <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg">
               {formula.category}
             </span>
+            {formula.school && (
+              <SchoolBadge school={formula.school} size="md" />
+            )}
           </div>
         </div>
       </div>
@@ -233,6 +240,11 @@ export default function FormulaDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* 학파 정보 */}
+          {formula.school && (
+            <SchoolInfoCard school={formula.school} />
+          )}
+
           {/* 금기 */}
           {formula.contraindications && formula.contraindications.length > 0 && (
             <div className="bg-red-50 rounded-2xl border border-red-100 p-6">
@@ -301,6 +313,7 @@ function getDemoFormula(id: string): FormulaDetail {
       hanja: '小靑龍湯',
       category: '해표제',
       source: '상한론',
+      school: 'classical',
       indication: '외한내음(外寒內飮). 오한발열, 무한, 수양성 콧물, 천해기급, 흉만, 설백활, 맥부 등의 증상을 치료한다.',
       pathogenesis: '외감풍한으로 표가 막히고, 한음이 폐에 정체되어 발생하는 증상',
       contraindications: [
@@ -323,6 +336,69 @@ function getDemoFormula(id: string): FormulaDetail {
         { id: '6', name: '반하', hanja: '半夏', amount: '6g', role: '좌', efficacy: '조습화담' },
         { id: '7', name: '오미자', hanja: '五味子', amount: '3g', role: '좌', efficacy: '수렴폐기' },
         { id: '8', name: '감초', hanja: '甘草', amount: '3g', role: '사', efficacy: '조화제약' },
+      ],
+    },
+    '19': {
+      id: '19',
+      name: '보중익기탕',
+      hanja: '補中益氣湯',
+      category: '보익제',
+      source: '비위론',
+      school: 'later',
+      indication: '비위기허, 중기하함. 권태무력, 식욕부진, 자한, 내장하수, 구설화담, 탈항, 자궁탈수 등의 증상을 치료한다.',
+      pathogenesis: '비위기허로 중기가 하함하여 발생하는 제반 증상. 과로, 음식부절 등으로 비위가 손상된 경우.',
+      contraindications: [
+        '외감병 초기 환자 금기',
+        '음허화왕 환자 주의',
+        '실열증 환자 금기',
+      ],
+      modifications: [
+        { condition: '두통이 있으면', action: '만형자 가미' },
+        { condition: '습담이 있으면', action: '반하, 진피 증량' },
+        { condition: '자궁하수', action: '오미자, 녹용 가미' },
+        { condition: '탈항', action: '오배자 가미' },
+      ],
+      herbs: [
+        { id: '1', name: '황기', hanja: '黃芪', amount: '15g', role: '군', efficacy: '보기승양' },
+        { id: '2', name: '인삼', hanja: '人蔘', amount: '9g', role: '신', efficacy: '대보원기' },
+        { id: '3', name: '백출', hanja: '白朮', amount: '9g', role: '신', efficacy: '건비익기' },
+        { id: '4', name: '당귀', hanja: '當歸', amount: '6g', role: '좌', efficacy: '보혈화영' },
+        { id: '5', name: '진피', hanja: '陳皮', amount: '6g', role: '좌', efficacy: '이기조중' },
+        { id: '6', name: '승마', hanja: '升麻', amount: '3g', role: '좌', efficacy: '승거양기' },
+        { id: '7', name: '시호', hanja: '柴胡', amount: '3g', role: '좌', efficacy: '승양해울' },
+        { id: '8', name: '감초', hanja: '甘草', amount: '6g', role: '사', efficacy: '조화제약' },
+      ],
+    },
+    '21': {
+      id: '21',
+      name: '귀비탕',
+      hanja: '歸脾湯',
+      category: '보익제',
+      source: '제생방',
+      school: 'later',
+      indication: '심비양허, 사려과도, 노상심비, 건망, 심계, 도한, 불면, 자한, 권태무력, 식욕부진 등의 증상을 치료한다.',
+      pathogenesis: '심비양허로 기혈이 부족하고 심신이 실양되어 발생하는 제반 증상.',
+      contraindications: [
+        '외감병 환자 금기',
+        '실열증 환자 금기',
+        '담습이 심한 환자 주의',
+      ],
+      modifications: [
+        { condition: '불면이 심하면', action: '산조인, 원지 증량' },
+        { condition: '출혈 경향', action: '아교, 삼칠 가미' },
+        { condition: '식욕부진이 심하면', action: '사인, 곽향 가미' },
+      ],
+      herbs: [
+        { id: '1', name: '인삼', hanja: '人蔘', amount: '9g', role: '군', efficacy: '대보원기' },
+        { id: '2', name: '황기', hanja: '黃芪', amount: '12g', role: '군', efficacy: '보기고표' },
+        { id: '3', name: '백출', hanja: '白朮', amount: '9g', role: '신', efficacy: '건비익기' },
+        { id: '4', name: '복신', hanja: '茯神', amount: '9g', role: '신', efficacy: '영심안신' },
+        { id: '5', name: '산조인', hanja: '酸棗仁', amount: '9g', role: '좌', efficacy: '양심안신' },
+        { id: '6', name: '용안육', hanja: '龍眼肉', amount: '9g', role: '좌', efficacy: '보심익비' },
+        { id: '7', name: '당귀', hanja: '當歸', amount: '6g', role: '좌', efficacy: '보혈화영' },
+        { id: '8', name: '원지', hanja: '遠志', amount: '6g', role: '좌', efficacy: '안신익지' },
+        { id: '9', name: '목향', hanja: '木香', amount: '3g', role: '좌', efficacy: '이기조중' },
+        { id: '10', name: '감초', hanja: '甘草', amount: '3g', role: '사', efficacy: '조화제약' },
       ],
     },
   }

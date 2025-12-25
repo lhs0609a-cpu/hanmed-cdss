@@ -1,4 +1,10 @@
 // ===========================
+// 학파 및 변증 관련 타입 (re-export)
+// ===========================
+export * from './medicine-school'
+export * from './byeongyang'
+
+// ===========================
 // API 관련 타입
 // ===========================
 
@@ -88,6 +94,9 @@ export interface Formula {
   herbs: FormulaHerb[]
   contraindications?: string[]
   modifications?: FormulaModification[]
+  // 학파 관련 필드 (Phase 1 추가)
+  school?: MedicineSchool
+  schoolSpecificNotes?: string
 }
 
 export interface FormulaHerb {
@@ -205,6 +214,9 @@ export interface Recommendation {
   modifications?: string[]
   warnings?: string[]
   similarCases?: number
+  // 학파 관련 필드 (Phase 1 추가)
+  school?: MedicineSchool
+  schoolReason?: string  // 해당 학파에서 추천하는 이유
 }
 
 export interface ConsultationResult {
@@ -212,6 +224,14 @@ export interface ConsultationResult {
   recommendations: Recommendation[]
   warnings: string[]
   references: string[]
+  // 팔강변증 분석 결과 (Phase 2 추가)
+  palGangAnalysis?: PalGangAnalysis
+  // 병양도표 매칭 결과 (Phase 2 추가)
+  byeongYangMatch?: {
+    disease: string
+    pattern: string
+    confidence: number
+  }
 }
 
 // ===========================

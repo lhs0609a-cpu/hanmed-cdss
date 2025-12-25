@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
+import { MedicineSchool, SCHOOL_INFO } from '@/types'
+import { SchoolBadge } from '@/components/formula/SchoolBadge'
+import { SchoolFilter } from '@/components/formula/SchoolFilter'
 
 interface QueryParams {
   page: number
@@ -33,6 +36,7 @@ interface Formula {
   source: string
   indication: string
   herbs: FormulaHerb[]
+  school?: MedicineSchool
 }
 
 interface FormulasResponse {
@@ -63,12 +67,13 @@ export default function FormulasPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('전체')
+  const [selectedSchool, setSelectedSchool] = useState<MedicineSchool | 'all'>('all')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     fetchFormulas()
-  }, [page, selectedCategory])
+  }, [page, selectedCategory, selectedSchool])
 
   const fetchFormulas = useCallback(async () => {
     setIsLoading(true)
@@ -83,12 +88,24 @@ export default function FormulasPage() {
     } catch (error) {
       logError(error, 'FormulasPage')
       // 데모용 더미 데이터
-      setFormulas(getDemoFormulas())
-      setTotalPages(5)
+      let demoData = getDemoFormulas()
+
+      // 카테고리 필터
+      if (selectedCategory !== '전체') {
+        demoData = demoData.filter(f => f.category === selectedCategory)
+      }
+
+      // 학파 필터
+      if (selectedSchool !== 'all') {
+        demoData = demoData.filter(f => f.school === selectedSchool)
+      }
+
+      setFormulas(demoData)
+      setTotalPages(Math.ceil(demoData.length / 12))
     } finally {
       setIsLoading(false)
     }
-  }, [page, selectedCategory])
+  }, [page, selectedCategory, selectedSchool])
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -176,6 +193,21 @@ export default function FormulasPage() {
             </button>
           ))}
         </div>
+
+        {/* School Filter */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-500">학파별 분류</span>
+          </div>
+          <SchoolFilter
+            selected={selectedSchool}
+            onChange={(school) => {
+              setSelectedSchool(school)
+              setPage(1)
+            }}
+          />
+        </div>
       </div>
 
       {/* Results */}
@@ -204,9 +236,14 @@ export default function FormulasPage() {
                     </h3>
                     <p className="text-sm text-gray-500">{formula.hanja}</p>
                   </div>
-                  <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg">
-                    {formula.category}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg">
+                      {formula.category}
+                    </span>
+                    {formula.school && (
+                      <SchoolBadge school={formula.school} size="sm" />
+                    )}
+                  </div>
                 </div>
 
                 {formula.source && (
@@ -281,6 +318,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '상한론',
       indication: '외한내음(外寒內飮). 오한발열, 무한, 수양성 콧물, 천해기급, 흉만 등',
+      school: 'classical',
       herbs: [
         { id: '1', name: '마황', amount: '9g', role: '군' },
         { id: '2', name: '계지', amount: '6g', role: '신' },
@@ -299,6 +337,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '상한론',
       indication: '태양병, 항강통(項强痛), 무한, 오풍 등',
+      school: 'classical',
       herbs: [
         { id: '1', name: '갈근', amount: '12g', role: '군' },
         { id: '2', name: '마황', amount: '9g', role: '신' },
@@ -316,6 +355,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '상한론',
       indication: '태양상한, 오한발열, 무한, 두통, 신체동통, 천해 등',
+      school: 'classical',
       herbs: [
         { id: '1', name: '마황', amount: '9g', role: '군' },
         { id: '2', name: '계지', amount: '6g', role: '신' },
@@ -330,6 +370,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '상한론',
       indication: '태양중풍, 두통발열, 한출오풍, 비색, 구건, 맥부완 등',
+      school: 'classical',
       herbs: [
         { id: '1', name: '계지', amount: '9g', role: '군' },
         { id: '2', name: '작약', amount: '9g', role: '신' },
@@ -345,6 +386,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '차사난지',
       indication: '외감풍한습사, 오한발열, 무한, 두통, 지체산통 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '강활', amount: '6g', role: '군' },
         { id: '2', name: '방풍', amount: '6g', role: '신' },
@@ -364,6 +406,7 @@ function getDemoFormulas(): Formula[] {
       category: '해표제',
       source: '온병조변',
       indication: '온병초기, 발열무한 혹 유한불창, 미오풍한, 두통, 구갈, 인통 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '금은화', amount: '15g', role: '군' },
         { id: '2', name: '연교', amount: '15g', role: '군' },
@@ -543,6 +586,7 @@ function getDemoFormulas(): Formula[] {
       category: '보익제',
       source: '태평혜민화제국방',
       indication: '비기허증. 면색위황, 식욕부진, 권태무력, 설담맥허 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '인삼', amount: '9g', role: '군' },
         { id: '2', name: '백출', amount: '9g', role: '신' },
@@ -557,6 +601,7 @@ function getDemoFormulas(): Formula[] {
       category: '보익제',
       source: '태평혜민화제국방',
       indication: '혈허증. 면색창백, 두훈목현, 심계실면, 월경부조 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '숙지황', amount: '12g', role: '군' },
         { id: '2', name: '당귀', amount: '9g', role: '신' },
@@ -571,6 +616,7 @@ function getDemoFormulas(): Formula[] {
       category: '보익제',
       source: '비위론',
       indication: '비위기허, 중기하함. 권태무력, 식욕부진, 자한, 내장하수 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '황기', amount: '15g', role: '군' },
         { id: '2', name: '인삼', amount: '9g', role: '신' },
@@ -609,6 +655,7 @@ function getDemoFormulas(): Formula[] {
       category: '보익제',
       source: '제생방',
       indication: '심비양허, 사려과도, 노상심비, 건망, 심계, 도한 등',
+      school: 'later',
       herbs: [
         { id: '1', name: '인삼', amount: '9g', role: '군' },
         { id: '2', name: '황기', amount: '12g', role: '군' },
@@ -798,6 +845,7 @@ function getDemoFormulas(): Formula[] {
       category: '이기제',
       source: '상한론',
       indication: '소양병, 왕래한열, 흉협고만, 목현, 인건, 구고 등',
+      school: 'classical',
       herbs: [
         { id: '1', name: '시호', amount: '12g', role: '군' },
         { id: '2', name: '황금', amount: '9g', role: '신' },

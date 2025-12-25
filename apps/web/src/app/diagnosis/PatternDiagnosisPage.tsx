@@ -17,8 +17,11 @@ import {
   RotateCcw,
   FileText,
   Pill,
+  Scale,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PalGangAnalysis } from '@/types'
+import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'
 
 interface SymptomCategory {
   id: string
@@ -711,10 +714,11 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
 }
 
 export default function PatternDiagnosisPage() {
-  const [step, setStep] = useState<'symptoms' | 'pulse' | 'tongue' | 'result'>('symptoms')
+  const [step, setStep] = useState<'symptoms' | 'pulse' | 'tongue' | 'palgang' | 'result'>('symptoms')
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
   const [selectedPulses, setSelectedPulses] = useState<string[]>([])
   const [selectedTongue, setSelectedTongue] = useState<string[]>([])
+  const [palGangAnalysis, setPalGangAnalysis] = useState<PalGangAnalysis | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [results, setResults] = useState<PatternResult[]>([])
 
@@ -804,6 +808,7 @@ export default function PatternDiagnosisPage() {
     setSelectedSymptoms([])
     setSelectedPulses([])
     setSelectedTongue([])
+    setPalGangAnalysis(null)
     setResults([])
   }
 
@@ -839,31 +844,33 @@ export default function PatternDiagnosisPage() {
 
       {/* Progress Steps */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between overflow-x-auto">
           {[
             { key: 'symptoms', label: '증상 선택', icon: Activity },
-            { key: 'pulse', label: '맥진 입력', icon: CircleDot },
-            { key: 'tongue', label: '설진 입력', icon: Droplets },
-            { key: 'result', label: '변증 결과', icon: Sparkles },
+            { key: 'pulse', label: '맥진', icon: CircleDot },
+            { key: 'tongue', label: '설진', icon: Droplets },
+            { key: 'palgang', label: '팔강변증', icon: Scale },
+            { key: 'result', label: '결과', icon: Sparkles },
           ].map((s, index) => (
             <div key={s.key} className="flex items-center">
               <div
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-xl transition-all',
+                  'flex items-center gap-2 px-3 py-2 rounded-xl transition-all',
                   step === s.key
                     ? 'bg-purple-100 text-purple-700'
                     : results.length > 0 ||
                       (s.key === 'symptoms' && selectedSymptoms.length > 0) ||
                       (s.key === 'pulse' && selectedPulses.length > 0) ||
-                      (s.key === 'tongue' && selectedTongue.length > 0)
+                      (s.key === 'tongue' && selectedTongue.length > 0) ||
+                      (s.key === 'palgang' && palGangAnalysis !== null)
                     ? 'bg-green-100 text-green-700'
                     : 'text-gray-400'
                 )}
               >
                 <s.icon className="h-4 w-4" />
-                <span className="text-sm font-medium hidden sm:inline">{s.label}</span>
+                <span className="text-sm font-medium hidden md:inline">{s.label}</span>
               </div>
-              {index < 3 && <ChevronRight className="h-4 w-4 text-gray-300 mx-2" />}
+              {index < 4 && <ChevronRight className="h-4 w-4 text-gray-300 mx-1" />}
             </div>
           ))}
         </div>
@@ -1036,6 +1043,54 @@ export default function PatternDiagnosisPage() {
               ← 이전
             </button>
             <button
+              onClick={() => setStep('palgang')}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors"
+            >
+              다음: 팔강변증
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'palgang' && (
+        <div className="space-y-6">
+          <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
+            <p className="text-purple-700 text-sm">
+              💡 수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. AI가 자동으로 분석하거나 직접 선택할 수 있습니다.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 팔강변증 분석기 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <PalGangAnalyzer
+                initialAnalysis={palGangAnalysis || undefined}
+                onAnalysisChange={(analysis) => setPalGangAnalysis(analysis)}
+              />
+            </div>
+
+            {/* 팔강변증 다이어그램 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">팔강변증 시각화</h3>
+              {palGangAnalysis ? (
+                <PalGangDiagram analysis={palGangAnalysis} />
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">
+                  <p>왼쪽에서 팔강을 선택하면 다이어그램이 표시됩니다</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setStep('tongue')}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              ← 이전
+            </button>
+            <button
               onClick={analyzePatterns}
               disabled={analyzing}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
@@ -1136,13 +1191,24 @@ export default function PatternDiagnosisPage() {
             </div>
           )}
 
+          {/* 팔강변증 결과 */}
+          {palGangAnalysis && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Scale className="h-5 w-5 text-purple-500" />
+                팔강변증 분석
+              </h3>
+              <PalGangSummary analysis={palGangAnalysis} />
+            </div>
+          )}
+
           {/* Summary */}
           <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-gray-500" />
               입력 요약
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <p className="text-gray-500 mb-1">선택된 증상</p>
                 <p className="font-medium text-gray-900">{selectedSymptoms.length}개</p>
@@ -1160,6 +1226,12 @@ export default function PatternDiagnosisPage() {
                 <p className="text-gray-500 mb-1">설진</p>
                 <p className="font-medium text-gray-900">
                   {selectedTongue.length > 0 ? `${selectedTongue.length}개 특징` : '미선택'}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 mb-1">팔강변증</p>
+                <p className="font-medium text-gray-900">
+                  {palGangAnalysis ? '입력됨' : '미선택'}
                 </p>
               </div>
             </div>
