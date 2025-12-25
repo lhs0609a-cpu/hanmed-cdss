@@ -27,6 +27,8 @@ import {
   Mic,
   ArrowLeftRight,
   MessageSquare,
+  Library,
+  GitCompare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -61,6 +63,11 @@ const referenceTools = [
   { name: '합방 계산기', href: '/combo', icon: Calculator, description: '처방 조합' },
   { name: '상호작용', href: '/interactions', icon: AlertTriangle, description: '안전성 검사' },
   { name: '고전 검색', href: '/classics', icon: ScrollText, description: '원문/해석' },
+]
+
+const theoryTools = [
+  { name: '병양도표', href: '/byeongyang', icon: Library, description: '병증별 변증', badge: 'NEW' },
+  { name: '학파 비교', href: '/school-compare', icon: GitCompare, description: '고방/후세방', badge: 'NEW' },
 ]
 
 const adminTools = [
@@ -285,6 +292,42 @@ export default function DashboardLayout() {
                     >
                       <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
                       <span className="flex-1">{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Theory Tools - 의학 이론 */}
+            <div>
+              <p className="px-3 mb-2 text-[10px] font-semibold text-amber-600 uppercase tracking-wider">
+                📚 의학 이론
+              </p>
+              <div className="space-y-1">
+                {theoryTools.map((item) => {
+                  const isActive = location.pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30'
+                          : 'text-gray-600 hover:bg-amber-50 hover:text-amber-900'
+                      )}
+                    >
+                      <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-amber-500')} />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
+                          isActive ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}

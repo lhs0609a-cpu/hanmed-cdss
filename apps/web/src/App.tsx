@@ -37,6 +37,10 @@ import FormulaComparePage from '@/app/formula-compare/FormulaComparePage'
 import RedFlagPage from '@/app/red-flag/RedFlagPage'
 import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
 
+// Traditional Medicine Features
+import ByeongYangTablePage from '@/app/byeongyang/ByeongYangTablePage'
+import SchoolComparisonPage from '@/app/school-compare/SchoolComparisonPage'
+
 // Community
 import CommunityPage from '@/app/community/CommunityPage'
 import PostDetailPage from '@/app/community/PostDetailPage'
@@ -105,6 +109,10 @@ function App() {
           <Route path="formula-compare" element={<FormulaComparePage />} />
           <Route path="red-flag" element={<RedFlagPage />} />
           <Route path="voice-chart" element={<VoiceChartPage />} />
+
+          {/* Traditional Medicine Features */}
+          <Route path="byeongyang" element={<ByeongYangTablePage />} />
+          <Route path="school-compare" element={<SchoolComparisonPage />} />
 
           {/* Community */}
           <Route path="community" element={<CommunityPage />} />
