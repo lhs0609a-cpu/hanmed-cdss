@@ -29,6 +29,7 @@ import {
   MessageSquare,
   Library,
   GitCompare,
+  HeartPulse,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -68,6 +69,7 @@ const referenceTools = [
 const theoryTools = [
   { name: '병양도표', href: '/byeongyang', icon: Library, description: '병증별 변증', badge: 'NEW' },
   { name: '학파 비교', href: '/school-compare', icon: GitCompare, description: '고방/후세방', badge: 'NEW' },
+  { name: '통합의학', href: '/integrated-diagnosis', icon: HeartPulse, description: 'ICD-10 연계', badge: 'NEW' },
 ]
 
 const adminTools = [

@@ -20,7 +20,13 @@ import {
   FileText,
   Copy,
   Check,
+  Scroll,
+  Book,
+  Users,
+  Eye,
+  Settings2,
 } from 'lucide-react'
+import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
@@ -153,6 +159,12 @@ export default function ConsultationPage() {
   const [constitution, setConstitution] = useState('')
   const [currentMedications, setCurrentMedications] = useState<string[]>([])
   const [newMedication, setNewMedication] = useState('')
+
+  // 고급 옵션
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [preferredSchool, setPreferredSchool] = useState<MedicineSchool | 'all'>('all')
+  const [includePalGang, setIncludePalGang] = useState(true)
+  const [includeByeongYang, setIncludeByeongYang] = useState(true)
 
   const [isLoading, setIsLoading] = useState(false)
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
@@ -430,6 +442,113 @@ export default function ConsultationPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Advanced Options - 학파 선택 및 분석 옵션 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <button
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-100 rounded-xl">
+                  <Settings2 className="h-5 w-5 text-purple-600" />
+                </div>
+                <div className="text-left">
+                  <h2 className="font-bold text-gray-900">분석 옵션</h2>
+                  <p className="text-xs text-gray-500">학파 선호도 및 변증 분석 설정</p>
+                </div>
+              </div>
+              <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} />
+            </button>
+
+            {showAdvancedOptions && (
+              <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
+                {/* 학파 선호도 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">학파 선호도</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPreferredSchool('all')}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        preferredSchool === 'all'
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      전체 (자동 선택)
+                    </button>
+                    <button
+                      onClick={() => setPreferredSchool('classical')}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                        preferredSchool === 'classical'
+                          ? 'bg-amber-600 text-white border-amber-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                      }`}
+                    >
+                      <Scroll className="h-4 w-4" />
+                      고방
+                    </button>
+                    <button
+                      onClick={() => setPreferredSchool('later')}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                        preferredSchool === 'later'
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <Book className="h-4 w-4" />
+                      후세방
+                    </button>
+                    <button
+                      onClick={() => setPreferredSchool('sasang')}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
+                        preferredSchool === 'sasang'
+                          ? 'bg-violet-600 text-white border-violet-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-violet-50'
+                      }`}
+                    >
+                      <Users className="h-4 w-4" />
+                      사상방
+                    </button>
+                  </div>
+                  {preferredSchool !== 'all' && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      {SCHOOL_INFO[preferredSchool].philosophy}
+                    </p>
+                  )}
+                </div>
+
+                {/* 분석 옵션 */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">분석 포함 항목</label>
+                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={includePalGang}
+                      onChange={(e) => setIncludePalGang(e.target.checked)}
+                      className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">팔강변증 분석</span>
+                      <p className="text-xs text-gray-500">음양, 표리, 한열, 허실 분석 포함</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={includeByeongYang}
+                      onChange={(e) => setIncludeByeongYang(e.target.checked)}
+                      className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900">병양도표 매칭</span>
+                      <p className="text-xs text-gray-500">증상별 변증 패턴 매칭 분석</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

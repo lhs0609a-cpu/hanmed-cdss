@@ -40,6 +40,7 @@ import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
 // Traditional Medicine Features
 import ByeongYangTablePage from '@/app/byeongyang/ByeongYangTablePage'
 import SchoolComparisonPage from '@/app/school-compare/SchoolComparisonPage'
+import IntegratedDiagnosisPage from '@/app/integrated-diagnosis/IntegratedDiagnosisPage'
 
 // Community
 import CommunityPage from '@/app/community/CommunityPage'
@@ -113,6 +114,7 @@ function App() {
           {/* Traditional Medicine Features */}
           <Route path="byeongyang" element={<ByeongYangTablePage />} />
           <Route path="school-compare" element={<SchoolComparisonPage />} />
+          <Route path="integrated-diagnosis" element={<IntegratedDiagnosisPage />} />
 
           {/* Community */}
           <Route path="community" element={<CommunityPage />} />
