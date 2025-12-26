@@ -23,7 +23,6 @@ import {
   Scroll,
   Book,
   Users,
-  Eye,
   Settings2,
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'

@@ -30,7 +30,7 @@ const dummyPosts: CommunityPost[] = [
       id: '1',
       name: '김한의',
       isLicenseVerified: true,
-      subscriptionTier: 'pro',
+      subscriptionTier: 'professional',
       contributionPoints: 234,
     },
     isAnonymous: false,
@@ -61,7 +61,7 @@ const dummyPosts: CommunityPost[] = [
       id: '2',
       name: '이전문',
       isLicenseVerified: true,
-      subscriptionTier: 'master',
+      subscriptionTier: 'clinic',
       contributionPoints: 1520,
       acceptedAnswerCount: 45,
     },
@@ -113,13 +113,13 @@ const dummyPosts: CommunityPost[] = [
       slug: 'herbology',
       postType: 'forum',
       sortOrder: 1,
-      requiredTier: 'starter',
+      requiredTier: 'free',
     },
     author: {
       id: '4',
       name: '박약재',
       isLicenseVerified: true,
-      subscriptionTier: 'pro',
+      subscriptionTier: 'professional',
       contributionPoints: 567,
       specialization: '본초학',
     },
@@ -145,7 +145,7 @@ const dummyPosts: CommunityPost[] = [
       id: '5',
       name: '최개원',
       isLicenseVerified: true,
-      subscriptionTier: 'starter',
+      subscriptionTier: 'free',
       contributionPoints: 45,
     },
     isAnonymous: false,
@@ -404,7 +404,7 @@ export default function CommunityPage() {
                       {post.author.isLicenseVerified && (
                         <Shield className="h-4 w-4 text-blue-500" />
                       )}
-                      {post.author.subscriptionTier === 'master' && (
+                      {post.author.subscriptionTier === 'clinic' && (
                         <Star className="h-4 w-4 text-yellow-500" />
                       )}
                       <span className="font-medium text-gray-700">{post.author.name}</span>

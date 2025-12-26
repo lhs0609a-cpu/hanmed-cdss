@@ -44,7 +44,7 @@ const dummyPost: CommunityPost = {
     id: '1',
     name: '김한의',
     isLicenseVerified: true,
-    subscriptionTier: 'pro',
+    subscriptionTier: 'professional',
     contributionPoints: 234,
   },
   isAnonymous: false,
@@ -80,7 +80,7 @@ const dummyComments: CommunityComment[] = [
       id: '2',
       name: '이전문',
       isLicenseVerified: true,
-      subscriptionTier: 'master',
+      subscriptionTier: 'clinic',
       contributionPoints: 1520,
       acceptedAnswerCount: 45,
       specialization: '상한론',
@@ -108,7 +108,7 @@ const dummyComments: CommunityComment[] = [
       id: '3',
       name: '박경험',
       isLicenseVerified: true,
-      subscriptionTier: 'master',
+      subscriptionTier: 'clinic',
       contributionPoints: 980,
       acceptedAnswerCount: 32,
     },
@@ -127,7 +127,7 @@ const dummyComments: CommunityComment[] = [
       id: '4',
       name: '최후배',
       isLicenseVerified: true,
-      subscriptionTier: 'starter',
+      subscriptionTier: 'free',
       contributionPoints: 45,
     },
     isAnonymous: false,
@@ -211,12 +211,12 @@ export default function PostDetailPage() {
                   {dummyPost.author.isLicenseVerified && (
                     <Shield className="h-4 w-4 text-blue-500" />
                   )}
-                  {dummyPost.author.subscriptionTier === 'master' && (
+                  {dummyPost.author.subscriptionTier === 'clinic' && (
                     <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-medium">
                       MASTER
                     </span>
                   )}
-                  {dummyPost.author.subscriptionTier === 'pro' && (
+                  {dummyPost.author.subscriptionTier === 'professional' && (
                     <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
                       PRO
                     </span>
@@ -390,7 +390,7 @@ export default function PostDetailPage() {
                       {comment.author.isLicenseVerified && (
                         <Shield className="h-4 w-4 text-blue-500" />
                       )}
-                      {comment.author.subscriptionTier === 'master' && (
+                      {comment.author.subscriptionTier === 'clinic' && (
                         <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-medium">
                           MASTER
                         </span>

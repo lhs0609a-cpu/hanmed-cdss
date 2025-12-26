@@ -4,6 +4,13 @@
 export * from './medicine-school'
 export * from './byeongyang'
 
+// 타입 명시적 import (파일 내에서 사용하기 위함)
+import type { MedicineSchool } from './medicine-school'
+import type { PalGangAnalysis } from './byeongyang'
+
+// Re-export for explicit usage
+export type { MedicineSchool, PalGangAnalysis }
+
 // ===========================
 // API 관련 타입
 // ===========================

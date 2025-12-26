@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
-import { MedicineSchool, SCHOOL_INFO } from '@/types'
+import { MedicineSchool } from '@/types'
 import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
 

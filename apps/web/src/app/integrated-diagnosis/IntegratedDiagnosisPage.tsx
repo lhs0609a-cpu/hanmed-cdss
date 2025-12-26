@@ -16,7 +16,6 @@ import {
   Book,
   Users,
   FileText,
-  CheckCircle,
   ExternalLink,
 } from 'lucide-react'
 
