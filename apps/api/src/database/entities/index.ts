@@ -20,3 +20,5 @@ export * from './report.entity';
 // Subscription entities
 export * from './subscription.entity';
 export * from './usage-tracking.entity';
+export * from './payment.entity';
+export * from './refund.entity';

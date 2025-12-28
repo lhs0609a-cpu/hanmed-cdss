@@ -2,7 +2,6 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
-from ...services.vector_service import VectorService
 from ...services.llm_service import LLMService
 from ...services.rag_service import RAGService
 
@@ -20,7 +19,7 @@ class RecommendationRequest(BaseModel):
     chief_complaint: str = Field(..., description="주소증")
     symptoms: List[SymptomInput] = Field(default=[], description="증상 목록")
     current_medications: Optional[List[str]] = Field(None, description="현재 복용 중인 양약")
-    top_k: int = Field(default=5, ge=1, le=20)
+    top_k: int = Field(default=3, ge=1, le=5)
 
 class HerbInfo(BaseModel):
     name: str
@@ -35,8 +34,9 @@ class FormulaRecommendation(BaseModel):
 
 class RecommendationResponse(BaseModel):
     recommendations: List[FormulaRecommendation]
-    similar_cases: List[Dict[str, Any]]
     analysis: str
+    modifications: Optional[str] = None
+    cautions: Optional[str] = None
     note: Optional[str] = None
 
 @router.post("/", response_model=RecommendationResponse)
@@ -45,19 +45,13 @@ async def get_prescription_recommendation(
     rec_request: RecommendationRequest,
 ):
     """
-    AI 기반 처방 추천
+    AI 기반 처방 추천 (GPT-4o-mini)
 
     환자 정보와 증상을 분석하여 적합한 한약 처방을 추천합니다.
-    유사 치험례를 검색하고 LLM을 통해 최적의 처방을 제안합니다.
     """
     # 서비스 초기화
-    vector_service = getattr(request.app.state, 'vector_service', None)
-
-    if not vector_service:
-        vector_service = VectorService()
-
     llm_service = LLMService()
-    rag_service = RAGService(vector_service, llm_service)
+    rag_service = RAGService(llm_service)
 
     # 환자 정보 구성
     patient_info = {
@@ -70,7 +64,7 @@ async def get_prescription_recommendation(
     }
 
     try:
-        # RAG 추천 실행
+        # GPT 추천 실행
         result = await rag_service.get_recommendation(
             patient_info=patient_info,
             top_k=rec_request.top_k,
@@ -96,8 +90,9 @@ async def get_prescription_recommendation(
 
         return RecommendationResponse(
             recommendations=recommendations,
-            similar_cases=result.get('similar_cases', []),
             analysis=result.get('analysis', ''),
+            modifications=result.get('modifications'),
+            cautions=result.get('cautions'),
             note=result.get('note'),
         )
 

@@ -10,25 +10,26 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://hanmed-cdss.vercel.app",
+        "https://*.vercel.app",
+    ]
 
-    # OpenAI (임베딩)
+    # OpenAI GPT
     OPENAI_API_KEY: str = ""
-    EMBEDDING_MODEL: str = "text-embedding-3-large"
-    EMBEDDING_DIMENSION: int = 3072
+    GPT_MODEL: str = "gpt-4o-mini"
 
-    # Anthropic Claude (LLM)
-    ANTHROPIC_API_KEY: str = ""
-    CLAUDE_MODEL: str = "claude-sonnet-4-20250514"
+    # Database
+    DATABASE_URL: str = ""
 
-    # Pinecone (벡터 DB)
-    PINECONE_API_KEY: str = ""
-    PINECONE_INDEX_NAME: str = "hanmed-cases"
-    PINECONE_ENVIRONMENT: str = "us-east-1"
+    # 토스페이먼츠
+    TOSS_CLIENT_KEY: str = ""
+    TOSS_SECRET_KEY: str = ""
 
-    # NestJS API
-    NESTJS_API_URL: str = "http://localhost:3001"
-    INTERNAL_API_KEY: str = ""
+    # JWT (프론트엔드 토큰 검증용)
+    JWT_SECRET: str = ""
 
     class Config:
         env_file = ".env"

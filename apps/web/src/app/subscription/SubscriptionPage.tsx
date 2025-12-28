@@ -32,8 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -55,6 +57,7 @@ export default function SubscriptionPage() {
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedTier, setSelectedTier] = useState<'basic' | 'professional' | 'clinic' | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // 카드 정보 폼 상태
   const [cardForm, setCardForm] = useState({
@@ -104,6 +107,7 @@ export default function SubscriptionPage() {
       onSuccess: (data) => {
         toast.success(`카드가 등록되었습니다. (${data.cardNumber})`);
         setShowCardModal(false);
+        setAgreedToTerms(false);
         setCardForm({
           cardNumber: '',
           expirationYear: '',
@@ -441,6 +445,31 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
+      {/* Legal Links */}
+      <div className="border-t pt-6">
+        <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
+          <Link to="/terms" className="hover:text-teal-600 flex items-center gap-1">
+            이용약관
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+          <span className="text-gray-300">|</span>
+          <Link to="/privacy" className="hover:text-teal-600 flex items-center gap-1">
+            개인정보처리방침
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+          <span className="text-gray-300">|</span>
+          <Link to="/subscription-terms" className="hover:text-teal-600 flex items-center gap-1">
+            정기결제 약관
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+          <span className="text-gray-300">|</span>
+          <Link to="/refund-policy" className="hover:text-teal-600 flex items-center gap-1">
+            환불정책
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
+
       {/* Card Registration Modal */}
       <Dialog open={showCardModal} onOpenChange={setShowCardModal}>
         <DialogContent className="sm:max-w-md">
@@ -517,6 +546,29 @@ export default function SubscriptionPage() {
                 maxLength={10}
               />
             </div>
+
+            {/* Terms Agreement */}
+            <div className="flex items-start space-x-2 p-3 bg-gray-50 rounded-lg">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+              />
+              <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
+                <Link to="/subscription-terms" target="_blank" className="text-teal-600 hover:underline">
+                  정기결제 약관
+                </Link>
+                ,{' '}
+                <Link to="/refund-policy" target="_blank" className="text-teal-600 hover:underline">
+                  환불정책
+                </Link>
+                ,{' '}
+                <Link to="/privacy" target="_blank" className="text-teal-600 hover:underline">
+                  개인정보처리방침
+                </Link>
+                에 동의합니다.
+              </label>
+            </div>
           </div>
 
           <DialogFooter>
@@ -525,7 +577,7 @@ export default function SubscriptionPage() {
             </Button>
             <Button
               onClick={handleRegisterCard}
-              disabled={registerCard.isPending || !cardForm.cardNumber || !cardForm.expirationMonth || !cardForm.expirationYear || !cardForm.cardPassword || !cardForm.customerIdentityNumber}
+              disabled={registerCard.isPending || !cardForm.cardNumber || !cardForm.expirationMonth || !cardForm.expirationYear || !cardForm.cardPassword || !cardForm.customerIdentityNumber || !agreedToTerms}
             >
               {registerCard.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

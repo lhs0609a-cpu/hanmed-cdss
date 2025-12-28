@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -7,6 +7,8 @@ import { User } from '../../database/entities/user.entity';
 import {
   RegisterCardDto,
   SubscribeDto,
+  RefundRequestDto,
+  PaymentHistoryQueryDto,
 } from './dto';
 
 @ApiTags('subscription')
@@ -109,5 +111,44 @@ export class TossPaymentsController {
       success: true,
       message: '구독이 즉시 취소되었습니다.',
     };
+  }
+
+  @Get('payments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '결제 내역 조회' })
+  async getPaymentHistory(
+    @CurrentUser() user: User,
+    @Query() query: PaymentHistoryQueryDto,
+  ) {
+    return this.tossPaymentsService.getPaymentHistory(
+      user.id,
+      query.page,
+      query.limit,
+    );
+  }
+
+  @Post('refund')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '환불 요청' })
+  async requestRefund(
+    @CurrentUser() user: User,
+    @Body() dto: RefundRequestDto,
+  ) {
+    return this.tossPaymentsService.requestRefund(
+      user.id,
+      dto.paymentId,
+      dto.reason,
+      dto.amount,
+    );
+  }
+
+  @Get('refunds')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '환불 내역 조회' })
+  async getRefundHistory(@CurrentUser() user: User) {
+    return this.tossPaymentsService.getRefundHistory(user.id);
   }
 }

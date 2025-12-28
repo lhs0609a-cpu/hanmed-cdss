@@ -1,0 +1,22 @@
+# fly.toml - Fly.io API 서버 배포 설정
+app = "hanmed-api"
+primary_region = "nrt"  # Tokyo (한국에서 가장 가까운 리전)
+
+[build]
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

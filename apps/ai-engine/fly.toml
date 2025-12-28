@@ -1,0 +1,22 @@
+# fly.toml - Fly.io 배포 설정
+app = "hanmed-ai-engine"
+primary_region = "nrt"  # Tokyo (한국에서 가장 가까운 리전)
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[env]
+  ENVIRONMENT = "production"
+  DEBUG = "false"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

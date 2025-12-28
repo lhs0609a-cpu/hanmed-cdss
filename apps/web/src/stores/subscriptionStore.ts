@@ -8,6 +8,8 @@ export interface Plan {
   monthlyPrice: number;
   yearlyPrice: number;
   aiQueryLimit: number;
+  overagePrice: number;
+  canExceed: boolean;
 }
 
 export interface Usage {

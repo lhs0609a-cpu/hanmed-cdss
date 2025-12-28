@@ -96,9 +96,12 @@ export default function SettingsPage() {
     updates: true,
   });
 
-  const { data: plans } = usePlans();
+  const { data: plans, isLoading: plansLoading, error: plansError } = usePlans();
   const { data: subscriptionInfo } = useSubscriptionInfo();
   const { data: usage } = useUsage();
+
+  // 디버깅용 콘솔 로그
+  console.log('Plans data:', plans, 'Loading:', plansLoading, 'Error:', plansError);
 
   const registerCard = useRegisterCard();
   const subscribe = useSubscribe();
@@ -372,48 +375,64 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {plans?.map((plan) => {
-                  const Icon = planIcons[plan.tier] || Sparkles;
-                  const isCurrentPlan = currentTier === plan.tier;
-                  const monthlyEquivalent = billingInterval === 'yearly' ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+                  <span className="ml-2 text-gray-500">요금제 정보를 불러오는 중...</span>
+                </div>
+              ) : plansError ? (
+                <div className="text-center py-12">
+                  <p className="text-red-500 mb-2">요금제 정보를 불러오지 못했습니다.</p>
+                  <p className="text-sm text-gray-500">{(plansError as Error).message}</p>
+                </div>
+              ) : !plans || plans.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">표시할 요금제가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {plans.map((plan) => {
+                    const Icon = planIcons[plan.tier] || Sparkles;
+                    const isCurrentPlan = currentTier === plan.tier;
+                    const monthlyEquivalent = billingInterval === 'yearly' ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
 
-                  return (
-                    <div
-                      key={plan.tier}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        isCurrentPlan ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br text-white mb-3 ${planColors[plan.tier]}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900">{plan.name}</h4>
-                      <p className="text-xs text-gray-500 mt-1">{plan.description}</p>
-                      <p className="mt-3">
-                        <span className="text-xl font-bold text-gray-900">{formatPrice(monthlyEquivalent)}원</span>
-                        <span className="text-gray-500 text-sm">/월</span>
-                      </p>
-                      <ul className="mt-3 space-y-1">
-                        {plan.features.slice(0, 2).map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-1.5 text-xs text-gray-600">
-                            <Check className="h-3 w-3 text-teal-500" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      <Button
-                        size="sm"
-                        className={`w-full mt-4 ${isCurrentPlan ? 'bg-gray-200 text-gray-600' : ''}`}
-                        disabled={isCurrentPlan || plan.tier === 'free' || subscribe.isPending}
-                        onClick={() => handleSubscribe(plan.tier)}
+                    return (
+                      <div
+                        key={plan.tier}
+                        className={`p-4 rounded-xl border-2 transition-all ${
+                          isCurrentPlan ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
                       >
-                        {isCurrentPlan ? '현재 플랜' : plan.tier === 'free' ? '무료' : '선택'}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br text-white mb-3 ${planColors[plan.tier]}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900">{plan.name}</h4>
+                        <p className="text-xs text-gray-500 mt-1">{plan.description}</p>
+                        <p className="mt-3">
+                          <span className="text-xl font-bold text-gray-900">{formatPrice(monthlyEquivalent)}원</span>
+                          <span className="text-gray-500 text-sm">/월</span>
+                        </p>
+                        <ul className="mt-3 space-y-1">
+                          {plan.features.slice(0, 2).map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-1.5 text-xs text-gray-600">
+                              <Check className="h-3 w-3 text-teal-500" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                        <Button
+                          size="sm"
+                          className={`w-full mt-4 ${isCurrentPlan ? 'bg-gray-200 text-gray-600' : ''}`}
+                          disabled={isCurrentPlan || plan.tier === 'free' || subscribe.isPending}
+                          onClick={() => handleSubscribe(plan.tier)}
+                        >
+                          {isCurrentPlan ? '현재 플랜' : plan.tier === 'free' ? '무료' : '선택'}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

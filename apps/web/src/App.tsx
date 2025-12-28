@@ -62,6 +62,14 @@ import SettingsPage from '@/app/settings/SettingsPage'
 // Profile
 import ProfilePage from '@/app/profile/ProfilePage'
 
+// Legal Pages
+import {
+  TermsPage,
+  PrivacyPage,
+  RefundPolicyPage,
+  SubscriptionTermsPage,
+} from '@/app/legal'
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -80,6 +88,12 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Legal Pages (Public) */}
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refund-policy" element={<RefundPolicyPage />} />
+        <Route path="/subscription-terms" element={<SubscriptionTermsPage />} />
 
         {/* Protected Routes */}
         <Route

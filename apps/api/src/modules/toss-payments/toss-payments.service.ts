@@ -22,23 +22,42 @@ import {
   UsageTracking,
   UsageType,
 } from '../../database/entities/usage-tracking.entity';
+import { Payment, PaymentStatus } from '../../database/entities/payment.entity';
+import { Refund, RefundStatus } from '../../database/entities/refund.entity';
 
-// 플랜별 가격 정보
+// 플랜별 가격 정보 (초과 사용료 포함)
 export const PLAN_PRICES = {
+  [SubscriptionTier.FREE]: {
+    monthly: 0,
+    yearly: 0,
+    name: 'Free',
+    includedQueries: 10,
+    overagePrice: 0, // 무료 플랜은 초과 불가
+    canExceed: false,
+  },
   [SubscriptionTier.BASIC]: {
     monthly: 19900,
     yearly: 199000,
     name: 'Basic',
+    includedQueries: 50,
+    overagePrice: 500, // 초과 시 건당 500원
+    canExceed: true,
   },
   [SubscriptionTier.PROFESSIONAL]: {
     monthly: 99000,
     yearly: 990000,
     name: 'Professional',
+    includedQueries: 300,
+    overagePrice: 300, // 초과 시 건당 300원
+    canExceed: true,
   },
   [SubscriptionTier.CLINIC]: {
     monthly: 199000,
     yearly: 1990000,
     name: 'Clinic',
+    includedQueries: -1, // 무제한
+    overagePrice: 0,
+    canExceed: false,
   },
 };
 
@@ -82,6 +101,10 @@ export class TossPaymentsService {
     private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(UsageTracking)
     private usageRepository: Repository<UsageTracking>,
+    @InjectRepository(Payment)
+    private paymentRepository: Repository<Payment>,
+    @InjectRepository(Refund)
+    private refundRepository: Repository<Refund>,
   ) {
     this.secretKey = this.configService.get('TOSS_SECRET_KEY') || '';
     this.clientKey = this.configService.get('TOSS_CLIENT_KEY') || '';
@@ -510,38 +533,50 @@ export class TossPaymentsService {
           tier: 'free',
           name: 'Free',
           description: '학생/수련생을 위한 무료 플랜',
-          features: ['AI 쿼리 10회/월', '기본 검색 기능', '커뮤니티 읽기'],
+          features: [
+            'AI 쿼리 10회/월',
+            '기본 검색 기능',
+            '커뮤니티 읽기',
+          ],
           monthlyPrice: 0,
           yearlyPrice: 0,
-          aiQueryLimit: 10,
+          aiQueryLimit: PLAN_PRICES[SubscriptionTier.FREE].includedQueries,
+          overagePrice: 0,
+          canExceed: false,
         },
         {
           tier: 'basic',
           name: 'Basic',
           description: '한약사, 체험 사용자를 위한 기본 플랜',
           features: [
-            'AI 쿼리 50회/월',
+            'AI 쿼리 50회/월 포함',
+            `초과 시 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건`,
             '전체 검색 기능',
             '커뮤니티 참여',
             '이메일 지원',
           ],
           monthlyPrice: PLAN_PRICES[SubscriptionTier.BASIC].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.BASIC].yearly,
-          aiQueryLimit: 50,
+          aiQueryLimit: PLAN_PRICES[SubscriptionTier.BASIC].includedQueries,
+          overagePrice: PLAN_PRICES[SubscriptionTier.BASIC].overagePrice,
+          canExceed: true,
         },
         {
           tier: 'professional',
           name: 'Professional',
           description: '봉직 한의사를 위한 전문가 플랜',
           features: [
-            'AI 쿼리 300회/월',
+            'AI 쿼리 300회/월 포함',
+            `초과 시 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].overagePrice}원/건`,
             '고급 분석 기능',
             '처방 비교 무제한',
             '우선 지원',
           ],
           monthlyPrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].yearly,
-          aiQueryLimit: 300,
+          aiQueryLimit: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries,
+          overagePrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].overagePrice,
+          canExceed: true,
         },
         {
           tier: 'clinic',
@@ -556,6 +591,8 @@ export class TossPaymentsService {
           monthlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].yearly,
           aiQueryLimit: -1,
+          overagePrice: 0,
+          canExceed: false,
         },
       ],
     };
@@ -564,5 +601,234 @@ export class TossPaymentsService {
   // 클라이언트 키 반환 (프론트엔드용)
   getClientKey(): string {
     return this.clientKey;
+  }
+
+  // 결제 내역 조회
+  async getPaymentHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const [payments, total] = await this.paymentRepository.findAndCount({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      payments: payments.map((p) => ({
+        id: p.id,
+        orderId: p.orderId,
+        orderName: p.orderName,
+        amount: p.amount,
+        baseAmount: p.baseAmount,
+        overageAmount: p.overageAmount,
+        overageCount: p.overageCount,
+        refundedAmount: p.refundedAmount,
+        status: p.status,
+        cardCompany: p.cardCompany,
+        cardNumber: p.cardNumber,
+        receiptUrl: p.receiptUrl,
+        paidAt: p.paidAt,
+        createdAt: p.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // 결제 저장 (빌링키 결제 후 호출)
+  async savePayment(
+    userId: string,
+    subscriptionId: string | null,
+    paymentData: {
+      orderId: string;
+      orderName: string;
+      amount: number;
+      baseAmount: number;
+      overageAmount?: number;
+      overageCount?: number;
+      paymentKey: string;
+      cardCompany?: string;
+      cardNumber?: string;
+      receiptUrl?: string;
+    },
+  ): Promise<Payment> {
+    const payment = this.paymentRepository.create({
+      userId,
+      subscriptionId,
+      orderId: paymentData.orderId,
+      orderName: paymentData.orderName,
+      amount: paymentData.amount,
+      baseAmount: paymentData.baseAmount,
+      overageAmount: paymentData.overageAmount || 0,
+      overageCount: paymentData.overageCount || 0,
+      paymentKey: paymentData.paymentKey,
+      status: PaymentStatus.PAID,
+      paidAt: new Date(),
+      cardCompany: paymentData.cardCompany,
+      cardNumber: paymentData.cardNumber,
+      receiptUrl: paymentData.receiptUrl,
+    });
+
+    return this.paymentRepository.save(payment);
+  }
+
+  // 환불 요청
+  async requestRefund(
+    userId: string,
+    paymentId: string,
+    reason: string,
+    amount?: number, // 부분 환불 금액 (없으면 전액)
+  ) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const payment = await this.paymentRepository.findOne({
+      where: { id: paymentId, userId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('결제 내역을 찾을 수 없습니다.');
+    }
+
+    if (payment.status === PaymentStatus.REFUNDED) {
+      throw new BadRequestException('이미 환불 처리된 결제입니다.');
+    }
+
+    // 환불 가능 금액 계산
+    const refundableAmount = payment.amount - payment.refundedAmount;
+    const refundAmount = amount ? Math.min(amount, refundableAmount) : refundableAmount;
+
+    if (refundAmount <= 0) {
+      throw new BadRequestException('환불 가능한 금액이 없습니다.');
+    }
+
+    // 결제일로부터 7일 이내 확인
+    const paymentDate = payment.paidAt || payment.createdAt;
+    const daysSincePayment = Math.floor(
+      (Date.now() - new Date(paymentDate).getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysSincePayment > 7) {
+      throw new BadRequestException(
+        '결제일로부터 7일이 경과하여 환불이 불가능합니다.',
+      );
+    }
+
+    // 토스 환불 API 호출
+    try {
+      const response = await axios.post(
+        `${this.apiUrl}/payments/${payment.paymentKey}/cancel`,
+        {
+          cancelReason: reason,
+          cancelAmount: refundAmount,
+        },
+        {
+          headers: {
+            Authorization: this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const { cancels } = response.data;
+      const cancelInfo = cancels?.[cancels.length - 1];
+
+      // 환불 기록 저장
+      const refund = this.refundRepository.create({
+        paymentId: payment.id,
+        amount: refundAmount,
+        reason,
+        status: RefundStatus.COMPLETED,
+        refundKey: cancelInfo?.transactionKey,
+        processedAt: new Date(),
+      });
+
+      await this.refundRepository.save(refund);
+
+      // 결제 내역 업데이트
+      payment.refundedAmount += refundAmount;
+      payment.refundReason = reason;
+      payment.refundedAt = new Date();
+
+      if (payment.refundedAmount >= payment.amount) {
+        payment.status = PaymentStatus.REFUNDED;
+      } else {
+        payment.status = PaymentStatus.PARTIALLY_REFUNDED;
+      }
+
+      await this.paymentRepository.save(payment);
+
+      this.logger.log(
+        `환불 완료: paymentId=${paymentId}, amount=${refundAmount}`,
+      );
+
+      return {
+        success: true,
+        refundAmount,
+        refundId: refund.id,
+      };
+    } catch (error) {
+      this.logger.error('환불 실패:', error.response?.data || error);
+
+      // 환불 실패 기록
+      const refund = this.refundRepository.create({
+        paymentId: payment.id,
+        amount: refundAmount,
+        reason,
+        status: RefundStatus.FAILED,
+        failureReason: error.response?.data?.message || '환불 처리 실패',
+      });
+
+      await this.refundRepository.save(refund);
+
+      throw new BadRequestException(
+        error.response?.data?.message || '환불 처리에 실패했습니다.',
+      );
+    }
+  }
+
+  // 환불 내역 조회
+  async getRefundHistory(userId: string) {
+    const payments = await this.paymentRepository.find({
+      where: { userId },
+      relations: ['payment'],
+    });
+
+    const paymentIds = payments.map((p) => p.id);
+
+    if (paymentIds.length === 0) {
+      return { refunds: [] };
+    }
+
+    const refunds = await this.refundRepository.find({
+      where: paymentIds.map((id) => ({ paymentId: id })),
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      refunds: refunds.map((r) => ({
+        id: r.id,
+        paymentId: r.paymentId,
+        amount: r.amount,
+        reason: r.reason,
+        status: r.status,
+        processedAt: r.processedAt,
+        createdAt: r.createdAt,
+      })),
+    };
   }
 }

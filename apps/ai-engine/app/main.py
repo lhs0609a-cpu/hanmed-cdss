@@ -3,21 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .core.config import settings
-from .api.v1 import retrieval, recommendation, interaction, case_search
+from .core.middleware import ResponseWrapperMiddleware
+from .api.v1 import retrieval, recommendation, interaction, case_search, subscription
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작/종료 시 실행되는 라이프사이클 관리"""
     # Startup
     print("🚀 온고지신 AI Engine 시작 중...")
-    from .services.vector_service import VectorService
-    try:
-        app.state.vector_service = VectorService()
-        print("✅ Vector 서비스 초기화 완료")
-    except Exception as e:
-        print(f"⚠️ Vector 서비스 초기화 실패: {e}")
-        app.state.vector_service = None
-
+    print(f"✅ GPT 모델: {settings.GPT_MODEL}")
+    print(f"✅ OpenAI API 키: {'설정됨' if settings.OPENAI_API_KEY else '미설정'}")
+    
     yield
 
     # Shutdown
@@ -25,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="온고지신 AI Engine",
-    description="한의학 CDSS AI/ML 파이프라인 서비스",
+    description="한의학 CDSS AI 서비스 - GPT-4o-mini 기반",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -38,6 +34,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 응답 래퍼 미들웨어 (NestJS 형식과 호환)
+app.add_middleware(ResponseWrapperMiddleware)
 
 # API 라우터 등록
 app.include_router(
@@ -60,12 +59,18 @@ app.include_router(
     prefix="/api/v1",
     tags=["Case Search"]
 )
+app.include_router(
+    subscription.router,
+    prefix="/api/v1/subscription",
+    tags=["Subscription"]
+)
 
 @app.get("/")
 async def root():
     return {
         "service": "온고지신 AI Engine",
         "version": "1.0.0",
+        "model": settings.GPT_MODEL,
         "status": "running"
     }
 
@@ -73,5 +78,6 @@ async def root():
 async def health_check():
     return {
         "status": "healthy",
-        "service": "ai-engine"
+        "service": "ai-engine",
+        "model": settings.GPT_MODEL
     }

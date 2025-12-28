@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -20,74 +20,38 @@ class SearchResponse(BaseModel):
     query: str
     total_results: int
     results: List[CaseMatch]
+    note: str
 
 @router.post("/search", response_model=SearchResponse)
 async def search_similar_cases(
-    request: Request,
     search_request: SearchRequest,
 ):
     """
-    증상 기반 유사 치험례 검색
-
-    RAG 파이프라인을 사용하여 입력된 증상과 유사한 치험례를 검색합니다.
+    증상 기반 유사 치험례 검색 (더미 데이터)
+    
+    Note: 현재 벡터 DB가 비활성화되어 있어 더미 데이터를 반환합니다.
+    실제 처방 추천은 /api/v1/recommend 엔드포인트를 사용하세요.
     """
-    # 증상 텍스트 구성
     query = ", ".join(search_request.symptoms)
-
-    # Vector 서비스 가져오기
-    vector_service = getattr(request.app.state, 'vector_service', None)
-
-    if not vector_service:
-        # 더미 결과 반환
-        return SearchResponse(
-            query=query,
-            total_results=2,
-            results=[
-                CaseMatch(
-                    case_id="LEE-1995-0001",
-                    similarity_score=0.95,
-                    chief_complaint="소화불량, 복부 냉증",
-                    symptoms="식욕부진, 복부팽만, 수족냉증",
-                    formula_name="이중탕",
-                ),
-                CaseMatch(
-                    case_id="LEE-1997-0342",
-                    similarity_score=0.89,
-                    chief_complaint="비위허한, 식체",
-                    symptoms="소화불량, 권태감, 설사",
-                    formula_name="육군자탕",
-                ),
-            ]
-        )
-
-    # 실제 검색 수행
-    filter_dict = {"type": "symptoms"}
-    if search_request.constitution:
-        filter_dict["constitution"] = search_request.constitution
-
-    try:
-        results = await vector_service.search(
-            query=query,
-            filter_dict=filter_dict,
-            top_k=search_request.top_k,
-        )
-
-        case_matches = []
-        for match in results:
-            meta = match.get('metadata', {})
-            case_matches.append(CaseMatch(
-                case_id=meta.get('case_id', 'N/A'),
-                similarity_score=match.get('score', 0),
-                chief_complaint=meta.get('chief_complaint', ''),
-                symptoms=meta.get('symptoms', ''),
-                formula_name=meta.get('formula_name'),
-            ))
-
-        return SearchResponse(
-            query=query,
-            total_results=len(case_matches),
-            results=case_matches,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"검색 중 오류 발생: {str(e)}")
+    
+    return SearchResponse(
+        query=query,
+        total_results=2,
+        results=[
+            CaseMatch(
+                case_id="SAMPLE-001",
+                similarity_score=0.92,
+                chief_complaint="소화불량, 복부 냉증",
+                symptoms="식욕부진, 복부팽만, 수족냉증",
+                formula_name="이중탕",
+            ),
+            CaseMatch(
+                case_id="SAMPLE-002",
+                similarity_score=0.87,
+                chief_complaint="비위허한, 식체",
+                symptoms="소화불량, 권태감, 설사",
+                formula_name="육군자탕",
+            ),
+        ],
+        note="벡터 DB 비활성화 - 더미 데이터입니다. /api/v1/recommend 엔드포인트로 GPT 기반 추천을 받으세요."
+    )

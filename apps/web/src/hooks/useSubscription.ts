@@ -145,3 +145,91 @@ export function useRefreshSubscription() {
     queryClient.invalidateQueries({ queryKey: ['usage'] });
   };
 }
+
+// 결제 내역 관련 타입
+export interface PaymentRecord {
+  id: string;
+  orderId: string;
+  orderName: string;
+  amount: number;
+  baseAmount: number;
+  overageAmount: number;
+  overageCount: number;
+  refundedAmount: number;
+  status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
+  cardCompany: string | null;
+  cardNumber: string | null;
+  receiptUrl: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface RefundRecord {
+  id: string;
+  paymentId: string;
+  amount: number;
+  reason: string;
+  status: 'pending' | 'completed' | 'failed';
+  processedAt: string | null;
+  createdAt: string;
+}
+
+interface PaymentHistoryResponse {
+  payments: PaymentRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+interface RefundRequestDto {
+  paymentId: string;
+  reason: string;
+  amount?: number;
+}
+
+// 결제 내역 조회
+export function usePaymentHistory(page: number = 1, limit: number = 10) {
+  return useQuery({
+    queryKey: ['payment-history', page, limit],
+    queryFn: async () => {
+      const { data } = await api.get<{ data: PaymentHistoryResponse }>(
+        `/subscription/payments?page=${page}&limit=${limit}`
+      );
+      return data.data;
+    },
+  });
+}
+
+// 환불 요청
+export function useRefund() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dto: RefundRequestDto) => {
+      const { data } = await api.post<{
+        data: { success: boolean; refundAmount: number; refundId: string };
+      }>('/subscription/refund', dto);
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] });
+      queryClient.invalidateQueries({ queryKey: ['refund-history'] });
+    },
+  });
+}
+
+// 환불 내역 조회
+export function useRefundHistory() {
+  return useQuery({
+    queryKey: ['refund-history'],
+    queryFn: async () => {
+      const { data } = await api.get<{ data: { refunds: RefundRecord[] } }>(
+        '/subscription/refunds'
+      );
+      return data.data;
+    },
+  });
+}
