@@ -3,7 +3,6 @@
  * 한자에 마우스를 올리면 한글 음독 + 뜻풀이가 표시됨
  */
 
-import { useState } from 'react'
 import {
   Tooltip,
   TooltipContent,
@@ -126,7 +125,6 @@ export function HanjaText({
   const parts: Array<{ type: 'text' | 'hanja'; content: string; data?: { korean: string; meaning?: string } }> = []
 
   let remaining = text
-  let lastIndex = 0
 
   // 사전의 키들을 길이 순으로 정렬 (긴 것부터 매칭)
   const sortedKeys = Object.keys(dictionary).sort((a, b) => b.length - a.length)

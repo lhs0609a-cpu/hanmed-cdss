@@ -17,7 +17,6 @@ import { LevelBadge } from '@/components/community/LevelBadge'
 import { PointsCard } from '@/components/community/PointsCard'
 import { LevelProgressCard } from '@/components/community/LevelProgressCard'
 import {
-  CommunityLevel,
   LEVEL_REQUIREMENTS,
   getLevelInfo,
   calculateLevel,

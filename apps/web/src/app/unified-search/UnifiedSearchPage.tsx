@@ -13,7 +13,6 @@ import {
 } from '@/types'
 import {
   Search,
-  Filter,
   BookOpen,
   Pill,
   Stethoscope,

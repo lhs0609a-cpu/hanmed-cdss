@@ -192,7 +192,6 @@ export const HERB_DICTIONARY: Record<string, string> = {
   '夏枯草': '하고초',
   '何首烏': '하수오',
   '海藻': '해조',
-  '杏仁': '행인',
   '玄胡': '현호',
   '胡椒': '호초',
   '胡桃': '호도',

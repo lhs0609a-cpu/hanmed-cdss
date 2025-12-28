@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { MatchedCase } from '@/types/case-search'
-import { ConfidenceBadge, ScoreCircle, GradeBadge } from './ConfidenceBadge'
-import { ScoreBreakdown, ScoreBreakdownMini } from './ScoreBreakdown'
+import { ScoreCircle, GradeBadge } from './ConfidenceBadge'
+import { ScoreBreakdown } from './ScoreBreakdown'
 import { MatchReasonList, MatchReasonBadges } from './MatchReasonList'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 

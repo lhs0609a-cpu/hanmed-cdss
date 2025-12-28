@@ -55,8 +55,8 @@ export function HanjaSettingsProvider({ children }: HanjaSettingsProviderProps) 
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ showHanja, showMeaning }))
   }, [showHanja, showMeaning])
 
-  const toggleHanja = () => setShowHanja(prev => !prev)
-  const toggleMeaning = () => setShowMeaning(prev => !prev)
+  const toggleHanja = () => setShowHanja((prev: boolean) => !prev)
+  const toggleMeaning = () => setShowMeaning((prev: boolean) => !prev)
 
   return (
     <HanjaSettingsContext.Provider value={{ showHanja, toggleHanja, showMeaning, toggleMeaning }}>

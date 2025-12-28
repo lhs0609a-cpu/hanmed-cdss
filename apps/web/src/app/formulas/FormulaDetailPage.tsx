@@ -13,8 +13,7 @@ import {
 import api from '@/services/api'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
-import { HanjaTooltip, HanjaText, useHanjaSettings } from '@/components/hanja'
-import { HERB_DICTIONARY, MEDICAL_TERM_DICTIONARY } from '@/data/hanja-dictionary'
+import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 
 interface FormulaHerb {
   id: string

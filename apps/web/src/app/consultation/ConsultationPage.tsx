@@ -31,7 +31,7 @@ import api from '@/services/api'
 import { logError } from '@/lib/errors'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { CaseMatchListItem } from '@/components/case-match'
-import type { CaseSearchResponse, MatchedCase } from '@/types/case-search'
+import type { MatchedCase } from '@/types/case-search'
 import { transformCaseSearchResponse } from '@/types/case-search'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 

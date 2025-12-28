@@ -8,17 +8,6 @@ interface MatchReasonListProps {
   className?: string
 }
 
-// Icons for each reason type
-const reasonIcons: Record<MatchReasonType, string> = {
-  chief_complaint: '!',
-  symptom: '!',
-  constitution: '!',
-  age: '!',
-  gender: '!',
-  diagnosis: '!',
-  formula: '!',
-}
-
 // Labels for each reason type
 const reasonLabels: Record<MatchReasonType, string> = {
   chief_complaint: '주소증',

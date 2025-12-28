@@ -72,7 +72,6 @@ export function HerbDisplay({
   const herbDetail = HERB_DETAILS[herb]
   const koreanAmount = amount ? translateDosage(amount) : ''
 
-  const displayName = showHanja ? herb : koreanName
   const tooltipMeaning = herbDetail
     ? `${herbDetail.meaning} [${herbDetail.category}]`
     : undefined
