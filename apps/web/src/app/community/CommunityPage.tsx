@@ -14,10 +14,11 @@ import {
   Clock,
   CheckCircle,
   Shield,
-  Star,
   ChevronRight,
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
+import { LevelIndicator } from '@/components/community/LevelBadge'
+import type { CommunityLevel } from '@/types/level'
 
 // 더미 게시글 데이터
 const dummyPosts: CommunityPost[] = [
@@ -32,6 +33,7 @@ const dummyPosts: CommunityPost[] = [
       isLicenseVerified: true,
       subscriptionTier: 'professional',
       contributionPoints: 234,
+      communityLevel: 'good_answerer' as CommunityLevel,
     },
     isAnonymous: false,
     viewCount: 156,
@@ -64,6 +66,7 @@ const dummyPosts: CommunityPost[] = [
       subscriptionTier: 'clinic',
       contributionPoints: 1520,
       acceptedAnswerCount: 45,
+      communityLevel: 'expert' as CommunityLevel,
     },
     isAnonymous: false,
     viewCount: 324,
@@ -87,6 +90,7 @@ const dummyPosts: CommunityPost[] = [
       id: '3',
       name: '익명의 한의사 #A3F2',
       isLicenseVerified: false,
+      communityLevel: 'member' as CommunityLevel,
     },
     isAnonymous: true,
     anonymousNickname: '익명의 한의사 #A3F2',
@@ -122,6 +126,7 @@ const dummyPosts: CommunityPost[] = [
       subscriptionTier: 'professional',
       contributionPoints: 567,
       specialization: '본초학',
+      communityLevel: 'good_answerer' as CommunityLevel,
     },
     isAnonymous: false,
     viewCount: 201,
@@ -147,6 +152,7 @@ const dummyPosts: CommunityPost[] = [
       isLicenseVerified: true,
       subscriptionTier: 'free',
       contributionPoints: 45,
+      communityLevel: 'intern' as CommunityLevel,
     },
     isAnonymous: false,
     viewCount: 178,
@@ -400,12 +406,12 @@ export default function CommunityPage() {
 
                   {/* Meta */}
                   <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
+                      {post.author.communityLevel && (
+                        <LevelIndicator level={post.author.communityLevel} size="sm" />
+                      )}
                       {post.author.isLicenseVerified && (
                         <Shield className="h-4 w-4 text-blue-500" />
-                      )}
-                      {post.author.subscriptionTier === 'clinic' && (
-                        <Star className="h-4 w-4 text-yellow-500" />
                       )}
                       <span className="font-medium text-gray-700">{post.author.name}</span>
                     </div>

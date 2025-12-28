@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
+import { HanjaSettingsProvider } from '@/components/hanja'
 
 // Layouts
 import DashboardLayout from '@/components/layouts/DashboardLayout'
@@ -16,6 +17,7 @@ import FormulasPage from '@/app/formulas/FormulasPage'
 import FormulaDetailPage from '@/app/formulas/FormulaDetailPage'
 import HerbsPage from '@/app/herbs/HerbsPage'
 import HerbDetailPage from '@/app/herbs/HerbDetailPage'
+import PublicHerbsPage from '@/app/herbs/PublicHerbsPage'
 import ComboPage from '@/app/combo/ComboPage'
 
 // New Pages
@@ -28,6 +30,7 @@ import PatientsPage from '@/app/patients/PatientsPage'
 import PatientDetailPage from '@/app/patients/PatientDetailPage'
 import ClassicsPage from '@/app/classics/ClassicsPage'
 import InsuranceCodePage from '@/app/insurance/InsuranceCodePage'
+import InsuranceFeeSearchPage from '@/app/insurance/InsuranceFeeSearchPage'
 import DocumentsPage from '@/app/documents/DocumentsPage'
 
 // Core Features - New
@@ -41,6 +44,8 @@ import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
 import ByeongYangTablePage from '@/app/byeongyang/ByeongYangTablePage'
 import SchoolComparisonPage from '@/app/school-compare/SchoolComparisonPage'
 import IntegratedDiagnosisPage from '@/app/integrated-diagnosis/IntegratedDiagnosisPage'
+import UnifiedSearchPage from '@/app/unified-search/UnifiedSearchPage'
+import CaseSearchPage from '@/app/case-search/CaseSearchPage'
 
 // Community
 import CommunityPage from '@/app/community/CommunityPage'
@@ -53,6 +58,9 @@ import SubscriptionSuccessPage from '@/app/subscription/SubscriptionSuccessPage'
 
 // Settings
 import SettingsPage from '@/app/settings/SettingsPage'
+
+// Profile
+import ProfilePage from '@/app/profile/ProfilePage'
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -67,7 +75,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <>
+    <HanjaSettingsProvider>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -90,6 +98,7 @@ function App() {
           <Route path="formulas/:id" element={<FormulaDetailPage />} />
           <Route path="herbs" element={<HerbsPage />} />
           <Route path="herbs/:id" element={<HerbDetailPage />} />
+          <Route path="herbs-db" element={<PublicHerbsPage />} />
           <Route path="combo" element={<ComboPage />} />
 
           {/* New Routes */}
@@ -102,6 +111,7 @@ function App() {
           <Route path="patients/:id" element={<PatientDetailPage />} />
           <Route path="classics" element={<ClassicsPage />} />
           <Route path="insurance" element={<InsuranceCodePage />} />
+          <Route path="insurance-fee" element={<InsuranceFeeSearchPage />} />
           <Route path="documents" element={<DocumentsPage />} />
 
           {/* Core Features - New */}
@@ -115,6 +125,8 @@ function App() {
           <Route path="byeongyang" element={<ByeongYangTablePage />} />
           <Route path="school-compare" element={<SchoolComparisonPage />} />
           <Route path="integrated-diagnosis" element={<IntegratedDiagnosisPage />} />
+          <Route path="unified-search" element={<UnifiedSearchPage />} />
+          <Route path="case-search" element={<CaseSearchPage />} />
 
           {/* Community */}
           <Route path="community" element={<CommunityPage />} />
@@ -134,6 +146,9 @@ function App() {
 
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
+
+          {/* Profile */}
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
 
         {/* Fallback */}
@@ -141,7 +156,7 @@ function App() {
       </Routes>
 
       <Toaster />
-    </>
+    </HanjaSettingsProvider>
   )
 }
 

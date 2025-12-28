@@ -18,6 +18,7 @@ import {
   Award,
 } from 'lucide-react'
 import type { CommunityPost, CommunityComment } from '../../types'
+import { LevelIndicator } from '@/components/community/LevelBadge'
 
 // 더미 데이터
 const dummyPost: CommunityPost = {
@@ -46,6 +47,7 @@ const dummyPost: CommunityPost = {
     isLicenseVerified: true,
     subscriptionTier: 'professional',
     contributionPoints: 234,
+    communityLevel: 'member',
   },
   isAnonymous: false,
   viewCount: 156,
@@ -84,6 +86,7 @@ const dummyComments: CommunityComment[] = [
       contributionPoints: 1520,
       acceptedAnswerCount: 45,
       specialization: '상한론',
+      communityLevel: 'expert',
     },
     isAnonymous: false,
     likeCount: 8,
@@ -111,6 +114,7 @@ const dummyComments: CommunityComment[] = [
       subscriptionTier: 'clinic',
       contributionPoints: 980,
       acceptedAnswerCount: 32,
+      communityLevel: 'good_answerer',
     },
     isAnonymous: false,
     likeCount: 15,
@@ -129,6 +133,7 @@ const dummyComments: CommunityComment[] = [
       isLicenseVerified: true,
       subscriptionTier: 'free',
       contributionPoints: 45,
+      communityLevel: 'intern',
     },
     isAnonymous: false,
     parentId: 'c2',
@@ -211,15 +216,8 @@ export default function PostDetailPage() {
                   {dummyPost.author.isLicenseVerified && (
                     <Shield className="h-4 w-4 text-blue-500" />
                   )}
-                  {dummyPost.author.subscriptionTier === 'clinic' && (
-                    <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-medium">
-                      MASTER
-                    </span>
-                  )}
-                  {dummyPost.author.subscriptionTier === 'professional' && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
-                      PRO
-                    </span>
+                  {dummyPost.author.communityLevel && (
+                    <LevelIndicator level={dummyPost.author.communityLevel} size="sm" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -390,10 +388,8 @@ export default function PostDetailPage() {
                       {comment.author.isLicenseVerified && (
                         <Shield className="h-4 w-4 text-blue-500" />
                       )}
-                      {comment.author.subscriptionTier === 'clinic' && (
-                        <span className="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-medium">
-                          MASTER
-                        </span>
+                      {comment.author.communityLevel && (
+                        <LevelIndicator level={comment.author.communityLevel} size="sm" />
                       )}
                       {comment.author.specialization && (
                         <span className="text-xs text-gray-500">· {comment.author.specialization} 전문</span>

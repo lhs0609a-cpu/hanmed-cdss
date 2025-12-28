@@ -13,6 +13,8 @@ import {
 import api from '@/services/api'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
+import { HanjaTooltip, HanjaText, useHanjaSettings } from '@/components/hanja'
+import { HERB_DICTIONARY, MEDICAL_TERM_DICTIONARY } from '@/data/hanja-dictionary'
 
 interface FormulaHerb {
   id: string
@@ -50,11 +52,36 @@ const roleColors: Record<string, { bg: string; text: string; label: string }> = 
   '사': { bg: 'bg-green-100', text: 'text-green-700', label: '使' },
 }
 
+// 약재 한자에 대한 뜻풀이 (자주 쓰이는 것들)
+const HERB_MEANINGS: Record<string, string> = {
+  '麻黃': '땀을 내서 감기를 치료하는 약',
+  '桂枝': '경락을 따뜻하게 하여 한기를 흩어줌',
+  '芍藥': '간을 조절하고 통증을 완화',
+  '細辛': '폐를 따뜻하게 하고 담음을 제거',
+  '乾薑': '속을 따뜻하게 하고 소화를 도움',
+  '半夏': '가래를 삭이고 구토를 멎게 함',
+  '五味子': '폐기를 수렴하고 기침을 완화',
+  '甘草': '여러 약재를 조화시키고 독성을 줄임',
+  '黃芪': '기운을 북돋우고 면역력을 높임',
+  '人蔘': '기운을 크게 보충하는 대표적인 보약',
+  '白朮': '소화기능을 강화하고 습기를 제거',
+  '當歸': '혈액을 보충하고 순환시킴',
+  '陳皮': '소화를 돕고 가래를 삭임',
+  '升麻': '양기를 끌어올리는 승양 작용',
+  '柴胡': '간의 울체를 풀고 열을 내림',
+  '茯神': '마음을 안정시키고 정신을 맑게 함',
+  '酸棗仁': '마음을 안정시키고 잠을 잘 오게 함',
+  '龍眼肉': '혈액을 보충하고 마음을 편안하게 함',
+  '遠志': '마음을 안정시키고 기억력을 높임',
+  '木香': '기의 순환을 돕고 복통을 완화',
+}
+
 export default function FormulaDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [formula, setFormula] = useState<FormulaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { showHanja } = useHanjaSettings()
 
   useEffect(() => {
     fetchFormula()
@@ -116,8 +143,14 @@ export default function FormulaDetailPage() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            {formula.name}
-            <span className="text-lg font-normal text-gray-500">{formula.hanja}</span>
+            {showHanja ? (
+              <>
+                {formula.name}
+                <span className="text-lg font-normal text-gray-500">{formula.hanja}</span>
+              </>
+            ) : (
+              formula.name
+            )}
           </h1>
           <div className="flex items-center gap-3 mt-1">
             {formula.source && (
@@ -194,11 +227,17 @@ export default function FormulaDetailPage() {
                                 to={`/herbs/${herb.id}`}
                                 className="font-medium text-gray-900 hover:text-teal-600"
                               >
-                                {herb.name}
+                                {herb.hanja ? (
+                                  <HanjaTooltip
+                                    hanja={herb.hanja}
+                                    korean={herb.name}
+                                    meaning={HERB_MEANINGS[herb.hanja] || herb.efficacy}
+                                    showHanja={showHanja}
+                                  />
+                                ) : (
+                                  herb.name
+                                )}
                               </Link>
-                              {herb.hanja && (
-                                <span className="text-xs text-gray-400 ml-1">{herb.hanja}</span>
-                              )}
                               {herb.efficacy && (
                                 <p className="text-xs text-gray-500 mt-0.5">{herb.efficacy}</p>
                               )}
@@ -293,7 +332,7 @@ export default function FormulaDetailPage() {
                     key={herb.id}
                     className={`px-2.5 py-1 ${roleStyle.bg} ${roleStyle.text} text-xs font-medium rounded-full`}
                   >
-                    {herb.name} {herb.amount}
+                    {showHanja && herb.hanja ? herb.hanja : herb.name} {herb.amount}
                   </span>
                 )
               })}

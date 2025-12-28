@@ -11,10 +11,15 @@ import {
   AlertOctagon,
   Info,
   FileText,
+  Search,
+  Database,
 } from 'lucide-react'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
-import type { InteractionResult } from '@/types'
+import { checkDurComprehensive } from '@/services/public-data-api'
+import DrugSearchModal from '@/components/drug/DrugSearchModal'
+import DurCheckResult from '@/components/drug/DurCheckResult'
+import type { InteractionResult, DrugSearchResult, DurCheckResult as DurCheckResultType } from '@/types'
 
 // 포괄적인 양약-한약 상호작용 데이터베이스
 interface InteractionData {
@@ -772,6 +777,10 @@ export default function InteractionsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<InteractionResult | null>(null)
   const [error, setError] = useState('')
+  // 공공 API 관련 상태
+  const [isDrugSearchOpen, setIsDrugSearchOpen] = useState(false)
+  const [isDurLoading, setIsDurLoading] = useState(false)
+  const [durResult, setDurResult] = useState<DurCheckResultType | null>(null)
 
   const addHerb = () => {
     if (newHerb.trim() && !herbs.includes(newHerb.trim())) {
@@ -784,6 +793,35 @@ export default function InteractionsPage() {
     if (newMedication.trim() && !medications.includes(newMedication.trim())) {
       setMedications([...medications, newMedication.trim()])
       setNewMedication('')
+    }
+  }
+
+  // 공공 API에서 검색한 의약품 추가
+  const handleDrugSelect = (drug: DrugSearchResult) => {
+    if (!medications.includes(drug.itemName)) {
+      setMedications([...medications, drug.itemName])
+    }
+  }
+
+  // DUR 공공 API 체크
+  const handleDurCheck = async () => {
+    if (medications.length === 0) {
+      setError('DUR 체크를 위해 양약을 최소 1개 이상 입력해주세요.')
+      return
+    }
+
+    setError('')
+    setIsDurLoading(true)
+    setDurResult(null)
+
+    try {
+      const result = await checkDurComprehensive(medications)
+      setDurResult(result)
+    } catch (err) {
+      logError(err, 'DUR Check')
+      setError('DUR 정보를 가져오는 중 오류가 발생했습니다.')
+    } finally {
+      setIsDurLoading(false)
     }
   }
 
@@ -936,14 +974,24 @@ export default function InteractionsPage() {
 
           {/* 양약 입력 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20">
-                <Pill className="h-5 w-5 text-white" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20">
+                  <Pill className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">복용 중인 양약</h2>
+                  <p className="text-xs text-gray-500">환자가 복용 중인 양약을 입력하세요</p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-bold text-gray-900">복용 중인 양약</h2>
-                <p className="text-xs text-gray-500">환자가 복용 중인 양약을 입력하세요</p>
-              </div>
+              {/* 공공데이터 검색 버튼 */}
+              <button
+                onClick={() => setIsDrugSearchOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                약품 검색
+              </button>
             </div>
 
             <div className="flex gap-2 mb-4">
@@ -986,6 +1034,27 @@ export default function InteractionsPage() {
                 </p>
               )}
             </div>
+
+            {/* DUR 체크 버튼 */}
+            {medications.length > 0 && (
+              <button
+                onClick={handleDurCheck}
+                disabled={isDurLoading}
+                className="mt-4 w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+              >
+                {isDurLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    DUR 정보 조회 중...
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4" />
+                    DUR 정보 조회 (식약처 공공데이터)
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Check Button */}
@@ -1130,6 +1199,17 @@ export default function InteractionsPage() {
                   </p>
                 </div>
               )}
+
+              {/* DUR 결과 */}
+              {durResult && (
+                <div className="mt-6">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Database className="h-5 w-5 text-blue-500" />
+                    식약처 DUR 정보 (공공데이터)
+                  </h3>
+                  <DurCheckResult result={durResult} />
+                </div>
+              )}
             </>
           ) : (
             <div className="h-full flex items-center justify-center">
@@ -1144,12 +1224,26 @@ export default function InteractionsPage() {
                   처방할 한약재와 환자가 복용 중인 양약을<br />
                   입력하면 상호작용 여부를 확인합니다
                 </p>
+
+                {/* DUR 결과 (검사 전에도 표시) */}
+                {durResult && (
+                  <div className="mt-8 text-left">
+                    <DurCheckResult result={durResult} />
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* 의약품 검색 모달 */}
+      <DrugSearchModal
+        isOpen={isDrugSearchOpen}
+        onClose={() => setIsDrugSearchOpen(false)}
+        onSelect={handleDrugSelect}
+        selectedDrugs={medications}
+      />
     </div>
   )
 }

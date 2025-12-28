@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .core.config import settings
-from .api.v1 import retrieval, recommendation, interaction
+from .api.v1 import retrieval, recommendation, interaction, case_search
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,6 +54,11 @@ app.include_router(
     interaction.router,
     prefix="/api/v1/interaction",
     tags=["Drug-Herb Interaction"]
+)
+app.include_router(
+    case_search.router,
+    prefix="/api/v1",
+    tags=["Case Search"]
 )
 
 @app.get("/")

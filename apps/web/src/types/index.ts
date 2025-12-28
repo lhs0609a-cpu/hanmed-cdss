@@ -3,13 +3,17 @@
 // ===========================
 export * from './medicine-school'
 export * from './byeongyang'
+export * from './level'
+export * from './public-api'
+export * from './case-search'
 
 // 타입 명시적 import (파일 내에서 사용하기 위함)
 import type { MedicineSchool } from './medicine-school'
 import type { PalGangAnalysis } from './byeongyang'
+import type { CommunityLevel } from './level'
 
 // Re-export for explicit usage
-export type { MedicineSchool, PalGangAnalysis }
+export type { MedicineSchool, PalGangAnalysis, CommunityLevel }
 
 // ===========================
 // API 관련 타입
@@ -321,6 +325,7 @@ export interface CommunityAuthor {
   contributionPoints?: number
   acceptedAnswerCount?: number
   specialization?: string
+  communityLevel?: CommunityLevel
 }
 
 export interface CommunityComment {

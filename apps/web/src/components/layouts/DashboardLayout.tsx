@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { HanjaToggle } from '@/components/hanja'
 import {
   LayoutDashboard,
   Stethoscope,
@@ -28,14 +29,17 @@ import {
   ArrowLeftRight,
   MessageSquare,
   Library,
+  Database,
   GitCompare,
   HeartPulse,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
 const mainNavigation = [
   { name: '대시보드', href: '/', icon: LayoutDashboard, description: '전체 현황' },
+  { name: '통합 검색', href: '/unified-search', icon: Search, description: '처방/증상/병증', badge: 'NEW' },
   { name: 'AI 진료', href: '/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
   { name: '환자 관리', href: '/patients', icon: Users, description: 'EMR/차트' },
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
@@ -44,6 +48,7 @@ const mainNavigation = [
 
 const coreFeatures = [
   { name: 'AI 변증', href: '/pattern-diagnosis', icon: Brain, description: '변증 분석', badge: 'HOT' },
+  { name: 'AI 치험례', href: '/case-search', icon: BookOpen, description: '유사사례 검색', badge: 'NEW' },
   { name: '삭감 예측', href: '/claim-check', icon: Shield, description: '보험 청구', badge: 'NEW' },
   { name: '처방 비교', href: '/formula-compare', icon: ArrowLeftRight, description: '유사 처방' },
   { name: 'Red Flag', href: '/red-flag', icon: AlertTriangle, description: '위험 신호' },
@@ -61,6 +66,7 @@ const clinicalTools: Array<{ name: string; href: string; icon: React.ComponentTy
 const referenceTools = [
   { name: '처방 검색', href: '/formulas', icon: FlaskConical, description: '방제 정보' },
   { name: '약재 검색', href: '/herbs', icon: Leaf, description: '성분 정보' },
+  { name: '본초 DB', href: '/herbs-db', icon: Database, description: '공공데이터', badge: 'NEW' },
   { name: '합방 계산기', href: '/combo', icon: Calculator, description: '처방 조합' },
   { name: '상호작용', href: '/interactions', icon: AlertTriangle, description: '안전성 검사' },
   { name: '고전 검색', href: '/classics', icon: ScrollText, description: '원문/해석' },
@@ -72,8 +78,9 @@ const theoryTools = [
   { name: '통합의학', href: '/integrated-diagnosis', icon: HeartPulse, description: 'ICD-10 연계', badge: 'NEW' },
 ]
 
-const adminTools = [
+const adminTools: Array<{ name: string; href: string; icon: React.ComponentType<{ className?: string }>; description: string; badge?: string }> = [
   { name: '보험 코드', href: '/insurance', icon: FileText, description: '청구 코드' },
+  { name: '수가/상병 검색', href: '/insurance-fee', icon: DollarSign, description: '심평원 API', badge: 'NEW' },
   { name: '문서 템플릿', href: '/documents', icon: FileText, description: '동의서/안내문' },
 ]
 
@@ -109,13 +116,16 @@ export default function DashboardLayout() {
             </div>
             <span className="font-bold text-gray-900">온고지신</span>
           </div>
-          <button
-            className="p-2 rounded-xl hover:bg-white/50 transition-colors relative"
-            aria-label="알림"
-          >
-            <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-label="새 알림 있음" />
-          </button>
+          <div className="flex items-center gap-1">
+            <HanjaToggle compact />
+            <button
+              className="p-2 rounded-xl hover:bg-white/50 transition-colors relative"
+              aria-label="알림"
+            >
+              <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-label="새 알림 있음" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -160,6 +170,11 @@ export default function DashboardLayout() {
                 ⌘K
               </kbd>
             </div>
+          </div>
+
+          {/* 한자/한글 토글 */}
+          <div className="px-4 mb-2">
+            <HanjaToggle />
           </div>
 
           {/* Navigation */}
@@ -358,6 +373,14 @@ export default function DashboardLayout() {
                     >
                       <item.icon className={cn('h-4 w-4', isActive ? '' : 'text-gray-400')} />
                       <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
+                          isActive ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-700'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )
                 })}
@@ -388,17 +411,21 @@ export default function DashboardLayout() {
 
           {/* User section */}
           <div className="border-t border-gray-200/50 p-4">
-            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100/80 transition-colors cursor-pointer">
+            <Link
+              to="/profile"
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100/80 transition-colors group"
+            >
               <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center shadow-md shadow-teal-500/20">
                 <span className="text-white font-semibold text-sm">
                   {user?.name?.charAt(0) || 'U'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-teal-600 transition-colors">{user?.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
-            </div>
+              <User className="h-4 w-4 text-gray-400 group-hover:text-teal-500 transition-colors" />
+            </Link>
             <div className="flex gap-2 mt-2">
               <Link
                 to="/settings"

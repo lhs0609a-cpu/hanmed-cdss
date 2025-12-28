@@ -138,6 +138,95 @@ export const DIAGNOSIS_FLOW: DiagnosisStep[] = [
 ];
 
 // ===========================
+// 병약도표(病藥圖表) - 매트릭스형 처방 가이드
+// ===========================
+
+/**
+ * 체질/건실도 유형
+ */
+export type ConstitutionColumn =
+  | 'heat_high'      // 체열많음
+  | 'solid_high'     // 건실도높음
+  | 'medium'         // 체열/건실도 중등
+  | 'solid_low'      // 건실도낮음
+  | 'heat_low';      // 체열적음
+
+export const CONSTITUTION_COLUMN_LABELS: Record<ConstitutionColumn, string> = {
+  heat_high: '체열많음',
+  solid_high: '건실도높음',
+  medium: '체열/건실도 중등',
+  solid_low: '건실도낮음',
+  heat_low: '체열적음',
+};
+
+/**
+ * 병인/상태 유형
+ */
+export type PathogenRow =
+  | 'intestinal_stagnation'  // 장역복함형
+  | 'mental_disorder'        // 정신이란형
+  | 'heat_excess'            // 열실/상열형
+  | 'digestive_relaxation'   // 소화관이완형
+  | 'mental_tension'         // 정신간장형
+  | 'pelvic_blood_stasis'    // 골반혈소형
+  | 'elderly'                // 노인
+  | 'child'                  // 소아
+  | 'pregnant';              // 임신부
+
+export const PATHOGEN_ROW_LABELS: Record<PathogenRow, string> = {
+  intestinal_stagnation: '장역복함형',
+  mental_disorder: '정신이란형',
+  heat_excess: '열실/상열형',
+  digestive_relaxation: '소화관이완형',
+  mental_tension: '정신간장형',
+  pelvic_blood_stasis: '골반혈소형',
+  elderly: '노인',
+  child: '소아',
+  pregnant: '임신부',
+};
+
+export const PATHOGEN_ROW_CATEGORY: Record<PathogenRow, '병인' | '상태별'> = {
+  intestinal_stagnation: '병인',
+  mental_disorder: '병인',
+  heat_excess: '병인',
+  digestive_relaxation: '병인',
+  mental_tension: '병인',
+  pelvic_blood_stasis: '병인',
+  elderly: '상태별',
+  child: '상태별',
+  pregnant: '상태별',
+};
+
+/**
+ * 병약도표 셀 데이터
+ */
+export interface ByeongYakCell {
+  formula: string;        // 처방명
+  note?: string;          // 추가 설명
+  isRecommended?: boolean; // 추천 여부
+}
+
+/**
+ * 병약도표 행 데이터
+ */
+export interface ByeongYakRow {
+  pathogen: PathogenRow;
+  cells: Partial<Record<ConstitutionColumn, ByeongYakCell[]>>;
+}
+
+/**
+ * 병약도표 전체 데이터
+ */
+export interface ByeongYakTable {
+  id: string;
+  disease: string;        // 병명 (예: 변비)
+  hanja: string;          // 한자
+  description?: string;   // 설명
+  rows: ByeongYakRow[];
+  footnotes?: string[];   // 각주
+}
+
+// ===========================
 // 대표 처방 사례 타입
 // ===========================
 

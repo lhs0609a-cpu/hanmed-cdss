@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus,
@@ -24,11 +24,16 @@ import {
   Book,
   Users,
   Settings2,
+  Search,
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
+import { CaseMatchListItem } from '@/components/case-match'
+import type { CaseSearchResponse, MatchedCase } from '@/types/case-search'
+import { transformCaseSearchResponse } from '@/types/case-search'
+import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 
 const consultationTourSteps = [
   {
@@ -151,7 +156,37 @@ const roleColors: Record<string, string> = {
   '사': 'bg-green-100 text-green-700 border-green-200',
 }
 
+// 약재 한글-한자 매핑 및 설명
+const HERB_INFO: Record<string, { hanja: string; meaning: string }> = {
+  '인삼': { hanja: '人蔘', meaning: '기운을 크게 보충하는 대표적인 보약' },
+  '백출': { hanja: '白朮', meaning: '소화기능을 강화하고 습기를 제거' },
+  '건강': { hanja: '乾薑', meaning: '속을 따뜻하게 하고 소화를 도움' },
+  '감초': { hanja: '甘草', meaning: '여러 약재를 조화시키고 독성을 줄임' },
+  '황기': { hanja: '黃芪', meaning: '기운을 북돋우고 면역력을 높임' },
+  '당귀': { hanja: '當歸', meaning: '혈액을 보충하고 순환시킴' },
+  '진피': { hanja: '陳皮', meaning: '소화를 돕고 가래를 삭임' },
+  '승마': { hanja: '升麻', meaning: '양기를 끌어올리는 승양 작용' },
+  '시호': { hanja: '柴胡', meaning: '간의 울체를 풀고 열을 내림' },
+  '반하': { hanja: '半夏', meaning: '가래를 삭이고 구토를 멎게 함' },
+  '생강': { hanja: '生薑', meaning: '소화를 돕고 오한을 풀어줌' },
+  '대추': { hanja: '大棗', meaning: '기운을 보충하고 약을 조화시킴' },
+  '복령': { hanja: '茯苓', meaning: '이뇨작용, 마음을 안정시킴' },
+  '작약': { hanja: '芍藥', meaning: '간을 조절하고 통증을 완화' },
+  '천궁': { hanja: '川芎', meaning: '혈액 순환을 돕고 두통을 완화' },
+  '맥문동': { hanja: '麥門冬', meaning: '폐와 위의 진액을 보충' },
+  '오미자': { hanja: '五味子', meaning: '폐기를 수렴하고 기침을 완화' },
+  '마황': { hanja: '麻黃', meaning: '땀을 내서 감기를 치료' },
+  '계지': { hanja: '桂枝', meaning: '경락을 따뜻하게 하여 한기를 흩어줌' },
+  '세신': { hanja: '細辛', meaning: '폐를 따뜻하게 하고 담음을 제거' },
+  '숙지황': { hanja: '熟地黃', meaning: '혈액과 진액을 보충하는 대표 약재' },
+  '산수유': { hanja: '山茱萸', meaning: '간신을 보하고 양기를 수렴' },
+  '산약': { hanja: '山藥', meaning: '비신을 보하고 정기를 고섭' },
+  '목단피': { hanja: '牧丹皮', meaning: '혈열을 식히고 어혈을 풀어줌' },
+  '택사': { hanja: '澤瀉', meaning: '이뇨작용으로 습열을 제거' },
+}
+
 export default function ConsultationPage() {
+  const { showHanja } = useHanjaSettings()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
@@ -181,6 +216,47 @@ export default function ConsultationPage() {
 
   // Tour guide
   const [showTour, setShowTour] = useState(true)
+
+  // Similar cases
+  const [similarCases, setSimilarCases] = useState<MatchedCase[]>([])
+  const [loadingSimilarCases, setLoadingSimilarCases] = useState(false)
+  const [showSimilarCases, setShowSimilarCases] = useState(false)
+
+  // Fetch similar cases when recommendations are loaded
+  useEffect(() => {
+    if (recommendations.length > 0 && chiefComplaint.trim()) {
+      fetchSimilarCases()
+    }
+  }, [recommendations])
+
+  const fetchSimilarCases = async () => {
+    setLoadingSimilarCases(true)
+    try {
+      const apiUrl = import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:8001'
+      const response = await fetch(`${apiUrl}/api/v1/cases/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_info: {
+            constitution: constitution || undefined,
+          },
+          chief_complaint: chiefComplaint,
+          symptoms: symptoms.map(s => ({ name: s.name, severity: s.severity })),
+          options: { top_k: 5, min_confidence: 40 },
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const transformed = transformCaseSearchResponse(data)
+        setSimilarCases(transformed.results)
+      }
+    } catch (err) {
+      console.error('Failed to fetch similar cases:', err)
+    } finally {
+      setLoadingSimilarCases(false)
+    }
+  }
 
   const addSymptom = () => {
     if (newSymptom.trim()) {
@@ -643,20 +719,33 @@ export default function ConsultationPage() {
                       <div className="mb-4">
                         <p className="text-xs font-medium text-gray-500 mb-2">구성 약재</p>
                         <div className="flex flex-wrap gap-2">
-                          {rec.herbs.map((herb, i) => (
-                            <span
-                              key={i}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium border ${
-                                roleColors[herb.role] || 'bg-gray-100 text-gray-700 border-gray-200'
-                              }`}
-                            >
-                              <span className="font-bold">{herb.name}</span>
-                              <span className="text-xs opacity-70">{herb.amount}</span>
-                              <span className="ml-1 text-[10px] px-1 py-0.5 bg-white/50 rounded">
-                                {herb.role}
+                          {rec.herbs.map((herb, i) => {
+                            const herbInfo = HERB_INFO[herb.name]
+                            return (
+                              <span
+                                key={i}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium border ${
+                                  roleColors[herb.role] || 'bg-gray-100 text-gray-700 border-gray-200'
+                                }`}
+                              >
+                                {herbInfo ? (
+                                  <HanjaTooltip
+                                    hanja={herbInfo.hanja}
+                                    korean={herb.name}
+                                    meaning={herbInfo.meaning}
+                                    showHanja={showHanja}
+                                    className="font-bold border-none"
+                                  />
+                                ) : (
+                                  <span className="font-bold">{herb.name}</span>
+                                )}
+                                <span className="text-xs opacity-70">{herb.amount}</span>
+                                <span className="ml-1 text-[10px] px-1 py-0.5 bg-white/50 rounded">
+                                  {herb.role}
+                                </span>
                               </span>
-                            </span>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
 
@@ -707,6 +796,77 @@ export default function ConsultationPage() {
                   </Link>
                 </div>
               )}
+
+              {/* Similar Cases Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => setShowSimilarCases(!showSimilarCases)}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-100 rounded-xl">
+                      <Search className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        유사 치험례
+                        {similarCases.length > 0 && (
+                          <span className="px-1.5 py-0.5 text-xs font-bold bg-indigo-100 text-indigo-700 rounded">
+                            {similarCases.length}건
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500">비슷한 환자 사례와 처방 확인</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {loadingSimilarCases && (
+                      <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                    )}
+                    <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${showSimilarCases ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
+
+                {showSimilarCases && (
+                  <div className="px-6 pb-6 border-t border-gray-100">
+                    {loadingSimilarCases ? (
+                      <div className="py-8 text-center text-gray-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        <p className="text-sm">유사 치험례 검색 중...</p>
+                      </div>
+                    ) : similarCases.length > 0 ? (
+                      <div className="pt-4 space-y-2">
+                        {similarCases.map((caseItem, index) => (
+                          <CaseMatchListItem
+                            key={caseItem.caseId}
+                            matchedCase={caseItem}
+                            rank={index + 1}
+                          />
+                        ))}
+                        <Link
+                          to="/case-search"
+                          className="flex items-center justify-center gap-2 py-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                        >
+                          더 많은 치험례 검색하기
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-gray-500">
+                        <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">유사한 치험례를 찾지 못했습니다</p>
+                        <Link
+                          to="/case-search"
+                          className="inline-flex items-center gap-1 mt-2 text-indigo-600 hover:underline text-sm"
+                        >
+                          직접 검색하기
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <div className="h-full flex items-center justify-center">
