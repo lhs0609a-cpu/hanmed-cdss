@@ -91,25 +91,28 @@ export default function UnifiedSearchPage() {
       })
     }
 
-    // 2. 병양도표(ByeongYang) 검색 - 질환
-    if (selectedCategory === 'all' || selectedCategory === 'disease') {
+    // 2. 병양도표(ByeongYang) 검색 - 질환 및 변증
+    if (selectedCategory === 'all' || selectedCategory === 'disease' || selectedCategory === 'pattern') {
       BYEONGYANG_DATA.forEach((disease) => {
-        const matchesDisease =
-          disease.disease.toLowerCase().includes(query) ||
-          disease.hanja.includes(query) ||
-          disease.description?.toLowerCase().includes(query)
+        // 질환 매칭
+        if (selectedCategory === 'all' || selectedCategory === 'disease') {
+          const matchesDisease =
+            disease.disease.toLowerCase().includes(query) ||
+            disease.hanja.includes(query) ||
+            disease.description?.toLowerCase().includes(query)
 
-        if (matchesDisease) {
-          results.push({
-            id: `byeongyang-${disease.id}`,
-            type: 'byeongyang',
-            title: disease.disease,
-            subtitle: disease.hanja,
-            description: disease.description,
-            tags: [`${disease.patterns.length}개 변증`],
-            link: '/byeongyang',
-            data: disease,
-          })
+          if (matchesDisease) {
+            results.push({
+              id: `byeongyang-${disease.id}`,
+              type: 'byeongyang',
+              title: disease.disease,
+              subtitle: disease.hanja,
+              description: disease.description,
+              tags: [`${disease.patterns.length}개 변증`],
+              link: '/byeongyang',
+              data: disease,
+            })
+          }
         }
 
         // 3. 변증 패턴 검색
