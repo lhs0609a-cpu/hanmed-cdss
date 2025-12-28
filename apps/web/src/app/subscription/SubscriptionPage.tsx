@@ -552,7 +552,7 @@ export default function SubscriptionPage() {
               <Checkbox
                 id="terms"
                 checked={agreedToTerms}
-                onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                onCheckedChange={(checked: boolean | 'indeterminate') => setAgreedToTerms(checked === true)}
               />
               <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                 <Link to="/subscription-terms" target="_blank" className="text-teal-600 hover:underline">
