@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import {
   FileText,
-  Download,
   Copy,
   Check,
   Printer,

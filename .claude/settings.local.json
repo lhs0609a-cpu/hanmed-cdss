@@ -83,7 +83,8 @@
       "Bash(done)",
       "Bash(timeout /t 5 /nobreak)",
       "Bash(ping:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git fetch:*)"
     ]
   }
 }

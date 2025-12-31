@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Sparkles,
-  X,
   ChevronUp,
   ChevronDown,
   Lightbulb,
@@ -11,7 +10,6 @@ import {
   ArrowRight,
   Loader2,
   Minimize2,
-  Maximize2,
   MessageSquare,
 } from 'lucide-react'
 

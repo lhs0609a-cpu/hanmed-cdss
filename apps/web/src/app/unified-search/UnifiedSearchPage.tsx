@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { FORMULA_CASES } from '@/data/formula-cases'
@@ -22,8 +22,6 @@ import {
   X,
   Layers,
   Grid3X3,
-  List,
-  GraduationCap,
   Clock,
   Sparkles,
   Keyboard,
@@ -36,7 +34,6 @@ import {
   TrendingUp,
   Zap,
   AlertCircle,
-  User,
 } from 'lucide-react'
 
 // AI Engine API URL

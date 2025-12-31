@@ -280,22 +280,26 @@ export function KeyboardShortcutsProvider({ children }: { children: React.ReactN
   const [showCommandPalette, setShowCommandPalette] = useState(false)
 
   // 그룹화된 단축키 (표시용)
-  const groupedShortcuts = {
+  const groupedShortcuts: {
+    navigation: KeyboardShortcut[]
+    search: KeyboardShortcut[]
+    action: KeyboardShortcut[]
+  } = {
     navigation: [
-      { key: 'h', modifiers: ['alt'] as const, description: '홈 (대시보드)', category: 'navigation' as const, action: () => navigate('/') },
-      { key: 'c', modifiers: ['alt'] as const, description: 'AI 진료 어시스턴트', category: 'navigation' as const, action: () => navigate('/consultation') },
-      { key: 's', modifiers: ['alt'] as const, description: '통합 검색', category: 'navigation' as const, action: () => navigate('/unified-search') },
-      { key: 't', modifiers: ['alt'] as const, description: '치험례 검색', category: 'navigation' as const, action: () => navigate('/case-search') },
-      { key: 'f', modifiers: ['alt'] as const, description: '처방 목록', category: 'navigation' as const, action: () => navigate('/formulas') },
-      { key: 'b', modifiers: ['alt'] as const, description: '약재 DB', category: 'navigation' as const, action: () => navigate('/herbs') },
+      { key: 'h', modifiers: ['alt'], description: '홈 (대시보드)', category: 'navigation', action: () => navigate('/') },
+      { key: 'c', modifiers: ['alt'], description: 'AI 진료 어시스턴트', category: 'navigation', action: () => navigate('/consultation') },
+      { key: 's', modifiers: ['alt'], description: '통합 검색', category: 'navigation', action: () => navigate('/unified-search') },
+      { key: 't', modifiers: ['alt'], description: '치험례 검색', category: 'navigation', action: () => navigate('/case-search') },
+      { key: 'f', modifiers: ['alt'], description: '처방 목록', category: 'navigation', action: () => navigate('/formulas') },
+      { key: 'b', modifiers: ['alt'], description: '약재 DB', category: 'navigation', action: () => navigate('/herbs') },
     ],
     search: [
-      { key: 'k', modifiers: ['ctrl'] as const, description: '빠른 검색 (Command Palette)', category: 'search' as const, action: () => setShowCommandPalette(true) },
-      { key: '/', modifiers: [] as const, description: '검색창 포커스', category: 'search' as const, action: () => {} },
+      { key: 'k', modifiers: ['ctrl'], description: '빠른 검색 (Command Palette)', category: 'search', action: () => setShowCommandPalette(true) },
+      { key: '/', modifiers: [], description: '검색창 포커스', category: 'search', action: () => {} },
     ],
     action: [
-      { key: '?', modifiers: [] as const, description: '단축키 도움말', category: 'action' as const, action: () => setShowHelp(true) },
-      { key: 'Escape', modifiers: [] as const, description: '모달/팝업 닫기', category: 'action' as const, action: () => {} },
+      { key: '?', modifiers: [], description: '단축키 도움말', category: 'action', action: () => setShowHelp(true) },
+      { key: 'Escape', modifiers: [], description: '모달/팝업 닫기', category: 'action', action: () => {} },
     ],
   }
 

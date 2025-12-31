@@ -5,8 +5,6 @@ import {
   Users,
   Pill,
   Activity,
-  Calendar,
-  ChevronDown,
   BookOpen,
   Target,
   Award,

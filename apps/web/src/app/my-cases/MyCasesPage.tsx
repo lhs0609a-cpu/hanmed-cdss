@@ -6,17 +6,11 @@ import {
   BookOpen,
   Calendar,
   User,
-  ChevronRight,
   Loader2,
-  FileText,
-  Edit2,
   Trash2,
-  Filter,
-  SortDesc,
   Star,
   StarOff,
   Download,
-  Upload,
 } from 'lucide-react'
 
 // 개인 치험례 인터페이스
