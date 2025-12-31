@@ -33,6 +33,7 @@ import {
   GitCompare,
   HeartPulse,
   DollarSign,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -43,7 +44,9 @@ const mainNavigation = [
   { name: 'AI 진료', href: '/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
   { name: '환자 관리', href: '/patients', icon: Users, description: 'EMR/차트' },
   { name: '치험례', href: '/cases', icon: BookOpen, description: '6,000건 검색' },
-  { name: '커뮤니티', href: '/community', icon: MessageSquare, description: '전문가 토론', badge: 'NEW' },
+  { name: '내 치험례', href: '/my-cases', icon: FileText, description: '개인 기록', badge: 'NEW' },
+  { name: '진료 통계', href: '/statistics', icon: BarChart3, description: '처방 분석', badge: 'NEW' },
+  { name: '커뮤니티', href: '/community', icon: MessageSquare, description: '전문가 토론' },
 ]
 
 const coreFeatures = [
@@ -455,11 +458,74 @@ export default function DashboardLayout() {
       )}
 
       {/* Main content */}
-      <main id="main-content" className="lg:pl-72 pt-16 lg:pt-0 min-h-screen">
+      <main id="main-content" className="lg:pl-72 pt-16 lg:pt-0 pb-20 lg:pb-0 min-h-screen">
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 safe-area-bottom">
+        <div className="flex items-center justify-around px-2 py-1">
+          {[
+            { name: '홈', href: '/', icon: LayoutDashboard },
+            { name: '검색', href: '/unified-search', icon: Search },
+            { name: 'AI 진료', href: '/consultation', icon: Stethoscope, primary: true },
+            { name: '치험례', href: '/cases', icon: BookOpen },
+            { name: '더보기', href: '#', icon: Menu, isMenu: true },
+          ].map((item) => {
+            const isActive = location.pathname === item.href
+            const Icon = item.icon
+
+            if (item.isMenu) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setSidebarOpen(true)}
+                  className="flex flex-col items-center justify-center px-3 py-2 min-w-[60px] rounded-xl transition-colors text-gray-500 hover:text-gray-900"
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px] mt-0.5 font-medium">{item.name}</span>
+                </button>
+              )
+            }
+
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'flex flex-col items-center justify-center px-3 py-2 min-w-[60px] rounded-xl transition-all',
+                  item.primary && !isActive
+                    ? 'text-teal-600'
+                    : isActive
+                    ? 'text-teal-600'
+                    : 'text-gray-500 hover:text-gray-900'
+                )}
+              >
+                {item.primary ? (
+                  <div className={cn(
+                    'w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center shadow-lg transition-all',
+                    isActive
+                      ? 'bg-gradient-to-br from-teal-500 to-emerald-500 shadow-teal-500/40'
+                      : 'bg-gradient-to-br from-teal-400 to-emerald-400 shadow-teal-400/30'
+                  )}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                ) : (
+                  <>
+                    <Icon className={cn('h-5 w-5', isActive && 'text-teal-600')} />
+                    <span className={cn(
+                      'text-[10px] mt-0.5 font-medium',
+                      isActive && 'text-teal-600'
+                    )}>{item.name}</span>
+                  </>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

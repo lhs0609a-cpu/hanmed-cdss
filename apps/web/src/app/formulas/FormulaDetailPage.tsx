@@ -9,11 +9,33 @@ import {
   Loader2,
   Plus,
   Shield,
+  FileText,
+  User,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import api from '@/services/api'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
+
+// AI Engine URL
+const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:8001'
+
+// 관련 치험례 인터페이스
+interface RelatedCase {
+  id: string
+  title: string
+  chiefComplaint: string
+  symptoms: string[]
+  diagnosis: string
+  patientAge?: number
+  patientGender?: string
+  patientConstitution?: string
+  formulaName: string
+  outcome?: string
+  dataSource: string
+}
 
 interface FormulaHerb {
   id: string
@@ -80,11 +102,21 @@ export default function FormulaDetailPage() {
   const navigate = useNavigate()
   const [formula, setFormula] = useState<FormulaDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [relatedCases, setRelatedCases] = useState<RelatedCase[]>([])
+  const [casesLoading, setCasesLoading] = useState(false)
+  const [showAllCases, setShowAllCases] = useState(false)
   const { showHanja } = useHanjaSettings()
 
   useEffect(() => {
     fetchFormula()
   }, [id])
+
+  // 관련 치험례 가져오기
+  useEffect(() => {
+    if (formula?.name) {
+      fetchRelatedCases(formula.name)
+    }
+  }, [formula?.name])
 
   const fetchFormula = async () => {
     setIsLoading(true)
@@ -96,6 +128,39 @@ export default function FormulaDetailPage() {
       setFormula(getDemoFormula(id || '1'))
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchRelatedCases = async (formulaName: string) => {
+    setCasesLoading(true)
+    try {
+      const response = await fetch(
+        `${AI_ENGINE_URL}/api/v1/cases/list?search=${encodeURIComponent(formulaName)}&limit=20`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        // API 응답에서 케이스 추출
+        const cases = data.data?.cases || data.cases || []
+        const mappedCases: RelatedCase[] = cases.map((c: Record<string, unknown>) => ({
+          id: c.id as string || '',
+          title: c.title as string || '',
+          chiefComplaint: c.chief_complaint as string || '',
+          symptoms: (c.symptoms as string[]) || [],
+          diagnosis: c.diagnosis as string || '',
+          patientAge: c.patient_age as number | undefined,
+          patientGender: c.patient_gender as string | undefined,
+          patientConstitution: c.patient_constitution as string | undefined,
+          formulaName: c.formula_name as string || c.treatment_formula as string || '',
+          outcome: c.outcome as string | undefined,
+          dataSource: c.data_source as string || '',
+        }))
+        setRelatedCases(mappedCases)
+      }
+    } catch (error) {
+      console.error('Failed to fetch related cases:', error)
+      setRelatedCases([])
+    } finally {
+      setCasesLoading(false)
     }
   }
 
@@ -338,6 +403,124 @@ export default function FormulaDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 관련 치험례 섹션 */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-emerald-500" />
+            관련 치험례
+            {relatedCases.length > 0 && (
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                {relatedCases.length}건
+              </span>
+            )}
+          </h2>
+          {relatedCases.length > 4 && (
+            <button
+              onClick={() => setShowAllCases(!showAllCases)}
+              className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+            >
+              {showAllCases ? '접기' : '전체보기'}
+              <ChevronRight className={`h-4 w-4 transition-transform ${showAllCases ? 'rotate-90' : ''}`} />
+            </button>
+          )}
+        </div>
+
+        {casesLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+            <span className="ml-2 text-gray-500">치험례 검색 중...</span>
+          </div>
+        ) : relatedCases.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(showAllCases ? relatedCases : relatedCases.slice(0, 4)).map((caseItem) => (
+              <Link
+                key={caseItem.id}
+                to={`/cases/${caseItem.id}`}
+                className="block p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl hover:shadow-md hover:border-emerald-200 transition-all group"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-medium text-gray-900 group-hover:text-emerald-600 line-clamp-1">
+                    {caseItem.title || caseItem.chiefComplaint}
+                  </h3>
+                  <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-emerald-500 flex-shrink-0" />
+                </div>
+
+                {/* 환자 정보 */}
+                <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
+                  <User className="h-3.5 w-3.5" />
+                  <span>
+                    {caseItem.patientAge && `${caseItem.patientAge}세`}
+                    {caseItem.patientGender && ` ${caseItem.patientGender === 'M' ? '남' : '여'}`}
+                    {caseItem.patientConstitution && ` · ${caseItem.patientConstitution}`}
+                  </span>
+                </div>
+
+                {/* 주요 증상 */}
+                {caseItem.symptoms.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {caseItem.symptoms.slice(0, 3).map((symptom, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-md"
+                      >
+                        {symptom}
+                      </span>
+                    ))}
+                    {caseItem.symptoms.length > 3 && (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-xs rounded-md">
+                        +{caseItem.symptoms.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* 진단 & 처방 */}
+                <div className="flex items-center gap-2 text-xs">
+                  {caseItem.diagnosis && (
+                    <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md">
+                      {caseItem.diagnosis}
+                    </span>
+                  )}
+                  {caseItem.outcome && (
+                    <span className={`px-2 py-0.5 rounded-md ${
+                      caseItem.outcome === '완치' || caseItem.outcome === '호전'
+                        ? 'bg-green-50 text-green-600'
+                        : 'bg-gray-50 text-gray-600'
+                    }`}>
+                      {caseItem.outcome}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Sparkles className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 mb-2">이 처방과 관련된 치험례가 없습니다</p>
+            <Link
+              to={`/cases?search=${encodeURIComponent(formula.name)}`}
+              className="text-sm text-emerald-600 hover:underline"
+            >
+              치험례 검색에서 찾아보기
+            </Link>
+          </div>
+        )}
+
+        {relatedCases.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+            <Link
+              to={`/cases?search=${encodeURIComponent(formula.name)}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors font-medium text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              "{formula.name}" 치험례 전체 검색
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

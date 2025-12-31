@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
+import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
 
 // Layouts
 import DashboardLayout from '@/components/layouts/DashboardLayout'
@@ -46,6 +47,10 @@ import SchoolComparisonPage from '@/app/school-compare/SchoolComparisonPage'
 import IntegratedDiagnosisPage from '@/app/integrated-diagnosis/IntegratedDiagnosisPage'
 import UnifiedSearchPage from '@/app/unified-search/UnifiedSearchPage'
 import CaseSearchPage from '@/app/case-search/CaseSearchPage'
+
+// Personal Case Management
+import MyCasesPage from '@/app/my-cases/MyCasesPage'
+import StatisticsDashboardPage from '@/app/statistics/StatisticsDashboardPage'
 
 // Community
 import CommunityPage from '@/app/community/CommunityPage'
@@ -100,7 +105,9 @@ function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardLayout />
+              <KeyboardShortcutsProvider>
+                <DashboardLayout />
+              </KeyboardShortcutsProvider>
             </ProtectedRoute>
           }
         >
@@ -141,6 +148,10 @@ function App() {
           <Route path="integrated-diagnosis" element={<IntegratedDiagnosisPage />} />
           <Route path="unified-search" element={<UnifiedSearchPage />} />
           <Route path="case-search" element={<CaseSearchPage />} />
+
+          {/* Personal Case Management */}
+          <Route path="my-cases" element={<MyCasesPage />} />
+          <Route path="statistics" element={<StatisticsDashboardPage />} />
 
           {/* Community */}
           <Route path="community" element={<CommunityPage />} />

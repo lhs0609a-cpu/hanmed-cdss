@@ -34,6 +34,8 @@ import { CaseMatchListItem } from '@/components/case-match'
 import type { MatchedCase } from '@/types/case-search'
 import { transformCaseSearchResponse } from '@/types/case-search'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
+import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
+import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
 
 const consultationTourSteps = [
   {
@@ -185,6 +187,13 @@ const HERB_INFO: Record<string, { hanja: string; meaning: string }> = {
   '택사': { hanja: '澤瀉', meaning: '이뇨작용으로 습열을 제거' },
 }
 
+// 자주 사용하는 증상 태그 목록
+const COMMON_SYMPTOMS = [
+  '두통', '어지러움', '피로', '수면장애', '식욕부진', '소화불량',
+  '복통', '설사', '변비', '구역', '오한', '발열', '기침', '가래',
+  '호흡곤란', '심계', '흉통', '요통', '관절통', '부종', '자한', '도한',
+]
+
 export default function ConsultationPage() {
   const { showHanja } = useHanjaSettings()
   const [chiefComplaint, setChiefComplaint] = useState('')
@@ -222,6 +231,13 @@ export default function ConsultationPage() {
   const [loadingSimilarCases, setLoadingSimilarCases] = useState(false)
   const [showSimilarCases, setShowSimilarCases] = useState(false)
 
+  // 빠른 입력 모드
+  const [quickMode, setQuickMode] = useState(true)
+
+  // 문서화 모달
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [documentFormula, setDocumentFormula] = useState<Recommendation | null>(null)
+
   // Fetch similar cases when recommendations are loaded
   useEffect(() => {
     if (recommendations.length > 0 && chiefComplaint.trim()) {
@@ -258,10 +274,28 @@ export default function ConsultationPage() {
     }
   }
 
-  const addSymptom = () => {
-    if (newSymptom.trim()) {
-      setSymptoms([...symptoms, { name: newSymptom.trim(), severity: 5 }])
-      setNewSymptom('')
+  const addSymptom = (symptomName?: string) => {
+    const name = symptomName || newSymptom.trim()
+    if (name && !symptoms.some(s => s.name === name)) {
+      setSymptoms([...symptoms, { name, severity: 5 }])
+      if (!symptomName) setNewSymptom('')
+    }
+  }
+
+  // 빠른 증상 추가 (클릭으로 토글)
+  const toggleSymptom = (name: string) => {
+    if (symptoms.some(s => s.name === name)) {
+      setSymptoms(symptoms.filter(s => s.name !== name))
+    } else {
+      setSymptoms([...symptoms, { name, severity: 5 }])
+    }
+  }
+
+  // 엔터키로 즉시 분석
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && chiefComplaint.trim()) {
+      e.preventDefault()
+      handleSubmit()
     }
   }
 
@@ -367,7 +401,7 @@ export default function ConsultationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Quick Mode Toggle */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -375,149 +409,282 @@ export default function ConsultationPage() {
             AI 진료 어시스턴트
           </h1>
           <p className="mt-1 text-gray-500">
-            환자 증상을 입력하면 6,000건의 치험례 기반으로 최적의 처방을 추천합니다
+            증상을 입력하고 Enter를 누르면 즉시 분석됩니다
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setQuickMode(!quickMode)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              quickMode
+                ? 'bg-teal-100 text-teal-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {quickMode ? '빠른 입력' : '상세 입력'}
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Input Section */}
+        {/* Input Section - Simplified */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Chief Complaint */}
-          <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-teal-100 rounded-xl">
-                <User className="h-5 w-5 text-teal-600" />
+          {/* Quick Input Mode - 통합 입력 */}
+          {quickMode ? (
+            <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl shadow-lg shadow-teal-500/20">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">환자 증상 입력</h2>
+                  <p className="text-xs text-gray-500">자유롭게 입력 후 Enter 또는 분석 버튼</p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-bold text-gray-900">주소증</h2>
-                <p className="text-xs text-gray-500">환자가 호소하는 주요 증상</p>
-              </div>
-            </div>
-            <textarea
-              value={chiefComplaint}
-              onChange={(e) => setChiefComplaint(e.target.value)}
-              placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고..."
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none"
-              rows={4}
-            />
-          </div>
 
-          {/* Symptoms */}
-          <div data-tour="symptom-input" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-blue-100 rounded-xl">
-                <Activity className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <h2 className="font-bold text-gray-900">세부 증상</h2>
-                <p className="text-xs text-gray-500">관련 증상을 태그로 추가</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newSymptom}
-                onChange={(e) => setNewSymptom(e.target.value)}
-                placeholder="증상 입력 후 Enter"
-                className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
-                onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
+              {/* Main Input */}
+              <textarea
+                value={chiefComplaint}
+                onChange={(e) => setChiefComplaint(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="예: 65세 남자, 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고 설사를 자주 합니다. 피로감이 심합니다..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none text-base"
+                rows={5}
+                autoFocus
               />
-              <button
-                onClick={addSymptom}
-                className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="flex flex-wrap gap-2 min-h-[40px]">
-              {symptoms.map((symptom, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-sm font-medium"
-                >
-                  {symptom.name}
-                  <button
-                    onClick={() => removeSymptom(index)}
-                    className="hover:bg-teal-200 rounded-full p-0.5 transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-              {symptoms.length === 0 && (
-                <span className="text-sm text-gray-400">증상을 추가해주세요</span>
+              {/* Quick Symptom Tags */}
+              <div className="mt-4">
+                <p className="text-xs font-medium text-gray-500 mb-2">빠른 증상 추가 (클릭하여 선택)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {COMMON_SYMPTOMS.slice(0, 12).map((symptom) => {
+                    const isSelected = symptoms.some(s => s.name === symptom)
+                    return (
+                      <button
+                        key={symptom}
+                        onClick={() => toggleSymptom(symptom)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-teal-500 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {symptom}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Symptoms Display */}
+              {symptoms.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-1.5">
+                    {symptoms.map((symptom, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-medium"
+                      >
+                        {symptom.name}
+                        <button
+                          onClick={() => removeSymptom(index)}
+                          className="hover:bg-teal-200 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Constitution Selection */}
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500">체질:</span>
+                <div className="flex gap-1">
+                  {['', '태양인', '태음인', '소양인', '소음인'].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setConstitution(c)}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                        constitution === c
+                          ? 'bg-violet-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {c || '미상'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Analyze Button */}
+              <button
+                data-tour="analyze-button"
+                onClick={handleSubmit}
+                disabled={isLoading || !chiefComplaint.trim()}
+                className="w-full mt-4 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    AI가 분석 중...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5" />
+                    AI 처방 추천 (Enter)
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Constitution & Medications */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-amber-100 rounded-xl">
-                <Pill className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <h2 className="font-bold text-gray-900">추가 정보</h2>
-                <p className="text-xs text-gray-500">체질 및 복용 약물</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">체질</label>
-                <select
-                  value={constitution}
-                  onChange={(e) => setConstitution(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all appearance-none"
-                >
-                  <option value="">미상 / 선택 안함</option>
-                  <option value="태양인">태양인</option>
-                  <option value="태음인">태음인</option>
-                  <option value="소양인">소양인</option>
-                  <option value="소음인">소음인</option>
-                </select>
+          ) : (
+            /* Detailed Input Mode - 기존 상세 입력 */
+            <>
+              {/* Chief Complaint */}
+              <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-teal-100 rounded-xl">
+                    <User className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900">주소증</h2>
+                    <p className="text-xs text-gray-500">환자가 호소하는 주요 증상</p>
+                  </div>
+                </div>
+                <textarea
+                  value={chiefComplaint}
+                  onChange={(e) => setChiefComplaint(e.target.value)}
+                  placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고..."
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none"
+                  rows={4}
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">복용 중인 양약</label>
-                <div className="flex gap-2 mb-2">
+              {/* Symptoms */}
+              <div data-tour="symptom-input" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-blue-100 rounded-xl">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900">세부 증상</h2>
+                    <p className="text-xs text-gray-500">관련 증상을 태그로 추가</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mb-3">
                   <input
                     type="text"
-                    value={newMedication}
-                    onChange={(e) => setNewMedication(e.target.value)}
-                    placeholder="양약 추가"
+                    value={newSymptom}
+                    onChange={(e) => setNewSymptom(e.target.value)}
+                    placeholder="증상 입력 후 Enter"
                     className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
-                    onKeyDown={(e) => e.key === 'Enter' && addMedication()}
+                    onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
                   />
                   <button
-                    onClick={addMedication}
-                    className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                    onClick={() => addSymptom()}
+                    className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentMedications.map((med, index) => (
+
+                <div className="flex flex-wrap gap-2 min-h-[40px]">
+                  {symptoms.map((symptom, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-sm font-medium"
                     >
-                      {med}
+                      {symptom.name}
                       <button
-                        onClick={() => removeMedication(index)}
-                        className="hover:bg-gray-300 rounded-full p-0.5 transition-colors"
+                        onClick={() => removeSymptom(index)}
+                        className="hover:bg-teal-200 rounded-full p-0.5 transition-colors"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </span>
                   ))}
+                  {symptoms.length === 0 && (
+                    <span className="text-sm text-gray-400">증상을 추가해주세요</span>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
+
+              {/* Constitution & Medications */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-amber-100 rounded-xl">
+                    <Pill className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900">추가 정보</h2>
+                    <p className="text-xs text-gray-500">체질 및 복용 약물</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">체질</label>
+                    <select
+                      value={constitution}
+                      onChange={(e) => setConstitution(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all appearance-none"
+                    >
+                      <option value="">미상 / 선택 안함</option>
+                      <option value="태양인">태양인</option>
+                      <option value="태음인">태음인</option>
+                      <option value="소양인">소양인</option>
+                      <option value="소음인">소음인</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">복용 중인 양약</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={newMedication}
+                        onChange={(e) => setNewMedication(e.target.value)}
+                        placeholder="양약 추가"
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                        onKeyDown={(e) => e.key === 'Enter' && addMedication()}
+                      />
+                      <button
+                        onClick={addMedication}
+                        className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                      >
+                        <Plus className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {currentMedications.map((med, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium"
+                        >
+                          {med}
+                          <button
+                            onClick={() => removeMedication(index)}
+                            className="hover:bg-gray-300 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Advanced Options - 학파 선택 및 분석 옵션 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -626,31 +793,35 @@ export default function ConsultationPage() {
             )}
           </div>
 
-          {/* Submit Button */}
-          <button
-            data-tour="analyze-button"
-            onClick={handleSubmit}
-            disabled={isLoading || !chiefComplaint.trim()}
-            className="w-full py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl font-semibold hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                AI가 분석 중입니다...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5" />
-                AI 처방 추천 받기
-              </>
-            )}
-          </button>
+          {/* Submit Button - 상세 모드에서만 표시 */}
+          {!quickMode && (
+            <>
+              <button
+                data-tour="analyze-button"
+                onClick={handleSubmit}
+                disabled={isLoading || !chiefComplaint.trim()}
+                className="w-full py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl font-semibold hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    AI가 분석 중입니다...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5" />
+                    AI 처방 추천 받기
+                  </>
+                )}
+              </button>
 
-          {error && (
-            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
-            </div>
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -767,7 +938,18 @@ export default function ConsultationPage() {
                           className="py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
                         >
                           <Info className="h-4 w-4" />
-                          상세 정보
+                          상세
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDocumentFormula(rec)
+                            setShowDocumentModal(true)
+                          }}
+                          className="py-2 px-4 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-1"
+                          title="처방 근거 문서화"
+                        >
+                          <FileText className="h-4 w-4" />
+                          문서화
                         </button>
                       </div>
                     </div>
@@ -1113,6 +1295,39 @@ export default function ConsultationPage() {
 
       {/* Restart Tour Button */}
       <TourRestartButton tourId="consultation" onClick={() => setShowTour(true)} />
+
+      {/* Real-time AI Assistant */}
+      <RealTimeAssistant
+        chiefComplaint={chiefComplaint}
+        symptoms={symptoms.map(s => s.name)}
+        constitution={constitution}
+        enabled={!isLoading && recommendations.length === 0}
+      />
+
+      {/* Prescription Document Modal */}
+      {documentFormula && (
+        <PrescriptionDocument
+          isOpen={showDocumentModal}
+          onClose={() => {
+            setShowDocumentModal(false)
+            setDocumentFormula(null)
+          }}
+          data={{
+            patient: {
+              constitution: constitution || undefined,
+            },
+            chiefComplaint,
+            symptoms: symptoms.map(s => s.name),
+            diagnosis: analysis,
+            prescription: {
+              formulaName: documentFormula.formula_name,
+              herbs: documentFormula.herbs,
+              rationale: documentFormula.rationale,
+              confidence: documentFormula.confidence_score,
+            },
+          }}
+        />
+      )}
     </div>
   )
 }

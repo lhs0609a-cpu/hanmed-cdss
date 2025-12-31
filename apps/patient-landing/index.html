@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HanMed 환자 앱 다운로드</title>
+
+  <!-- SEO -->
+  <meta name="description" content="한의원 진료 기록과 처방을 한눈에. HanMed 환자 앱을 다운로드하세요.">
+  <meta property="og:title" content="HanMed 환자 앱">
+  <meta property="og:description" content="한의원 진료 기록과 처방을 한눈에. 복약 관리까지.">
+  <meta property="og:image" content="/og-image.png">
+  <meta property="og:url" content="https://patient.hanmed.co.kr">
+
+  <!-- App Links -->
+  <meta property="al:ios:url" content="hanmed-patient://">
+  <meta property="al:ios:app_store_id" content="YOUR_APP_STORE_ID">
+  <meta property="al:ios:app_name" content="HanMed 환자">
+  <meta property="al:android:url" content="hanmed-patient://">
+  <meta property="al:android:package" content="com.hanmed.patient">
+  <meta property="al:android:app_name" content="HanMed 환자">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: #10b981;
+      border-radius: 20px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .features {
+      text-align: left;
+      margin-bottom: 32px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .feature:last-child {
+      border-bottom: none;
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: #ecfdf5;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 20px;
+    }
+
+    .feature-text {
+      flex: 1;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      color: #111827;
+      font-size: 14px;
+    }
+
+    .feature-desc {
+      color: #6b7280;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .download-btn {
+      display: block;
+      width: 100%;
+      padding: 16px 24px;
+      background: #111827;
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .download-btn.ios {
+      background: #000;
+    }
+
+    .download-btn.android {
+      background: #3ddc84;
+      color: #000;
+    }
+
+    .download-btn span {
+      font-size: 12px;
+      opacity: 0.8;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .or-text {
+      color: #9ca3af;
+      font-size: 12px;
+      margin: 16px 0;
+    }
+
+    .clinic-badge {
+      display: inline-flex;
+      align-items: center;
+      background: #f3f4f6;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 24px;
+    }
+
+    .clinic-badge img {
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+    }
+
+    .loading {
+      display: none;
+      padding: 40px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #10b981;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 로딩 상태 -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>앱으로 이동 중...</p>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div id="content">
+      <div class="logo">🏥</div>
+      <h1>HanMed 환자</h1>
+      <p class="subtitle">
+        한의원 진료 기록과 처방을 한눈에 확인하고<br>
+        AI 건강 분석과 복약 관리까지
+      </p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">📋</div>
+          <div class="feature-text">
+            <div class="feature-title">진료 기록 확인</div>
+            <div class="feature-desc">AI가 쉽게 설명해주는 진료 내용</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">💊</div>
+          <div class="feature-text">
+            <div class="feature-title">처방 & 복약 관리</div>
+            <div class="feature-desc">약재 정보와 과학적 근거 확인</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📊</div>
+          <div class="feature-text">
+            <div class="feature-title">건강 일지</div>
+            <div class="feature-desc">매일 건강 상태를 기록하고 트렌드 확인</div>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-text">
+            <div class="feature-title">알림 서비스</div>
+            <div class="feature-desc">복약 시간, 진료 기록 공유 알림</div>
+          </div>
+        </div>
+      </div>
+
+      <a href="#" class="download-btn ios" id="ios-btn">
+        <span>App Store에서</span>
+        다운로드
+      </a>
+
+      <a href="#" class="download-btn android" id="android-btn">
+        <span>Google Play에서</span>
+        다운로드
+      </a>
+
+      <div class="clinic-badge">
+        온고지신 한의학 CDSS와 연동됩니다
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const APP_SCHEME = 'hanmed-patient://';
+      const IOS_STORE_URL = 'https://apps.apple.com/app/id000000000'; // TODO: 실제 앱스토어 ID
+      const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.hanmed.patient';
+
+      // URL 파라미터 파싱
+      const urlParams = new URLSearchParams(window.location.search);
+      const recordId = urlParams.get('record');
+      const prescriptionId = urlParams.get('prescription');
+      const redirectPath = urlParams.get('redirect');
+
+      // 디바이스 감지
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+      const isAndroid = /android/i.test(userAgent);
+
+      // 딥링크 URL 생성
+      function getDeepLinkUrl() {
+        if (recordId) {
+          return APP_SCHEME + 'record/' + recordId;
+        }
+        if (prescriptionId) {
+          return APP_SCHEME + 'prescription/' + prescriptionId;
+        }
+        if (redirectPath) {
+          return APP_SCHEME + redirectPath;
+        }
+        return APP_SCHEME;
+      }
+
+      // 스토어 URL 가져오기
+      function getStoreUrl() {
+        if (isIOS) return IOS_STORE_URL;
+        if (isAndroid) return ANDROID_STORE_URL;
+        return IOS_STORE_URL; // 기본값
+      }
+
+      // 앱 열기 시도
+      function tryOpenApp() {
+        const deepLink = getDeepLinkUrl();
+        const storeUrl = getStoreUrl();
+
+        // 로딩 표시
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('content').classList.add('hidden');
+
+        // 딥링크로 앱 열기 시도
+        const start = Date.now();
+
+        // Universal Link / App Link 시도
+        window.location.href = deepLink;
+
+        // 2초 후에도 페이지에 있으면 앱이 없는 것
+        setTimeout(function() {
+          if (Date.now() - start < 2500) {
+            // 앱이 열리지 않음 -> 스토어로 이동
+            window.location.href = storeUrl;
+          }
+        }, 2000);
+
+        // 3초 후에도 있으면 콘텐츠 다시 표시
+        setTimeout(function() {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').classList.remove('hidden');
+        }, 3000);
+      }
+
+      // 버튼 설정
+      document.getElementById('ios-btn').href = IOS_STORE_URL;
+      document.getElementById('android-btn').href = ANDROID_STORE_URL;
+
+      // 플랫폼별 버튼 표시/숨김
+      if (isIOS) {
+        document.getElementById('android-btn').style.display = 'none';
+      } else if (isAndroid) {
+        document.getElementById('ios-btn').style.display = 'none';
+      }
+
+      // 딥링크 파라미터가 있으면 자동으로 앱 열기 시도
+      if (recordId || prescriptionId || redirectPath) {
+        tryOpenApp();
+      }
+    })();
+  </script>
+</body>
+</html>

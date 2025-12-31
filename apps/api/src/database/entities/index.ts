@@ -22,3 +22,19 @@ export * from './subscription.entity';
 export * from './usage-tracking.entity';
 export * from './payment.entity';
 export * from './refund.entity';
+
+// Patient app entities
+export * from './patient-account.entity';
+export * from './clinic.entity';
+export * from './clinic-practitioner.entity';
+export * from './reservation.entity';
+export * from './patient-clinic-connection.entity';
+export * from './phone-verification.entity';
+
+// Patient records & prescriptions
+export * from './patient-record.entity';
+export * from './patient-prescription.entity';
+export * from './medication-reminder.entity';
+export * from './medication-log.entity';
+export * from './health-journal.entity';
+export * from './patient-notification.entity';

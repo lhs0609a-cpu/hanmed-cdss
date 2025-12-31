@@ -14,6 +14,14 @@ import { HerbsModule } from './modules/herbs/herbs.module';
 import { CombosModule } from './modules/combos/combos.module';
 import { CommunityModule } from './modules/community/community.module';
 import { TossPaymentsModule } from './modules/toss-payments/toss-payments.module';
+import { PatientAuthModule } from './modules/patient-auth/patient-auth.module';
+import { ClinicsModule } from './modules/clinics/clinics.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { PatientRecordsModule } from './modules/patient-records/patient-records.module';
+import { PatientPrescriptionsModule } from './modules/patient-prescriptions/patient-prescriptions.module';
+import { PatientHealthModule } from './modules/patient-health/patient-health.module';
+import { PatientNotificationsModule } from './modules/patient-notifications/patient-notifications.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -55,6 +63,16 @@ import { HealthController } from './health.controller';
     CombosModule,
     CommunityModule,
     TossPaymentsModule,
+
+    // 환자 앱 모듈
+    PatientAuthModule,
+    ClinicsModule,
+    ReservationsModule,
+    PatientRecordsModule,
+    PatientPrescriptionsModule,
+    PatientHealthModule,
+    PatientNotificationsModule,
+    MessagingModule,
   ],
   controllers: [HealthController],
 })

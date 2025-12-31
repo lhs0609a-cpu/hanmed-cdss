@@ -9,7 +9,8 @@ class VectorService:
     """Deprecated: Pinecone 벡터 서비스 (비활성화)"""
     
     def __init__(self):
-        print("⚠️ VectorService는 비활성화되었습니다. GPT 기반 추천을 사용하세요.")
+        self.index = None  # Pinecone index is disabled
+        # print("[INFO] VectorService is disabled. Use GPT-based recommendations.")
     
     async def search(self, query: str, **kwargs):
         return []

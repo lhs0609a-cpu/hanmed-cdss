@@ -2,7 +2,7 @@
 치험례 검색 API 엔드포인트
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
 
@@ -187,6 +187,129 @@ async def search_cases(request: CaseSearchRequestModel):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/list")
+async def list_cases(
+    page: int = Query(1, ge=1, description="페이지 번호"),
+    limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
+    search: Optional[str] = Query(None, description="검색어 (증상, 처방명, 변증)"),
+    constitution: Optional[str] = Query(None, description="체질 필터"),
+    outcome: Optional[str] = Query(None, description="결과 필터 (완치/호전/무효)"),
+):
+    """
+    치험례 목록 조회
+
+    페이지네이션과 필터링을 지원하는 치험례 목록을 반환합니다.
+    """
+    import json
+    from pathlib import Path
+
+    data_file = Path(__file__).parent.parent.parent.parent / "data" / "extracted_cases.json"
+
+    if not data_file.exists():
+        return {
+            "cases": [],
+            "total": 0,
+            "page": page,
+            "limit": limit,
+            "total_pages": 0
+        }
+
+    with open(data_file, 'r', encoding='utf-8') as f:
+        all_cases = json.load(f)
+
+    # 필터링
+    filtered_cases = all_cases
+
+    # 검색어 필터
+    if search:
+        search_lower = search.lower()
+        filtered_cases = [
+            c for c in filtered_cases
+            if search_lower in c.get('chief_complaint', '').lower()
+            or search_lower in c.get('formula_name', '').lower()
+            or search_lower in c.get('diagnosis', '').lower()
+            or search_lower in c.get('title', '').lower()
+            or any(search_lower in s.lower() for s in c.get('symptoms', []))
+        ]
+
+    # 체질 필터
+    if constitution:
+        filtered_cases = [
+            c for c in filtered_cases
+            if c.get('patient_constitution') == constitution
+        ]
+
+    # 결과 필터
+    if outcome:
+        positive_keywords = ['완치', '호전', '개선', '낫', '효과', '소실', '회복', '정상']
+        negative_keywords = ['무효', '효과없', '변화없']
+
+        def get_outcome(result_text):
+            if not result_text:
+                return None
+            result_lower = result_text.lower()
+            if any(kw in result_lower for kw in positive_keywords):
+                if '완치' in result_lower or '완전' in result_lower:
+                    return '완치'
+                return '호전'
+            if any(kw in result_lower for kw in negative_keywords):
+                return '무효'
+            return None
+
+        filtered_cases = [
+            c for c in filtered_cases
+            if get_outcome(c.get('result', '')) == outcome
+        ]
+
+    # 총 개수
+    total = len(filtered_cases)
+    total_pages = (total + limit - 1) // limit
+
+    # 페이지네이션
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_cases = filtered_cases[start_idx:end_idx]
+
+    # 응답 형식 변환
+    cases = []
+    for i, c in enumerate(paginated_cases):
+        # 결과 판정
+        result_text = c.get('result', '')
+        outcome_label = None
+        if result_text:
+            result_lower = result_text.lower()
+            if any(kw in result_lower for kw in ['완치', '완전']):
+                outcome_label = '완치'
+            elif any(kw in result_lower for kw in positive_keywords):
+                outcome_label = '호전'
+            elif any(kw in result_lower for kw in negative_keywords):
+                outcome_label = '무효'
+
+        cases.append({
+            "id": c.get('id', f'case-{start_idx + i + 1}'),
+            "title": c.get('title', c.get('chief_complaint', '')),
+            "chiefComplaint": c.get('chief_complaint', ''),
+            "symptoms": c.get('symptoms', []),
+            "formulaName": c.get('formula_name', ''),
+            "formulaHanja": c.get('formula_hanja', ''),
+            "constitution": c.get('patient_constitution', ''),
+            "diagnosis": c.get('diagnosis', ''),
+            "patientAge": c.get('patient_age'),
+            "patientGender": c.get('patient_gender'),
+            "outcome": outcome_label,
+            "result": result_text[:200] if result_text else '',
+            "dataSource": c.get('data_source', ''),
+        })
+
+    return {
+        "cases": cases,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages
+    }
 
 
 @router.get("/grades")

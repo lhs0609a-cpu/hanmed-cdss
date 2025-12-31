@@ -86,10 +86,10 @@ class CaseSearchService:
         if data_file.exists():
             with open(data_file, 'r', encoding='utf-8') as f:
                 self._local_cases = json.load(f)
-            print(f"✅ 로컬 케이스 데이터 로드: {len(self._local_cases)}건")
+            print(f"[INFO] Local case data loaded: {len(self._local_cases)} cases")
         else:
             self._local_cases = []
-            print("⚠️ 로컬 케이스 데이터 없음")
+            print("[WARN] No local case data found")
 
         return self._local_cases
 

@@ -1,0 +1,10 @@
+{
+  "name": "@hanmed/patient-landing",
+  "version": "1.0.0",
+  "description": "HanMed 환자 앱 다운로드 랜딩페이지",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static files - no build needed'"
+  },
+  "private": true
+}

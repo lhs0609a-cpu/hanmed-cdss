@@ -4,20 +4,20 @@ from contextlib import asynccontextmanager
 
 from .core.config import settings
 from .core.middleware import ResponseWrapperMiddleware
-from .api.v1 import retrieval, recommendation, interaction, case_search, subscription
+from .api.v1 import retrieval, recommendation, interaction, case_search, subscription, patient_explanation, formula_recommendation, statistics
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작/종료 시 실행되는 라이프사이클 관리"""
     # Startup
-    print("🚀 온고지신 AI Engine 시작 중...")
-    print(f"✅ GPT 모델: {settings.GPT_MODEL}")
-    print(f"✅ OpenAI API 키: {'설정됨' if settings.OPENAI_API_KEY else '미설정'}")
-    
+    print("[START] AI Engine starting...")
+    print(f"[INFO] GPT Model: {settings.GPT_MODEL}")
+    print(f"[INFO] OpenAI API Key: {'configured' if settings.OPENAI_API_KEY else 'not set'}")
+
     yield
 
     # Shutdown
-    print("👋 온고지신 AI Engine 종료 중...")
+    print("[STOP] AI Engine shutting down...")
 
 app = FastAPI(
     title="온고지신 AI Engine",
@@ -63,6 +63,21 @@ app.include_router(
     subscription.router,
     prefix="/api/v1/subscription",
     tags=["Subscription"]
+)
+app.include_router(
+    patient_explanation.router,
+    prefix="/api/v1/patient-explanation",
+    tags=["Patient Explanation"]
+)
+app.include_router(
+    formula_recommendation.router,
+    prefix="/api/v1",
+    tags=["Formula Recommendation"]
+)
+app.include_router(
+    statistics.router,
+    prefix="/api/v1",
+    tags=["Statistics"]
 )
 
 @app.get("/")
