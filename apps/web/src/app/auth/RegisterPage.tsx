@@ -49,7 +49,7 @@ export default function RegisterPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {

@@ -149,7 +149,7 @@ def extract_symptoms(text: str) -> List[str]:
 
 
 def extract_formula_name(text: str, filename: str) -> tuple:
-    """처방명 추출"""
+    """처방명 추출 - 개선된 버전"""
     formula_name = ""
     formula_hanja = ""
 
@@ -189,7 +189,7 @@ def extract_formula_name(text: str, filename: str) -> tuple:
                     formula_name = potential
                     break
 
-    # 4. 처방 키워드로 추출
+    # 4. 처방 키워드로 추출 (기본 패턴)
     if not formula_name:
         treatment_patterns = [
             r'처\s*방\s*[:\s]*([가-힣]{2,}' + formula_suffixes + r')',
@@ -202,19 +202,67 @@ def extract_formula_name(text: str, filename: str) -> tuple:
                 formula_name = match.group(1)
                 break
 
-    # 5. 한자 추출
+    # 5. 투약내역, 처방구상, 처방구성 등 확장 패턴 (태XX장 형식)
+    if not formula_name:
+        extended_patterns = [
+            # "투약내역 : 처방은 ... XXX탕" 형식
+            r'투\s*약\s*내\s*역\s*[:\s].{0,100}?([가-힣]{2,}' + formula_suffixes + r')',
+            # "처방구상 : ... XXX탕을 쓰기로" 형식
+            r'처\s*방\s*구\s*상\s*[:\s].{0,200}?([가-힣]{2,}' + formula_suffixes + r')을?\s*(?:쓰|투|사용)',
+            # "처방구성 : ... XXX탕" 형식
+            r'처\s*방\s*구\s*성\s*[:\s].{0,100}?([가-힣]{2,}' + formula_suffixes + r')',
+            # "XXX탕을 쓰기로 하였다" 형식
+            r'([가-힣]{2,}' + formula_suffixes + r')을?\s*(?:쓰기로|투여|처방|사용)',
+            # "XXX탕을 2제 지어" 형식
+            r'([가-힣]{2,}' + formula_suffixes + r')을?\s*\d+\s*제',
+            # "목표로 XXX탕을" 형식
+            r'목표로\s*([가-힣]{2,}' + formula_suffixes + r')',
+            # "치법 : ... XXX탕"
+            r'치\s*법\s*[:\s].{0,150}?([가-힣]{2,}' + formula_suffixes + r')',
+        ]
+        for pattern in extended_patterns:
+            match = re.search(pattern, text, re.DOTALL)
+            if match:
+                formula_name = match.group(1)
+                break
+
+    # 6. 목차/제목에서 처방명 추출 (예: "1. 승지조위탕의 치험례")
+    if not formula_name:
+        title_patterns = [
+            r'\d+\.\s*([가-힣]{2,}' + formula_suffixes + r')의?\s*(?:치험례|치험|사례)',
+            r'([가-힣]{2,}' + formula_suffixes + r')\s*치험례',
+            r'([가-힣]{2,}' + formula_suffixes + r')\s*\(\d+편\)',
+        ]
+        for pattern in title_patterns:
+            match = re.search(pattern, text[:1000])
+            if match:
+                formula_name = match.group(1)
+                break
+
+    # 7. 텍스트 내 모든 처방명 후보 중 가장 먼저 나오는 것 선택
+    if not formula_name:
+        all_formulas = re.findall(r'([가-힣]{2,}' + formula_suffixes + r')', text[:2000])
+        # 필터링: 잘못된 이름 제외
+        invalid_names = {'을', '의', '가', '이', '에', '로', '과', '와', '뛰고', '았고', '었고', '위원',
+                        '하였', '되었', '같았', '보였', '나왔', '들었', '겠'}
+        valid_formulas = [f for f in all_formulas if f not in invalid_names and len(f) >= 3]
+        if valid_formulas:
+            formula_name = valid_formulas[0]
+
+    # 8. 한자 추출
     hanja_patterns = [
         r'\(([一-龥]{2,}(?:湯|散|丸|飮|元|膏|丹|方)?)\)',
         r'([一-龥]{2,}(?:湯|散|丸|飮|元|膏|丹|方))',
     ]
     for pattern in hanja_patterns:
-        match = re.search(pattern, text[:300])
+        match = re.search(pattern, text[:500])
         if match:
             formula_hanja = match.group(1)
             break
 
-    # 6. 잘못된 처방명 필터링
-    invalid_names = {'을', '의', '가', '이', '에', '로', '과', '와', '뛰고', '았고', '었고', '위원'}
+    # 9. 잘못된 처방명 필터링
+    invalid_names = {'을', '의', '가', '이', '에', '로', '과', '와', '뛰고', '았고', '었고', '위원',
+                    '하였', '되었', '같았', '보였', '나왔', '들었', '겠', '태극', '대한'}
     if formula_name in invalid_names or len(formula_name) < 2:
         formula_name = ""
 
@@ -342,9 +390,35 @@ def parse_single_case(case_text: str, filename: str, case_index: int) -> Optiona
 
 
 def split_into_cases(text: str) -> List[str]:
-    """텍스트를 개별 치험례로 분리 - 가장 많은 케이스를 추출하는 패턴 선택"""
+    """텍스트를 개별 치험례로 분리 - 개선된 버전"""
     best_cases = []
     min_len = 80  # 기본 최소 글자 수
+
+    # 파일 형식 감지 (태XX장 형식인지 확인)
+    is_tae_format = bool(re.search(r'태\s*\d+\s*호|용\s*모\s*:|과\s*정\s*:|주\s*증\s*상\s*:', text[:500]))
+
+    if is_tae_format:
+        # 태XX장 형식: "이름 + 나이 + 체질 + 지역" 패턴으로 분리
+        # 예: "이 ○ ○   남 60 세 태음인   의사"
+        tae_pattern = r'(?=[가-힣]\s*[○●]\s*[○●]\s+[남여]\s*\d+\s*세?\s*(?:태음인|태양인|소음인|소양인)?)'
+        tae_parts = re.split(tae_pattern, text)
+        if len(tae_parts) > 1:
+            # 목차 부분 제거 (첫 부분이 목차인 경우)
+            if '치험례' in tae_parts[0][:200] and '편)' in tae_parts[0][:500]:
+                tae_parts = tae_parts[1:]
+            best_cases = [p.strip() for p in tae_parts if p.strip() and len(p.strip()) > 200]
+
+        # 위 패턴이 안 먹히면 "용 모 :" 패턴으로 시도
+        if len(best_cases) < 2:
+            yongmo_pattern = r'(?=용\s*모\s*:)'
+            yongmo_parts = re.split(yongmo_pattern, text)
+            if len(yongmo_parts) > 1:
+                yongmo_cases = [p.strip() for p in yongmo_parts if p.strip() and len(p.strip()) > 200]
+                if len(yongmo_cases) > len(best_cases):
+                    best_cases = yongmo_cases
+
+        if best_cases:
+            return best_cases
 
     # 치험례 구분 패턴들
     split_patterns = [
@@ -467,8 +541,11 @@ def main():
     print("치험례 DOCX 파일 파싱 시작")
     print("=" * 60)
 
-    # DOCX 파일 목록
+    # DOCX 파일 목록 (치험례 폴더와 치험례/word 폴더 모두 검색)
     docx_files = list(CASES_DIR.glob("*.docx"))
+    word_subdir = CASES_DIR / "word"
+    if word_subdir.exists():
+        docx_files.extend(list(word_subdir.glob("*.docx")))
     print(f"\n총 {len(docx_files)}개의 DOCX 파일 발견\n")
 
     all_cases = []

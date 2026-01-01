@@ -120,4 +120,419 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
   }
+
+  /* 새로운 애니메이션 유틸리티 */
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fade-in-down 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.6s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.5s ease-out forwards;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+  }
+
+  /* 지연 클래스 */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-700 { animation-delay: 700ms; }
+  .delay-1000 { animation-delay: 1000ms; }
+
+  /* 초기 상태 (애니메이션 전) */
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .animate-on-scroll.is-visible {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* 무한 스크롤 애니메이션 (로고 슬라이더용) */
+  .animate-scroll-left {
+    animation: scroll-left 30s linear infinite;
+  }
+
+  @keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* 호버 효과 */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 버튼 효과 */
+  .btn-press {
+    transition: transform 0.15s ease;
+  }
+
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* 포커스 링 효과 */
+  .focus-ring {
+    @apply outline-none ring-2 ring-teal-500/20 ring-offset-2;
+  }
+
+  /* 카드 호버 효과 */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    @apply shadow-xl -translate-y-1;
+  }
+
+  /* 테이블 행 호버 */
+  .row-hover {
+    @apply transition-colors duration-150;
+  }
+
+  .row-hover:hover {
+    @apply bg-muted/50;
+  }
+
+  /* 입력 필드 포커스 효과 */
+  .input-focus {
+    @apply transition-all duration-200;
+  }
+
+  .input-focus:focus {
+    @apply border-teal-500 ring-4 ring-teal-500/10;
+  }
+
+  /* 스크롤바 커스텀 */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  /* 텍스트 선택 스타일 */
+  ::selection {
+    background: hsl(173 58% 39% / 0.2);
+    color: inherit;
+  }
+
+  /* 로딩 도트 애니메이션 */
+  .loading-dots::after {
+    content: '';
+    animation: loading-dots 1.5s infinite;
+  }
+
+  @keyframes loading-dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+  }
+
+  /* 그라데이션 테두리 */
+  .gradient-border {
+    position: relative;
+    background: white;
+    z-index: 0;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, #0d9488 0%, #10b981 50%, #f59e0b 100%);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0.8;
+  }
+
+  /* 텍스트 오버플로우 */
+  .text-ellipsis-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .text-ellipsis-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 반짝이는 효과 (프리미엄 느낌) */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    transform: rotate(30deg);
+    animation: shine 3s ease-in-out infinite;
+  }
+
+  @keyframes shine {
+    0% { transform: translateX(-100%) rotate(30deg); }
+    100% { transform: translateX(100%) rotate(30deg); }
+  }
+
+  /* 성공 체크마크 애니메이션 */
+  .checkmark-animate {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: checkmark-draw 0.5s ease forwards 0.2s;
+  }
+
+  @keyframes checkmark-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* 숫자 변경 애니메이션 */
+  .number-animate {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .number-animate.changing {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+
+  /* 뱃지 펄스 */
+  .badge-pulse {
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(20, 184, 166, 0); }
+  }
+
+  /* 타이핑 커서 */
+  .typing-cursor::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* 물결 효과 */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 0.5s, opacity 0.5s;
+  }
+
+  .ripple:active::after {
+    transform: scale(2);
+    opacity: 1;
+    transition: 0s;
+  }
+
+  /* 프로그레스 바 애니메이션 */
+  .progress-animate {
+    animation: progress-fill 1s ease-out forwards;
+  }
+
+  @keyframes progress-fill {
+    from { width: 0%; }
+  }
+
+  /* 슬라이드 인 메뉴 */
+  .slide-in-menu {
+    animation: slide-in-menu 0.3s ease-out forwards;
+  }
+
+  @keyframes slide-in-menu {
+    from {
+      opacity: 0;
+      transform: translateX(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* 드롭다운 팝업 */
+  .dropdown-appear {
+    animation: dropdown-appear 0.2s ease-out forwards;
+    transform-origin: top center;
+  }
+
+  @keyframes dropdown-appear {
+    from {
+      opacity: 0;
+      transform: scaleY(0.9) translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: scaleY(1) translateY(0);
+    }
+  }
 }

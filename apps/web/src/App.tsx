@@ -67,6 +67,9 @@ import SettingsPage from '@/app/settings/SettingsPage'
 // Profile
 import ProfilePage from '@/app/profile/ProfilePage'
 
+// Landing Page
+import LandingPage from '@/app/landing/LandingPage'
+
 // Legal Pages
 import {
   TermsPage,
@@ -91,6 +94,7 @@ function App() {
     <HanjaSettingsProvider>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -102,7 +106,7 @@ function App() {
 
         {/* Protected Routes */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <KeyboardShortcutsProvider>
@@ -177,7 +181,7 @@ function App() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
 
       <Toaster />

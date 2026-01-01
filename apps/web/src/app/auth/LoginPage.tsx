@@ -38,7 +38,7 @@ export default function LoginPage() {
       const response = await api.post<LoginResponse>('/auth/login', { email, password })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   const handleDemoLogin = () => {
     login(DEMO_CONFIG.user, DEMO_CONFIG.token, DEMO_CONFIG.refreshToken)
-    navigate('/')
+    navigate('/dashboard')
   }
 
   return (
