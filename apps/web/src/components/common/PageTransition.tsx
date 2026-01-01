@@ -201,7 +201,7 @@ export function ShakeError({ children, className }: AnimatedProps) {
 // 숫자 카운트업 애니메이션
 export function CountUp({
   end,
-  duration = 2,
+  duration: _duration = 2,
   prefix = '',
   suffix = '',
   className

@@ -35,9 +35,7 @@ import {
   GitCompare,
   HeartPulse,
   DollarSign,
-  BarChart3,
   ChevronDown,
-  ChevronRight,
   Star,
   Clock,
   PanelLeftClose,
@@ -625,7 +623,7 @@ function MenuItemComponent({
   onToggleFavorite,
   onClick,
   sectionColor = 'teal',
-  isRecent = false,
+  isRecent: _isRecent = false,
 }: {
   item: MenuItem
   isActive: boolean

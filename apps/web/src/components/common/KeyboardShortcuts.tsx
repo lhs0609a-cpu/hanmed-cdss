@@ -13,10 +13,8 @@ import {
   Shield,
   Users,
   FileText,
-  ChevronRight,
   Command,
   Clock,
-  Star,
   Plus,
   Brain,
   Mic,
@@ -453,7 +451,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                     <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">최근 방문</span>
                   </div>
                   <div className="space-y-0.5">
-                    {groupedCommands.recent.map((cmd, idx) => (
+                    {groupedCommands.recent.map((cmd) => (
                       <CommandButton
                         key={cmd.id}
                         cmd={cmd}
