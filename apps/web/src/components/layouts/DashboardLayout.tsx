@@ -141,7 +141,7 @@ const allMenuItems = menuSections.flatMap((section) =>
 
 export default function DashboardLayout() {
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user, logout, isGuest } = useAuthStore()
   const {
     isMinimized,
     toggleMinimized,
@@ -543,6 +543,32 @@ export default function DashboardLayout() {
           isMinimized ? 'lg:pl-20' : 'lg:pl-72'
         )}
       >
+        {/* Guest Banner */}
+        {isGuest && (
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm sm:text-base">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-medium">
+                  체험 모드로 이용 중입니다. 모든 기능을 이용하려면 회원가입하세요!
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link to="/login">
+                  <button className="px-4 py-1.5 text-sm bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                    로그인
+                  </button>
+                </Link>
+                <Link to="/register">
+                  <button className="px-4 py-1.5 text-sm bg-white text-orange-600 font-medium rounded-lg hover:bg-gray-100 transition-colors">
+                    무료 회원가입
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>

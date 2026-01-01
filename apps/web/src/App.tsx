@@ -78,11 +78,13 @@ import {
   SubscriptionTermsPage,
 } from '@/app/legal'
 
-// Protected Route wrapper
+// Protected Route wrapper - 게스트도 허용
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isGuest = useAuthStore((state) => state.isGuest)
 
-  if (!isAuthenticated) {
+  // 로그인 또는 게스트 모드면 접근 허용
+  if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace />
   }
 

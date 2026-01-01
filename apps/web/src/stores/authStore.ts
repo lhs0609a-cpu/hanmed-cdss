@@ -14,11 +14,14 @@ interface AuthState {
   accessToken: string | null
   refreshToken: string | null
   isAuthenticated: boolean
+  isGuest: boolean
 
   // Actions
   login: (user: User, accessToken: string, refreshToken: string) => void
   logout: () => void
   updateUser: (user: Partial<User>) => void
+  enterAsGuest: () => void
+  exitGuest: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      isGuest: false,
 
       login: (user, accessToken, refreshToken) =>
         set({
@@ -35,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          isGuest: false,
         }),
 
       logout: () =>
@@ -43,12 +48,27 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          isGuest: false,
         }),
 
       updateUser: (userData) =>
         set((state) => ({
           user: state.user ? { ...state.user, ...userData } : null,
         })),
+
+      enterAsGuest: () =>
+        set({
+          isGuest: true,
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+        }),
+
+      exitGuest: () =>
+        set({
+          isGuest: false,
+        }),
     }),
     {
       name: 'auth-storage',
@@ -57,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        isGuest: state.isGuest,
       }),
     }
   )

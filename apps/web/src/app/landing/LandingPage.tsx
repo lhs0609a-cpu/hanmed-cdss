@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import {
   Brain,
   BookOpen,
@@ -134,6 +135,9 @@ function TypingEffect({ texts, className }: { texts: string[]; className?: strin
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate()
+  const enterAsGuest = useAuthStore((state) => state.enterAsGuest)
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [demoSymptom, setDemoSymptom] = useState('')
@@ -143,6 +147,12 @@ export default function LandingPage() {
     herbs: string[]
   } | null>(null)
   const [isDemoLoading, setIsDemoLoading] = useState(false)
+
+  // 게스트 모드로 프로그램 체험
+  const handleTryProgram = () => {
+    enterAsGuest()
+    navigate('/dashboard')
+  }
 
   // 통계 카운트업
   const stat1 = useCountUp(429, 2000)
@@ -462,18 +472,21 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
+              <Button
+                size="lg"
+                onClick={handleTryProgram}
+                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-lg px-8 py-6 shadow-xl shadow-teal-500/25 btn-press group"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                무료로 체험하기
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
               <Link to="/register">
-                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-lg px-8 py-6 shadow-xl shadow-teal-500/25 btn-press group">
-                  무료로 시작하기
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 group btn-press">
+                  회원가입
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <a href="#demo">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 group btn-press">
-                  <Play className="w-5 h-5 mr-2" />
-                  데모 체험하기
-                </Button>
-              </a>
             </div>
 
             {/* Stats */}
