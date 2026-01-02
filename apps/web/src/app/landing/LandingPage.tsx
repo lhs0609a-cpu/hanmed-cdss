@@ -140,6 +140,7 @@ export default function LandingPage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [faqCategory, setFaqCategory] = useState<string>('전체')
   const [isAnnual, setIsAnnual] = useState(false) // 기본값: 월결제
   const [demoSymptom, setDemoSymptom] = useState('')
   const [demoResult, setDemoResult] = useState<{
@@ -1195,39 +1196,71 @@ export default function LandingPage() {
 
       {/* FAQ Section */}
       <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
             <Badge className="mb-4 bg-gray-200 text-gray-700 hover:bg-gray-200">자주 묻는 질문</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               FAQ
             </h2>
           </div>
 
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+          {/* 카테고리 탭 */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {['전체', '서비스 소개', 'AI 기능', '치험례 검색', '처방/약재', '삭감 예측', '음성 차트', '약물 상호작용', '요금제/결제', '계정/보안', '기술 지원'].map((category) => (
+              <button
+                key={category}
+                onClick={() => {
+                  setFaqCategory(category)
+                  setOpenFaq(null)
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  faqCategory === category
+                    ? 'bg-teal-500 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
               >
-                <button
-                  className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                >
-                  <span className="font-medium text-gray-900">{faq.question}</span>
-                  <ChevronDown
-                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                      openFaq === index ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {openFaq === index && (
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 animate-fade-in">
-                    <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-                  </div>
-                )}
-              </div>
+                {category}
+              </button>
             ))}
           </div>
+
+          <div className="space-y-3">
+            {faqs
+              .filter((faq) => faqCategory === '전체' || faq.category === faqCategory)
+              .map((faq, index) => {
+                const originalIndex = faqs.indexOf(faq)
+                return (
+                  <div
+                    key={originalIndex}
+                    className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                  >
+                    <button
+                      className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+                      onClick={() => setOpenFaq(openFaq === originalIndex ? null : originalIndex)}
+                    >
+                      <span className="font-medium text-gray-900">{faq.question}</span>
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 flex-shrink-0 ml-4 transition-transform duration-200 ${
+                          openFaq === originalIndex ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    {openFaq === originalIndex && (
+                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 animate-fade-in">
+                        <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+          </div>
+
+          {/* FAQ 개수 표시 */}
+          <p className="text-center text-sm text-gray-500 mt-6">
+            {faqCategory === '전체'
+              ? `총 ${faqs.length}개의 질문`
+              : `${faqCategory} 관련 ${faqs.filter(f => f.category === faqCategory).length}개의 질문`}
+          </p>
         </div>
       </section>
 
@@ -1254,7 +1287,7 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10 text-lg px-8 py-6 btn-press">
+              <Button size="lg" className="w-full sm:w-auto bg-transparent border-2 border-white text-white hover:bg-white/20 text-lg px-8 py-6 btn-press">
                 이미 계정이 있으신가요?
               </Button>
             </Link>
