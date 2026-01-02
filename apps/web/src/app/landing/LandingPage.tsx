@@ -140,6 +140,7 @@ export default function LandingPage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [isAnnual, setIsAnnual] = useState(false) // 기본값: 월결제
   const [demoSymptom, setDemoSymptom] = useState('')
   const [demoResult, setDemoResult] = useState<{
     formula: string
@@ -264,9 +265,10 @@ export default function LandingPage() {
   const pricingPlans = [
     {
       name: 'Basic',
-      price: '199,000',
-      period: '년',
-      monthlyPrice: '16,583',
+      monthlyPrice: 18000, // 월 18,000원
+      dailyPrice: 600, // 하루 600원
+      annualPrice: 194000, // 연 194,000원 (10% 할인)
+      annualMonthlyPrice: 16167, // 연간 결제 시 월 환산
       description: '한의학 입문자를 위한 기본 플랜',
       features: [
         '처방 검색 (일 10회)',
@@ -279,9 +281,10 @@ export default function LandingPage() {
     },
     {
       name: 'Professional',
-      price: '990,000',
-      period: '년',
-      monthlyPrice: '82,500',
+      monthlyPrice: 90000, // 월 90,000원
+      dailyPrice: 3000, // 하루 3,000원
+      annualPrice: 972000, // 연 972,000원 (10% 할인)
+      annualMonthlyPrice: 81000, // 연간 결제 시 월 환산
       description: '임상 한의사를 위한 전문 플랜',
       features: [
         '무제한 처방 검색',
@@ -297,9 +300,10 @@ export default function LandingPage() {
     },
     {
       name: 'Clinic',
-      price: '1,990,000',
-      period: '년',
-      monthlyPrice: '165,833',
+      monthlyPrice: 180000, // 월 180,000원
+      dailyPrice: 6000, // 하루 6,000원
+      annualPrice: 1944000, // 연 1,944,000원 (10% 할인)
+      annualMonthlyPrice: 162000, // 연간 결제 시 월 환산
       description: '병원 및 팀을 위한 프리미엄',
       features: [
         'Professional의 모든 기능',
@@ -1072,14 +1076,41 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8">
         <div ref={pricingAnim.ref} className={`max-w-7xl mx-auto ${pricingAnim.isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100">가격 플랜</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               합리적인 가격, 강력한 기능
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
               필요에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.
             </p>
+
+            {/* 월결제/연결제 토글 */}
+            <div className="flex items-center justify-center gap-4">
+              <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-gray-900' : 'text-gray-400'}`}>
+                월결제
+              </span>
+              <button
+                onClick={() => setIsAnnual(!isAnnual)}
+                className={`relative w-14 h-7 rounded-full transition-colors ${
+                  isAnnual ? 'bg-teal-500' : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
+                    isAnnual ? 'translate-x-7' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-gray-900' : 'text-gray-400'}`}>
+                연결제
+              </span>
+              {isAnnual && (
+                <Badge className="bg-emerald-100 text-emerald-700 animate-bounce-in">
+                  10% 할인
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -1103,13 +1134,37 @@ export default function LandingPage() {
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
                   <p className="text-gray-500 text-sm mb-4">{plan.description}</p>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold text-gray-900">
-                      ₩{plan.price}
-                    </span>
-                    <span className="text-gray-500">/{plan.period}</span>
-                    <div className="text-sm text-gray-400 mt-1">
-                      월 ₩{plan.monthlyPrice} 상당
-                    </div>
+                    {isAnnual ? (
+                      <>
+                        <span className="text-4xl font-bold text-gray-900">
+                          ₩{plan.annualPrice.toLocaleString()}
+                        </span>
+                        <span className="text-gray-500">/년</span>
+                        <div className="text-sm text-gray-400 mt-1">
+                          월 ₩{plan.annualMonthlyPrice.toLocaleString()} 상당
+                        </div>
+                        <div className="text-xs text-emerald-600 mt-1 font-medium">
+                          연 ₩{((plan.monthlyPrice * 12) - plan.annualPrice).toLocaleString()} 절약
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold text-gray-900">
+                          ₩{plan.monthlyPrice.toLocaleString()}
+                        </span>
+                        <span className="text-gray-500">/월</span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200">
+                            <span className="text-sm font-semibold text-amber-700">
+                              하루 {plan.dailyPrice.toLocaleString()}원
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400 mt-2">
+                          연결제 시 10% 할인 적용
+                        </div>
+                      </>
+                    )}
                   </div>
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, idx) => (
