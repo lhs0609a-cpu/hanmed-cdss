@@ -1237,7 +1237,7 @@ export default function LandingPage() {
                 ? faqs.filter((faq) => faqCategory === '전체' || faq.category === faqCategory)
                 : faqs.slice(0, 6) // 메인에서는 6개만
 
-              return filteredFaqs.map((faq, index) => {
+              return filteredFaqs.map((faq) => {
                 const originalIndex = faqs.indexOf(faq)
                 return (
                   <div

@@ -34,7 +34,8 @@
       "WebFetch(domain:oasis.kiom.re.kr)",
       "WebFetch(domain:www.riss.kr)",
       "WebFetch(domain:www.jkom.org)",
-      "WebFetch(domain:koreascience.kr)"
+      "WebFetch(domain:koreascience.kr)",
+      "Bash(git config:*)"
     ]
   }
 }
