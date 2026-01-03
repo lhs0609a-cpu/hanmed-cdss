@@ -1,0 +1,21 @@
+[
+  {
+    "collection_id": "COL-20260103-190036",
+    "timestamp": "2026-01-03T19:00:36.230246",
+    "sources": [
+      "pubmed"
+    ],
+    "status": "completed",
+    "statistics": {
+      "articles_searched": 2,
+      "articles_fetched": 2,
+      "cases_extracted": 0,
+      "cases_valid": 0,
+      "cases_duplicate": 0,
+      "cases_added": 0,
+      "cases_auto_approved": 0
+    },
+    "errors": [],
+    "duration_seconds": 13.28
+  }
+]

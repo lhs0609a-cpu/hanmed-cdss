@@ -81,12 +81,20 @@ class CaseSearchService:
         if self._local_cases is not None:
             return self._local_cases
 
-        data_file = Path(__file__).parent.parent.parent / "data" / "extracted_cases.json"
+        # 통합 데이터 파일 우선 사용
+        data_file = Path(__file__).parent.parent.parent / "data" / "all_cases_combined.json"
+
+        # 통합 파일이 없으면 기존 파일 사용
+        if not data_file.exists():
+            data_file = Path(__file__).parent.parent.parent / "data" / "extracted_cases.json"
 
         if data_file.exists():
             with open(data_file, 'r', encoding='utf-8') as f:
                 self._local_cases = json.load(f)
-            print(f"[INFO] Local case data loaded: {len(self._local_cases)} cases")
+
+            # 실제 치험례 수 계산
+            real_count = sum(1 for c in self._local_cases if c.get('is_real_case'))
+            print(f"[INFO] Local case data loaded: {len(self._local_cases)} cases (real: {real_count})")
         else:
             self._local_cases = []
             print("[WARN] No local case data found")

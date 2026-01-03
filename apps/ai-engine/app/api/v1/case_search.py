@@ -205,7 +205,10 @@ async def list_cases(
     import json
     from pathlib import Path
 
-    data_file = Path(__file__).parent.parent.parent.parent / "data" / "extracted_cases.json"
+    # 통합 데이터 파일 우선 사용
+    data_file = Path(__file__).parent.parent.parent.parent / "data" / "all_cases_combined.json"
+    if not data_file.exists():
+        data_file = Path(__file__).parent.parent.parent.parent / "data" / "extracted_cases.json"
 
     if not data_file.exists():
         return {
@@ -218,6 +221,9 @@ async def list_cases(
 
     with open(data_file, 'r', encoding='utf-8') as f:
         all_cases = json.load(f)
+
+    # 실제 치험례 우선 정렬
+    all_cases.sort(key=lambda x: (not x.get('is_real_case', False), x.get('id', '')))
 
     # 필터링
     filtered_cases = all_cases
@@ -347,7 +353,10 @@ async def get_case_stats():
     import json
     from pathlib import Path
 
-    data_file = Path(__file__).parent.parent.parent.parent / "data" / "extracted_cases.json"
+    # 통합 데이터 파일 우선 사용
+    data_file = Path(__file__).parent.parent.parent.parent / "data" / "all_cases_combined.json"
+    if not data_file.exists():
+        data_file = Path(__file__).parent.parent.parent.parent / "data" / "extracted_cases.json"
 
     if not data_file.exists():
         return {
@@ -361,9 +370,12 @@ async def get_case_stats():
 
     # 통계 계산
     total = len(cases)
+    real_cases = sum(1 for c in cases if c.get('is_real_case'))
+    indication_cases = total - real_cases
     with_constitution = sum(1 for c in cases if c.get('patient_constitution'))
     with_age = sum(1 for c in cases if c.get('patient_age'))
     with_gender = sum(1 for c in cases if c.get('patient_gender'))
+    with_result = sum(1 for c in cases if c.get('result'))
 
     # 처방별 케이스 수
     formula_counts = {}
@@ -379,10 +391,13 @@ async def get_case_stats():
 
     return {
         "total_cases": total,
+        "real_clinical_cases": real_cases,
+        "indication_based_cases": indication_cases,
         "indexed": True,
         "with_constitution": with_constitution,
         "with_age": with_age,
         "with_gender": with_gender,
+        "with_result": with_result,
         "top_formulas": [
             {"formula": f, "count": c} for f, c in top_formulas
         ]

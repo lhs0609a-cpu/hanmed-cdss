@@ -141,6 +141,7 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [faqCategory, setFaqCategory] = useState<string>('전체')
+  const [showAllFaq, setShowAllFaq] = useState(false) // FAQ 전체 보기
   const [isAnnual, setIsAnnual] = useState(false) // 기본값: 월결제
   const [demoSymptom, setDemoSymptom] = useState('')
   const [demoResult, setDemoResult] = useState<{
@@ -1202,32 +1203,41 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               FAQ
             </h2>
+            <p className="text-gray-600">
+              궁금한 점이 있으신가요? 자주 묻는 질문을 확인해보세요.
+            </p>
           </div>
 
-          {/* 카테고리 탭 */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {['전체', '서비스 소개', 'AI 기능', '치험례 검색', '처방/약재', '삭감 예측', '음성 차트', '약물 상호작용', '요금제/결제', '계정/보안', '기술 지원'].map((category) => (
-              <button
-                key={category}
-                onClick={() => {
-                  setFaqCategory(category)
-                  setOpenFaq(null)
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  faqCategory === category
-                    ? 'bg-teal-500 text-white shadow-md'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+          {/* 카테고리 탭 - 전체 보기 모드에서만 표시 */}
+          {showAllFaq && (
+            <div className="flex flex-wrap justify-center gap-2 mb-8 animate-fade-in">
+              {['전체', '서비스 소개', 'AI 기능', '치험례 검색', '처방/약재', '삭감 예측', '음성 차트', '약물 상호작용', '요금제/결제', '계정/보안', '기술 지원'].map((category) => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setFaqCategory(category)
+                    setOpenFaq(null)
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    faqCategory === category
+                      ? 'bg-teal-500 text-white shadow-md'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-3">
-            {faqs
-              .filter((faq) => faqCategory === '전체' || faq.category === faqCategory)
-              .map((faq, index) => {
+            {(() => {
+              // 필터링된 FAQ
+              const filteredFaqs = showAllFaq
+                ? faqs.filter((faq) => faqCategory === '전체' || faq.category === faqCategory)
+                : faqs.slice(0, 6) // 메인에서는 6개만
+
+              return filteredFaqs.map((faq, index) => {
                 const originalIndex = faqs.indexOf(faq)
                 return (
                   <div
@@ -1252,15 +1262,42 @@ export default function LandingPage() {
                     )}
                   </div>
                 )
-              })}
+              })
+            })()}
           </div>
 
-          {/* FAQ 개수 표시 */}
-          <p className="text-center text-sm text-gray-500 mt-6">
-            {faqCategory === '전체'
-              ? `총 ${faqs.length}개의 질문`
-              : `${faqCategory} 관련 ${faqs.filter(f => f.category === faqCategory).length}개의 질문`}
-          </p>
+          {/* 더 보기 / 접기 버튼 */}
+          <div className="text-center mt-8">
+            {!showAllFaq ? (
+              <Button
+                variant="outline"
+                onClick={() => setShowAllFaq(true)}
+                className="px-8 py-3 btn-press"
+              >
+                더 많은 질문 보기 ({faqs.length - 6}개 더)
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 mb-4">
+                  {faqCategory === '전체'
+                    ? `총 ${faqs.length}개의 질문`
+                    : `${faqCategory} 관련 ${faqs.filter(f => f.category === faqCategory).length}개의 질문`}
+                </p>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowAllFaq(false)
+                    setFaqCategory('전체')
+                    setOpenFaq(null)
+                  }}
+                  className="text-gray-500"
+                >
+                  접기
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
@@ -1287,7 +1324,7 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link to="/login">
-              <Button size="lg" className="w-full sm:w-auto bg-transparent border-2 border-white text-white hover:bg-white/20 text-lg px-8 py-6 btn-press">
+              <Button size="lg" className="w-full sm:w-auto bg-white/20 border-2 border-white text-white hover:bg-white/30 text-lg px-8 py-6 btn-press backdrop-blur-sm">
                 이미 계정이 있으신가요?
               </Button>
             </Link>
