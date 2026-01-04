@@ -56,7 +56,7 @@ export class CommunityService {
     if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
 
     // 익명 게시 권한 확인
-    if (createPostDto.isAnonymous && user.subscriptionTier === SubscriptionTier.STARTER) {
+    if (createPostDto.isAnonymous && user.subscriptionTier === SubscriptionTier.FREE) {
       throw new ForbiddenException('익명 게시는 Pro 이상 구독자만 가능합니다.');
     }
 
@@ -219,7 +219,7 @@ export class CommunityService {
     if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
 
     // 익명 댓글 권한 확인
-    if (createCommentDto.isAnonymous && user.subscriptionTier === SubscriptionTier.STARTER) {
+    if (createCommentDto.isAnonymous && user.subscriptionTier === SubscriptionTier.FREE) {
       throw new ForbiddenException('익명 댓글은 Pro 이상 구독자만 가능합니다.');
     }
 
@@ -492,9 +492,9 @@ export class CommunityService {
 
   private getContributionPoints(action: 'post' | 'comment' | 'accepted', tier: SubscriptionTier): number {
     const pointsMap = {
-      post: { [SubscriptionTier.STARTER]: 2, [SubscriptionTier.PRO]: 3, [SubscriptionTier.MASTER]: 5 },
-      comment: { [SubscriptionTier.STARTER]: 1, [SubscriptionTier.PRO]: 1, [SubscriptionTier.MASTER]: 2 },
-      accepted: { [SubscriptionTier.STARTER]: 5, [SubscriptionTier.PRO]: 10, [SubscriptionTier.MASTER]: 20 },
+      post: { [SubscriptionTier.FREE]: 2, [SubscriptionTier.PROFESSIONAL]: 3, [SubscriptionTier.CLINIC]: 5 },
+      comment: { [SubscriptionTier.FREE]: 1, [SubscriptionTier.PROFESSIONAL]: 1, [SubscriptionTier.CLINIC]: 2 },
+      accepted: { [SubscriptionTier.FREE]: 5, [SubscriptionTier.PROFESSIONAL]: 10, [SubscriptionTier.CLINIC]: 20 },
     };
     return pointsMap[action][tier];
   }

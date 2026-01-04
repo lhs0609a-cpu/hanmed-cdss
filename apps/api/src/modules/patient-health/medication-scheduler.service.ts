@@ -284,22 +284,17 @@ export class MedicationSchedulerService {
 
   // 만료된 처방 알림 비활성화
   private async deactivateExpiredReminders() {
+    const today = new Date();
     const result = await this.reminderRepository
       .createQueryBuilder()
       .update(MedicationReminder)
       .set({ isActive: false })
-      .where('prescriptionId IS NOT NULL')
-      .andWhere('isActive = true')
-      .andWhere((qb) => {
-        const subQuery = qb
-          .subQuery()
-          .select('p.id')
-          .from('patient_prescriptions', 'p')
-          .where('p.id = MedicationReminder.prescriptionId')
-          .andWhere('p.endDate < :today', { today: new Date() })
-          .getQuery();
-        return `prescriptionId IN ${subQuery}`;
-      })
+      .where('"prescriptionId" IS NOT NULL')
+      .andWhere('"isActive" = true')
+      .andWhere(`"prescriptionId" IN (
+        SELECT p.id FROM patient_prescriptions p
+        WHERE p."endDate" < :today
+      )`, { today })
       .execute();
 
     if (result.affected && result.affected > 0) {

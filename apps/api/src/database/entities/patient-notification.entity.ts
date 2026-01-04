@@ -53,20 +53,22 @@ export class PatientNotification {
     reservationId?: string;
     clinicId?: string;
     actionUrl?: string;
-  };
+    reminderId?: string;
+    patientId?: string;
+  } | null;
 
   @Column({ default: false })
   isRead: boolean;
 
   @Column({ nullable: true })
-  readAt: Date;
+  readAt: Date | null;
 
   // 푸시 발송 여부
   @Column({ default: false })
   pushSent: boolean;
 
   @Column({ nullable: true })
-  pushSentAt: Date;
+  pushSentAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;
