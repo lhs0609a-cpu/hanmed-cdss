@@ -35,7 +35,10 @@
       "WebFetch(domain:www.riss.kr)",
       "WebFetch(domain:www.jkom.org)",
       "WebFetch(domain:koreascience.kr)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(powershell -Command \"iwr https://fly.io/install.ps1 -useb | iex\")",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe version:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe deploy:*)"
     ]
   }
 }
