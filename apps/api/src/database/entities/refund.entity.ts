@@ -40,13 +40,13 @@ export class Refund {
   status: RefundStatus;
 
   @Column({ nullable: true })
-  refundKey: string; // 토스 환불키
+  refundKey: string | null; // 토스 환불키
 
   @Column({ nullable: true })
-  processedAt: Date;
+  processedAt: Date | null;
 
   @Column({ nullable: true })
-  failureReason: string;
+  failureReason: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

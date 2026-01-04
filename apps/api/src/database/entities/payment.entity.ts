@@ -32,11 +32,11 @@ export class Payment {
   user: User;
 
   @Column({ nullable: true })
-  subscriptionId: string;
+  subscriptionId: string | null;
 
   @ManyToOne(() => Subscription, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'subscriptionId' })
-  subscription: Subscription;
+  subscription: Subscription | null;
 
   // 주문 정보
   @Column({ unique: true })
@@ -63,14 +63,14 @@ export class Payment {
   refundedAmount: number;
 
   @Column({ nullable: true })
-  refundReason: string;
+  refundReason: string | null;
 
   @Column({ nullable: true })
-  refundedAt: Date;
+  refundedAt: Date | null;
 
   // 토스페이먼츠 정보
   @Column({ nullable: true })
-  paymentKey: string;
+  paymentKey: string | null;
 
   @Column({
     type: 'enum',
@@ -80,24 +80,24 @@ export class Payment {
   status: PaymentStatus;
 
   @Column({ nullable: true })
-  paidAt: Date;
+  paidAt: Date | null;
 
   @Column({ nullable: true })
-  failedAt: Date;
+  failedAt: Date | null;
 
   @Column({ nullable: true })
-  failureReason: string;
+  failureReason: string | null;
 
   // 카드 정보 (마스킹됨)
   @Column({ nullable: true })
-  cardCompany: string;
+  cardCompany: string | null;
 
   @Column({ nullable: true })
-  cardNumber: string; // 마스킹된 번호 (****1234)
+  cardNumber: string | null; // 마스킹된 번호 (****1234)
 
   // 영수증
   @Column({ nullable: true })
-  receiptUrl: string;
+  receiptUrl: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -37,7 +37,7 @@ export class Subscription {
   stripeSubscriptionId: string;
 
   @Column({ nullable: true })
-  stripePriceId: string;
+  stripePriceId: string | null;
 
   @Column({
     type: 'enum',
@@ -60,16 +60,16 @@ export class Subscription {
   currentPeriodEnd: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  canceledAt: Date;
+  canceledAt: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
-  cancelAt: Date; // 예약된 취소 일시
+  cancelAt: Date | null; // 예약된 취소 일시
 
   @Column({ type: 'int', default: 0 })
   paymentRetryCount: number; // 결제 재시도 횟수
 
   @Column({ type: 'text', nullable: true })
-  lastPaymentError: string; // 마지막 결제 오류 메시지
+  lastPaymentError: string | null; // 마지막 결제 오류 메시지
 
   @CreateDateColumn()
   createdAt: Date;

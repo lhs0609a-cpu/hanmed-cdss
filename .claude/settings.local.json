@@ -38,7 +38,8 @@
       "Bash(git config:*)",
       "Bash(powershell -Command \"iwr https://fly.io/install.ps1 -useb | iex\")",
       "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe version:*)",
-      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe deploy:*)"
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe deploy:*)",
+      "Bash(grep:*)"
     ]
   }
 }

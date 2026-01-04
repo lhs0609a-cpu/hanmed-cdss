@@ -36,10 +36,10 @@ export class User {
   name: string;
 
   @Column({ nullable: true })
-  licenseNumber: string;
+  licenseNumber: string | null;
 
   @Column({ nullable: true })
-  clinicName: string;
+  clinicName: string | null;
 
   @Column({
     type: 'enum',
@@ -49,7 +49,7 @@ export class User {
   subscriptionTier: SubscriptionTier;
 
   @Column({ nullable: true })
-  subscriptionExpiresAt: Date;
+  subscriptionExpiresAt: Date | null;
 
   @Column({ default: 0 })
   contributionPoints: number;
@@ -58,20 +58,20 @@ export class User {
   isVerified: boolean;
 
   @Column({ nullable: true })
-  stripeCustomerId: string;
+  stripeCustomerId: string | null;
 
   // Community 관련 필드
   @Column({ default: false })
   isLicenseVerified: boolean; // 면허 인증 완료 여부
 
   @Column({ nullable: true })
-  licenseVerifiedAt: Date;
+  licenseVerifiedAt: Date | null;
 
   @Column({ nullable: true })
-  specialization: string; // 전문 분야 (본초학, 상한론 등)
+  specialization: string | null; // 전문 분야 (본초학, 상한론 등)
 
   @Column('text', { nullable: true })
-  bio: string; // 자기소개
+  bio: string | null; // 자기소개
 
   @Column({ default: 0 })
   postCount: number;
