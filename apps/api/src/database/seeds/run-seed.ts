@@ -16,11 +16,11 @@ async function runSeed() {
 
     console.log('Seeding users...');
     await dataSource.query(`
-      INSERT INTO users (email, password, name, role, subscription_tier)
+      INSERT INTO users (email, password_hash, name, subscription_tier)
       VALUES
-        ('admin@hanmed.kr', $1, '관리자', 'admin', 'master'),
-        ('doctor@hanmed.kr', $1, '홍길동', 'doctor', 'pro'),
-        ('test@hanmed.kr', $1, '테스트', 'user', 'starter')
+        ('admin@hanmed.kr', $1, '관리자', 'clinic'),
+        ('doctor@hanmed.kr', $1, '홍길동', 'professional'),
+        ('test@hanmed.kr', $1, '테스트', 'free')
       ON CONFLICT (email) DO NOTHING
     `, [hashedPassword]);
 
