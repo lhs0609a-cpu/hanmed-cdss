@@ -7,7 +7,7 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { VisitType, ReservationStatus } from '../../../database/entities';
+import { ReservationVisitType, ReservationStatus } from '../../../database/entities';
 
 export class CreateReservationDto {
   @ApiProperty({ description: '한의원 ID' })
@@ -29,10 +29,10 @@ export class CreateReservationDto {
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: '올바른 시간 형식이 아닙니다 (HH:mm)' })
   reservationTime: string;
 
-  @ApiPropertyOptional({ description: '방문 유형', enum: VisitType })
+  @ApiPropertyOptional({ description: '방문 유형', enum: ReservationVisitType })
   @IsOptional()
-  @IsEnum(VisitType)
-  visitType?: VisitType;
+  @IsEnum(ReservationVisitType)
+  visitType?: ReservationVisitType;
 
   @ApiPropertyOptional({ description: '방문 사유' })
   @IsOptional()

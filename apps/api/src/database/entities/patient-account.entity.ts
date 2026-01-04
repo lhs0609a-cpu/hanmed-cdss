@@ -6,18 +6,11 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { ConstitutionType } from './clinical-case.entity';
 
 export enum PatientGender {
   MALE = 'male',
   FEMALE = 'female',
-}
-
-export enum ConstitutionType {
-  TAEYANG = '태양인',
-  TAEEUM = '태음인',
-  SOYANG = '소양인',
-  SOEUM = '소음인',
-  UNKNOWN = '미상',
 }
 
 @Entity('patient_accounts')

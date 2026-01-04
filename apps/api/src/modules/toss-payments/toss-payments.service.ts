@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThan } from 'typeorm';
+import { Repository, LessThanOrEqual, MoreThan, IsNull } from 'typeorm';
 import axios from 'axios';
 import {
   User,
@@ -348,7 +348,7 @@ export class TossPaymentsService {
       where: {
         status: SubscriptionStatus.ACTIVE,
         currentPeriodEnd: LessThanOrEqual(tomorrow),
-        cancelAt: null,
+        cancelAt: IsNull(),
       },
     });
 

@@ -20,7 +20,7 @@ export enum ReservationStatus {
   NO_SHOW = 'no_show',
 }
 
-export enum VisitType {
+export enum ReservationVisitType {
   INITIAL = 'initial',
   FOLLOW_UP = 'follow_up',
   CONSULTATION = 'consultation',
@@ -49,11 +49,11 @@ export class Reservation {
   clinic: Clinic;
 
   @Column({ nullable: true })
-  practitionerId: string;
+  practitionerId: string | null;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'practitionerId' })
-  practitioner: User;
+  practitioner: User | null;
 
   // 예약 정보
   @Column({ type: 'date' })
@@ -68,16 +68,16 @@ export class Reservation {
   // 예약 유형
   @Column({
     type: 'enum',
-    enum: VisitType,
+    enum: ReservationVisitType,
     nullable: true,
   })
-  visitType: VisitType;
+  visitType: ReservationVisitType | null;
 
   @Column('text', { nullable: true })
-  visitReason: string;
+  visitReason: string | null;
 
   @Column('text', { nullable: true })
-  symptomsNote: string;
+  symptomsNote: string | null;
 
   // 상태
   @Column({
@@ -88,24 +88,24 @@ export class Reservation {
   status: ReservationStatus;
 
   @Column({ nullable: true })
-  confirmedAt: Date;
+  confirmedAt: Date | null;
 
   @Column({ nullable: true })
-  cancelledAt: Date;
+  cancelledAt: Date | null;
 
   @Column('text', { nullable: true })
-  cancellationReason: string;
+  cancellationReason: string | null;
 
   // 알림
   @Column({ default: false })
   reminderSent: boolean;
 
   @Column({ nullable: true })
-  reminderSentAt: Date;
+  reminderSentAt: Date | null;
 
   // 메모
   @Column('text', { nullable: true })
-  clinicNotes: string;
+  clinicNotes: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

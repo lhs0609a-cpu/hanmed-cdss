@@ -20,7 +20,7 @@ export class Category {
   name: string;
 
   @Column({ nullable: true })
-  description: string;
+  description: string | null;
 
   @Column({ unique: true })
   slug: string; // URL용 (예: 'herbology', 'shanghanlun')
@@ -32,17 +32,17 @@ export class Category {
   postType: PostType;
 
   @Column({ nullable: true })
-  parentId: string;
+  parentId: string | null;
 
   @ManyToOne(() => Category, (category) => category.children, { nullable: true })
   @JoinColumn({ name: 'parentId' })
-  parent: Category;
+  parent: Category | null;
 
   @OneToMany(() => Category, (category) => category.parent)
   children: Category[];
 
   @Column({ nullable: true })
-  iconName: string; // Lucide 아이콘 이름
+  iconName: string | null; // Lucide 아이콘 이름
 
   @Column({ default: 0 })
   sortOrder: number;
@@ -53,7 +53,7 @@ export class Category {
   @Column({
     type: 'enum',
     enum: SubscriptionTier,
-    default: SubscriptionTier.STARTER,
+    default: SubscriptionTier.FREE,
   })
   requiredTier: SubscriptionTier;
 
