@@ -55,6 +55,8 @@ export class PatientNotification {
     actionUrl?: string;
     reminderId?: string;
     patientId?: string;
+    reminderTime?: string;
+    medicationName?: string;
   } | null;
 
   @Column({ default: false })
