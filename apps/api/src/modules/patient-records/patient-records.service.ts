@@ -385,7 +385,7 @@ export class PatientRecordsService {
 
       const healthTips = await this.patientExplanationService.generateHealthTips({
         constitution: record.constitutionResult,
-        mainSymptoms: record.symptomsSummary ? [record.symptomsSummary] : [],
+        mainSymptoms: record.symptomsSummary?.map(s => s.name) || [],
         currentPrescription: record.prescription?.formulaName,
       });
 
