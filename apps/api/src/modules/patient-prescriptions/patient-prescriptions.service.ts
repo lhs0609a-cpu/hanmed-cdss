@@ -73,10 +73,11 @@ export class PatientPrescriptionsService {
         : undefined,
     });
 
-    const saved = await this.prescriptionRepository.save(prescription);
+    const savedResult = await this.prescriptionRepository.save(prescription);
+    const saved = Array.isArray(savedResult) ? savedResult[0] : savedResult;
 
     // 진료 기록에 연결
-    if (dto.recordId) {
+    if (dto.recordId && saved?.id) {
       await this.recordRepository.update(dto.recordId, {
         prescriptionId: saved.id,
       });
@@ -298,10 +299,10 @@ export class PatientPrescriptionsService {
   private async generateScientificEvidence(formulaName: string, herbs: any[]) {
     // 기본 응답 (향후 AI 모듈 연동 가능)
     return {
-      studies: [],
+      studies: [] as Array<{ title: string; authors?: string; journal?: string; year?: number; pmid?: string; summary: string; relevance: string; }>,
       mechanism: `${formulaName}은(는) 한의학적 원리에 따라 조제된 처방입니다. 구성 약재: ${herbs.map(h => h.name).join(', ')}`,
-      expectedEffects: [],
-      evidenceLevel: 'C',
+      expectedEffects: [] as string[],
+      evidenceLevel: 'C' as const,
     };
   }
 
