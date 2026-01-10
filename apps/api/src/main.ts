@@ -13,8 +13,15 @@ async function bootstrap() {
   });
 
   // CORS 설정
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://hanmed-cdss.vercel.app',
+    process.env.CORS_ORIGIN,
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   });
 
