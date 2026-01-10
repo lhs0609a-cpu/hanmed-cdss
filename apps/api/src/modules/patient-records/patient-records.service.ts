@@ -394,11 +394,20 @@ export class PatientRecordsService {
           summary: result.explanation,
           keyFindings: result.keyPoints,
         },
-        lifestyleRecommendations: healthTips.lifestyleAdvice,
+        lifestyleRecommendations: healthTips.lifestyleAdvice?.map((advice: string) => ({
+          category: 'other' as const,
+          title: advice,
+          description: advice,
+          priority: 'medium' as const,
+          tips: [],
+        })) || [],
         dietRecommendations: {
-          recommended: healthTips.dietRecommendations,
+          recommended: healthTips.dietRecommendations?.map((food: string) => ({
+            food,
+            reason: '건강 증진',
+          })) || [],
           avoid: [],
-          generalAdvice: healthTips.tips,
+          generalAdvice: healthTips.tips || [],
         },
         exerciseRecommendations: [],
       };
