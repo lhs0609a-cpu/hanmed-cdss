@@ -39,7 +39,21 @@
       "Bash(powershell -Command \"iwr https://fly.io/install.ps1 -useb | iex\")",
       "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe version:*)",
       "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe deploy:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe postgres create --name hanmed-db --region nrt --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 1)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe postgres create --name hanmed-cdss-db --region nrt --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 1)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe postgres attach:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe secrets set:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe logs:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe postgres connect --app hanmed-cdss-db)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe apps restart:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe machine restart:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe machine list:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe machine start:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe status:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe machines start:*)",
+      "Bash(curl:*)",
+      "Bash(C:/Users/lhs06/.fly/bin/flyctl.exe apps list:*)"
     ]
   }
 }

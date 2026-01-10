@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
+import { RecommendationService } from '../ai/services/recommendation.service';
+import { InteractionsService } from '../interactions/interactions.service';
 
 interface RecommendationRequest {
   patientAge?: number;
@@ -13,49 +13,45 @@ interface RecommendationRequest {
 
 @Injectable()
 export class PrescriptionsService {
-  private aiEngineUrl: string;
-
   constructor(
-    private httpService: HttpService,
-    private configService: ConfigService,
-  ) {
-    this.aiEngineUrl = this.configService.get('AI_ENGINE_URL') || 'http://localhost:8000';
-  }
+    private recommendationService: RecommendationService,
+    private interactionsService: InteractionsService,
+  ) {}
 
   async getRecommendation(request: RecommendationRequest) {
     try {
-      const response = await this.httpService.axiosRef.post(
-        `${this.aiEngineUrl}/api/v1/recommend/`,
-        {
-          patient_age: request.patientAge,
-          patient_gender: request.patientGender,
-          constitution: request.constitution,
-          chief_complaint: request.chiefComplaint,
-          symptoms: request.symptoms,
-          current_medications: request.currentMedications,
-        },
-      );
+      const result = await this.recommendationService.getRecommendation({
+        patientAge: request.patientAge,
+        patientGender: request.patientGender,
+        constitution: request.constitution,
+        chiefComplaint: request.chiefComplaint,
+        symptoms: request.symptoms,
+        currentMedications: request.currentMedications,
+      });
 
-      return response.data;
+      return {
+        success: true,
+        data: result,
+      };
     } catch (error) {
-      console.error('처방 추천 API 호출 실패:', error);
+      console.error('처방 추천 실패:', error);
       throw error;
     }
   }
 
   async checkInteractions(herbs: string[], medications: string[]) {
     try {
-      const response = await this.httpService.axiosRef.post(
-        `${this.aiEngineUrl}/api/v1/interaction/check`,
-        {
-          herbs,
-          medications,
-        },
+      const result = await this.interactionsService.checkInteractions(
+        herbs,
+        medications,
       );
 
-      return response.data;
+      return {
+        success: true,
+        data: result,
+      };
     } catch (error) {
-      console.error('상호작용 검사 API 호출 실패:', error);
+      console.error('상호작용 검사 실패:', error);
       throw error;
     }
   }

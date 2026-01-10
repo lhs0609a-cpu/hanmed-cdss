@@ -22,6 +22,7 @@ import { PatientPrescriptionsModule } from './modules/patient-prescriptions/pati
 import { PatientHealthModule } from './modules/patient-health/patient-health.module';
 import { PatientNotificationsModule } from './modules/patient-notifications/patient-notifications.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
+import { AiModule } from './modules/ai/ai.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -46,7 +47,7 @@ import { HealthController } from './health.controller';
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: true, // TODO: 프로덕션에서는 마이그레이션 사용 권장
         logging: configService.get('NODE_ENV') === 'development',
       }),
     }),
@@ -73,6 +74,7 @@ import { HealthController } from './health.controller';
     PatientHealthModule,
     PatientNotificationsModule,
     MessagingModule,
+    AiModule,
   ],
   controllers: [HealthController],
 })

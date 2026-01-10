@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HttpModule } from '@nestjs/axios';
 import { PatientRecordsController } from './patient-records.controller';
 import { PatientRecordsService } from './patient-records.service';
 import { PatientAuthModule } from '../patient-auth/patient-auth.module';
+import { AiModule } from '../ai/ai.module';
 import {
   PatientRecord,
   PatientAccount,
@@ -21,8 +21,8 @@ import {
       PatientNotification,
       ClinicalCase,
     ]),
-    HttpModule,
     PatientAuthModule,
+    AiModule,
   ],
   controllers: [PatientRecordsController],
   providers: [PatientRecordsService],

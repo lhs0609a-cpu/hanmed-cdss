@@ -5,9 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import {
   PatientPrescription,
   PrescriptionStatus,
@@ -38,8 +35,6 @@ export class PatientPrescriptionsService {
     private interactionRepository: Repository<DrugHerbInteraction>,
     @InjectRepository(PatientAccount)
     private patientRepository: Repository<PatientAccount>,
-    private httpService: HttpService,
-    private configService: ConfigService,
   ) {}
 
   // 처방 생성 (의료진용)
@@ -301,27 +296,10 @@ export class PatientPrescriptionsService {
 
   // 과학적 근거 생성
   private async generateScientificEvidence(formulaName: string, herbs: any[]) {
-    // AI 엔진 호출 또는 기본 데이터 반환
-    const aiEngineUrl = this.configService.get('AI_ENGINE_URL');
-
-    if (aiEngineUrl) {
-      try {
-        const response = await firstValueFrom(
-          this.httpService.post(`${aiEngineUrl}/api/v1/scientific-evidence/generate`, {
-            formulaName,
-            herbs: herbs.map((h) => h.name),
-          }),
-        );
-        return response.data;
-      } catch (error) {
-        console.error('AI 과학적 근거 생성 실패:', error);
-      }
-    }
-
-    // 기본 응답
+    // 기본 응답 (향후 AI 모듈 연동 가능)
     return {
       studies: [],
-      mechanism: `${formulaName}은(는) 한의학적 원리에 따라 조제된 처방입니다.`,
+      mechanism: `${formulaName}은(는) 한의학적 원리에 따라 조제된 처방입니다. 구성 약재: ${herbs.map(h => h.name).join(', ')}`,
       expectedEffects: [],
       evidenceLevel: 'C',
     };

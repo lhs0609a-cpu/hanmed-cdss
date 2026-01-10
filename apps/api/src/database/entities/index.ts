@@ -1,3 +1,4 @@
+export * from './enums';
 export * from './user.entity';
 export * from './clinical-case.entity';
 export * from './herb.entity';

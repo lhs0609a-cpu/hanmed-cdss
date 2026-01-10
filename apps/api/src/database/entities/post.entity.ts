@@ -13,13 +13,10 @@ import { ClinicalCase } from './clinical-case.entity';
 import { Comment } from './comment.entity';
 import { Attachment } from './attachment.entity';
 import { Category } from './category.entity';
+import { PostType } from './enums';
 
-export enum PostType {
-  CASE_DISCUSSION = 'case_discussion', // 케이스 토론
-  QNA = 'qna', // Q&A
-  GENERAL = 'general', // 종합 게시판
-  FORUM = 'forum', // 전문 포럼
-}
+// Re-export for backward compatibility
+export { PostType } from './enums';
 
 export enum PostStatus {
   ACTIVE = 'active',
@@ -41,6 +38,7 @@ export class Post {
   @Column({
     type: 'enum',
     enum: PostType,
+    enumName: 'post_type_enum',
   })
   type: PostType;
 
@@ -98,6 +96,7 @@ export class Post {
   @Column({
     type: 'enum',
     enum: PostStatus,
+    enumName: 'post_status_enum',
     default: PostStatus.ACTIVE,
   })
   status: PostStatus;

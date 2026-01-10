@@ -1,22 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
 import { ClinicalCase } from '../../database/entities/clinical-case.entity';
 
 @Injectable()
 export class CasesService {
-  private aiEngineUrl: string;
-
   constructor(
     @InjectRepository(ClinicalCase)
     private casesRepository: Repository<ClinicalCase>,
-    private httpService: HttpService,
-    private configService: ConfigService,
-  ) {
-    this.aiEngineUrl = this.configService.get('AI_ENGINE_URL') || 'http://localhost:8000';
-  }
+  ) {}
 
   async findAll(page = 1, limit = 20) {
     const [cases, total] = await this.casesRepository.findAndCount({
@@ -49,20 +41,37 @@ export class CasesService {
     constitution?: string;
     topK?: number;
   }) {
-    try {
-      const response = await this.httpService.axiosRef.post(
-        `${this.aiEngineUrl}/api/v1/retrieval/search`,
-        {
-          symptoms: query.symptoms,
-          constitution: query.constitution,
-          top_k: query.topK || 10,
-        },
+    // 내부 검색으로 변경 - AI 모듈의 CaseSearchService를 사용하거나
+    // 데이터베이스에서 직접 검색
+    const queryBuilder = this.casesRepository.createQueryBuilder('case');
+
+    // 증상 기반 검색 (간단한 LIKE 검색)
+    if (query.symptoms && query.symptoms.length > 0) {
+      const symptomConditions = query.symptoms.map((_, idx) =>
+        `case.symptoms ILIKE :symptom${idx}`
       );
-      return response.data;
-    } catch (error) {
-      console.error('AI Engine 호출 실패:', error);
-      throw error;
+      query.symptoms.forEach((symptom, idx) => {
+        queryBuilder.setParameter(`symptom${idx}`, `%${symptom}%`);
+      });
+      queryBuilder.andWhere(`(${symptomConditions.join(' OR ')})`);
     }
+
+    // 체질 필터
+    if (query.constitution) {
+      queryBuilder.andWhere('case.patientConstitution = :constitution', {
+        constitution: query.constitution,
+      });
+    }
+
+    const cases = await queryBuilder
+      .orderBy('case.createdAt', 'DESC')
+      .take(query.topK || 10)
+      .getMany();
+
+    return {
+      results: cases,
+      total: cases.length,
+    };
   }
 
   async create(caseData: Partial<ClinicalCase>) {

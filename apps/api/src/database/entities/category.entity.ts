@@ -8,8 +8,15 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { PostType } from './post.entity';
 import { SubscriptionTier } from './user.entity';
+
+// PostType enum 정의 (순환 의존성 방지)
+export enum CategoryPostType {
+  CASE_DISCUSSION = 'case_discussion',
+  QNA = 'qna',
+  GENERAL = 'general',
+  FORUM = 'forum',
+}
 
 @Entity('categories')
 export class Category {
@@ -26,10 +33,10 @@ export class Category {
   slug: string; // URL용 (예: 'herbology', 'shanghanlun')
 
   @Column({
-    type: 'enum',
-    enum: PostType,
+    type: 'varchar',
+    length: 50,
   })
-  postType: PostType;
+  postType: CategoryPostType;
 
   @Column({ nullable: true })
   parentId: string | null;
@@ -51,9 +58,9 @@ export class Category {
   isActive: boolean;
 
   @Column({
-    type: 'enum',
-    enum: SubscriptionTier,
-    default: SubscriptionTier.FREE,
+    type: 'varchar',
+    length: 50,
+    default: 'free',
   })
   requiredTier: SubscriptionTier;
 

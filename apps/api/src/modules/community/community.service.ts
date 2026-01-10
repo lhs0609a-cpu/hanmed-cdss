@@ -13,7 +13,7 @@ import {
   PostStatus,
 } from '../../database/entities/post.entity';
 import { Comment, CommentStatus } from '../../database/entities/comment.entity';
-import { Category } from '../../database/entities/category.entity';
+import { Category, CategoryPostType } from '../../database/entities/category.entity';
 import { Tag } from '../../database/entities/tag.entity';
 import { Bookmark } from '../../database/entities/bookmark.entity';
 import { PostLike } from '../../database/entities/post-like.entity';
@@ -403,7 +403,7 @@ export class CommunityService {
 
   async findCategoriesByType(type: PostType) {
     return this.categoriesRepository.find({
-      where: { postType: type, isActive: true },
+      where: { postType: type as unknown as CategoryPostType, isActive: true },
       order: { sortOrder: 'ASC' },
     });
   }

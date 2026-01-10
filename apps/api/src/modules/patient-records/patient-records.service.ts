@@ -6,9 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import {
   PatientRecord,
   PatientAccount,
@@ -25,6 +23,7 @@ import {
 } from './dto';
 import { MessagingService } from '../messaging/messaging.service';
 import { PushService } from '../messaging/services/push.service';
+import { PatientExplanationService } from '../ai/services/patient-explanation.service';
 
 @Injectable()
 export class PatientRecordsService {
@@ -39,10 +38,10 @@ export class PatientRecordsService {
     private notificationRepository: Repository<PatientNotification>,
     @InjectRepository(ClinicalCase)
     private clinicalCaseRepository: Repository<ClinicalCase>,
-    private httpService: HttpService,
     private configService: ConfigService,
     private messagingService: MessagingService,
     private pushService: PushService,
+    private patientExplanationService: PatientExplanationService,
   ) {}
 
   // 진료 기록 생성 (의료진용)
@@ -372,22 +371,39 @@ export class PatientRecordsService {
 
   // AI 환자용 설명 생성
   private async generatePatientExplanation(record: PatientRecord) {
-    const aiEngineUrl = this.configService.get('AI_ENGINE_URL') || 'http://localhost:8000';
-
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${aiEngineUrl}/api/v1/patient-explanation/generate`, {
-          diagnosisSummary: record.diagnosisSummary,
-          patternDiagnosis: record.patternDiagnosisPatient,
+      const result = await this.patientExplanationService.explainHealthRecord({
+        visitDate: record.visitDate?.toISOString() || new Date().toISOString(),
+        chiefComplaint: record.chiefComplaintPatient || '',
+        symptoms: [],
+        diagnosis: record.diagnosisSummary,
+        treatment: record.prescription?.formulaName,
+        patientInfo: {
           constitution: record.constitutionResult,
-          symptoms: record.symptomsSummary,
-          prescription: record.prescription,
-        }),
-      );
+        },
+      });
 
-      return response.data;
+      const healthTips = await this.patientExplanationService.generateHealthTips({
+        constitution: record.constitutionResult,
+        mainSymptoms: record.symptomsSummary ? [record.symptomsSummary] : [],
+        currentPrescription: record.prescription?.formulaName,
+      });
+
+      return {
+        healthInsights: {
+          summary: result.explanation,
+          keyFindings: result.keyPoints,
+        },
+        lifestyleRecommendations: healthTips.lifestyleAdvice,
+        dietRecommendations: {
+          recommended: healthTips.dietRecommendations,
+          avoid: [],
+          generalAdvice: healthTips.tips,
+        },
+        exerciseRecommendations: [],
+      };
     } catch (error) {
-      console.error('AI Engine 호출 실패:', error);
+      console.error('AI 설명 생성 실패:', error);
       // 기본 응답 반환
       return {
         healthInsights: {
