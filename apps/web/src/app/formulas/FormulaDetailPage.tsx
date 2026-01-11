@@ -20,7 +20,7 @@ import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 
 // AI Engine URL
-const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://3.36.106.82:8080'
+const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
 
 // 관련 치험례 인터페이스
 interface RelatedCase {

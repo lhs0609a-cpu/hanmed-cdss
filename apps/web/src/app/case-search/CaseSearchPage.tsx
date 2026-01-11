@@ -105,7 +105,7 @@ export default function CaseSearchPage() {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_AI_ENGINE_URL || 'http://3.36.106.82:8080'
+      const apiUrl = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
       const response = await fetch(`${apiUrl}/api/v1/cases/search`, {
         method: 'POST',
         headers: {

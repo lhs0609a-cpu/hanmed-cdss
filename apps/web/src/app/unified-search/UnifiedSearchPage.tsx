@@ -37,7 +37,7 @@ import {
 } from 'lucide-react'
 
 // AI Engine API URL
-const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://3.36.106.82:8080'
+const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
 
 // 검색 결과 타입
 type SearchResultType = 'formula' | 'byeongyang' | 'byeongyak' | 'pattern' | 'case'
