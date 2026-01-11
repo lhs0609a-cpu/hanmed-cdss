@@ -37,7 +37,7 @@ interface CaseRecord extends CaseFromAPI {
 }
 
 // AI Engine API URL
-const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:8001'
+const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://3.36.106.82:8080'
 
 export default function CasesPage() {
   const [searchQuery, setSearchQuery] = useState('')

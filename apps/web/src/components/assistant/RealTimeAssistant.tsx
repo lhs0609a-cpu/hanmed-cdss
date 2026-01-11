@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 // AI Engine URL
-const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:8001'
+const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'http://3.36.106.82:8080'
 
 interface Suggestion {
   id: string
