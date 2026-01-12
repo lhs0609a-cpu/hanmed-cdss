@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { UserRole, UserStatus } from './enums';
 
 export enum SubscriptionTier {
   FREE = 'free',
@@ -59,6 +62,34 @@ export class User {
 
   @Column({ nullable: true })
   stripeCustomerId: string | null;
+
+  // 관리자 시스템 관련 필드
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
+
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.ACTIVE,
+  })
+  status: UserStatus;
+
+  @Column({ nullable: true })
+  suspendedAt: Date | null;
+
+  @Column('text', { nullable: true })
+  suspendedReason: string | null;
+
+  @Column({ nullable: true })
+  suspendedById: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'suspendedById' })
+  suspendedBy: User | null;
 
   // Community 관련 필드
   @Column({ default: false })

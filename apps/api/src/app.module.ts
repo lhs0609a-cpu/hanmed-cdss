@@ -23,6 +23,7 @@ import { PatientHealthModule } from './modules/patient-health/patient-health.mod
 import { PatientNotificationsModule } from './modules/patient-notifications/patient-notifications.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { AiModule } from './modules/ai/ai.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -75,6 +76,9 @@ import { HealthController } from './health.controller';
     PatientNotificationsModule,
     MessagingModule,
     AiModule,
+
+    // 관리자 모듈
+    AdminModule,
   ],
   controllers: [HealthController],
 })

@@ -78,6 +78,14 @@ import {
   SubscriptionTermsPage,
 } from '@/app/legal'
 
+// Admin Pages
+import AdminLayout from '@/components/layouts/AdminLayout'
+import {
+  AdminDashboardPage,
+  AdminUsersPage,
+  AdminSubscriptionsPage,
+} from '@/app/admin'
+
 // Protected Route wrapper - 게스트도 허용
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -180,6 +188,20 @@ function App() {
 
           {/* Profile */}
           <Route path="profile" element={<ProfilePage />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
         </Route>
 
         {/* Fallback */}

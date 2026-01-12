@@ -24,6 +24,9 @@ export * from './usage-tracking.entity';
 export * from './payment.entity';
 export * from './refund.entity';
 
+// Admin entities
+export * from './admin-audit-log.entity';
+
 // Patient app entities
 export * from './patient-account.entity';
 export * from './clinic.entity';
