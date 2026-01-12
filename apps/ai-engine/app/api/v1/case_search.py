@@ -314,7 +314,7 @@ async def list_cases(
                     "id": str(row.get("id", "")),
                     "title": row.get("chiefComplaint", "")[:100] if row.get("chiefComplaint") else "",
                     "chiefComplaint": row.get("chiefComplaint", "") or "",
-                    "symptoms": symptoms[:5] if symptoms else [],
+                    "symptoms": symptoms[:10] if symptoms else [],
                     "formulaName": formula_name,
                     "formulaHanja": "",
                     "constitution": row.get("patientConstitution", "") or "",
@@ -322,7 +322,8 @@ async def list_cases(
                     "patientAge": patient_age,
                     "patientGender": gender,
                     "outcome": None,
-                    "result": row.get("clinicalNotes", "")[:200] if row.get("clinicalNotes") else "",
+                    "result": row.get("clinicalNotes", "") or "",
+                    "originalText": row.get("originalText", "") or "",
                     "dataSource": row.get("sourceId", "supabase"),
                 })
 
