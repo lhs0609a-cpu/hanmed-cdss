@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = ""
 
+    # Supabase
+    SUPABASE_URL: str = "https://bbwnroljrrbwnewmamno.supabase.co"
+    SUPABASE_KEY: str = ""
+
     # 토스페이먼츠
     TOSS_CLIENT_KEY: str = ""
     TOSS_SECRET_KEY: str = ""
