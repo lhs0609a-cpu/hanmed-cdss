@@ -8,6 +8,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  logger.log('서버 초기화 중... (v1.1.0 - Admin Seeder 포함)');
+
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // Stripe 웹훅을 위한 raw body 파싱 활성화
   });
