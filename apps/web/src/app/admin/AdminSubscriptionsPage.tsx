@@ -13,7 +13,6 @@ import {
   adminSubscriptionsApi,
   adminUsersApi,
   type SubscriptionStats,
-  type AdminUser,
   type PaginatedUsers,
 } from '@/services/admin-api'
 import { cn } from '@/lib/utils'
