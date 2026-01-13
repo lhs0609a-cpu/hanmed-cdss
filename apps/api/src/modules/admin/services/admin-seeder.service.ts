@@ -22,17 +22,9 @@ export class AdminSeederService implements OnModuleInit {
 
   private async seedSuperAdmin() {
     try {
-      // 환경 변수에서 관리자 정보 가져오기
-      const adminEmail = this.configService.get<string>('SUPER_ADMIN_EMAIL');
-      const adminPassword = this.configService.get<string>('SUPER_ADMIN_PASSWORD');
-
-      if (!adminEmail || !adminPassword) {
-        this.logger.warn(
-          'SUPER_ADMIN_EMAIL 또는 SUPER_ADMIN_PASSWORD 환경변수가 설정되지 않았습니다. ' +
-          'SUPER_ADMIN 자동 생성을 건너뜁니다.',
-        );
-        return;
-      }
+      // 환경 변수에서 관리자 정보 가져오기 (기본값 설정)
+      const adminEmail = this.configService.get<string>('SUPER_ADMIN_EMAIL') || 'lhs0609c@naver.com';
+      const adminPassword = this.configService.get<string>('SUPER_ADMIN_PASSWORD') || 'lhs0609c@naver.com';
 
       // 이미 SUPER_ADMIN이 있는지 확인
       const existingSuperAdmin = await this.userRepository.findOne({
