@@ -4,7 +4,6 @@ import {
   CreditCard,
   TrendingUp,
   Users,
-  Search,
   ChevronLeft,
   ChevronRight,
   Calendar,
@@ -50,7 +49,6 @@ export default function AdminSubscriptionsPage() {
   const [stats, setStats] = useState<SubscriptionStats | null>(null)
   const [users, setUsers] = useState<PaginatedUsers | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
   const tierFilter = searchParams.get('tier') || ''
@@ -93,7 +91,6 @@ export default function AdminSubscriptionsPage() {
         subscriptionTier: tierFilter || undefined,
       })
       setUsers(usersData)
-      setSelectedUser(null)
       alert('플랜이 변경되었습니다.')
     } catch (err) {
       alert('플랜 변경에 실패했습니다.')

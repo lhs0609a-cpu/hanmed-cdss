@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   Search,
-  Filter,
   MoreVertical,
   UserX,
   UserCheck,

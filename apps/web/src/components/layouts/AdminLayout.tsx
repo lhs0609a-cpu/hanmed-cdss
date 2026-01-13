@@ -12,7 +12,6 @@ import {
   Shield,
   ChevronLeft,
   FileText,
-  Activity,
   Building,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
