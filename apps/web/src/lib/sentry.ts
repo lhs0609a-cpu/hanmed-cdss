@@ -1,17 +1,12 @@
 /**
- * Sentry 에러 추적 설정
+ * Sentry 에러 추적 설정 (Stub)
  *
- * 프론트엔드 에러를 캡처하고 Sentry에 전송합니다.
- * VITE_SENTRY_DSN 환경변수가 설정되지 않으면 비활성화됩니다.
+ * @sentry/react가 설치되지 않은 환경을 위한 stub 구현입니다.
+ * Sentry를 활성화하려면 @sentry/react를 설치하고 이 파일을 업데이트하세요.
  */
 
-// Sentry 초기화 상태
-let isInitialized = false;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let SentryModule: any = null;
-
 /**
- * Sentry 초기화
+ * Sentry 초기화 (no-op)
  */
 export async function initSentry(): Promise<void> {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
@@ -21,144 +16,50 @@ export async function initSentry(): Promise<void> {
     return;
   }
 
-  try {
-    // @ts-ignore - @sentry/react is optionally installed
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    SentryModule = await import('@sentry/react').catch(() => null) as any;
-
-    if (!SentryModule) {
-      console.warn('[Sentry] Failed to load @sentry/react module');
-      return;
-    }
-
-    SentryModule.init({
-      dsn,
-      environment: import.meta.env.MODE || 'development',
-      release: `hanmed-web@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
-
-      // Performance monitoring
-      tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
-
-      // Session replay (optional)
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,
-
-      // Filtering
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      beforeSend(event: any, hint: any) {
-        // Filter out network errors in development
-        if (import.meta.env.DEV) {
-          const error = hint.originalException;
-          if (error instanceof Error) {
-            if (
-              error.message.includes('Network Error') ||
-              error.message.includes('Failed to fetch')
-            ) {
-              return null;
-            }
-          }
-        }
-        return event;
-      },
-
-      // Ignore common non-critical errors
-      ignoreErrors: [
-        // Network errors
-        'Network Error',
-        'Failed to fetch',
-        'Load failed',
-        'NetworkError',
-        // Browser extensions
-        'ResizeObserver loop',
-        'Non-Error exception captured',
-        // User cancellation
-        'AbortError',
-        'The user aborted a request',
-      ],
-
-      // Deny URLs (browser extensions, etc.)
-      denyUrls: [
-        /extensions\//i,
-        /^chrome:\/\//i,
-        /^chrome-extension:\/\//i,
-        /^moz-extension:\/\//i,
-      ],
-    });
-
-    isInitialized = true;
-    console.log('[Sentry] Initialized successfully');
-  } catch (error) {
-    console.warn('[Sentry] Failed to initialize:', error);
-  }
+  console.warn('[Sentry] @sentry/react is not installed. Error tracking disabled.');
 }
 
 /**
- * 에러 캡처
+ * 에러 캡처 (console fallback)
  */
 export function captureError(error: Error, context?: Record<string, unknown>): void {
-  if (!isInitialized || !SentryModule) {
-    console.error('[Sentry] Not initialized. Error:', error);
-    return;
-  }
-
-  SentryModule.captureException(error, {
-    extra: context,
-  });
+  console.error('[Sentry Stub] Error:', error, context);
 }
 
 /**
- * 메시지 캡처
+ * 메시지 캡처 (console fallback)
  */
 export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
-  if (!isInitialized || !SentryModule) {
-    console.log(`[Sentry] Not initialized. Message (${level}):`, message);
-    return;
-  }
-
-  SentryModule.captureMessage(message, level);
+  const logFn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
+  logFn(`[Sentry Stub] ${level}:`, message);
 }
 
 /**
- * 사용자 정보 설정
+ * 사용자 정보 설정 (no-op)
  */
-export function setUser(user: { id: string; email?: string; name?: string } | null): void {
-  if (!isInitialized || !SentryModule) {
-    return;
-  }
-
-  SentryModule.setUser(user);
+export function setUser(_user: { id: string; email?: string; name?: string } | null): void {
+  // no-op
 }
 
 /**
- * 컨텍스트 설정
+ * 컨텍스트 설정 (no-op)
  */
-export function setContext(name: string, context: Record<string, unknown>): void {
-  if (!isInitialized || !SentryModule) {
-    return;
-  }
-
-  SentryModule.setContext(name, context);
+export function setContext(_name: string, _context: Record<string, unknown>): void {
+  // no-op
 }
 
 /**
- * 태그 설정
+ * 태그 설정 (no-op)
  */
-export function setTag(key: string, value: string): void {
-  if (!isInitialized || !SentryModule) {
-    return;
-  }
-
-  SentryModule.setTag(key, value);
+export function setTag(_key: string, _value: string): void {
+  // no-op
 }
 
 /**
- * React Error Boundary 컴포넌트 가져오기
+ * React Error Boundary 컴포넌트 가져오기 (null 반환)
  */
 export function getErrorBoundary() {
-  if (!isInitialized || !SentryModule) {
-    return null;
-  }
-  return SentryModule.ErrorBoundary;
+  return null;
 }
 
 /**
