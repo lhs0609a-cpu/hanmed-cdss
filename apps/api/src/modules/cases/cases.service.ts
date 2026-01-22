@@ -2,30 +2,43 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClinicalCase } from '../../database/entities/clinical-case.entity';
+import { CacheService } from '../cache/cache.service';
+
+const CACHE_PREFIX = 'cases';
+const CACHE_TTL = 600; // 10 minutes
 
 @Injectable()
 export class CasesService {
   constructor(
     @InjectRepository(ClinicalCase)
     private casesRepository: Repository<ClinicalCase>,
+    private cacheService: CacheService,
   ) {}
 
   async findAll(page = 1, limit = 20) {
-    const [cases, total] = await this.casesRepository.findAndCount({
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const cacheKey = `list:${page}:${limit}`;
 
-    return {
-      data: cases,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const [cases, total] = await this.casesRepository.findAndCount({
+          order: { createdAt: 'DESC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+
+        return {
+          data: cases,
+          meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
   }
 
   async findById(id: string) {
@@ -80,25 +93,33 @@ export class CasesService {
   }
 
   async getStatistics() {
-    const total = await this.casesRepository.count();
-    const byConstitution = await this.casesRepository
-      .createQueryBuilder('case')
-      .select('case.patientConstitution', 'constitution')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('case.patientConstitution')
-      .getRawMany();
+    const cacheKey = 'statistics';
 
-    const byOutcome = await this.casesRepository
-      .createQueryBuilder('case')
-      .select('case.treatmentOutcome', 'outcome')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('case.treatmentOutcome')
-      .getRawMany();
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const total = await this.casesRepository.count();
+        const byConstitution = await this.casesRepository
+          .createQueryBuilder('case')
+          .select('case.patientConstitution', 'constitution')
+          .addSelect('COUNT(*)', 'count')
+          .groupBy('case.patientConstitution')
+          .getRawMany();
 
-    return {
-      total,
-      byConstitution,
-      byOutcome,
-    };
+        const byOutcome = await this.casesRepository
+          .createQueryBuilder('case')
+          .select('case.treatmentOutcome', 'outcome')
+          .addSelect('COUNT(*)', 'count')
+          .groupBy('case.treatmentOutcome')
+          .getRawMany();
+
+        return {
+          total,
+          byConstitution,
+          byOutcome,
+        };
+      },
+      { prefix: CACHE_PREFIX, ttl: 3600 }, // 1 hour - statistics don't change frequently
+    );
   }
 }

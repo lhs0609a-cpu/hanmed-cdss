@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, ILike } from 'typeorm';
 import { DrugHerbInteraction, Severity, InteractionType, EvidenceLevel } from '../../database/entities/drug-herb-interaction.entity';
 import { Herb } from '../../database/entities/herb.entity';
+import { CacheService } from '../cache/cache.service';
+
+const CACHE_PREFIX = 'interactions';
+const CACHE_TTL = 3600; // 1 hour - interactions data changes rarely
 
 /**
  * 약물-한약 상호작용 데이터베이스 (근거 기반)
@@ -228,6 +232,7 @@ export class InteractionsService {
     private interactionsRepository: Repository<DrugHerbInteraction>,
     @InjectRepository(Herb)
     private herbsRepository: Repository<Herb>,
+    private cacheService: CacheService,
   ) {}
 
   /**
@@ -239,6 +244,18 @@ export class InteractionsService {
    */
   async checkInteractions(herbNames: string[], drugNames: string[]) {
     this.logger.log(`상호작용 검사: 약재 ${herbNames.length}개, 양약 ${drugNames.length}개`);
+
+    // 캐시 키 생성 (정렬된 입력 기반)
+    const sortedHerbs = [...herbNames].sort().join(',');
+    const sortedDrugs = [...drugNames].sort().join(',');
+    const cacheKey = `check:${sortedHerbs}:${sortedDrugs}`;
+
+    // 캐시 확인
+    const cached = await this.cacheService.get(cacheKey, { prefix: CACHE_PREFIX });
+    if (cached) {
+      this.logger.log('상호작용 결과 캐시 히트');
+      return cached;
+    }
 
     // 1. 약물명 정규화 (제품명 → 성분명 변환)
     const normalizedDrugNames = this.normalizeDrugNames(drugNames);
@@ -269,7 +286,7 @@ export class InteractionsService {
     // 6. 안전성 평가
     const safetyAssessment = this.assessSafety(critical, warning, info);
 
-    return {
+    const result = {
       hasInteractions: allInteractions.length > 0,
       totalCount: allInteractions.length,
       checkedAt: new Date().toISOString(),
@@ -286,6 +303,11 @@ export class InteractionsService {
       ...safetyAssessment,
       disclaimer: '⚠️ 이 정보는 참고용이며, 최종 판단은 반드시 전문 의료인이 해야 합니다. 모든 상호작용이 포함되어 있지 않을 수 있습니다.',
     };
+
+    // 결과 캐싱 (10분)
+    await this.cacheService.set(cacheKey, result, { prefix: CACHE_PREFIX, ttl: 600 });
+
+    return result;
   }
 
   /**
@@ -473,15 +495,31 @@ export class InteractionsService {
   });
 
   async findByDrug(drugName: string) {
-    return this.interactionsRepository.find({
-      where: { drugName },
-      relations: ['herb'],
-    });
+    const cacheKey = `drug:${drugName.toLowerCase()}`;
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        return this.interactionsRepository.find({
+          where: { drugName },
+          relations: ['herb'],
+        });
+      },
+      { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
   }
 
   async findByHerb(herbId: string) {
-    return this.interactionsRepository.find({
-      where: { herbId },
-    });
+    const cacheKey = `herb:${herbId}`;
+
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        return this.interactionsRepository.find({
+          where: { herbId },
+        });
+      },
+      { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
   }
 }

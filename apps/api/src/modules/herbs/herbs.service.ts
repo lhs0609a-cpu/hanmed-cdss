@@ -2,6 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Herb, HerbCompound, FormulaHerb } from '../../database/entities';
+import { CacheService } from '../cache/cache.service';
+
+const CACHE_PREFIX = 'herbs';
+const CACHE_TTL = 1800; // 30 minutes
 
 @Injectable()
 export class HerbsService {
@@ -12,38 +16,52 @@ export class HerbsService {
     private compoundsRepository: Repository<HerbCompound>,
     @InjectRepository(FormulaHerb)
     private formulaHerbsRepository: Repository<FormulaHerb>,
+    private cacheService: CacheService,
   ) {}
 
   async findAll(page = 1, limit = 20, category?: string, nature?: string) {
-    const queryBuilder = this.herbsRepository.createQueryBuilder('herb');
+    const cacheKey = `list:${page}:${limit}:${category || 'all'}:${nature || 'all'}`;
 
-    if (category) {
-      queryBuilder.andWhere('herb.category = :category', { category });
-    }
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const queryBuilder = this.herbsRepository.createQueryBuilder('herb');
 
-    if (nature) {
-      queryBuilder.andWhere("herb.properties->>'nature' = :nature", { nature });
-    }
+        if (category) {
+          queryBuilder.andWhere('herb.category = :category', { category });
+        }
 
-    queryBuilder
-      .orderBy('herb.standardName', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit);
+        if (nature) {
+          queryBuilder.andWhere("herb.properties->>'nature' = :nature", { nature });
+        }
 
-    const [herbs, total] = await queryBuilder.getManyAndCount();
+        queryBuilder
+          .orderBy('herb.standardName', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit);
 
-    return {
-      data: herbs.map((h) => this.transformHerb(h)),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        const [herbs, total] = await queryBuilder.getManyAndCount();
+
+        return {
+          data: herbs.map((h) => this.transformHerb(h)),
+          meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
   }
 
   async findById(id: string) {
+    const cacheKey = `detail:${id}`;
+
+    const cached = await this.cacheService.get(cacheKey, { prefix: CACHE_PREFIX });
+    if (cached) return cached;
+
     const herb = await this.herbsRepository.findOne({
       where: { id },
       relations: ['compounds'],
@@ -66,7 +84,7 @@ export class HerbsService {
       category: fh.formula.category,
     }));
 
-    return {
+    const result = {
       ...this.transformHerb(herb),
       compounds: herb.compounds?.map((c) => ({
         id: c.id,
@@ -80,6 +98,9 @@ export class HerbsService {
       })) || [],
       containedIn,
     };
+
+    await this.cacheService.set(cacheKey, result, { prefix: CACHE_PREFIX, ttl: CACHE_TTL });
+    return result;
   }
 
   async search(query: string, page = 1, limit = 20) {
@@ -166,21 +187,37 @@ export class HerbsService {
   }
 
   async getCategories() {
-    const result = await this.herbsRepository
-      .createQueryBuilder('herb')
-      .select('DISTINCT herb.category', 'category')
-      .getRawMany();
+    const cacheKey = 'categories';
 
-    return result.map((r) => r.category).filter(Boolean);
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const result = await this.herbsRepository
+          .createQueryBuilder('herb')
+          .select('DISTINCT herb.category', 'category')
+          .getRawMany();
+
+        return result.map((r) => r.category).filter(Boolean);
+      },
+      { prefix: CACHE_PREFIX, ttl: 86400 }, // 24 hours
+    );
   }
 
   async getNatures() {
-    const result = await this.herbsRepository
-      .createQueryBuilder('herb')
-      .select("DISTINCT herb.properties->>'nature'", 'nature')
-      .getRawMany();
+    const cacheKey = 'natures';
 
-    return result.map((r) => r.nature).filter(Boolean);
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const result = await this.herbsRepository
+          .createQueryBuilder('herb')
+          .select("DISTINCT herb.properties->>'nature'", 'nature')
+          .getRawMany();
+
+        return result.map((r) => r.nature).filter(Boolean);
+      },
+      { prefix: CACHE_PREFIX, ttl: 86400 }, // 24 hours
+    );
   }
 
   private transformHerb(herb: Herb) {

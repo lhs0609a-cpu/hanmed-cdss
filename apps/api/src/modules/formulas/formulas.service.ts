@@ -2,6 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, In } from 'typeorm';
 import { Formula, FormulaHerb, Herb } from '../../database/entities';
+import { CacheService } from '../cache/cache.service';
+
+const CACHE_PREFIX = 'formulas';
+const CACHE_TTL = 1800; // 30 minutes
 
 @Injectable()
 export class FormulasService {
@@ -12,34 +16,48 @@ export class FormulasService {
     private formulaHerbsRepository: Repository<FormulaHerb>,
     @InjectRepository(Herb)
     private herbsRepository: Repository<Herb>,
+    private cacheService: CacheService,
   ) {}
 
   async findAll(page = 1, limit = 20, category?: string) {
-    const where: any = {};
-    if (category) {
-      where.category = category;
-    }
+    const cacheKey = `list:${page}:${limit}:${category || 'all'}`;
 
-    const [formulas, total] = await this.formulasRepository.findAndCount({
-      where,
-      relations: ['formulaHerbs', 'formulaHerbs.herb'],
-      order: { name: 'ASC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const where: any = {};
+        if (category) {
+          where.category = category;
+        }
 
-    return {
-      data: formulas.map((f) => this.transformFormula(f)),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        const [formulas, total] = await this.formulasRepository.findAndCount({
+          where,
+          relations: ['formulaHerbs', 'formulaHerbs.herb'],
+          order: { name: 'ASC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
+
+        return {
+          data: formulas.map((f) => this.transformFormula(f)),
+          meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
   }
 
   async findById(id: string) {
+    const cacheKey = `detail:${id}`;
+
+    const cached = await this.cacheService.get(cacheKey, { prefix: CACHE_PREFIX });
+    if (cached) return cached;
+
     const formula = await this.formulasRepository.findOne({
       where: { id },
       relations: ['formulaHerbs', 'formulaHerbs.herb'],
@@ -49,7 +67,9 @@ export class FormulasService {
       throw new NotFoundException('처방을 찾을 수 없습니다.');
     }
 
-    return this.transformFormula(formula);
+    const result = this.transformFormula(formula);
+    await this.cacheService.set(cacheKey, result, { prefix: CACHE_PREFIX, ttl: CACHE_TTL });
+    return result;
   }
 
   async search(query: string, page = 1, limit = 20) {
@@ -115,12 +135,20 @@ export class FormulasService {
   }
 
   async getCategories() {
-    const result = await this.formulasRepository
-      .createQueryBuilder('formula')
-      .select('DISTINCT formula.category', 'category')
-      .getRawMany();
+    const cacheKey = 'categories';
 
-    return result.map((r) => r.category).filter(Boolean);
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const result = await this.formulasRepository
+          .createQueryBuilder('formula')
+          .select('DISTINCT formula.category', 'category')
+          .getRawMany();
+
+        return result.map((r) => r.category).filter(Boolean);
+      },
+      { prefix: CACHE_PREFIX, ttl: 86400 }, // 24 hours - categories rarely change
+    );
   }
 
   private transformFormula(formula: Formula) {

@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
@@ -28,6 +28,9 @@ import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CommonModule } from './common/common.module';
 import { EmailModule } from './modules/email/email.module';
+import { CacheModule } from './modules/cache/cache.module';
+import { SentryModule } from './common/sentry/sentry.module';
+import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
@@ -86,6 +89,12 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     // 이메일 모듈 (비밀번호 재설정 등)
     EmailModule,
 
+    // 캐싱 모듈 (Redis)
+    CacheModule,
+
+    // 에러 추적 모듈 (Sentry)
+    SentryModule,
+
     // 기능 모듈
     AuthModule,
     UsersModule,
@@ -119,6 +128,11 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // 전역 예외 필터 (Sentry 에러 추적)
+    {
+      provide: APP_FILTER,
+      useClass: SentryExceptionFilter,
     },
   ],
 })

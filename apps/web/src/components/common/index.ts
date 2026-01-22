@@ -27,3 +27,6 @@ export { default as PageGuide } from './PageGuide'
 export { default as TourGuide } from './TourGuide'
 export { default as PageTransition } from './PageTransition'
 export { KeyboardShortcutsProvider } from './KeyboardShortcuts'
+
+// Error Handling
+export { ErrorBoundary, PageErrorBoundary } from './ErrorBoundary'
