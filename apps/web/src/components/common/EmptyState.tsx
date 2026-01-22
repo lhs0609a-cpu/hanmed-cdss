@@ -43,7 +43,12 @@ export function EmptyState({
   const isCompact = variant === 'compact'
   const isCentered = variant === 'centered'
 
-  const ActionButton = action?.href ? Link : 'button'
+  const actionButtonClass = cn(
+    'px-4 py-2 rounded-xl font-medium transition-colors',
+    action?.variant === 'secondary'
+      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      : 'bg-teal-600 text-white hover:bg-teal-700'
+  )
 
   return (
     <div
@@ -95,17 +100,15 @@ export function EmptyState({
       {(action || secondaryAction) && (
         <div className={cn('flex items-center gap-3', isCompact ? 'mt-4' : 'mt-6')}>
           {action && (
-            <ActionButton
-              {...(action.href ? { to: action.href } : { onClick: action.onClick })}
-              className={cn(
-                'px-4 py-2 rounded-xl font-medium transition-colors',
-                action.variant === 'secondary'
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-teal-600 text-white hover:bg-teal-700'
-              )}
-            >
-              {action.label}
-            </ActionButton>
+            action.href ? (
+              <Link to={action.href} className={actionButtonClass}>
+                {action.label}
+              </Link>
+            ) : (
+              <button onClick={action.onClick} className={actionButtonClass}>
+                {action.label}
+              </button>
+            )
           )}
 
           {secondaryAction && (

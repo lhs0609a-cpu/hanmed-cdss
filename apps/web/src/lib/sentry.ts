@@ -22,6 +22,7 @@ export async function initSentry(): Promise<void> {
   }
 
   try {
+    // @ts-ignore - @sentry/react is optionally installed
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     SentryModule = await import('@sentry/react').catch(() => null) as any;
 

@@ -6,12 +6,14 @@ interface SkeletonProps {
   circle?: boolean
   /** 애니메이션 비활성화 */
   noAnimation?: boolean
+  /** 인라인 스타일 */
+  style?: React.CSSProperties
 }
 
 /**
  * 기본 스켈레톤 컴포넌트
  */
-export function Skeleton({ className, circle, noAnimation }: SkeletonProps) {
+export function Skeleton({ className, circle, noAnimation, style }: SkeletonProps) {
   return (
     <div
       className={cn(
@@ -20,6 +22,7 @@ export function Skeleton({ className, circle, noAnimation }: SkeletonProps) {
         circle ? 'rounded-full' : 'rounded-lg',
         className
       )}
+      style={style}
     />
   )
 }
