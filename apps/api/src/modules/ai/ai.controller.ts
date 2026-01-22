@@ -6,8 +6,11 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { RecommendationService } from './services/recommendation.service';
 import { PatientExplanationService } from './services/patient-explanation.service';
 import { CaseSearchService } from './services/case-search.service';
@@ -19,10 +22,13 @@ import {
   HerbExplanationRequestDto,
   HealthTipsRequestDto,
   MedicationReminderRequestDto,
+  SimilarCaseStatsRequestDto,
 } from './dto';
 
 @ApiTags('AI')
-@Controller('api/v1')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('ai')
 export class AiController {
   constructor(
     private recommendationService: RecommendationService,
@@ -104,6 +110,51 @@ export class AiController {
   @ApiOperation({ summary: '치험례 통계' })
   async getCaseStats() {
     const result = await this.caseSearchService.getStatistics();
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * 유사 환자 성공 사례 통계 (킬러 피처)
+   * 환자 증상을 기반으로 유사 치험례의 치료 성공률을 분석
+   */
+  @Post('cases/similar-success-stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '유사 환자 성공 사례 통계',
+    description: '입력한 증상과 유사한 치험례들의 치료 성공률과 효과적인 처방을 분석합니다.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '유사 케이스 성공률 분석 결과',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          totalSimilarCases: 127,
+          successRate: 85,
+          outcomeBreakdown: { cured: 45, improved: 63, noChange: 15, worsened: 4 },
+          averageTreatmentDuration: '2-4주',
+          topSuccessfulFormulas: [
+            { formulaName: '소요산', caseCount: 28, successRate: 89 },
+          ],
+          confidenceLevel: 'high',
+          matchCriteria: ['주소증: "소화불량"', '증상 3개: 복통, 설사, 피로'],
+        },
+      },
+    },
+  })
+  async getSimilarCaseSuccessStats(@Body() request: SimilarCaseStatsRequestDto) {
+    const result = await this.caseSearchService.getSimilarCaseSuccessStats({
+      chiefComplaint: request.chiefComplaint,
+      symptoms: request.symptoms.map(s => ({ name: s.name, severity: s.severity })),
+      diagnosis: request.diagnosis,
+      bodyHeat: request.bodyHeat,
+      bodyStrength: request.bodyStrength,
+    });
 
     return {
       success: true,
@@ -201,7 +252,8 @@ export class AiController {
 
   // ============ Health Check ============
 
-  @Get('ai/health')
+  @Public()
+  @Get('health')
   @ApiOperation({ summary: 'AI 서비스 상태 확인' })
   async healthCheck() {
     return {

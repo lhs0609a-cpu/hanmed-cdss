@@ -332,36 +332,11 @@ export default function ConsultationPage() {
         currentMedications: currentMedications.length > 0 ? currentMedications : undefined,
       })
 
-      setRecommendations(response.data.recommendations || [])
-      setAnalysis(response.data.analysis || '')
+      setRecommendations(response.data.data?.recommendations || response.data.recommendations || [])
+      setAnalysis(response.data.data?.analysis || response.data.analysis || '')
     } catch (err: unknown) {
       logError(err, 'ConsultationPage')
-      // 데모용 더미 데이터
-      setRecommendations([
-        {
-          formula_name: '이중탕(理中湯)',
-          confidence_score: 0.92,
-          herbs: [
-            { name: '인삼', amount: '6g', role: '군' },
-            { name: '백출', amount: '9g', role: '신' },
-            { name: '건강', amount: '6g', role: '좌' },
-            { name: '감초', amount: '3g', role: '사' },
-          ],
-          rationale: '비위허한증으로 인한 소화불량과 복부냉증에 적합합니다. 온중거한, 보기건비의 효능이 있어 현재 증상에 가장 부합합니다.',
-        },
-        {
-          formula_name: '보중익기탕(補中益氣湯)',
-          confidence_score: 0.78,
-          herbs: [
-            { name: '황기', amount: '12g', role: '군' },
-            { name: '인삼', amount: '6g', role: '신' },
-            { name: '백출', amount: '6g', role: '좌' },
-            { name: '감초', amount: '3g', role: '사' },
-          ],
-          rationale: '기허 증상이 있는 경우 고려할 수 있는 처방입니다. 보기승양의 효과가 있습니다.',
-        },
-      ])
-      setAnalysis('환자는 비기허증(脾氣虛證)으로 판단됩니다. 소화기 기능이 약화되어 음식 소화가 원활하지 않고, 비위의 양기가 부족하여 복부 냉감이 나타나는 것으로 보입니다.\n\n치료 원칙: 온중건비(溫中健脾), 보기화중(補氣和中)\n\n주의사항: 환자가 양약을 복용 중인 경우 상호작용 검사를 권장합니다.')
+      setError('처방 추천을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
