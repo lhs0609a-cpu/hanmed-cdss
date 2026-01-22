@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
@@ -24,7 +26,10 @@ import { PatientNotificationsModule } from './modules/patient-notifications/pati
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { CommonModule } from './common/common.module';
+import { EmailModule } from './modules/email/email.module';
 import { HealthController } from './health.controller';
+import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
 @Module({
   imports: [
@@ -40,6 +45,25 @@ import { HealthController } from './health.controller';
     // 스케줄러 모듈 (크론잡)
     ScheduleModule.forRoot(),
 
+    // Rate Limiting (브루트포스 공격 방지)
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000, // 1초
+        limit: 3,  // 초당 3회
+      },
+      {
+        name: 'medium',
+        ttl: 10000, // 10초
+        limit: 20,  // 10초당 20회
+      },
+      {
+        name: 'long',
+        ttl: 60000, // 1분
+        limit: 100, // 분당 100회
+      },
+    ]),
+
     // TypeORM 데이터베이스 연결
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -52,6 +76,15 @@ import { HealthController } from './health.controller';
         logging: configService.get('NODE_ENV') === 'development',
       }),
     }),
+
+    // 환자 접근 로그 테이블
+    TypeOrmModule.forFeature([PatientAccessLog]),
+
+    // 공통 모듈 (암호화, 접근 로그 등)
+    CommonModule,
+
+    // 이메일 모듈 (비밀번호 재설정 등)
+    EmailModule,
 
     // 기능 모듈
     AuthModule,
@@ -81,5 +114,12 @@ import { HealthController } from './health.controller';
     AdminModule,
   ],
   controllers: [HealthController],
+  providers: [
+    // 전역 Rate Limiting Guard
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -1,3 +1,6 @@
 export { default as AdminDashboardPage } from './AdminDashboardPage'
 export { default as AdminUsersPage } from './AdminUsersPage'
 export { default as AdminSubscriptionsPage } from './AdminSubscriptionsPage'
+export { default as AdminAuditLogsPage } from './AdminAuditLogsPage'
+export { default as AdminClinicsPage } from './AdminClinicsPage'
+export { default as AdminContentPage } from './AdminContentPage'

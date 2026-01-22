@@ -8,8 +8,11 @@ import {
   Min,
   Max,
   IsIn,
+  IsEnum,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { BodyHeat, BodyStrength } from '../../../database/entities/clinical-case.entity';
 
 // ============ Common DTOs ============
 
@@ -61,10 +64,62 @@ export class RecommendationRequestDto {
   @IsString()
   patientGender?: string;
 
-  @ApiPropertyOptional({ description: '체질' })
+  @ApiPropertyOptional({ description: '체질 (사상체질)' })
   @IsOptional()
   @IsString()
   constitution?: string;
+
+  /**
+   * ⚠️ 체열 (寒熱) - 필수!
+   * 이종대 선생님 기준: 처방 선택의 핵심 기준
+   * - cold: 한(寒) - 찬 체질
+   * - neutral: 평(平) - 중립
+   * - hot: 열(熱) - 열 체질
+   */
+  @ApiProperty({
+    description: '체열 (寒熱) - 필수! cold/neutral/hot',
+    enum: BodyHeat,
+    example: 'cold',
+  })
+  @IsNotEmpty({ message: '체열(寒熱) 정보는 필수입니다. 처방 추천을 위해 반드시 입력해주세요.' })
+  @IsEnum(BodyHeat, { message: '체열은 cold, neutral, hot 중 하나여야 합니다.' })
+  bodyHeat: BodyHeat;
+
+  /**
+   * ⚠️ 근실도 (虛實) - 필수!
+   * 이종대 선생님 기준: 처방 선택의 핵심 기준
+   * - deficient: 허(虛) - 허약
+   * - neutral: 평(平) - 중립
+   * - excess: 실(實) - 튼튼
+   */
+  @ApiProperty({
+    description: '근실도 (虛實) - 필수! deficient/neutral/excess',
+    enum: BodyStrength,
+    example: 'deficient',
+  })
+  @IsNotEmpty({ message: '근실도(虛實) 정보는 필수입니다. 처방 추천을 위해 반드시 입력해주세요.' })
+  @IsEnum(BodyStrength, { message: '근실도는 deficient, neutral, excess 중 하나여야 합니다.' })
+  bodyStrength: BodyStrength;
+
+  /**
+   * 체열 점수 (-10 극한 ~ +10 극열)
+   */
+  @ApiPropertyOptional({ description: '체열 점수 (-10 ~ +10)', minimum: -10, maximum: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(-10)
+  @Max(10)
+  bodyHeatScore?: number;
+
+  /**
+   * 근실도 점수 (-10 극허 ~ +10 극실)
+   */
+  @ApiPropertyOptional({ description: '근실도 점수 (-10 ~ +10)', minimum: -10, maximum: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(-10)
+  @Max(10)
+  bodyStrengthScore?: number;
 
   @ApiProperty({ description: '주소증' })
   @IsString()

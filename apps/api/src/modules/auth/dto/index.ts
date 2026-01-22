@@ -41,3 +41,20 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'doctor@hanmed.com', description: '가입한 이메일 주소' })
+  @IsEmail({}, { message: '유효한 이메일 주소를 입력해주세요.' })
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ description: '비밀번호 재설정 토큰' })
+  @IsString()
+  token: string;
+
+  @ApiProperty({ example: 'newPassword123', minLength: 8, description: '새 비밀번호' })
+  @IsString()
+  @MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
+  newPassword: string;
+}

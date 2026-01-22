@@ -27,6 +27,20 @@ export enum TreatmentOutcome {
   WORSENED = '악화',
 }
 
+// 체열 (寒熱) - 이종대 선생님 기준
+export enum BodyHeat {
+  COLD = 'cold',       // 한(寒) - 찬 체질
+  NEUTRAL = 'neutral', // 평(平) - 중립
+  HOT = 'hot',         // 열(熱) - 열 체질
+}
+
+// 근실도 (虛實) - 이종대 선생님 기준
+export enum BodyStrength {
+  DEFICIENT = 'deficient', // 허(虛) - 허약
+  NEUTRAL = 'neutral',     // 평(平) - 중립
+  EXCESS = 'excess',       // 실(實) - 튼튼
+}
+
 @Entity('clinical_cases')
 export class ClinicalCase {
   @PrimaryGeneratedColumn('uuid')
@@ -57,6 +71,30 @@ export class ClinicalCase {
     nullable: true,
   })
   patientConstitution: ConstitutionType;
+
+  // 체열 (寒熱) - 이종대 선생님 기준
+  @Column({
+    type: 'enum',
+    enum: BodyHeat,
+    nullable: true,
+  })
+  bodyHeat: BodyHeat;
+
+  // 근실도 (虛實) - 이종대 선생님 기준
+  @Column({
+    type: 'enum',
+    enum: BodyStrength,
+    nullable: true,
+  })
+  bodyStrength: BodyStrength;
+
+  // 체열 점수 (-10 극한 ~ +10 극열)
+  @Column({ type: 'int', nullable: true })
+  bodyHeatScore: number;
+
+  // 근실도 점수 (-10 극허 ~ +10 극실)
+  @Column({ type: 'int', nullable: true })
+  bodyStrengthScore: number;
 
   @Column('text')
   chiefComplaint: string; // 주소증

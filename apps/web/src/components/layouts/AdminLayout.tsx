@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   FileText,
   Building,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +29,7 @@ const menuItems: MenuItem[] = [
   { name: '사용자 관리', href: '/admin/users', icon: Users },
   { name: '구독 관리', href: '/admin/subscriptions', icon: CreditCard },
   { name: '한의원 관리', href: '/admin/clinics', icon: Building },
+  { name: '콘텐츠 관리', href: '/admin/content', icon: BookOpen, requiredRole: 'content_manager' },
   { name: '감사 로그', href: '/admin/audit-logs', icon: FileText, requiredRole: 'super_admin' },
 ]
 

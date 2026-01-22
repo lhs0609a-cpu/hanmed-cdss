@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
+import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
@@ -568,6 +569,9 @@ export default function DashboardLayout() {
             </div>
           </div>
         )}
+
+        {/* 의료 면책조항 배너 (하루 1회) */}
+        <MedicalDisclaimer variant="banner" />
 
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />

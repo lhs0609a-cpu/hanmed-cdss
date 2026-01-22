@@ -52,4 +52,8 @@ export class UsersService {
     }
     return this.findById(userId) as Promise<User>;
   }
+
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    await this.usersRepository.update(userId, { passwordHash });
+  }
 }

@@ -17,6 +17,7 @@ import {
   Subscription,
   SubscriptionStatus,
   BillingInterval,
+  TRIAL_CONFIG,
 } from '../../database/entities/subscription.entity';
 import {
   UsageTracking,
@@ -601,6 +602,237 @@ export class TossPaymentsService {
   // 클라이언트 키 반환 (프론트엔드용)
   getClientKey(): string {
     return this.clientKey;
+  }
+
+  // ========== 무료 체험 관련 ==========
+
+  /**
+   * 무료 체험 시작 (7일)
+   * - 카드 등록 없이 바로 시작 가능
+   * - Professional 플랜 기능 제공
+   * - 7일 후 자동으로 Free 플랜으로 전환
+   */
+  async startFreeTrial(userId: string): Promise<{
+    success: boolean;
+    trialEndsAt: Date;
+    message: string;
+  }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 이미 체험 중이거나 유료 구독 중인 경우
+    const existingSubscription = await this.subscriptionRepository.findOne({
+      where: [
+        { userId, status: SubscriptionStatus.TRIALING },
+        { userId, status: SubscriptionStatus.ACTIVE },
+      ],
+    });
+
+    if (existingSubscription) {
+      if (existingSubscription.isTrial) {
+        throw new BadRequestException('이미 무료 체험 중입니다.');
+      }
+      throw new BadRequestException('이미 유료 구독 중입니다.');
+    }
+
+    // 이전에 체험을 사용한 적이 있는지 확인
+    const previousTrial = await this.subscriptionRepository.findOne({
+      where: { userId, isTrial: true },
+    });
+
+    if (previousTrial) {
+      throw new BadRequestException('무료 체험은 1회만 가능합니다. 유료 플랜을 구독해 주세요.');
+    }
+
+    const now = new Date();
+    const trialEndsAt = new Date(now);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_CONFIG.TRIAL_DAYS);
+
+    // 체험 구독 생성
+    const trialSubscription = this.subscriptionRepository.create({
+      userId,
+      stripeSubscriptionId: `trial_${userId}_${Date.now()}`,
+      status: SubscriptionStatus.TRIALING,
+      billingInterval: BillingInterval.MONTHLY,
+      currentPeriodStart: now,
+      currentPeriodEnd: trialEndsAt,
+      isTrial: true,
+      trialStartedAt: now,
+      trialEndsAt,
+    });
+
+    await this.subscriptionRepository.save(trialSubscription);
+
+    // 사용자 플랜 업그레이드
+    await this.userRepository.update(userId, {
+      subscriptionTier: TRIAL_CONFIG.TRIAL_TIER,
+      subscriptionExpiresAt: trialEndsAt,
+    });
+
+    this.logger.log(`무료 체험 시작: userId=${userId}, trialEndsAt=${trialEndsAt.toISOString()}`);
+
+    return {
+      success: true,
+      trialEndsAt,
+      message: `${TRIAL_CONFIG.TRIAL_DAYS}일 무료 체험이 시작되었습니다. ${TRIAL_CONFIG.TRIAL_TIER} 플랜의 모든 기능을 이용하실 수 있습니다.`,
+    };
+  }
+
+  /**
+   * 체험 기간 확인
+   */
+  async getTrialStatus(userId: string): Promise<{
+    isTrialing: boolean;
+    daysRemaining: number | null;
+    trialEndsAt: Date | null;
+    canStartTrial: boolean;
+  }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 현재 체험 중인 구독 확인
+    const trialSubscription = await this.subscriptionRepository.findOne({
+      where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
+    });
+
+    if (trialSubscription && trialSubscription.trialEndsAt) {
+      const now = new Date();
+      const daysRemaining = Math.ceil(
+        (trialSubscription.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      return {
+        isTrialing: true,
+        daysRemaining: Math.max(0, daysRemaining),
+        trialEndsAt: trialSubscription.trialEndsAt,
+        canStartTrial: false,
+      };
+    }
+
+    // 이전 체험 기록 확인
+    const previousTrial = await this.subscriptionRepository.findOne({
+      where: { userId, isTrial: true },
+    });
+
+    return {
+      isTrialing: false,
+      daysRemaining: null,
+      trialEndsAt: null,
+      canStartTrial: !previousTrial,
+    };
+  }
+
+  /**
+   * 체험 → 정식 구독 전환
+   */
+  async convertTrialToSubscription(
+    userId: string,
+    tier: SubscriptionTier,
+    interval: BillingInterval,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const trialSubscription = await this.subscriptionRepository.findOne({
+      where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
+    });
+
+    if (!trialSubscription) {
+      throw new BadRequestException('활성화된 체험 구독이 없습니다.');
+    }
+
+    if (!user.stripeCustomerId) {
+      throw new BadRequestException('결제 수단이 등록되지 않았습니다. 먼저 카드를 등록해 주세요.');
+    }
+
+    // 결제 진행
+    const paymentResult = await this.payWithBillingKey(userId, tier, interval);
+
+    if (paymentResult.success) {
+      // 체험 구독 완료 처리
+      trialSubscription.status = SubscriptionStatus.CANCELED;
+      trialSubscription.trialConverted = true;
+      trialSubscription.canceledAt = new Date();
+      await this.subscriptionRepository.save(trialSubscription);
+
+      this.logger.log(`체험 → 정식 구독 전환: userId=${userId}, tier=${tier}`);
+
+      return {
+        success: true,
+        message: `${tier} 플랜으로 구독이 시작되었습니다.`,
+      };
+    }
+
+    throw new BadRequestException('결제에 실패했습니다.');
+  }
+
+  /**
+   * 만료된 체험 처리 (크론잡에서 호출)
+   */
+  async processExpiredTrials(): Promise<void> {
+    const now = new Date();
+
+    // 만료된 체험 구독 조회
+    const expiredTrials = await this.subscriptionRepository.find({
+      where: {
+        status: SubscriptionStatus.TRIALING,
+        isTrial: true,
+        trialEndsAt: LessThanOrEqual(now),
+      },
+    });
+
+    for (const trial of expiredTrials) {
+      // 체험 종료 처리
+      trial.status = SubscriptionStatus.CANCELED;
+      trial.canceledAt = now;
+      await this.subscriptionRepository.save(trial);
+
+      // 사용자를 Free 플랜으로 전환
+      const postTrialTier = TRIAL_CONFIG.POST_TRIAL_TIER || SubscriptionTier.FREE;
+      await this.userRepository.update(trial.userId, {
+        subscriptionTier: postTrialTier,
+        subscriptionExpiresAt: null,
+      });
+
+      this.logger.log(`체험 만료 처리: userId=${trial.userId}`);
+
+      // TODO: 체험 만료 알림 이메일 발송
+    }
+  }
+
+  /**
+   * 체험 종료 2일 전 알림 처리 (크론잡에서 호출)
+   */
+  async sendTrialEndingNotifications(): Promise<void> {
+    const twoDaysFromNow = new Date();
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // 2일 이내에 만료되는 체험 중 알림 미발송건
+    const expiringTrials = await this.subscriptionRepository.find({
+      where: {
+        status: SubscriptionStatus.TRIALING,
+        isTrial: true,
+        trialEndsAt: LessThanOrEqual(twoDaysFromNow),
+        trialEndingNotified: false,
+      },
+    });
+
+    for (const trial of expiringTrials) {
+      trial.trialEndingNotified = true;
+      await this.subscriptionRepository.save(trial);
+
+      // TODO: 체험 종료 임박 알림 이메일 발송
+      this.logger.log(`체험 종료 임박 알림: userId=${trial.userId}, endsAt=${trial.trialEndsAt}`);
+    }
   }
 
   // 결제 내역 조회

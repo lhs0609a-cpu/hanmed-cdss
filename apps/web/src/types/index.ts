@@ -80,6 +80,11 @@ export interface Patient {
   email?: string
   address?: string
   constitution?: ConstitutionType
+  // 체열/근실도 (이종대 선생님 기준)
+  bodyHeat?: BodyHeat
+  bodyStrength?: BodyStrength
+  bodyHeatScore?: number      // -10 ~ +10
+  bodyStrengthScore?: number  // -10 ~ +10
   allergies?: string[]
   medications?: string[]
   notes?: string
@@ -90,6 +95,70 @@ export interface Patient {
 }
 
 export type ConstitutionType = '태양인' | '태음인' | '소양인' | '소음인' | null
+
+// ===========================
+// 체열/근실도 관련 타입 (이종대 선생님 기준)
+// ===========================
+
+// 체열 (寒熱)
+export type BodyHeat = 'cold' | 'neutral' | 'hot'
+
+// 근실도 (虛實)
+export type BodyStrength = 'deficient' | 'neutral' | 'excess'
+
+// 처방의 한열 성질
+export type FormulaHeatNature = 'cold' | 'cool' | 'neutral' | 'warm' | 'hot'
+
+// 처방의 보사 성질
+export type FormulaStrengthNature = 'tonifying' | 'neutral' | 'draining'
+
+// 체열/근실도 평가 결과
+export interface BodyConstitutionResult {
+  bodyHeat: BodyHeat
+  bodyStrength: BodyStrength
+  bodyHeatScore: number      // -10 (극한) ~ +10 (극열)
+  bodyStrengthScore: number  // -10 (극허) ~ +10 (극실)
+  assessmentDetails: {
+    heatItems: AssessmentItem[]
+    strengthItems: AssessmentItem[]
+  }
+}
+
+export interface AssessmentItem {
+  id: string
+  question: string
+  value: number  // -2 ~ +2
+}
+
+// 체열/근실도 검증 결과
+export interface ConstitutionValidation {
+  isValid: boolean
+  warnings: ConstitutionWarning[]
+}
+
+export interface ConstitutionWarning {
+  type: 'critical' | 'warning' | 'info'
+  message: string
+  formulaName: string
+  reason: string
+}
+
+// 체열/근실도 라벨 헬퍼
+export const getBodyHeatLabel = (heat: BodyHeat): string => {
+  switch (heat) {
+    case 'cold': return '한(寒)'
+    case 'hot': return '열(熱)'
+    default: return '평(平)'
+  }
+}
+
+export const getBodyStrengthLabel = (strength: BodyStrength): string => {
+  switch (strength) {
+    case 'deficient': return '허(虛)'
+    case 'excess': return '실(實)'
+    default: return '평(平)'
+  }
+}
 
 // ===========================
 // 처방 관련 타입
@@ -108,6 +177,13 @@ export interface Formula {
   // 학파 관련 필드 (Phase 1 추가)
   school?: MedicineSchool
   schoolSpecificNotes?: string
+  // 체열/근실도 관련 필드 (이종대 선생님 기준)
+  heatNature?: FormulaHeatNature           // 처방의 한열 성질
+  strengthNature?: FormulaStrengthNature   // 처방의 보사 성질
+  suitableBodyHeat?: BodyHeat[]            // 적합한 체열
+  suitableBodyStrength?: BodyStrength[]    // 적합한 근실도
+  contraindicatedBodyHeat?: BodyHeat[]     // 금기 체열
+  contraindicatedBodyStrength?: BodyStrength[] // 금기 근실도
 }
 
 export interface FormulaHerb {
@@ -228,6 +304,10 @@ export interface Recommendation {
   // 학파 관련 필드 (Phase 1 추가)
   school?: MedicineSchool
   schoolReason?: string  // 해당 학파에서 추천하는 이유
+  // 체열/근실도 관련 필드 (이종대 선생님 기준)
+  constitutionFit?: string  // 체열/근실도 적합성 설명
+  heatNature?: FormulaHeatNature
+  strengthNature?: FormulaStrengthNature
 }
 
 export interface ConsultationResult {
@@ -243,6 +323,8 @@ export interface ConsultationResult {
     pattern: string
     confidence: number
   }
+  // 체열/근실도 검증 결과 (이종대 선생님 기준)
+  constitutionValidation?: ConstitutionValidation
 }
 
 // ===========================

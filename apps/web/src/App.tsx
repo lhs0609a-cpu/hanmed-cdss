@@ -10,6 +10,8 @@ import DashboardLayout from '@/components/layouts/DashboardLayout'
 // Pages
 import LoginPage from '@/app/auth/LoginPage'
 import RegisterPage from '@/app/auth/RegisterPage'
+import ForgotPasswordPage from '@/app/auth/ForgotPasswordPage'
+import ResetPasswordPage from '@/app/auth/ResetPasswordPage'
 import DashboardPage from '@/app/dashboard/DashboardPage'
 import ConsultationPage from '@/app/consultation/ConsultationPage'
 import CasesPage from '@/app/cases/CasesPage'
@@ -84,6 +86,9 @@ import {
   AdminDashboardPage,
   AdminUsersPage,
   AdminSubscriptionsPage,
+  AdminAuditLogsPage,
+  AdminClinicsPage,
+  AdminContentPage,
 } from '@/app/admin'
 
 // Protected Route wrapper - 게스트도 허용
@@ -107,6 +112,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Legal Pages (Public) */}
         <Route path="/terms" element={<TermsPage />} />
@@ -202,6 +209,9 @@ function App() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+          <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+          <Route path="clinics" element={<AdminClinicsPage />} />
+          <Route path="content" element={<AdminContentPage />} />
         </Route>
 
         {/* Fallback */}

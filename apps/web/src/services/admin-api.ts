@@ -115,6 +115,220 @@ export interface AuditLog {
   }
 }
 
+// ============ Clinic Types ============
+
+export type ClinicVerificationStatus = 'pending' | 'verified' | 'rejected'
+
+export interface AdminClinic {
+  id: string
+  name: string
+  businessNumber: string | null
+  licenseNumber: string | null
+  phone: string | null
+  email: string | null
+  addressRoad: string | null
+  addressDetail: string | null
+  isHanmedVerified: boolean
+  subscriptionTier: string | null
+  ratingAverage: number
+  reviewCount: number
+  reservationEnabled: boolean
+  createdAt: string
+  updatedAt: string
+  owner: {
+    id: string
+    name: string
+    email: string
+  } | null
+}
+
+export interface PaginatedClinics {
+  clinics: AdminClinic[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface GetClinicsParams {
+  search?: string
+  verificationStatus?: ClinicVerificationStatus
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'ASC' | 'DESC'
+}
+
+export interface UpdateClinicParams {
+  name?: string
+  businessNumber?: string
+  phone?: string
+  email?: string
+  addressRoad?: string
+  addressDetail?: string
+  reservationEnabled?: boolean
+  reservationInterval?: number
+  maxDailyReservations?: number
+  description?: string
+}
+
+// ============ Content Types ============
+
+export interface PaginatedContentResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface ContentQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  sortBy?: string
+  sortOrder?: 'ASC' | 'DESC'
+}
+
+// Clinical Case
+export interface ClinicalCase {
+  id: string
+  sourceId: string
+  recordedYear: number
+  recorderName: string | null
+  patientGender: 'male' | 'female' | 'unknown'
+  patientAgeRange: string | null
+  patientConstitution: string | null
+  chiefComplaint: string
+  presentIllness: string | null
+  pulseDiagnosis: string | null
+  tongueDiagnosis: string | null
+  abdominalDiagnosis: string | null
+  patternDiagnosis: string | null
+  treatmentOutcome: '완치' | '호전' | '불변' | '악화' | null
+  clinicalNotes: string | null
+  originalText: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateCaseParams {
+  sourceId: string
+  recordedYear: number
+  recorderName?: string
+  patientGender?: 'male' | 'female' | 'unknown'
+  patientAgeRange?: string
+  patientConstitution?: string
+  chiefComplaint: string
+  presentIllness?: string
+  pulseDiagnosis?: string
+  tongueDiagnosis?: string
+  abdominalDiagnosis?: string
+  patternDiagnosis?: string
+  treatmentOutcome?: '완치' | '호전' | '불변' | '악화'
+  clinicalNotes?: string
+  originalText: string
+}
+
+// Formula
+export interface FormulaHerb {
+  id: string
+  herbId: string
+  amount: string
+  role: string | null
+  herb: {
+    id: string
+    standardName: string
+    hanjaName: string | null
+  }
+}
+
+export interface Formula {
+  id: string
+  name: string
+  hanja: string | null
+  aliases: string[] | null
+  category: string
+  source: string | null
+  indication: string | null
+  pathogenesis: string | null
+  contraindications: string[] | null
+  formulaHerbs: FormulaHerb[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateFormulaParams {
+  name: string
+  hanja?: string
+  aliases?: string[]
+  category: string
+  source?: string
+  indication?: string
+  pathogenesis?: string
+  contraindications?: string[]
+}
+
+// Herb
+export interface Herb {
+  id: string
+  standardName: string
+  hanjaName: string | null
+  aliases: string[] | null
+  category: string
+  meridianTropism: string[] | null
+  efficacy: string | null
+  contraindications: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateHerbParams {
+  standardName: string
+  hanjaName?: string
+  aliases?: string[]
+  category: string
+  meridianTropism?: string[]
+  efficacy?: string
+  contraindications?: string
+}
+
+// Interaction
+export type InteractionType = 'increase' | 'decrease' | 'dangerous'
+export type Severity = 'critical' | 'warning' | 'info'
+export type EvidenceLevel = 'A' | 'B' | 'C' | 'D'
+
+export interface DrugHerbInteraction {
+  id: string
+  drugName: string
+  drugAtcCode: string | null
+  herbId: string
+  interactionType: InteractionType
+  severity: Severity
+  mechanism: string | null
+  evidenceLevel: EvidenceLevel | null
+  referencePmid: string[] | null
+  recommendation: string | null
+  createdAt: string
+  herb: {
+    id: string
+    standardName: string
+    hanjaName: string | null
+  }
+}
+
+export interface CreateInteractionParams {
+  drugName: string
+  drugAtcCode?: string
+  herbId: string
+  interactionType: InteractionType
+  severity: Severity
+  mechanism?: string
+  evidenceLevel?: EvidenceLevel
+  referencePmid?: string[]
+  recommendation?: string
+}
+
 // ============ Dashboard API ============
 
 export const adminDashboardApi = {
@@ -246,9 +460,132 @@ export const adminAuditLogsApi = {
   },
 }
 
+// ============ Clinics API ============
+
+export const adminClinicsApi = {
+  getClinics: async (params: GetClinicsParams = {}): Promise<PaginatedClinics> => {
+    const { data } = await api.get('/admin/clinics', { params })
+    return data
+  },
+
+  getClinic: async (id: string): Promise<AdminClinic> => {
+    const { data } = await api.get(`/admin/clinics/${id}`)
+    return data
+  },
+
+  updateClinic: async (id: string, updates: UpdateClinicParams): Promise<AdminClinic> => {
+    const { data } = await api.patch(`/admin/clinics/${id}`, updates)
+    return data
+  },
+
+  verifyClinic: async (id: string, notes?: string): Promise<AdminClinic> => {
+    const { data } = await api.post(`/admin/clinics/${id}/verify`, { notes })
+    return data
+  },
+
+  rejectClinic: async (id: string, reason: string): Promise<AdminClinic> => {
+    const { data } = await api.post(`/admin/clinics/${id}/reject`, { reason })
+    return data
+  },
+}
+
+// ============ Content API ============
+
+export const adminContentApi = {
+  // Cases
+  getCases: async (params: ContentQueryParams = {}): Promise<PaginatedContentResponse<ClinicalCase>> => {
+    const { data } = await api.get('/admin/content/cases', { params })
+    return data
+  },
+
+  createCase: async (caseData: CreateCaseParams): Promise<ClinicalCase> => {
+    const { data } = await api.post('/admin/content/cases', caseData)
+    return data
+  },
+
+  updateCase: async (id: string, updates: Partial<CreateCaseParams>): Promise<ClinicalCase> => {
+    const { data } = await api.patch(`/admin/content/cases/${id}`, updates)
+    return data
+  },
+
+  deleteCase: async (id: string): Promise<void> => {
+    await api.delete(`/admin/content/cases/${id}`)
+  },
+
+  // Formulas
+  getFormulas: async (params: ContentQueryParams = {}): Promise<PaginatedContentResponse<Formula>> => {
+    const { data } = await api.get('/admin/content/formulas', { params })
+    return data
+  },
+
+  createFormula: async (formulaData: CreateFormulaParams): Promise<Formula> => {
+    const { data } = await api.post('/admin/content/formulas', formulaData)
+    return data
+  },
+
+  updateFormula: async (id: string, updates: Partial<CreateFormulaParams>): Promise<Formula> => {
+    const { data } = await api.patch(`/admin/content/formulas/${id}`, updates)
+    return data
+  },
+
+  deleteFormula: async (id: string): Promise<void> => {
+    await api.delete(`/admin/content/formulas/${id}`)
+  },
+
+  updateFormulaHerbs: async (
+    id: string,
+    herbs: Array<{ herbId: string; amount: string; role?: string; notes?: string }>
+  ): Promise<Formula> => {
+    const { data } = await api.put(`/admin/content/formulas/${id}/herbs`, { herbs })
+    return data
+  },
+
+  // Herbs
+  getHerbs: async (params: ContentQueryParams = {}): Promise<PaginatedContentResponse<Herb>> => {
+    const { data } = await api.get('/admin/content/herbs', { params })
+    return data
+  },
+
+  createHerb: async (herbData: CreateHerbParams): Promise<Herb> => {
+    const { data } = await api.post('/admin/content/herbs', herbData)
+    return data
+  },
+
+  updateHerb: async (id: string, updates: Partial<CreateHerbParams>): Promise<Herb> => {
+    const { data } = await api.patch(`/admin/content/herbs/${id}`, updates)
+    return data
+  },
+
+  deleteHerb: async (id: string): Promise<void> => {
+    await api.delete(`/admin/content/herbs/${id}`)
+  },
+
+  // Interactions
+  getInteractions: async (params: ContentQueryParams = {}): Promise<PaginatedContentResponse<DrugHerbInteraction>> => {
+    const { data } = await api.get('/admin/content/interactions', { params })
+    return data
+  },
+
+  createInteraction: async (interactionData: CreateInteractionParams): Promise<DrugHerbInteraction> => {
+    const { data } = await api.post('/admin/content/interactions', interactionData)
+    return data
+  },
+
+  updateInteraction: async (id: string, updates: Partial<CreateInteractionParams>): Promise<DrugHerbInteraction> => {
+    const { data } = await api.patch(`/admin/content/interactions/${id}`, updates)
+    return data
+  },
+
+  deleteInteraction: async (id: string): Promise<void> => {
+    await api.delete(`/admin/content/interactions/${id}`)
+  },
+}
+
 export default {
   dashboard: adminDashboardApi,
   users: adminUsersApi,
   subscriptions: adminSubscriptionsApi,
   auditLogs: adminAuditLogsApi,
+  clinics: adminClinicsApi,
+  content: adminContentApi,
 }

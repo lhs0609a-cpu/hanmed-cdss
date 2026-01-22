@@ -12,7 +12,7 @@ import {
 import { PatientAccount } from './patient-account.entity';
 import { Clinic } from './clinic.entity';
 import { User } from './user.entity';
-import { ClinicalCase } from './clinical-case.entity';
+import { ClinicalCase, BodyHeat, BodyStrength } from './clinical-case.entity';
 import { PatientPrescription } from './patient-prescription.entity';
 
 export enum RecordStatus {
@@ -121,6 +121,30 @@ export class PatientRecord {
 
   @Column({ nullable: true, length: 20 })
   constitutionResult: string;
+
+  // 체열 (寒熱) - 진료 시점의 상태
+  @Column({
+    type: 'enum',
+    enum: BodyHeat,
+    nullable: true,
+  })
+  bodyHeat: BodyHeat;
+
+  // 근실도 (虛實) - 진료 시점의 상태
+  @Column({
+    type: 'enum',
+    enum: BodyStrength,
+    nullable: true,
+  })
+  bodyStrength: BodyStrength;
+
+  // 체열 점수 (-10 극한 ~ +10 극열)
+  @Column({ type: 'int', nullable: true })
+  bodyHeatScore: number;
+
+  // 근실도 점수 (-10 극허 ~ +10 극실)
+  @Column({ type: 'int', nullable: true })
+  bodyStrengthScore: number;
 
   @Column('text', { nullable: true })
   patternDiagnosisPatient: string;

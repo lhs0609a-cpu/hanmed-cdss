@@ -18,10 +18,12 @@ import {
   FileText,
   Pill,
   Scale,
+  Dumbbell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { PalGangAnalysis } from '@/types'
+import { PalGangAnalysis, BodyConstitutionResult } from '@/types'
 import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'
+import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitutionAssessment'
 
 interface SymptomCategory {
   id: string
@@ -714,7 +716,8 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
 }
 
 export default function PatternDiagnosisPage() {
-  const [step, setStep] = useState<'symptoms' | 'pulse' | 'tongue' | 'palgang' | 'result'>('symptoms')
+  const [step, setStep] = useState<'constitution' | 'symptoms' | 'pulse' | 'tongue' | 'palgang' | 'result'>('constitution')
+  const [bodyConstitution, setBodyConstitution] = useState<BodyConstitutionResult | null>(null)
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
   const [selectedPulses, setSelectedPulses] = useState<string[]>([])
   const [selectedTongue, setSelectedTongue] = useState<string[]>([])
@@ -804,7 +807,8 @@ export default function PatternDiagnosisPage() {
   }
 
   const resetDiagnosis = () => {
-    setStep('symptoms')
+    setStep('constitution')
+    setBodyConstitution(null)
     setSelectedSymptoms([])
     setSelectedPulses([])
     setSelectedTongue([])
@@ -846,6 +850,7 @@ export default function PatternDiagnosisPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex items-center justify-between overflow-x-auto">
           {[
+            { key: 'constitution', label: '체열/근실도', icon: Dumbbell },
             { key: 'symptoms', label: '증상 선택', icon: Activity },
             { key: 'pulse', label: '맥진', icon: CircleDot },
             { key: 'tongue', label: '설진', icon: Droplets },
@@ -859,6 +864,7 @@ export default function PatternDiagnosisPage() {
                   step === s.key
                     ? 'bg-purple-100 text-purple-700'
                     : results.length > 0 ||
+                      (s.key === 'constitution' && bodyConstitution !== null) ||
                       (s.key === 'symptoms' && selectedSymptoms.length > 0) ||
                       (s.key === 'pulse' && selectedPulses.length > 0) ||
                       (s.key === 'tongue' && selectedTongue.length > 0) ||
@@ -870,13 +876,32 @@ export default function PatternDiagnosisPage() {
                 <s.icon className="h-4 w-4" />
                 <span className="text-sm font-medium hidden md:inline">{s.label}</span>
               </div>
-              {index < 4 && <ChevronRight className="h-4 w-4 text-gray-300 mx-1" />}
+              {index < 5 && <ChevronRight className="h-4 w-4 text-gray-300 mx-1" />}
             </div>
           ))}
         </div>
       </div>
 
       {/* Step Content */}
+      {step === 'constitution' && (
+        <div className="space-y-6">
+          <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4">
+            <p className="text-indigo-700 text-sm">
+              ⚡ <strong>이종대 선생님 기준:</strong> 체열(寒熱)과 근실도(虛實)는 처방 선택의 핵심 기준입니다.
+              이 기준만 지키면 치료 확률 50% 이상, 부작용 최소화!
+            </p>
+          </div>
+
+          <BodyConstitutionAssessment
+            initialResult={bodyConstitution || undefined}
+            onComplete={(result) => {
+              setBodyConstitution(result)
+              setStep('symptoms')
+            }}
+          />
+        </div>
+      )}
+
       {step === 'symptoms' && (
         <div className="space-y-6">
           <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
@@ -1192,6 +1217,46 @@ export default function PatternDiagnosisPage() {
           )}
 
           {/* 팔강변증 결과 */}
+          {/* 체열/근실도 결과 */}
+          {bodyConstitution && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-indigo-500" />
+                체열/근실도 평가 (이종대 선생님 기준)
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className={cn(
+                  'p-4 rounded-xl',
+                  bodyConstitution.bodyHeat === 'cold' ? 'bg-blue-50 border border-blue-200' :
+                  bodyConstitution.bodyHeat === 'hot' ? 'bg-orange-50 border border-orange-200' :
+                  'bg-gray-50 border border-gray-200'
+                )}>
+                  <p className="text-sm text-gray-600 mb-1">체열 (寒熱)</p>
+                  <p className="font-bold text-lg">
+                    {bodyConstitution.bodyHeat === 'cold' ? '한(寒) - 찬 체질' :
+                     bodyConstitution.bodyHeat === 'hot' ? '열(熱) - 열 체질' :
+                     '평(平) - 균형'}
+                  </p>
+                  <p className="text-sm text-gray-500">점수: {bodyConstitution.bodyHeatScore}</p>
+                </div>
+                <div className={cn(
+                  'p-4 rounded-xl',
+                  bodyConstitution.bodyStrength === 'deficient' ? 'bg-purple-50 border border-purple-200' :
+                  bodyConstitution.bodyStrength === 'excess' ? 'bg-green-50 border border-green-200' :
+                  'bg-gray-50 border border-gray-200'
+                )}>
+                  <p className="text-sm text-gray-600 mb-1">근실도 (虛實)</p>
+                  <p className="font-bold text-lg">
+                    {bodyConstitution.bodyStrength === 'deficient' ? '허(虛) - 허약' :
+                     bodyConstitution.bodyStrength === 'excess' ? '실(實) - 튼튼' :
+                     '평(平) - 균형'}
+                  </p>
+                  <p className="text-sm text-gray-500">점수: {bodyConstitution.bodyStrengthScore}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {palGangAnalysis && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -1208,7 +1273,15 @@ export default function PatternDiagnosisPage() {
               <FileText className="h-5 w-5 text-gray-500" />
               입력 요약
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 mb-1">체열/근실도</p>
+                <p className="font-medium text-gray-900">
+                  {bodyConstitution
+                    ? `${bodyConstitution.bodyHeat === 'cold' ? '한' : bodyConstitution.bodyHeat === 'hot' ? '열' : '평'}/${bodyConstitution.bodyStrength === 'deficient' ? '허' : bodyConstitution.bodyStrength === 'excess' ? '실' : '평'}`
+                    : '미평가'}
+                </p>
+              </div>
               <div>
                 <p className="text-gray-500 mb-1">선택된 증상</p>
                 <p className="font-medium text-gray-900">{selectedSymptoms.length}개</p>

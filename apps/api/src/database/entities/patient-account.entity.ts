@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { ConstitutionType } from './clinical-case.entity';
+import { ConstitutionType, BodyHeat, BodyStrength } from './clinical-case.entity';
 
 export enum PatientGender {
   MALE = 'male',
@@ -80,6 +80,30 @@ export class PatientAccount {
     nullable: true,
   })
   constitution: ConstitutionType;
+
+  // 체열 (寒熱) - 이종대 선생님 기준
+  @Column({
+    type: 'enum',
+    enum: BodyHeat,
+    nullable: true,
+  })
+  bodyHeat: BodyHeat;
+
+  // 근실도 (虛實) - 이종대 선생님 기준
+  @Column({
+    type: 'enum',
+    enum: BodyStrength,
+    nullable: true,
+  })
+  bodyStrength: BodyStrength;
+
+  // 체열 점수 (-10 극한 ~ +10 극열)
+  @Column({ type: 'int', nullable: true })
+  bodyHeatScore: number;
+
+  // 근실도 점수 (-10 극허 ~ +10 극실)
+  @Column({ type: 'int', nullable: true })
+  bodyStrengthScore: number;
 
   @Column('jsonb', { default: [] })
   allergies: string[];
