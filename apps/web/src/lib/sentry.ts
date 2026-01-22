@@ -5,20 +5,10 @@
  * VITE_SENTRY_DSN 환경변수가 설정되지 않으면 비활성화됩니다.
  */
 
-interface SentryConfig {
-  dsn: string;
-  environment: string;
-  release: string;
-}
-
-interface ErrorInfo {
-  componentStack?: string;
-  [key: string]: unknown;
-}
-
 // Sentry 초기화 상태
 let isInitialized = false;
-let SentryModule: typeof import('@sentry/react') | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let SentryModule: any = null;
 
 /**
  * Sentry 초기화
@@ -32,7 +22,13 @@ export async function initSentry(): Promise<void> {
   }
 
   try {
-    SentryModule = await import('@sentry/react');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    SentryModule = await import('@sentry/react').catch(() => null) as any;
+
+    if (!SentryModule) {
+      console.warn('[Sentry] Failed to load @sentry/react module');
+      return;
+    }
 
     SentryModule.init({
       dsn,
@@ -47,7 +43,8 @@ export async function initSentry(): Promise<void> {
       replaysOnErrorSampleRate: 1.0,
 
       // Filtering
-      beforeSend(event, hint) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      beforeSend(event: any, hint: any) {
         // Filter out network errors in development
         if (import.meta.env.DEV) {
           const error = hint.originalException;

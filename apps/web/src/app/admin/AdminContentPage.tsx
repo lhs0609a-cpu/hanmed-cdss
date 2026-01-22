@@ -428,7 +428,7 @@ function CaseFormModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">치료 결과</label>
             <select
               value={formData.treatmentOutcome}
-              onChange={(e) => setFormData({ ...formData, treatmentOutcome: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, treatmentOutcome: e.target.value as '' | '완치' | '호전' | '악화' | '불변' })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
             >
               <option value="">선택</option>
