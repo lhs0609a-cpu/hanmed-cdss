@@ -30,6 +30,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       name: user.name,
       subscriptionTier: user.subscriptionTier,
       isVerified: user.isVerified,
+      role: user.role,
+      status: user.status,
     };
   }
 }

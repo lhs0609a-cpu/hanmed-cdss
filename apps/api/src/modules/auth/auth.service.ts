@@ -57,6 +57,9 @@ export class AuthService {
         email: user.email,
         name: user.name,
         subscriptionTier: user.subscriptionTier,
+        isVerified: user.isVerified,
+        role: user.role,
+        status: user.status,
       },
       ...tokens,
     };
@@ -87,6 +90,8 @@ export class AuthService {
         name: user.name,
         subscriptionTier: user.subscriptionTier,
         isVerified: user.isVerified,
+        role: user.role,
+        status: user.status,
       },
       ...tokens,
     };
