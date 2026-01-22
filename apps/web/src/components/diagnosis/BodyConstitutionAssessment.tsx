@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Thermometer,
   Flame,
@@ -16,7 +16,6 @@ import type {
   BodyHeat,
   BodyStrength,
   BodyConstitutionResult,
-  AssessmentItem,
 } from '@/types'
 
 // Re-export types for backward compatibility

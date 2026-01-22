@@ -10,7 +10,6 @@ import {
   Beaker,
   Leaf,
   AlertTriangle,
-  RefreshCw,
   X,
 } from 'lucide-react'
 import {
@@ -21,6 +20,8 @@ import {
   type DrugHerbInteraction,
   type ContentQueryParams,
   type PaginatedContentResponse,
+  type CreateCaseParams,
+  type Severity,
 } from '@/services/admin-api'
 import { cn } from '@/lib/utils'
 
@@ -343,7 +344,7 @@ function CaseFormModal({
     recorderName: item?.recorderName || '',
     chiefComplaint: item?.chiefComplaint || '',
     patternDiagnosis: item?.patternDiagnosis || '',
-    treatmentOutcome: item?.treatmentOutcome || '',
+    treatmentOutcome: (item?.treatmentOutcome || '') as '' | '완치' | '호전' | '악화' | '불변',
     originalText: item?.originalText || '',
   })
   const [loading, setLoading] = useState(false)
@@ -352,10 +353,14 @@ function CaseFormModal({
     e.preventDefault()
     setLoading(true)
     try {
+      const submitData: Partial<CreateCaseParams> = {
+        ...formData,
+        treatmentOutcome: formData.treatmentOutcome || undefined,
+      }
       if (item) {
-        await adminContentApi.updateCase(item.id, formData)
+        await adminContentApi.updateCase(item.id, submitData)
       } else {
-        await adminContentApi.createCase(formData as any)
+        await adminContentApi.createCase(submitData as CreateCaseParams)
       }
       onSave()
     } catch (err) {
@@ -1149,7 +1154,7 @@ function InteractionFormModal({
     drugAtcCode: item?.drugAtcCode || '',
     herbId: item?.herbId || '',
     interactionType: item?.interactionType || 'warning',
-    severity: item?.severity || 'warning',
+    severity: (item?.severity || 'warning') as Severity,
     mechanism: item?.mechanism || '',
     recommendation: item?.recommendation || '',
   })
@@ -1237,7 +1242,7 @@ function InteractionFormModal({
             <select
               required
               value={formData.severity}
-              onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, severity: e.target.value as Severity })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
             >
               <option value="critical">위험 (병용 금기)</option>

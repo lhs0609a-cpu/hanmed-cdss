@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Search,
   ChevronLeft,
   ChevronRight,
   Calendar,

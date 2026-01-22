@@ -86,7 +86,7 @@ const OUTCOMES = [
 export function AdverseReactionReport({
   formulaName = '',
   recommendationId,
-  patientId,
+  patientId: _patientId,
   onSubmit,
   onClose,
 }: AdverseReactionReportProps) {
@@ -462,7 +462,7 @@ export function AdverseReactionReport({
  * 부작용 보고 버튼 (처방 카드에 추가)
  */
 export function AdverseReactionButton({
-  formulaName,
+  formulaName: _formulaName,
   onClick,
   className,
 }: {

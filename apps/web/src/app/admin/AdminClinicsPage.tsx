@@ -328,7 +328,11 @@ export default function AdminClinicsPage() {
 
   const handleSave = async (id: string, updates: Partial<AdminClinic>) => {
     try {
-      await adminClinicsApi.updateClinic(id, updates)
+      // null 값을 undefined로 변환하여 UpdateClinicParams 타입에 맞춤
+      const cleanedUpdates = Object.fromEntries(
+        Object.entries(updates).map(([key, value]) => [key, value === null ? undefined : value])
+      )
+      await adminClinicsApi.updateClinic(id, cleanedUpdates)
       fetchClinics()
     } catch (err) {
       alert('정보 수정에 실패했습니다.')
