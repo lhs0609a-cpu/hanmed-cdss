@@ -570,6 +570,9 @@ export default function DashboardLayout() {
           </div>
         )}
 
+        {/* 필수 의료 면책 동의 (최초 1회) */}
+        <MedicalDisclaimer variant="mandatory" />
+
         {/* 의료 면책조항 배너 (하루 1회) */}
         <MedicalDisclaimer variant="banner" />
 

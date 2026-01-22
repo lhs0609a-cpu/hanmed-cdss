@@ -36,6 +36,7 @@ import { transformCaseSearchResponse } from '@/types/case-search'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
 import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
+import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 
 const consultationTourSteps = [
   {
@@ -829,6 +830,9 @@ export default function ConsultationPage() {
         <div data-tour="result-area" className="lg:col-span-3 space-y-4">
           {recommendations.length > 0 ? (
             <>
+              {/* AI 결과 면책 조항 */}
+              <AIResultDisclaimer />
+
               {/* AI Analysis */}
               {analysis && (
                 <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-gray-200 p-6">
@@ -844,12 +848,15 @@ export default function ConsultationPage() {
                 </div>
               )}
 
+              {/* 처방 전 필수 확인 사항 */}
+              <PrescriptionDisclaimer />
+
               {/* Recommendations */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-emerald-500" />
-                    추천 처방
+                    추천 처방 <span className="text-xs font-normal text-gray-500 ml-1">(참고용)</span>
                   </h2>
                   <span className="text-xs text-gray-500">{recommendations.length}개의 처방 추천</span>
                 </div>

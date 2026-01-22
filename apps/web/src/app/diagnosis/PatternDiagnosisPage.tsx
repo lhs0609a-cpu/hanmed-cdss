@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { PalGangAnalysis, BodyConstitutionResult } from '@/types'
 import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'
 import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitutionAssessment'
+import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 
 interface SymptomCategory {
   id: string
@@ -1138,6 +1139,9 @@ export default function PatternDiagnosisPage() {
 
       {step === 'result' && results.length > 0 && (
         <div className="space-y-6">
+          {/* AI 결과 면책 조항 */}
+          <AIResultDisclaimer />
+
           {/* Main Result */}
           <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
             <div className="flex items-start justify-between mb-4">
@@ -1160,11 +1164,14 @@ export default function PatternDiagnosisPage() {
             </div>
           </div>
 
+          {/* 처방 전 필수 확인 사항 */}
+          <PrescriptionDisclaimer />
+
           {/* Recommended Formulas */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Pill className="h-5 w-5 text-purple-500" />
-              추천 처방
+              추천 처방 <span className="text-xs font-normal text-gray-500">(참고용)</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {results[0].formulas.map((formula, index) => (

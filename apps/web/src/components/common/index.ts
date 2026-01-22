@@ -14,6 +14,12 @@ export {
   AIStatusIndicator,
 } from './AIWarning'
 
+// Safety & Reporting
+export {
+  AdverseReactionReport,
+  AdverseReactionButton,
+} from './AdverseReactionReport'
+
 // UI Components
 export { default as Loader } from './Loader'
 export { default as Modal } from './Modal'

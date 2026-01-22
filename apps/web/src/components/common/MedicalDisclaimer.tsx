@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, X, Info, Shield } from 'lucide-react'
+import { AlertTriangle, X, Info, Shield, CheckCircle2, FileWarning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -12,22 +12,34 @@ import { cn } from '@/lib/utils'
  */
 
 interface MedicalDisclaimerProps {
-  variant?: 'banner' | 'compact' | 'modal'
+  variant?: 'banner' | 'compact' | 'modal' | 'mandatory'
   dismissible?: boolean
   onDismiss?: () => void
+  onAccept?: () => void
 }
+
+// 최초 동의 여부 확인 키
+const DISCLAIMER_ACCEPTED_KEY = 'medical_disclaimer_accepted_v1'
+const DISCLAIMER_SEEN_TODAY_KEY = 'medical_disclaimer_seen'
 
 export function MedicalDisclaimer({
   variant = 'banner',
   dismissible = true,
-  onDismiss
+  onDismiss,
+  onAccept
 }: MedicalDisclaimerProps) {
   const [isVisible, setIsVisible] = useState(true)
   const [hasSeenToday, setHasSeenToday] = useState(false)
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false)
+  const [checkboxChecked, setCheckboxChecked] = useState(false)
 
   useEffect(() => {
+    // 최초 동의 여부 확인
+    const accepted = localStorage.getItem(DISCLAIMER_ACCEPTED_KEY)
+    setHasAcceptedTerms(!!accepted)
+
     // 오늘 이미 확인했는지 체크 (하루에 한 번만 표시)
-    const lastSeen = localStorage.getItem('medical_disclaimer_seen')
+    const lastSeen = localStorage.getItem(DISCLAIMER_SEEN_TODAY_KEY)
     const today = new Date().toDateString()
 
     if (lastSeen === today && variant === 'banner') {
@@ -38,8 +50,133 @@ export function MedicalDisclaimer({
   const handleDismiss = () => {
     setIsVisible(false)
     const today = new Date().toDateString()
-    localStorage.setItem('medical_disclaimer_seen', today)
+    localStorage.setItem(DISCLAIMER_SEEN_TODAY_KEY, today)
     onDismiss?.()
+  }
+
+  const handleAccept = () => {
+    if (!checkboxChecked) return
+    localStorage.setItem(DISCLAIMER_ACCEPTED_KEY, new Date().toISOString())
+    setHasAcceptedTerms(true)
+    setIsVisible(false)
+    onAccept?.()
+  }
+
+  // mandatory 모드: 최초 동의 전까지 모달 표시
+  if (variant === 'mandatory' && !hasAcceptedTerms) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-red-500 to-orange-500 p-6 rounded-t-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <FileWarning className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  의료 정보 이용 동의
+                </h2>
+                <p className="text-red-100 text-sm mt-0.5">
+                  서비스 이용 전 반드시 확인해 주세요
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 내용 */}
+          <div className="p-6 space-y-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <h3 className="font-bold text-amber-900 flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                중요 고지사항
+              </h3>
+              <ul className="space-y-2 text-sm text-amber-800">
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>본 서비스는 <strong>의료기기가 아니며</strong>, 의료법상 진단 또는 처방 행위로 간주되지 않습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>AI가 제공하는 모든 정보(처방 추천, 변증 분석, 상호작용 검사 등)는 <strong>참고용 정보</strong>입니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>최종 진단 및 치료 결정은 반드시 <strong>한의사의 전문적인 진찰과 판단</strong>에 따라야 합니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>AI 추천 결과를 <strong>맹신하지 마시고</strong>, 환자의 개별적 상황을 종합적으로 고려하십시오.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <Shield className="h-5 w-5 text-slate-600" />
+                법적 고지
+              </h3>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                의료법 제27조 및 의료기기법에 따라 본 서비스는 의료 행위 또는 의료기기에 해당하지 않습니다.
+                본 서비스 이용으로 인한 의료 결정의 책임은 사용자 및 담당 의료인에게 있습니다.
+                서비스 제공자는 AI 추천 정보의 정확성, 완전성, 적합성을 보장하지 않으며,
+                이로 인한 어떠한 직접적, 간접적 손해에 대해서도 책임을 지지 않습니다.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                올바른 사용법
+              </h3>
+              <ul className="space-y-1 text-sm text-blue-800">
+                <li>✓ AI 추천을 <strong>참고 자료</strong>로 활용하세요</li>
+                <li>✓ 환자의 <strong>알레르기, 복용약물, 기저질환</strong>을 반드시 확인하세요</li>
+                <li>✓ 처방 전 <strong>체열(寒熱)과 근실도(虛實)</strong>를 재확인하세요</li>
+                <li>✓ 이상 반응 발생 시 <strong>즉시 사용을 중단</strong>하고 보고해 주세요</li>
+              </ul>
+            </div>
+
+            {/* 동의 체크박스 */}
+            <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={checkboxChecked}
+                onChange={(e) => setCheckboxChecked(e.target.checked)}
+                className="w-5 h-5 mt-0.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              <span className="text-sm text-gray-700">
+                위 고지사항을 모두 읽고 이해하였으며, AI 추천 정보는 <strong>참고용</strong>이고
+                최종 의료 결정은 <strong>한의사의 판단</strong>에 따름을 동의합니다.
+              </span>
+            </label>
+          </div>
+
+          {/* 버튼 */}
+          <div className="p-6 pt-0">
+            <button
+              onClick={handleAccept}
+              disabled={!checkboxChecked}
+              className={cn(
+                'w-full py-3 rounded-xl font-semibold text-white transition-all',
+                checkboxChecked
+                  ? 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:shadow-lg hover:shadow-teal-500/30'
+                  : 'bg-gray-300 cursor-not-allowed'
+              )}
+            >
+              {checkboxChecked ? (
+                <span className="flex items-center justify-center gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  동의하고 시작하기
+                </span>
+              ) : (
+                '위 내용에 동의해 주세요'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!isVisible || (hasSeenToday && variant === 'banner')) {
