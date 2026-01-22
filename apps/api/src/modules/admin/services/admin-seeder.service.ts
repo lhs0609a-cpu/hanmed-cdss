@@ -32,7 +32,16 @@ export class AdminSeederService implements OnModuleInit {
       });
 
       if (existingSuperAdmin) {
-        this.logger.log(`SUPER_ADMIN이 이미 존재합니다: ${existingSuperAdmin.email}`);
+        // SUPER_ADMIN이 이미 있고 같은 이메일이면 비밀번호만 업데이트
+        if (existingSuperAdmin.email === adminEmail) {
+          const hashedPassword = await bcrypt.hash(adminPassword, 10);
+          existingSuperAdmin.passwordHash = hashedPassword;
+          existingSuperAdmin.status = UserStatus.ACTIVE;
+          await this.userRepository.save(existingSuperAdmin);
+          this.logger.log(`SUPER_ADMIN 비밀번호 업데이트 완료: ${adminEmail}`);
+        } else {
+          this.logger.log(`SUPER_ADMIN이 이미 존재합니다: ${existingSuperAdmin.email}`);
+        }
         return;
       }
 
@@ -42,13 +51,15 @@ export class AdminSeederService implements OnModuleInit {
       });
 
       if (existingUser) {
-        // 기존 계정을 SUPER_ADMIN으로 승격
+        // 기존 계정을 SUPER_ADMIN으로 승격 + 비밀번호 업데이트
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        existingUser.passwordHash = hashedPassword;
         existingUser.role = UserRole.SUPER_ADMIN;
         existingUser.status = UserStatus.ACTIVE;
         existingUser.isVerified = true;
         existingUser.isLicenseVerified = true;
         await this.userRepository.save(existingUser);
-        this.logger.log(`기존 계정을 SUPER_ADMIN으로 승격: ${adminEmail}`);
+        this.logger.log(`기존 계정을 SUPER_ADMIN으로 승격 및 비밀번호 업데이트: ${adminEmail}`);
       } else {
         // 새 SUPER_ADMIN 계정 생성
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
