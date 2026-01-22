@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { TossPaymentsService } from './toss-payments.service';
 import { User } from '../../database/entities/user.entity';
@@ -16,12 +17,14 @@ import {
 export class TossPaymentsController {
   constructor(private readonly tossPaymentsService: TossPaymentsService) {}
 
+  @Public()
   @Get('plans')
   @ApiOperation({ summary: '요금제 목록 조회' })
   getPlans() {
     return this.tossPaymentsService.getPlans();
   }
 
+  @Public()
   @Get('client-key')
   @ApiOperation({ summary: '토스페이먼츠 클라이언트 키 조회' })
   getClientKey() {
@@ -150,5 +153,29 @@ export class TossPaymentsController {
   @ApiOperation({ summary: '환불 내역 조회' })
   async getRefundHistory(@CurrentUser() user: User) {
     return this.tossPaymentsService.getRefundHistory(user.id);
+  }
+
+  // ========== 무료 체험 관련 ==========
+
+  @Post('trial/start')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '7일 무료 체험 시작',
+    description: '카드 등록 없이 Professional 플랜을 7일간 무료로 체험할 수 있습니다. 1회만 사용 가능합니다.',
+  })
+  async startFreeTrial(@CurrentUser() user: User) {
+    return this.tossPaymentsService.startFreeTrial(user.id);
+  }
+
+  @Get('trial/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '무료 체험 상태 조회',
+    description: '현재 체험 중인지, 남은 기간, 체험 가능 여부를 확인합니다.',
+  })
+  async getTrialStatus(@CurrentUser() user: User) {
+    return this.tossPaymentsService.getTrialStatus(user.id);
   }
 }

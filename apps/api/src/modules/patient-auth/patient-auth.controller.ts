@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator';
 import { PatientAuthService } from './patient-auth.service';
 import { PatientAuthGuard } from './guards/patient-auth.guard';
 import {
@@ -27,6 +28,7 @@ import {
 export class PatientAuthController {
   constructor(private readonly patientAuthService: PatientAuthService) {}
 
+  @Public()
   @Post('send-verification')
   @ApiOperation({ summary: '휴대폰 인증번호 발송' })
   @ApiResponse({ status: 200, description: '인증번호 발송 성공' })
@@ -35,6 +37,7 @@ export class PatientAuthController {
     return this.patientAuthService.sendVerificationCode(dto);
   }
 
+  @Public()
   @Post('verify-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '인증번호 확인' })
@@ -44,6 +47,7 @@ export class PatientAuthController {
     return this.patientAuthService.verifyCode(dto);
   }
 
+  @Public()
   @Post('register')
   @ApiOperation({ summary: '환자 회원가입' })
   @ApiResponse({ status: 201, description: '회원가입 성공' })
@@ -53,6 +57,7 @@ export class PatientAuthController {
     return this.patientAuthService.register(dto);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '환자 로그인' })
@@ -62,6 +67,7 @@ export class PatientAuthController {
     return this.patientAuthService.login(dto);
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '토큰 갱신' })

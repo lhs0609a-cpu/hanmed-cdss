@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator';
 import { ClinicsService } from './clinics.service';
 import { PatientAuthGuard } from '../patient-auth/guards/patient-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
@@ -20,6 +21,7 @@ import { SearchClinicsDto, GetAvailabilityDto, CreateClinicDto, UpdateClinicDto 
 export class ClinicsController {
   constructor(private readonly clinicsService: ClinicsService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: '한의원 검색' })
   @ApiResponse({ status: 200, description: '검색 성공' })
@@ -27,6 +29,7 @@ export class ClinicsController {
     return this.clinicsService.search(dto);
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: '한의원 상세 조회' })
   @ApiResponse({ status: 200, description: '조회 성공' })
@@ -35,6 +38,7 @@ export class ClinicsController {
     return this.clinicsService.findById(id);
   }
 
+  @Public()
   @Get(':id/practitioners')
   @ApiOperation({ summary: '한의원 의료진 목록' })
   @ApiResponse({ status: 200, description: '조회 성공' })
@@ -42,6 +46,7 @@ export class ClinicsController {
     return this.clinicsService.getPractitioners(id);
   }
 
+  @Public()
   @Get(':id/availability')
   @ApiOperation({ summary: '예약 가능 시간 조회' })
   @ApiResponse({ status: 200, description: '조회 성공' })
