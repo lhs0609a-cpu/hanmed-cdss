@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import {
   Plus,
   X,
   Loader2,
-  AlertCircle,
   CheckCircle,
   Sparkles,
   User,
@@ -29,7 +28,7 @@ import {
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
-import { logError, getErrorMessage } from '@/lib/errors'
+import { logError } from '@/lib/errors'
 import { ErrorMessage } from '@/components/common'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { CaseMatchListItem } from '@/components/case-match'
@@ -201,7 +200,6 @@ const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
 
 export default function ConsultationPage() {
   const { showHanja } = useHanjaSettings()
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])

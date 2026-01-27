@@ -64,11 +64,23 @@ interface NewVisitForm {
   notes: string
 }
 
-const defaultDemoPatient = {
+const defaultDemoPatient: {
+  id: string
+  name: string
+  birthDate: string
+  gender: 'M' | 'F'
+  phone: string
+  address: string
+  constitution: string
+  allergies: string[]
+  medications: string[]
+  mainComplaint: string
+  medicalHistory: string
+} = {
   id: '1',
   name: '김영희',
   birthDate: '1985-03-15',
-  gender: 'F' as const,
+  gender: 'F',
   phone: '010-1234-5678',
   address: '서울시 강남구 역삼동',
   constitution: '소음인',

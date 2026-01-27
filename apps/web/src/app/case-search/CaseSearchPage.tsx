@@ -59,7 +59,7 @@ const symptomCategories = [
 const constitutionTypes: ConstitutionType[] = ['소음인', '태음인', '소양인', '태양인']
 
 export default function CaseSearchPage() {
-  const token = useAuthStore((state) => state.token)
+  const token = useAuthStore((state) => state.accessToken)
 
   // Subscription & Usage
   const { data: usage } = useUsage()

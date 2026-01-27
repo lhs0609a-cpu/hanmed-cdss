@@ -3,7 +3,6 @@ import {
   TrendingUp,
   Clock,
   Brain,
-  Users,
   BookOpen,
   Zap,
   Target,
@@ -123,7 +122,7 @@ function WeeklyChart({ data }: { data: number[] }) {
 
 export function ValueMetricsDashboard({ className, compact = false }: ValueMetricsDashboardProps) {
   const { data: usage } = useUsage()
-  const { data: subscriptionInfo } = useSubscriptionInfo()
+  const { data: _subscriptionInfo } = useSubscriptionInfo()
   const [metrics, setMetrics] = useState<ValueMetric[]>([])
 
   // Weekly usage data (simulated - could be replaced with real API data)
@@ -206,7 +205,7 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
   })
 
   // 사용 통계 업데이트 (다른 컴포넌트에서 호출)
-  const updateStats = (type: string, increment: number = 1) => {
+  const _updateStats = (type: string, increment: number = 1) => {
     const storedStats = localStorage.getItem('user_value_stats')
     const stats = storedStats ? JSON.parse(storedStats) : getDefaultStats()
     stats[type] = (stats[type] || 0) + increment

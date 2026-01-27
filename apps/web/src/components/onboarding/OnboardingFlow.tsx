@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Brain,
   Sparkles,
   Users,
   BookOpen,
@@ -9,8 +8,6 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
-  CheckCircle2,
-  Pill,
   Activity,
   TrendingUp,
   Stethoscope,
@@ -367,7 +364,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
           <div className="p-6 md:p-8 max-h-[85vh] overflow-y-auto">
             {/* Progress dots */}
             <div className="flex items-center justify-center gap-2 mb-6 mt-4">
-              {ONBOARDING_STEPS.map((s, index) => (
+              {ONBOARDING_STEPS.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentStep(index)}

@@ -182,7 +182,7 @@ const postTypeConfig = {
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const token = useAuthStore((state) => state.token)
+  const token = useAuthStore((state) => state.accessToken)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
@@ -190,7 +190,7 @@ export default function CommunityPage() {
   // API 상태
   const [posts, setPosts] = useState<CommunityPost[]>(dummyPosts)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [_error, setError] = useState<string | null>(null)
   const [usingDummyData, setUsingDummyData] = useState(true)
 
   // API에서 게시글 가져오기

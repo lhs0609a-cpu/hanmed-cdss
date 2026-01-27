@@ -22,7 +22,7 @@ import {
   Dumbbell,
   CheckCircle,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 import { PalGangAnalysis, BodyConstitutionResult } from '@/types'
 import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'

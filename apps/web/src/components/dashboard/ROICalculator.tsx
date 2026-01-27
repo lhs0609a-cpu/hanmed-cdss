@@ -19,7 +19,6 @@ interface ROICalculatorProps {
 
 // Calculation constants
 const TIME_SAVED_PER_SEARCH = 3 // minutes per AI search
-const TIME_SAVED_PER_CASE_REVIEW = 5 // minutes per case review
 const AVERAGE_CONSULTATION_VALUE = 15000 // KRW (원)
 const ADDITIONAL_PATIENTS_PER_HOUR = 2 // patients that can be seen with saved time
 

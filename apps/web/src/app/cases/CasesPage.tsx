@@ -52,45 +52,6 @@ function formatGender(gender: string | null): string {
   return gender
 }
 
-// 텍스트를 문단으로 분리 (줄바꿈 기준)
-function formatTextWithParagraphs(text: string): string[] {
-  if (!text) return []
-  // 연속 줄바꿈을 기준으로 분리하되, 빈 문단 제거
-  return text.split(/\n\n+/).filter(p => p.trim().length > 0)
-}
-
-// 원문 내용 파싱하여 구조화
-interface ParsedOriginalText {
-  title?: string           // 제목/주제
-  patientInfo?: string     // 환자 기본 정보 (성별, 나이, 체질 등)
-  mainSymptoms?: string    // 주요 증상
-  observations?: string[]  // 세부 관찰 사항 (①, ②, ③ 등)
-  treatmentHistory?: string // 치료 경과
-  result?: string          // 결과
-  fullText: string         // 전체 원문
-}
-
-function parseOriginalText(text: string): ParsedOriginalText {
-  if (!text) return { fullText: '' }
-
-  const result: ParsedOriginalText = { fullText: text }
-
-  // 원문에서 ①, ②, ③ 등의 번호가 붙은 관찰 사항 추출
-  const observationPattern = /[①②③④⑤⑥⑦⑧⑨⑩][^①②③④⑤⑥⑦⑧⑨⑩]*/g
-  const observations = text.match(observationPattern)
-  if (observations && observations.length > 0) {
-    result.observations = observations.map(obs => obs.trim())
-  }
-
-  // 제목 추출 (첫 번째 마침표까지 또는 첫 문장)
-  const firstSentence = text.match(/^[^.。]+[.。]/)
-  if (firstSentence) {
-    result.title = firstSentence[0].trim()
-  }
-
-  return result
-}
-
 // 번호가 붙은 텍스트를 분리하여 포맷팅
 function formatObservations(text: string): { number: string; content: string }[] {
   const pattern = /([①②③④⑤⑥⑦⑧⑨⑩])\s*([^①②③④⑤⑥⑦⑧⑨⑩]+)/g
@@ -106,7 +67,7 @@ function formatObservations(text: string): { number: string; content: string }[]
 }
 
 export default function CasesPage() {
-  const token = useAuthStore((state) => state.token)
+  const token = useAuthStore((state) => state.accessToken)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchCategory, setSearchCategory] = useState('all')
   const [selectedConstitution, setSelectedConstitution] = useState('')
