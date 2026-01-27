@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
+import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
@@ -155,6 +156,15 @@ export default function DashboardLayout() {
   } = useSidebarStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const { shouldShowOnboarding } = useOnboardingStatus()
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // 온보딩 표시 여부 결정 (게스트 모드가 아닌 신규 사용자)
+  useEffect(() => {
+    if (shouldShowOnboarding && !isGuest) {
+      setShowOnboarding(true)
+    }
+  }, [shouldShowOnboarding, isGuest])
 
   // 페이지 방문 기록
   useEffect(() => {
@@ -189,6 +199,14 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
+      {/* 온보딩 플로우 (신규 사용자) */}
+      {showOnboarding && (
+        <OnboardingFlow
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
+
       {/* Skip to content link for keyboard users */}
       <a
         href="#main-content"
@@ -455,7 +473,7 @@ export default function DashboardLayout() {
                 </div>
               </div>
               <Link
-                to="/subscription"
+                to="/dashboard/subscription"
                 className="block w-full mt-2 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-medium rounded-lg hover:shadow-lg hover:shadow-amber-500/30 transition-all text-center"
               >
                 플랜 보기
@@ -466,7 +484,7 @@ export default function DashboardLayout() {
           {/* User section */}
           <div className={cn('border-t border-gray-200/50 p-3', isMinimized && 'lg:p-2')}>
             <Link
-              to="/profile"
+              to="/dashboard/profile"
               className={cn(
                 'flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100/80 transition-colors group',
                 isMinimized && 'lg:justify-center'
@@ -490,7 +508,7 @@ export default function DashboardLayout() {
             {!isMinimized && (
               <div className="flex gap-2 mt-2">
                 <Link
-                  to="/settings"
+                  to="/dashboard/settings"
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Settings className="h-4 w-4" />
@@ -509,7 +527,7 @@ export default function DashboardLayout() {
             {isMinimized && (
               <div className="hidden lg:flex flex-col gap-1 mt-2">
                 <Link
-                  to="/settings"
+                  to="/dashboard/settings"
                   className="p-2 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                   title="설정"
                 >
@@ -720,6 +738,19 @@ function MenuItemComponent({
           </>
         )}
       </Link>
+
+      {/* Hover tooltip when minimized */}
+      {isMinimized && (
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center z-50">
+          <div className="bg-gray-900 text-white text-sm font-medium rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+            {item.name}
+            {item.description && (
+              <span className="text-gray-400 text-xs ml-2">({item.description})</span>
+            )}
+          </div>
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+        </div>
+      )}
 
       {/* Favorite toggle - show on hover (full mode only) */}
       {!isMinimized && (

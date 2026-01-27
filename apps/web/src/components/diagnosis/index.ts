@@ -6,3 +6,7 @@ export {
   type BodyStrength,
   type BodyConstitutionResult,
 } from './BodyConstitutionAssessment'
+export {
+  SimilarCaseSuccessCard,
+  SimilarCaseSuccessBadge,
+} from './SimilarCaseSuccessCard'

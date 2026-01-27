@@ -31,13 +31,13 @@ export default function SubscriptionSuccessPage() {
 
           <div className="space-y-3">
             <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
-              <Link to="/consultation">
+              <Link to="/dashboard/consultation">
                 <Sparkles className="mr-2 h-4 w-4" />
                 AI 진료 시작하기
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <Link to="/subscription">
+              <Link to="/dashboard/subscription">
                 구독 정보 확인
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

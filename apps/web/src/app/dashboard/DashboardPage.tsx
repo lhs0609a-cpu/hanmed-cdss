@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
+import { ValueMetricsDashboard, KillerFeatureHighlight } from '@/components/dashboard'
 import {
   Stethoscope,
   BookOpen,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   ChevronRight,
   Zap,
+  Search,
 } from 'lucide-react'
 
 const dashboardTourSteps = [
@@ -81,7 +83,7 @@ const quickActions = [
   {
     name: '새 진료 시작',
     description: 'AI가 증상을 분석하고 최적의 처방을 추천해드립니다',
-    href: '/consultation',
+    href: '/dashboard/consultation',
     icon: Stethoscope,
     gradient: 'from-teal-500 to-emerald-500',
     shadowColor: 'shadow-teal-500/25',
@@ -90,7 +92,7 @@ const quickActions = [
   {
     name: '치험례 검색',
     description: '6,000건의 임상 데이터에서 유사 사례를 찾아보세요',
-    href: '/cases',
+    href: '/dashboard/cases',
     icon: BookOpen,
     gradient: 'from-blue-500 to-indigo-500',
     shadowColor: 'shadow-blue-500/25',
@@ -99,7 +101,7 @@ const quickActions = [
   {
     name: '상호작용 검사',
     description: '양약-한약 간 상호작용을 빠르게 확인하세요',
-    href: '/interactions',
+    href: '/dashboard/interactions',
     icon: AlertTriangle,
     gradient: 'from-amber-500 to-orange-500',
     shadowColor: 'shadow-amber-500/25',
@@ -139,10 +141,19 @@ const recentActivities = [
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user)
+  const navigate = useNavigate()
   const currentHour = new Date().getHours()
   const greeting =
     currentHour < 12 ? '좋은 아침이에요' : currentHour < 18 ? '안녕하세요' : '수고하셨어요'
   const [showTour, setShowTour] = useState(true)
+  const [quickSearch, setQuickSearch] = useState('')
+
+  const handleQuickSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (quickSearch.trim()) {
+      navigate(`/dashboard/cases?keyword=${encodeURIComponent(quickSearch.trim())}`)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -171,7 +182,7 @@ export default function DashboardPage() {
           </div>
 
           <Link
-            to="/consultation"
+            to="/dashboard/consultation"
             data-tour="start-consultation"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-600 rounded-xl font-semibold hover:bg-teal-50 transition-colors shadow-lg"
           >
@@ -181,6 +192,44 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Quick Search Bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <form onSubmit={handleQuickSearch} className="flex items-center gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={quickSearch}
+              onChange={(e) => setQuickSearch(e.target.value)}
+              placeholder="증상, 처방명, 약재명으로 빠르게 검색... (예: 두통, 보중익기탕, 황기)"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all flex items-center gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            AI 검색
+          </button>
+        </form>
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <span className="text-xs text-gray-400">인기 검색어:</span>
+          {['두통', '요통', '불면', '소화불량', '보중익기탕'].map((term) => (
+            <button
+              key={term}
+              onClick={() => navigate(`/dashboard/cases?keyword=${encodeURIComponent(term)}`)}
+              className="px-2.5 py-1 bg-gray-100 hover:bg-teal-50 hover:text-teal-600 text-gray-600 text-xs rounded-lg transition-colors"
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Killer Feature Highlight */}
+      <KillerFeatureHighlight />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -266,9 +315,12 @@ export default function DashboardPage() {
         <div data-tour="recent-activity" className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-gray-900">최근 활동</h2>
-            <button className="text-sm font-medium text-teal-600 hover:text-teal-700">
+            <Link
+              to="/dashboard/statistics"
+              className="text-sm font-medium text-teal-600 hover:text-teal-700"
+            >
               전체 보기
-            </button>
+            </Link>
           </div>
 
           <div className="space-y-4">
@@ -304,7 +356,10 @@ export default function DashboardPage() {
                   겨울철 감기 환자가 많습니다. 소청룡탕과 갈근탕의
                   구분 포인트를 확인해 보세요.
                 </p>
-                <button className="mt-3 text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                <button
+                  onClick={() => navigate('/dashboard/cases?keyword=소청룡탕+갈근탕')}
+                  className="mt-3 text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                >
                   자세히 보기
                   <ArrowRight className="h-4 w-4" />
                 </button>
@@ -312,46 +367,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Usage Stats */}
+          {/* Usage Stats - Value Metrics */}
           <div data-tour="usage-stats" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4">이번 달 사용량</h3>
+            <ValueMetricsDashboard compact />
 
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1.5">
-                  <span className="text-gray-600">AI 추천</span>
-                  <span className="font-medium text-gray-900">47 / 100회</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[47%] bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1.5">
-                  <span className="text-gray-600">치험례 검색</span>
-                  <span className="font-medium text-gray-900">128 / 무제한</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1.5">
-                  <span className="text-gray-600">상호작용 검사</span>
-                  <span className="font-medium text-gray-900">23 / 무제한</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full" />
-                </div>
-              </div>
-            </div>
-
-            {user?.subscriptionTier === 'starter' && (
-              <button className="w-full mt-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">
+            {user?.subscriptionTier === 'free' && (
+              <Link
+                to="/dashboard/subscription"
+                className="block w-full mt-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors text-center"
+              >
                 Pro로 업그레이드
-              </button>
+              </Link>
             )}
           </div>
         </div>

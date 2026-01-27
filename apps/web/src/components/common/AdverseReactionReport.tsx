@@ -157,7 +157,7 @@ export function AdverseReactionReport({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[70vh] overflow-hidden flex flex-col">
       {/* 헤더 */}
       <div className="bg-gradient-to-r from-red-500 to-orange-500 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

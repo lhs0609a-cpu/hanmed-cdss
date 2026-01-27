@@ -86,7 +86,13 @@ export class Payment {
   failedAt: Date | null;
 
   @Column({ nullable: true })
-  failureReason: string | null;
+  failureCode: string | null; // 토스 에러 코드
+
+  @Column({ nullable: true })
+  failureMessage: string | null; // 사용자 친화적 에러 메시지
+
+  @Column({ nullable: true })
+  failureReason: string | null; // 상세 에러 설명
 
   // 카드 정보 (마스킹됨)
   @Column({ nullable: true })

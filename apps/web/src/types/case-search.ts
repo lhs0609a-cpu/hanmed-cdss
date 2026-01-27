@@ -179,39 +179,59 @@ export interface CaseStatsResponse {
  * API 응답을 프론트엔드 타입으로 변환
  */
 export function transformCaseSearchResponse(apiResponse: any): CaseSearchResponse {
+  // null/undefined 체크
+  if (!apiResponse || !apiResponse.results || !Array.isArray(apiResponse.results)) {
+    return {
+      results: [],
+      totalFound: 0,
+      searchMetadata: {
+        processingTimeMs: apiResponse?.search_metadata?.processing_time_ms || 0,
+        queryText: apiResponse?.search_metadata?.query_text || '',
+        vectorSearchUsed: apiResponse?.search_metadata?.vector_search_used || false,
+      },
+    }
+  }
+
   return {
     results: apiResponse.results.map((r: any) => ({
-      caseId: r.case_id,
-      title: r.title,
-      formulaName: r.formula_name,
-      formulaHanja: r.formula_hanja,
-      chiefComplaint: r.chief_complaint,
-      symptoms: r.symptoms,
-      diagnosis: r.diagnosis,
-      patientAge: r.patient_age,
-      patientGender: r.patient_gender,
-      patientConstitution: r.patient_constitution,
-      treatmentFormula: r.treatment_formula,
-      dataSource: r.data_source,
-      matchScore: {
-        total: r.match_score.total,
-        grade: r.match_score.grade as MatchGrade,
-        gradeLabel: r.match_score.grade_label,
-        vectorSimilarity: r.match_score.vector_similarity,
-        keywordMatch: r.match_score.keyword_match,
-        metadataMatch: r.match_score.metadata_match,
+      caseId: r.case_id || r.id || '',
+      title: r.title || '',
+      formulaName: r.formula_name || r.formulaName || '',
+      formulaHanja: r.formula_hanja || r.formulaHanja || '',
+      chiefComplaint: r.chief_complaint || r.chiefComplaint || '',
+      symptoms: Array.isArray(r.symptoms) ? r.symptoms : [],
+      diagnosis: r.diagnosis || '',
+      patientAge: r.patient_age ?? r.patientAge ?? null,
+      patientGender: r.patient_gender || r.patientGender || null,
+      patientConstitution: r.patient_constitution || r.patientConstitution || null,
+      treatmentFormula: r.treatment_formula || r.treatmentFormula || '',
+      dataSource: r.data_source || r.dataSource || '',
+      matchScore: r.match_score ? {
+        total: r.match_score.total || 0,
+        grade: (r.match_score.grade || 'D') as MatchGrade,
+        gradeLabel: r.match_score.grade_label || r.match_score.gradeLabel || '',
+        vectorSimilarity: r.match_score.vector_similarity || r.match_score.vectorSimilarity || 0,
+        keywordMatch: r.match_score.keyword_match || r.match_score.keywordMatch || 0,
+        metadataMatch: r.match_score.metadata_match || r.match_score.metadataMatch || 0,
+      } : {
+        total: 0,
+        grade: 'D' as MatchGrade,
+        gradeLabel: '',
+        vectorSimilarity: 0,
+        keywordMatch: 0,
+        metadataMatch: 0,
       },
-      matchReasons: r.match_reasons.map((mr: any) => ({
+      matchReasons: Array.isArray(r.match_reasons) ? r.match_reasons.map((mr: any) => ({
         type: mr.type as MatchReasonType,
-        description: mr.description,
-        contribution: mr.contribution,
-      })),
+        description: mr.description || '',
+        contribution: mr.contribution || 0,
+      })) : [],
     })),
-    totalFound: apiResponse.total_found,
+    totalFound: apiResponse.total_found || apiResponse.totalFound || apiResponse.results.length,
     searchMetadata: {
-      processingTimeMs: apiResponse.search_metadata.processing_time_ms,
-      queryText: apiResponse.search_metadata.query_text,
-      vectorSearchUsed: apiResponse.search_metadata.vector_search_used,
+      processingTimeMs: apiResponse.search_metadata?.processing_time_ms || apiResponse.searchMetadata?.processingTimeMs || 0,
+      queryText: apiResponse.search_metadata?.query_text || apiResponse.searchMetadata?.queryText || '',
+      vectorSearchUsed: apiResponse.search_metadata?.vector_search_used ?? apiResponse.searchMetadata?.vectorSearchUsed ?? false,
     },
   }
 }

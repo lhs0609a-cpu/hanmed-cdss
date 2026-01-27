@@ -101,7 +101,7 @@ export default function ProfilePage() {
           </p>
         </div>
         <Link
-          to="/settings"
+          to="/dashboard/settings"
           className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
         >
           <Settings className="h-5 w-5" />
@@ -250,7 +250,7 @@ export default function ProfilePage() {
           </div>
           <div className="p-4 border-t border-gray-100">
             <Link
-              to="/community/my/posts"
+              to="/dashboard/community/my/posts"
               className="text-sm text-teal-600 hover:text-teal-700 font-medium"
             >
               모든 활동 보기 →

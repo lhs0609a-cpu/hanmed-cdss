@@ -82,7 +82,7 @@ export default function HerbDetailPage() {
         <Leaf className="h-12 w-12 text-gray-300 mx-auto mb-4" />
         <p className="text-gray-500">약재를 찾을 수 없습니다</p>
         <button
-          onClick={() => navigate('/herbs')}
+          onClick={() => navigate('/dashboard/herbs')}
           className="mt-4 text-teal-500 hover:underline"
         >
           목록으로 돌아가기
@@ -277,7 +277,7 @@ export default function HerbDetailPage() {
           {/* Actions */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <Link
-              to="/interactions"
+              to="/dashboard/interactions"
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
               <Shield className="h-5 w-5" />

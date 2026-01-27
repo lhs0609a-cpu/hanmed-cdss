@@ -330,3 +330,33 @@ export class MedicationReminderRequestDto {
   @IsString()
   patientName?: string;
 }
+
+// ============ Similar Case Success Stats DTO ============
+
+export class SimilarCaseStatsRequestDto {
+  @ApiProperty({ description: '주소증' })
+  @IsString()
+  @IsNotEmpty()
+  chiefComplaint: string;
+
+  @ApiProperty({ description: '증상 목록', type: [SymptomInputDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SymptomInputDto)
+  symptoms: SymptomInputDto[];
+
+  @ApiPropertyOptional({ description: '진단명/변증' })
+  @IsOptional()
+  @IsString()
+  diagnosis?: string;
+
+  @ApiPropertyOptional({ description: '체열 (cold/neutral/hot)' })
+  @IsOptional()
+  @IsString()
+  bodyHeat?: string;
+
+  @ApiPropertyOptional({ description: '근실도 (deficient/neutral/excess)' })
+  @IsOptional()
+  @IsString()
+  bodyStrength?: string;
+}

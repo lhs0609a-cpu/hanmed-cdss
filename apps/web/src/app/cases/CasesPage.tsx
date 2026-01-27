@@ -15,6 +15,8 @@ import {
   FileText,
   Hash,
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
 
 // API에서 반환하는 케이스 타입
 interface CaseFromAPI {
@@ -57,8 +59,56 @@ function formatTextWithParagraphs(text: string): string[] {
   return text.split(/\n\n+/).filter(p => p.trim().length > 0)
 }
 
+// 원문 내용 파싱하여 구조화
+interface ParsedOriginalText {
+  title?: string           // 제목/주제
+  patientInfo?: string     // 환자 기본 정보 (성별, 나이, 체질 등)
+  mainSymptoms?: string    // 주요 증상
+  observations?: string[]  // 세부 관찰 사항 (①, ②, ③ 등)
+  treatmentHistory?: string // 치료 경과
+  result?: string          // 결과
+  fullText: string         // 전체 원문
+}
+
+function parseOriginalText(text: string): ParsedOriginalText {
+  if (!text) return { fullText: '' }
+
+  const result: ParsedOriginalText = { fullText: text }
+
+  // 원문에서 ①, ②, ③ 등의 번호가 붙은 관찰 사항 추출
+  const observationPattern = /[①②③④⑤⑥⑦⑧⑨⑩][^①②③④⑤⑥⑦⑧⑨⑩]*/g
+  const observations = text.match(observationPattern)
+  if (observations && observations.length > 0) {
+    result.observations = observations.map(obs => obs.trim())
+  }
+
+  // 제목 추출 (첫 번째 마침표까지 또는 첫 문장)
+  const firstSentence = text.match(/^[^.。]+[.。]/)
+  if (firstSentence) {
+    result.title = firstSentence[0].trim()
+  }
+
+  return result
+}
+
+// 번호가 붙은 텍스트를 분리하여 포맷팅
+function formatObservations(text: string): { number: string; content: string }[] {
+  const pattern = /([①②③④⑤⑥⑦⑧⑨⑩])\s*([^①②③④⑤⑥⑦⑧⑨⑩]+)/g
+  const matches: { number: string; content: string }[] = []
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    matches.push({
+      number: match[1],
+      content: match[2].trim()
+    })
+  }
+  return matches
+}
+
 export default function CasesPage() {
+  const token = useAuthStore((state) => state.token)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchCategory, setSearchCategory] = useState('all')
   const [selectedConstitution, setSelectedConstitution] = useState('')
   const [selectedOutcome, setSelectedOutcome] = useState('')
 
@@ -91,51 +141,63 @@ export default function CasesPage() {
   // 필터 변경 시 첫 페이지로
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedConstitution, selectedOutcome])
+  }, [selectedConstitution, selectedOutcome, searchCategory])
 
   // API에서 데이터 가져오기
-  useEffect(() => {
-    const fetchCases = async () => {
-      setLoading(true)
-      setError(null)
+  const fetchCases = useCallback(async () => {
+    setLoading(true)
+    setError(null)
 
-      try {
-        const params = new URLSearchParams({
-          page: currentPage.toString(),
-          limit: ITEMS_PER_PAGE.toString(),
-        })
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: ITEMS_PER_PAGE.toString(),
+      })
 
-        if (debouncedSearch) params.append('search', debouncedSearch)
-        if (selectedConstitution) params.append('constitution', selectedConstitution)
-        if (selectedOutcome) params.append('outcome', selectedOutcome)
-
-        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`)
-
-        if (!response.ok) {
-          throw new Error('데이터를 불러오는데 실패했습니다')
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch)
+        // 검색 카테고리 필터 적용
+        if (searchCategory !== 'all') {
+          params.append('searchField', searchCategory)
         }
-
-        const data = await response.json()
-        const result = data.data || data // NestJS 래퍼 형식 대응
-
-        setCases(result.cases || [])
-        setTotalCases(result.total || 0)
-        setTotalPages(result.total_pages || 0)
-
-        // 통계 계산
-        const cured = (result.cases || []).filter((c: CaseRecord) => c.outcome === '완치').length
-        const improved = (result.cases || []).filter((c: CaseRecord) => c.outcome === '호전').length
-        setStats({ cured, improved, total: result.total || 0 })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다')
-        setCases([])
-      } finally {
-        setLoading(false)
       }
-    }
+      if (selectedConstitution) params.append('constitution', selectedConstitution)
+      if (selectedOutcome) params.append('outcome', selectedOutcome)
 
+      const headers: HeadersInit = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
+        headers,
+      })
+
+      if (!response.ok) {
+        throw new Error('데이터를 불러오는데 실패했습니다')
+      }
+
+      const data = await response.json()
+      const result = data.data || data // NestJS 래퍼 형식 대응
+
+      setCases(result.cases || [])
+      setTotalCases(result.total || 0)
+      setTotalPages(result.total_pages || 0)
+
+      // 통계 계산
+      const cured = (result.cases || []).filter((c: CaseRecord) => c.outcome === '완치').length
+      const improved = (result.cases || []).filter((c: CaseRecord) => c.outcome === '호전').length
+      setStats({ cured, improved, total: result.total || 0 })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다')
+      setCases([])
+    } finally {
+      setLoading(false)
+    }
+  }, [currentPage, debouncedSearch, searchCategory, selectedConstitution, selectedOutcome, token])
+
+  useEffect(() => {
     fetchCases()
-  }, [currentPage, debouncedSearch, selectedConstitution, selectedOutcome])
+  }, [fetchCases])
 
   const openDetailModal = useCallback((caseItem: CaseRecord) => {
     setSelectedCase(caseItem)
@@ -168,7 +230,15 @@ export default function CasesPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        {/* Search Category Filter - Pills */}
+        <SearchCategoryFilter
+          selectedCategory={searchCategory}
+          onCategoryChange={setSearchCategory}
+          variant="pills"
+        />
+
+        {/* Search Input & Filters */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -176,7 +246,7 @@ export default function CasesPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="증상, 처방명, 변증으로 검색..."
+              placeholder={DEFAULT_SEARCH_CATEGORIES.find(c => c.id === searchCategory)?.placeholder || '검색어 입력...'}
               className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all"
             />
           </div>
@@ -202,6 +272,16 @@ export default function CasesPage() {
             <option value="무효">무효</option>
           </select>
         </div>
+
+        {/* Search tip based on category */}
+        {searchCategory !== 'all' && (
+          <p className="text-xs text-gray-500">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium mr-1">
+              {DEFAULT_SEARCH_CATEGORIES.find(c => c.id === searchCategory)?.label}
+            </span>
+            필드에서만 검색합니다
+          </p>
+        )}
       </div>
 
       {/* Stats */}
@@ -236,11 +316,12 @@ export default function CasesPage() {
 
         {/* 에러 상태 */}
         {error && !loading && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-red-100">
-            <BookOpen className="h-12 w-12 text-red-300 mx-auto mb-4" />
-            <p className="text-red-500">{error}</p>
-            <p className="text-sm text-gray-400 mt-1">AI Engine 서버가 실행 중인지 확인해주세요</p>
-          </div>
+          <ErrorMessage
+            message={error}
+            description="AI Engine 서버가 실행 중인지 확인해주세요"
+            suggestion="잠시 후 다시 시도하거나, 서버 상태를 확인해 주세요."
+            onRetry={fetchCases}
+          />
         )}
 
         {/* 결과 목록 */}
@@ -392,197 +473,216 @@ export default function CasesPage() {
       </div>
 
       {/* 상세 정보 모달 - 전체 내용 표시 + 가독성 개선 */}
-      {showDetailModal && selectedCase && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="case-detail-title"
-          onClick={() => setShowDetailModal(false)}
-        >
+      {showDetailModal && selectedCase && (() => {
+        const observations = formatObservations(selectedCase.originalText || '')
+
+        return (
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="case-detail-title"
+            onClick={() => setShowDetailModal(false)}
           >
-            {/* 모달 헤더 */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-0.5 bg-white/20 rounded">{selectedCase.dataSource}</span>
-                    {selectedCase.outcome && (
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          selectedCase.outcome === '완치'
-                            ? 'bg-green-400 text-green-900'
-                            : selectedCase.outcome === '호전'
-                              ? 'bg-yellow-400 text-yellow-900'
-                              : 'bg-red-400 text-red-900'
-                        }`}
-                      >
-                        {selectedCase.outcome}
-                      </span>
-                    )}
-                    {selectedCase.constitution && (
-                      <span className="text-xs px-2 py-0.5 bg-purple-400 text-purple-900 rounded">
-                        {selectedCase.constitution}
-                      </span>
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[70vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 모달 헤더 */}
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      {selectedCase.outcome && (
+                        <span
+                          className={`text-sm px-3 py-1 rounded-full font-medium ${
+                            selectedCase.outcome === '완치'
+                              ? 'bg-green-400 text-green-900'
+                              : selectedCase.outcome === '호전'
+                                ? 'bg-yellow-400 text-yellow-900'
+                                : 'bg-red-400 text-red-900'
+                          }`}
+                        >
+                          {selectedCase.outcome}
+                        </span>
+                      )}
+                      {selectedCase.constitution && (
+                        <span className="text-sm px-3 py-1 bg-purple-400 text-purple-900 rounded-full font-medium">
+                          {selectedCase.constitution}
+                        </span>
+                      )}
+                    </div>
+                    <h2 id="case-detail-title" className="text-2xl font-bold">{selectedCase.formulaName || '처방 미상'}</h2>
+                    {selectedCase.formulaHanja && (
+                      <p className="text-white/80 mt-1 text-lg">{selectedCase.formulaHanja}</p>
                     )}
                   </div>
-                  <h2 id="case-detail-title" className="text-xl font-bold">{selectedCase.formulaName || '처방 미상'}</h2>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    aria-label="닫기"
+                  >
+                    <X className="h-6 w-6" aria-hidden="true" />
+                  </button>
                 </div>
+              </div>
+
+              {/* 모달 본문 - 스크롤 영역 */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* 환자 정보 + 처방 - 2열 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* 환자 정보 */}
+                  <div className="bg-blue-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <User className="h-6 w-6 text-blue-500" />
+                      환자 정보
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center py-3 border-b border-blue-100">
+                        <span className="text-gray-600 text-base">성별</span>
+                        <span className="font-semibold text-gray-900 text-lg">
+                          {formatGender(selectedCase.patientGender) || '-'}
+                        </span>
+                      </div>
+                      {selectedCase.patientAge && (
+                        <div className="flex justify-between items-center py-3 border-b border-blue-100">
+                          <span className="text-gray-600 text-base">나이</span>
+                          <span className="font-semibold text-gray-900 text-lg">{selectedCase.patientAge}세</span>
+                        </div>
+                      )}
+                      {selectedCase.constitution && (
+                        <div className="flex justify-between items-center py-3">
+                          <span className="text-gray-600 text-base">체질</span>
+                          <span className="font-semibold text-purple-600 text-lg">{selectedCase.constitution}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 처방 정보 */}
+                  <div className="bg-teal-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <Pill className="h-6 w-6 text-teal-500" />
+                      처방
+                    </h3>
+                    <p className="text-teal-700 font-bold text-2xl mb-2">
+                      {selectedCase.formulaName || '-'}
+                    </p>
+                    {selectedCase.diagnosis && (
+                      <div className="mt-4 pt-4 border-t border-teal-200">
+                        <span className="text-base text-gray-600 flex items-center gap-2">
+                          <Brain className="h-5 w-5 text-purple-500" />
+                          변증: <span className="font-semibold text-purple-700 text-lg">{selectedCase.diagnosis}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 주요 증상 - 전체 표시 */}
+                {selectedCase.chiefComplaint && (
+                  <div className="bg-amber-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <Activity className="h-6 w-6 text-amber-600" />
+                      주요 증상
+                    </h3>
+                    <div className="bg-white rounded-lg p-5 border border-amber-200">
+                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-base">
+                        {selectedCase.chiefComplaint}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 증상 태그 */}
+                {Array.isArray(selectedCase.symptoms) && selectedCase.symptoms.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <Hash className="h-6 w-6 text-blue-500" />
+                      증상 태그
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCase.symptoms.map((symptom, i) => (
+                        <span key={i} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-base font-medium">
+                          {symptom}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 치료 결과/경과 */}
+                {selectedCase.result && (
+                  <div className="bg-green-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <TrendingUp className="h-6 w-6 text-green-600" />
+                      치료 결과 / 경과
+                    </h3>
+                    <div className="bg-white rounded-lg p-5 border border-green-200">
+                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-base">
+                        {selectedCase.result}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 세부 관찰 사항 (①②③ 등 있을 경우) */}
+                {observations.length > 0 && (
+                  <div className="bg-indigo-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <BookOpen className="h-6 w-6 text-indigo-600" />
+                      세부 관찰 사항
+                    </h3>
+                    <div className="space-y-3">
+                      {observations.map((obs, idx) => (
+                        <div key={idx} className="bg-white rounded-lg p-4 border border-indigo-200 flex gap-3">
+                          <span className="flex-shrink-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                            {obs.number}
+                          </span>
+                          <p className="text-gray-800 leading-relaxed text-base flex-1">
+                            {obs.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 원문 전체 내용 */}
+                {selectedCase.originalText && (
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <FileText className="h-6 w-6 text-gray-600" />
+                      원문 전체
+                    </h3>
+                    <div className="bg-white rounded-lg p-6 border border-gray-200 max-h-[600px] overflow-y-auto">
+                      <div className="text-gray-800 leading-[2] text-base whitespace-pre-wrap">
+                        {selectedCase.originalText}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 모달 푸터 */}
+              <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 bg-gray-50">
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                  aria-label="닫기"
+                  className="flex-1 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium border border-gray-200 text-base"
                 >
-                  <X className="h-5 w-5" aria-hidden="true" />
+                  닫기
                 </button>
+                <Link
+                  to={`/dashboard/consultation?formula=${encodeURIComponent(selectedCase.formulaName || '')}`}
+                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-medium text-center text-base"
+                >
+                  이 처방으로 진료 시작
+                </Link>
               </div>
-            </div>
-
-            {/* 모달 본문 - 스크롤 영역 */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* 환자 정보 + 주요 증상 - 2열 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 환자 정보 */}
-                <div className="bg-blue-50 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-500" />
-                    환자 정보
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                      <span className="text-gray-600">성별</span>
-                      <span className="font-medium text-gray-900">
-                        {formatGender(selectedCase.patientGender) || '-'}
-                      </span>
-                    </div>
-                    {selectedCase.patientAge && (
-                      <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                        <span className="text-gray-600">나이</span>
-                        <span className="font-medium text-gray-900">{selectedCase.patientAge}세</span>
-                      </div>
-                    )}
-                    {selectedCase.constitution && (
-                      <div className="flex justify-between items-center py-2 border-b border-blue-100">
-                        <span className="text-gray-600">체질</span>
-                        <span className="font-medium text-purple-600">{selectedCase.constitution}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-600">출처</span>
-                      <span className="font-medium text-gray-700 text-sm">{selectedCase.dataSource}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 처방 정보 */}
-                <div className="bg-teal-50 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Pill className="h-5 w-5 text-teal-500" />
-                    처방
-                  </h3>
-                  <p className="text-teal-700 font-bold text-xl mb-3">
-                    {selectedCase.formulaName || '-'}
-                    {selectedCase.formulaHanja && (
-                      <span className="ml-2 text-base font-normal text-teal-600">({selectedCase.formulaHanja})</span>
-                    )}
-                  </p>
-                  {selectedCase.diagnosis && (
-                    <div className="mt-4 pt-4 border-t border-teal-200">
-                      <span className="text-sm text-gray-600 flex items-center gap-1">
-                        <Brain className="h-4 w-4 text-purple-500" />
-                        변증: <span className="font-medium text-purple-700">{selectedCase.diagnosis}</span>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 주요 증상 - 전체 표시 */}
-              {selectedCase.chiefComplaint && (
-                <div className="bg-amber-50 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-amber-600" />
-                    주요 증상
-                  </h3>
-                  <div className="bg-white rounded-lg p-4 border border-amber-200">
-                    <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-[15px]">
-                      {selectedCase.chiefComplaint}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* 증상 태그 */}
-              {Array.isArray(selectedCase.symptoms) && selectedCase.symptoms.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <Hash className="h-5 w-5 text-blue-500" />
-                    증상 태그
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCase.symptoms.map((symptom, i) => (
-                      <span key={i} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm">
-                        {symptom}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 치료 결과/경과 */}
-              {selectedCase.result && (
-                <div className="bg-green-50 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    치료 결과 / 경과
-                  </h3>
-                  <div className="bg-white rounded-lg p-4 border border-green-200">
-                    <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-[15px]">
-                      {selectedCase.result}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* 원문 전체 내용 */}
-              {selectedCase.originalText && (
-                <div className="bg-gray-50 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-gray-600" />
-                    원문 전체
-                  </h3>
-                  <div className="bg-white rounded-lg p-5 border border-gray-200 max-h-[500px] overflow-y-auto">
-                    {formatTextWithParagraphs(selectedCase.originalText).map((paragraph, idx) => (
-                      <p key={idx} className="text-gray-700 leading-[1.8] text-[15px] mb-4 last:mb-0">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 모달 푸터 */}
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 bg-gray-50">
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="flex-1 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium border border-gray-200"
-              >
-                닫기
-              </button>
-              <Link
-                to={`/consultation?formula=${encodeURIComponent(selectedCase.formulaName || '')}`}
-                className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-medium text-center"
-              >
-                이 처방으로 진료 시작
-              </Link>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
     </div>
   )

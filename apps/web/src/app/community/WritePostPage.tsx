@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -11,8 +11,24 @@ import {
   HelpCircle,
   X,
   Plus,
+  Save,
+  Trash2,
 } from 'lucide-react'
+import { useToast } from '@/hooks/useToast'
 import type { PostType } from '../../types'
+
+const DRAFT_STORAGE_KEY = 'hanmed_post_draft'
+
+interface PostDraft {
+  postType: PostType
+  title: string
+  content: string
+  tags: string[]
+  isAnonymous: boolean
+  forumCategory: string
+  linkedCaseId: string
+  savedAt: string
+}
 
 const postTypeOptions = [
   { value: 'qna', label: 'Q&A', description: '질문하고 답변 받기', icon: HelpCircle },
@@ -36,6 +52,7 @@ const forumCategories = [
 export default function WritePostPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { toast } = useToast()
 
   const [postType, setPostType] = useState<PostType>(
     (searchParams.get('type') as PostType) || 'qna'
@@ -49,6 +66,97 @@ export default function WritePostPage() {
   const [linkedCaseId, setLinkedCaseId] = useState(searchParams.get('caseId') || '')
   const [showCaseSearch, setShowCaseSearch] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false)
+  const [lastSaved, setLastSaved] = useState<string | null>(null)
+
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
+      if (savedDraft) {
+        const draft: PostDraft = JSON.parse(savedDraft)
+        // Only load draft if we don't have URL params overriding
+        if (!searchParams.get('type') && !searchParams.get('caseId')) {
+          setPostType(draft.postType)
+          setTitle(draft.title)
+          setContent(draft.content)
+          setTags(draft.tags)
+          setIsAnonymous(draft.isAnonymous)
+          setForumCategory(draft.forumCategory)
+          setLinkedCaseId(draft.linkedCaseId)
+          setHasDraft(true)
+          setLastSaved(draft.savedAt)
+          toast({
+            title: '임시저장 불러옴',
+            description: `마지막 저장: ${new Date(draft.savedAt).toLocaleString('ko-KR')}`,
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load draft:', err)
+    }
+  }, [])
+
+  // Auto-save draft (debounced)
+  const saveDraft = useCallback(() => {
+    if (!title.trim() && !content.trim()) return
+
+    try {
+      const draft: PostDraft = {
+        postType,
+        title,
+        content,
+        tags,
+        isAnonymous,
+        forumCategory,
+        linkedCaseId,
+        savedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+      setHasDraft(true)
+      setLastSaved(draft.savedAt)
+    } catch (err) {
+      console.error('Failed to save draft:', err)
+    }
+  }, [postType, title, content, tags, isAnonymous, forumCategory, linkedCaseId])
+
+  // Auto-save every 30 seconds if content changed
+  useEffect(() => {
+    if (!title.trim() && !content.trim()) return
+
+    const timer = setTimeout(() => {
+      saveDraft()
+    }, 30000) // 30 seconds
+
+    return () => clearTimeout(timer)
+  }, [title, content, tags, saveDraft])
+
+  // Manual save draft
+  const handleSaveDraft = () => {
+    saveDraft()
+    toast({
+      title: '임시저장 완료',
+      description: '작성 중인 내용이 저장되었습니다.',
+    })
+  }
+
+  // Clear draft
+  const handleClearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY)
+    setHasDraft(false)
+    setLastSaved(null)
+    setPostType('qna')
+    setTitle('')
+    setContent('')
+    setTags([])
+    setIsAnonymous(false)
+    setForumCategory('')
+    setLinkedCaseId('')
+    toast({
+      title: '임시저장 삭제',
+      description: '저장된 내용이 삭제되었습니다.',
+    })
+  }
 
   const handleAddTag = () => {
     if (tagInput.trim() && tags.length < 5 && !tags.includes(tagInput.trim())) {
@@ -63,7 +171,11 @@ export default function WritePostPage() {
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
-      alert('제목과 내용을 입력해주세요.')
+      toast({
+        title: '입력 오류',
+        description: '제목과 내용을 입력해주세요.',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -80,12 +192,25 @@ export default function WritePostPage() {
         linkedCaseId: linkedCaseId || undefined,
       })
 
+      // 성공 시 임시저장 삭제
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
+
+      toast({
+        title: '게시 완료',
+        description: '글이 성공적으로 게시되었습니다.',
+      })
+
       // 성공 시 커뮤니티 페이지로 이동
       setTimeout(() => {
-        navigate('/community')
-      }, 1000)
+        navigate('/dashboard/community')
+      }, 500)
     } catch (error) {
       console.error('Failed to submit post:', error)
+      toast({
+        title: '게시 실패',
+        description: '글 게시 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
       setIsSubmitting(false)
     }
   }
@@ -101,14 +226,42 @@ export default function WritePostPage() {
           <ArrowLeft className="h-5 w-5" />
           취소
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || !title.trim() || !content.trim()}
-          className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-        >
-          <Send className="h-5 w-5" />
-          {isSubmitting ? '게시 중...' : '게시하기'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Draft status */}
+          {lastSaved && (
+            <span className="text-xs text-gray-500 mr-2">
+              마지막 저장: {new Date(lastSaved).toLocaleTimeString('ko-KR')}
+            </span>
+          )}
+          {/* Clear draft button */}
+          {hasDraft && (
+            <button
+              onClick={handleClearDraft}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+              title="임시저장 삭제"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+          {/* Save draft button */}
+          <button
+            onClick={handleSaveDraft}
+            disabled={!title.trim() && !content.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            임시저장
+          </button>
+          {/* Submit button */}
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !title.trim() || !content.trim()}
+            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+          >
+            <Send className="h-5 w-5" />
+            {isSubmitting ? '게시 중...' : '게시하기'}
+          </button>
+        </div>
       </div>
 
       {/* Post Type Selection */}

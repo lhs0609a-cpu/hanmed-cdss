@@ -233,3 +233,43 @@ export function useRefundHistory() {
     },
   });
 }
+
+// ========== 무료 체험 관련 ==========
+
+export interface TrialStatus {
+  isTrialing: boolean;
+  daysRemaining: number | null;
+  trialEndsAt: string | null;
+  canStartTrial: boolean;
+}
+
+// 무료 체험 상태 조회
+export function useTrialStatus() {
+  return useQuery({
+    queryKey: ['trial-status'],
+    queryFn: async () => {
+      const { data } = await api.get<{ data: TrialStatus }>('/subscription/trial/status');
+      return data.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5분
+  });
+}
+
+// 무료 체험 시작
+export function useStartFreeTrial() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post<{
+        data: { success: boolean; trialEndsAt: string; message: string };
+      }>('/subscription/trial/start');
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
+      queryClient.invalidateQueries({ queryKey: ['trial-status'] });
+      queryClient.invalidateQueries({ queryKey: ['usage'] });
+    },
+  });
+}

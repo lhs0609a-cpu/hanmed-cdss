@@ -11,7 +11,12 @@ import {
   AlertCircle,
   Info,
   ChevronDown,
+  AlertTriangle,
+  Zap,
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { ErrorMessage, UsageLimitModal } from '@/components/common'
+import { useUsage, useSubscriptionInfo } from '@/hooks/useSubscription'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,6 +27,7 @@ import {
   CaseMatchCard,
   ScoreDetailsCard,
   ConfidenceBadge,
+  PrescriptionSummary,
 } from '@/components/case-match'
 import type {
   CaseSearchRequest,
@@ -53,6 +59,12 @@ const symptomCategories = [
 const constitutionTypes: ConstitutionType[] = ['소음인', '태음인', '소양인', '태양인']
 
 export default function CaseSearchPage() {
+  const token = useAuthStore((state) => state.token)
+
+  // Subscription & Usage
+  const { data: usage } = useUsage()
+  const { data: subscriptionInfo } = useSubscriptionInfo()
+
   // Form state
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<SymptomRequest[]>([])
@@ -69,6 +81,13 @@ export default function CaseSearchPage() {
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null)
   const [showScoreDetails, setShowScoreDetails] = useState(false)
   const [selectedCase, setSelectedCase] = useState<MatchedCase | null>(null)
+  const [showUsageLimitModal, setShowUsageLimitModal] = useState(false)
+
+  // Usage limit check
+  const isUsageLimitReached = usage ? usage.aiQuery.used >= usage.aiQuery.limit : false
+  const canExceedLimit = subscriptionInfo?.tier === 'professional' || subscriptionInfo?.tier === 'clinic'
+  const usagePercent = usage ? (usage.aiQuery.used / usage.aiQuery.limit) * 100 : 0
+  const showUsageWarning = usagePercent >= 80 && usagePercent < 100 && !canExceedLimit
 
   // Add symptom
   const addSymptom = (name: string, severity?: number) => {
@@ -90,6 +109,12 @@ export default function CaseSearchPage() {
       return
     }
 
+    // Check usage limit (allow if tier can exceed limit)
+    if (isUsageLimitReached && !canExceedLimit) {
+      setShowUsageLimitModal(true)
+      return
+    }
+
     setIsSearching(true)
     setError(null)
     setSearchResult(null)
@@ -106,11 +131,15 @@ export default function CaseSearchPage() {
 
     try {
       const apiUrl = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
       const response = await fetch(`${apiUrl}/api/v1/cases/search`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(transformCaseSearchRequest(request)),
       })
 
@@ -155,6 +184,50 @@ export default function CaseSearchPage() {
           환자 증상을 입력하면 4,300+ 치험례 중 유사 사례를 AI가 찾아드립니다
         </p>
       </div>
+
+      {/* Usage Warning Banner */}
+      {showUsageWarning && usage && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-900">
+              이번 달 AI 검색 한도의 {Math.round(usagePercent)}%를 사용했습니다
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {usage.aiQuery.limit - usage.aiQuery.used}회 남음 · 다음 갱신일: {new Date(usage.resetDate).toLocaleDateString('ko-KR')}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowUsageLimitModal(true)}
+            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            업그레이드
+          </button>
+        </div>
+      )}
+
+      {/* Limit Reached Banner */}
+      {isUsageLimitReached && !canExceedLimit && usage && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-900">
+              이번 달 AI 검색 한도에 도달했습니다
+            </p>
+            <p className="text-xs text-red-700 mt-0.5">
+              {usage.aiQuery.used}/{usage.aiQuery.limit}회 사용 · 다음 갱신일: {new Date(usage.resetDate).toLocaleDateString('ko-KR')}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowUsageLimitModal(true)}
+            className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-xs font-medium rounded-lg hover:shadow-md transition-all flex items-center gap-1"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            플랜 업그레이드
+          </button>
+        </div>
+      )}
 
       {/* Search Form */}
       <Card>
@@ -348,10 +421,11 @@ export default function CaseSearchPage() {
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg">
-              <AlertCircle className="h-5 w-5" />
-              {error}
-            </div>
+            <ErrorMessage
+              message={error}
+              compact
+              onRetry={handleSearch}
+            />
           )}
 
           {/* Actions */}
@@ -427,21 +501,27 @@ export default function CaseSearchPage() {
               <p className="text-sm text-gray-400 mt-2">다른 조건으로 검색해보세요</p>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {searchResult.results.map((matchedCase, index) => (
-                <CaseMatchCard
-                  key={matchedCase.caseId}
-                  matchedCase={matchedCase}
-                  rank={index + 1}
-                  expanded={expandedCaseId === matchedCase.caseId}
-                  onToggleExpand={() => {
-                    setExpandedCaseId(
-                      expandedCaseId === matchedCase.caseId ? null : matchedCase.caseId
-                    )
-                    setSelectedCase(matchedCase)
-                  }}
-                />
-              ))}
+            <div className="space-y-6">
+              {/* AI 추천 처방 요약 */}
+              <PrescriptionSummary results={searchResult.results} />
+
+              {/* 개별 케이스 결과 */}
+              <div className="grid gap-4">
+                {searchResult.results.map((matchedCase, index) => (
+                  <CaseMatchCard
+                    key={matchedCase.caseId}
+                    matchedCase={matchedCase}
+                    rank={index + 1}
+                    expanded={expandedCaseId === matchedCase.caseId}
+                    onToggleExpand={() => {
+                      setExpandedCaseId(
+                        expandedCaseId === matchedCase.caseId ? null : matchedCase.caseId
+                      )
+                      setSelectedCase(matchedCase)
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -480,6 +560,16 @@ export default function CaseSearchPage() {
           </p>
         </div>
       </div>
+
+      {/* Usage Limit Modal */}
+      <UsageLimitModal
+        isOpen={showUsageLimitModal}
+        onClose={() => setShowUsageLimitModal(false)}
+        currentUsage={usage?.aiQuery.used ?? 0}
+        limit={usage?.aiQuery.limit ?? 0}
+        resetDate={usage?.resetDate}
+        currentPlan={subscriptionInfo?.tier === 'free' ? 'Free' : subscriptionInfo?.tier === 'professional' ? 'Professional' : subscriptionInfo?.tier === 'clinic' ? 'Clinic' : 'Free'}
+      />
     </div>
   )
 }

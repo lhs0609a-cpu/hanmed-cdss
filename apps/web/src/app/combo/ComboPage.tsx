@@ -392,7 +392,7 @@ export default function ComboPage() {
               {/* 액션 버튼 */}
               <div className="flex gap-3">
                 <Link
-                  to="/interactions"
+                  to="/dashboard/interactions"
                   className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
                 >
                   <Shield className="h-5 w-5" />

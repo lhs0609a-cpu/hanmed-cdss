@@ -117,7 +117,7 @@ export default function Modal({
       <div
         ref={modalRef}
         className={cn(
-          'bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 fade-in duration-200',
+          'bg-white rounded-2xl shadow-2xl w-full max-h-[70vh] overflow-hidden animate-in zoom-in-95 fade-in duration-200',
           sizeClasses[size],
           className
         )}

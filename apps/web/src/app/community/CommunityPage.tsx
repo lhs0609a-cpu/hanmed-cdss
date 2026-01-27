@@ -15,10 +15,13 @@ import {
   CheckCircle,
   Shield,
   ChevronRight,
+  Loader2,
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
 import type { CommunityLevel } from '@/types/level'
+import { useAuthStore } from '@/stores/authStore'
+import api from '@/services/api'
 
 // 더미 게시글 데이터
 const dummyPosts: CommunityPost[] = [
@@ -179,9 +182,51 @@ const postTypeConfig = {
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const token = useAuthStore((state) => state.token)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
+
+  // API 상태
+  const [posts, setPosts] = useState<CommunityPost[]>(dummyPosts)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [usingDummyData, setUsingDummyData] = useState(true)
+
+  // API에서 게시글 가져오기
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const params: Record<string, string> = {}
+        if (selectedType) params.type = selectedType
+        if (sortBy) params.sort = sortBy
+
+        const response = await api.get('/community/posts', { params })
+        const apiPosts = response.data?.data || response.data || []
+
+        if (Array.isArray(apiPosts) && apiPosts.length > 0) {
+          setPosts(apiPosts)
+          setUsingDummyData(false)
+        } else {
+          // API가 빈 배열 반환 시 더미 데이터 사용
+          setPosts(dummyPosts)
+          setUsingDummyData(true)
+        }
+      } catch (err) {
+        // API 실패 시 더미 데이터로 폴백
+        console.warn('Community API not available, using dummy data:', err)
+        setPosts(dummyPosts)
+        setUsingDummyData(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPosts()
+  }, [selectedType, sortBy, token])
 
   // URL 경로에 따라 selectedType 설정
   useEffect(() => {
@@ -200,31 +245,34 @@ export default function CommunityPage() {
   }, [location.pathname])
 
   const filteredPosts = useMemo(() => {
-    let filtered = dummyPosts.filter((post) => {
+    let filtered = posts.filter((post) => {
       const matchesSearch =
         !searchQuery ||
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.tags.some((tag) => tag.includes(searchQuery))
-      const matchesType = !selectedType || post.type === selectedType
+      // API에서 이미 타입으로 필터링되므로 더미 데이터 사용 시에만 필터
+      const matchesType = !usingDummyData || !selectedType || post.type === selectedType
       return matchesSearch && matchesType
     })
 
-    // 정렬
-    switch (sortBy) {
-      case 'popular':
-        filtered = filtered.sort((a, b) => b.likeCount - a.likeCount)
-        break
-      case 'comments':
-        filtered = filtered.sort((a, b) => b.commentCount - a.commentCount)
-        break
-      default:
-        filtered = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // 정렬 (더미 데이터 사용 시에만 클라이언트 정렬)
+    if (usingDummyData) {
+      switch (sortBy) {
+        case 'popular':
+          filtered = filtered.sort((a, b) => b.likeCount - a.likeCount)
+          break
+        case 'comments':
+          filtered = filtered.sort((a, b) => b.commentCount - a.commentCount)
+          break
+        default:
+          filtered = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      }
     }
 
     // 고정 게시글 우선
     return filtered.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
-  }, [searchQuery, selectedType, sortBy])
+  }, [posts, searchQuery, selectedType, sortBy, usingDummyData])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -251,7 +299,7 @@ export default function CommunityPage() {
           <p className="mt-1 text-gray-600">한의사/한약사 전문가들과 함께 지식을 나누세요</p>
         </div>
         <button
-          onClick={() => navigate('/community/write')}
+          onClick={() => navigate('/dashboard/community/write')}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
         >
           <Plus className="h-5 w-5" />
@@ -262,7 +310,7 @@ export default function CommunityPage() {
       {/* Quick Navigation */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Link
-          to="/community/cases"
+          to="/dashboard/community/cases"
           className="p-4 bg-white rounded-xl border border-gray-100 hover:border-amber-300 hover:shadow-md transition-all group"
         >
           <BookOpen className="h-6 w-6 text-amber-500 mb-2" />
@@ -270,7 +318,7 @@ export default function CommunityPage() {
           <p className="text-xs text-gray-500 mt-1">치험례 기반 토론</p>
         </Link>
         <Link
-          to="/community/qna"
+          to="/dashboard/community/qna"
           className="p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all group"
         >
           <HelpCircle className="h-6 w-6 text-blue-500 mb-2" />
@@ -278,7 +326,7 @@ export default function CommunityPage() {
           <p className="text-xs text-gray-500 mt-1">질문 & 답변</p>
         </Link>
         <Link
-          to="/community/general"
+          to="/dashboard/community/general"
           className="p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group"
         >
           <MessageSquare className="h-6 w-6 text-gray-500 mb-2" />
@@ -286,7 +334,7 @@ export default function CommunityPage() {
           <p className="text-xs text-gray-500 mt-1">자유로운 소통</p>
         </Link>
         <Link
-          to="/community/forum"
+          to="/dashboard/community/forum"
           className="p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-300 hover:shadow-md transition-all group"
         >
           <Users className="h-6 w-6 text-purple-500 mb-2" />
@@ -294,7 +342,7 @@ export default function CommunityPage() {
           <p className="text-xs text-gray-500 mt-1">분과별 토론</p>
         </Link>
         <Link
-          to="/community/my/bookmarks"
+          to="/dashboard/community/my/bookmarks"
           className="p-4 bg-white rounded-xl border border-gray-100 hover:border-teal-300 hover:shadow-md transition-all group"
         >
           <Bookmark className="h-6 w-6 text-teal-500 mb-2" />
@@ -343,7 +391,22 @@ export default function CommunityPage() {
 
       {/* Posts List */}
       <div className="space-y-4">
-        {filteredPosts.map((post) => {
+        {/* 로딩 상태 */}
+        {loading && (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+            <Loader2 className="h-12 w-12 text-teal-500 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-500">게시글을 불러오는 중...</p>
+          </div>
+        )}
+
+        {/* 더미 데이터 사용 안내 */}
+        {!loading && usingDummyData && (
+          <div className="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+            현재 샘플 데이터를 표시하고 있습니다. 실제 게시글은 API 연동 후 표시됩니다.
+          </div>
+        )}
+
+        {!loading && filteredPosts.map((post) => {
           const config = postTypeConfig[post.type]
           const TypeIcon = config.icon
 
@@ -440,13 +503,13 @@ export default function CommunityPage() {
           )
         })}
 
-        {filteredPosts.length === 0 && (
+        {!loading && filteredPosts.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">게시글이 없습니다</p>
             <p className="text-sm text-gray-400 mt-1">첫 번째 글을 작성해보세요!</p>
             <button
-              onClick={() => navigate('/community/write')}
+              onClick={() => navigate('/dashboard/community/write')}
               className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
             >
               글쓰기

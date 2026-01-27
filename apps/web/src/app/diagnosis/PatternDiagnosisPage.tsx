@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Brain,
   Sparkles,
@@ -19,12 +20,16 @@ import {
   Pill,
   Scale,
   Dumbbell,
+  CheckCircle,
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { PalGangAnalysis, BodyConstitutionResult } from '@/types'
 import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'
 import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitutionAssessment'
+import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
+import { TermTooltip } from '@/components/common'
 
 interface SymptomCategory {
   id: string
@@ -717,6 +722,8 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
 }
 
 export default function PatternDiagnosisPage() {
+  const navigate = useNavigate()
+  const { toast } = useToast()
   const [step, setStep] = useState<'constitution' | 'symptoms' | 'pulse' | 'tongue' | 'palgang' | 'result'>('constitution')
   const [bodyConstitution, setBodyConstitution] = useState<BodyConstitutionResult | null>(null)
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
@@ -725,6 +732,7 @@ export default function PatternDiagnosisPage() {
   const [palGangAnalysis, setPalGangAnalysis] = useState<PalGangAnalysis | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [results, setResults] = useState<PatternResult[]>([])
+  const [isSavingToChart, setIsSavingToChart] = useState(false)
 
   const toggleSymptom = (symptomId: string) => {
     setSelectedSymptoms((prev) =>
@@ -823,6 +831,74 @@ export default function PatternDiagnosisPage() {
     return 'text-gray-600 bg-gray-100'
   }
 
+  // 차트에 기록 저장
+  const saveToChart = async () => {
+    if (results.length === 0) return
+
+    setIsSavingToChart(true)
+
+    try {
+      // 진단 결과를 로컬 스토리지에 임시 저장 (실제 구현 시 API 호출로 대체)
+      const diagnosisRecord = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        patternDiagnosis: results[0].pattern,
+        patternHanja: results[0].hanja,
+        confidence: results[0].confidence,
+        treatment: results[0].treatment,
+        formulas: results[0].formulas,
+        bodyConstitution,
+        selectedSymptoms: selectedSymptoms.map(id => {
+          const found = symptomCategories.flatMap(c => c.symptoms).find(s => s.id === id)
+          return found?.name || id
+        }),
+        selectedPulses: selectedPulses.map(id => {
+          const found = pulseTypes.find(p => p.id === id)
+          return found?.name || id
+        }),
+        selectedTongue,
+        palGangAnalysis,
+        allResults: results,
+      }
+
+      // 기존 진단 기록 가져오기
+      const existingRecords = JSON.parse(localStorage.getItem('diagnosisRecords') || '[]')
+      existingRecords.unshift(diagnosisRecord)
+      localStorage.setItem('diagnosisRecords', JSON.stringify(existingRecords.slice(0, 50))) // 최근 50개만 유지
+
+      // 성공 토스트 표시
+      toast({
+        title: '차트에 기록되었습니다',
+        description: `${results[0].pattern} (${results[0].hanja}) 진단 결과가 저장되었습니다.`,
+      })
+
+      // 잠시 후 환자 관리 페이지로 이동 옵션 제공
+      setTimeout(() => {
+        toast({
+          title: '환자 차트로 이동하시겠습니까?',
+          description: '환자 관리 페이지에서 전체 기록을 확인할 수 있습니다.',
+          action: (
+            <button
+              onClick={() => navigate('/dashboard/patients')}
+              className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
+            >
+              이동
+            </button>
+          ),
+        })
+      }, 1000)
+
+    } catch {
+      toast({
+        title: '저장 실패',
+        description: '차트 기록 중 오류가 발생했습니다. 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSavingToChart(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -888,8 +964,10 @@ export default function PatternDiagnosisPage() {
         <div className="space-y-6">
           <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4">
             <p className="text-indigo-700 text-sm">
-              ⚡ <strong>이종대 선생님 기준:</strong> 체열(寒熱)과 근실도(虛實)는 처방 선택의 핵심 기준입니다.
-              이 기준만 지키면 치료 확률 50% 이상, 부작용 최소화!
+              ⚡ <strong>이종대 선생님 기준:</strong>{' '}
+              <TermTooltip term="체열">체열</TermTooltip>(몸이 차가운지/더운지)과{' '}
+              <TermTooltip term="근실도">근실도</TermTooltip>(기운이 약한지/튼튼한지)는 처방 선택의 핵심입니다.
+              이 두 가지만 정확히 파악하면 치료 확률 50% 이상, 부작용 최소화!
             </p>
           </div>
 
@@ -1139,6 +1217,18 @@ export default function PatternDiagnosisPage() {
 
       {step === 'result' && results.length > 0 && (
         <div className="space-y-6">
+          {/* 킬러 피처: 유사 환자 성공 사례 통계 */}
+          <SimilarCaseSuccessCard
+            chiefComplaint={results[0].pattern}
+            symptoms={selectedSymptoms.map(id => {
+              const found = symptomCategories.flatMap(c => c.symptoms).find(s => s.id === id)
+              return { name: found?.name || id }
+            })}
+            diagnosis={results[0].pattern}
+            bodyHeat={bodyConstitution?.bodyHeat}
+            bodyStrength={bodyConstitution?.bodyStrength}
+          />
+
           {/* AI 결과 면책 조항 */}
           <AIResultDisclaimer />
 
@@ -1223,14 +1313,14 @@ export default function PatternDiagnosisPage() {
             </div>
           )}
 
-          {/* 팔강변증 결과 */}
           {/* 체열/근실도 결과 */}
           {bodyConstitution && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Dumbbell className="h-5 w-5 text-indigo-500" />
-                체열/근실도 평가 (이종대 선생님 기준)
+                체열/근실도 평가 결과
               </h3>
+              <p className="text-sm text-gray-500 mb-4">몸의 온기(차가운지/더운지)와 기운(약한지/튼튼한지) 상태</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className={cn(
                   'p-4 rounded-xl',
@@ -1238,11 +1328,14 @@ export default function PatternDiagnosisPage() {
                   bodyConstitution.bodyHeat === 'hot' ? 'bg-orange-50 border border-orange-200' :
                   'bg-gray-50 border border-gray-200'
                 )}>
-                  <p className="text-sm text-gray-600 mb-1">체열 (寒熱)</p>
+                  <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <TermTooltip term="체열">체열</TermTooltip>
+                    <span className="text-xs text-gray-400">(몸의 온기)</span>
+                  </p>
                   <p className="font-bold text-lg">
-                    {bodyConstitution.bodyHeat === 'cold' ? '한(寒) - 찬 체질' :
-                     bodyConstitution.bodyHeat === 'hot' ? '열(熱) - 열 체질' :
-                     '평(平) - 균형'}
+                    {bodyConstitution.bodyHeat === 'cold' ? '한(寒) - 몸이 차가움' :
+                     bodyConstitution.bodyHeat === 'hot' ? '열(熱) - 몸에 열이 많음' :
+                     '평(平) - 균형 상태'}
                   </p>
                   <p className="text-sm text-gray-500">점수: {bodyConstitution.bodyHeatScore}</p>
                 </div>
@@ -1252,11 +1345,14 @@ export default function PatternDiagnosisPage() {
                   bodyConstitution.bodyStrength === 'excess' ? 'bg-green-50 border border-green-200' :
                   'bg-gray-50 border border-gray-200'
                 )}>
-                  <p className="text-sm text-gray-600 mb-1">근실도 (虛實)</p>
+                  <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <TermTooltip term="근실도">근실도</TermTooltip>
+                    <span className="text-xs text-gray-400">(기운 상태)</span>
+                  </p>
                   <p className="font-bold text-lg">
-                    {bodyConstitution.bodyStrength === 'deficient' ? '허(虛) - 허약' :
-                     bodyConstitution.bodyStrength === 'excess' ? '실(實) - 튼튼' :
-                     '평(平) - 균형'}
+                    {bodyConstitution.bodyStrength === 'deficient' ? '허(虛) - 기운이 약함' :
+                     bodyConstitution.bodyStrength === 'excess' ? '실(實) - 기운이 충실함' :
+                     '평(平) - 균형 상태'}
                   </p>
                   <p className="text-sm text-gray-500">점수: {bodyConstitution.bodyStrengthScore}</p>
                 </div>
@@ -1325,8 +1421,22 @@ export default function PatternDiagnosisPage() {
             >
               새로운 진단
             </button>
-            <button className="flex-1 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors">
-              차트에 기록
+            <button
+              onClick={saveToChart}
+              disabled={isSavingToChart}
+              className="flex-1 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingToChart ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  차트에 기록
+                </>
+              )}
             </button>
           </div>
         </div>

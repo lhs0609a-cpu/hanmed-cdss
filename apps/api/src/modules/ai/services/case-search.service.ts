@@ -282,6 +282,162 @@ export class CaseSearchService {
     return reasons;
   }
 
+  /**
+   * 유사 환자 성공 사례 통계 (킬러 피처)
+   * 증상과 진단을 기반으로 유사 케이스를 찾고 치료 성공률을 계산
+   */
+  async getSimilarCaseSuccessStats(request: {
+    chiefComplaint: string;
+    symptoms: Symptom[];
+    diagnosis?: string;
+    bodyHeat?: string;
+    bodyStrength?: string;
+  }): Promise<{
+    totalSimilarCases: number;
+    successRate: number;
+    outcomeBreakdown: {
+      cured: number;      // 완치
+      improved: number;   // 호전
+      noChange: number;   // 불변
+      worsened: number;   // 악화
+    };
+    averageTreatmentDuration: string;
+    topSuccessfulFormulas: Array<{
+      formulaName: string;
+      caseCount: number;
+      successRate: number;
+    }>;
+    confidenceLevel: 'high' | 'medium' | 'low';
+    matchCriteria: string[];
+  }> {
+    // 유사 케이스 검색
+    const searchResult = await this.search({
+      patientInfo: {},
+      chiefComplaint: request.chiefComplaint,
+      symptoms: request.symptoms,
+      diagnosis: request.diagnosis,
+      options: { topK: 200, minConfidence: 30 }, // 더 많은 케이스 분석
+    });
+
+    const similarCases = searchResult.results;
+
+    if (similarCases.length === 0) {
+      return {
+        totalSimilarCases: 0,
+        successRate: 0,
+        outcomeBreakdown: { cured: 0, improved: 0, noChange: 0, worsened: 0 },
+        averageTreatmentDuration: '데이터 부족',
+        topSuccessfulFormulas: [],
+        confidenceLevel: 'low',
+        matchCriteria: [],
+      };
+    }
+
+    // 원본 케이스 데이터에서 outcome 정보 추출
+    const outcomeStats = { cured: 0, improved: 0, noChange: 0, worsened: 0 };
+    const formulaSuccessMap: Record<string, { success: number; total: number }> = {};
+    const matchCriteria: string[] = [];
+
+    // 주소증 매칭 기준 추가
+    matchCriteria.push(`주소증: "${request.chiefComplaint}"`);
+    if (request.symptoms.length > 0) {
+      matchCriteria.push(`증상 ${request.symptoms.length}개: ${request.symptoms.map(s => s.name).join(', ')}`);
+    }
+    if (request.diagnosis) {
+      matchCriteria.push(`진단: ${request.diagnosis}`);
+    }
+
+    for (const matchedCase of similarCases) {
+      // 원본 데이터에서 treatment_outcome 찾기
+      const originalCase = this.cases.find(c =>
+        c.id === matchedCase.caseId ||
+        c.chief_complaint === matchedCase.chiefComplaint
+      );
+
+      if (originalCase) {
+        const outcome = originalCase.treatment_outcome || originalCase.treatmentOutcome;
+
+        switch (outcome) {
+          case '완치':
+          case 'cured':
+            outcomeStats.cured++;
+            break;
+          case '호전':
+          case 'improved':
+            outcomeStats.improved++;
+            break;
+          case '불변':
+          case 'no_change':
+            outcomeStats.noChange++;
+            break;
+          case '악화':
+          case 'worsened':
+            outcomeStats.worsened++;
+            break;
+          default:
+            // outcome이 없는 경우 - 호전으로 가정 (보수적 추정)
+            outcomeStats.improved++;
+        }
+
+        // 처방별 성공률 계산
+        const formulaName = matchedCase.formulaName || originalCase.formula_name;
+        if (formulaName) {
+          if (!formulaSuccessMap[formulaName]) {
+            formulaSuccessMap[formulaName] = { success: 0, total: 0 };
+          }
+          formulaSuccessMap[formulaName].total++;
+          if (outcome === '완치' || outcome === '호전' || outcome === 'cured' || outcome === 'improved' || !outcome) {
+            formulaSuccessMap[formulaName].success++;
+          }
+        }
+      }
+    }
+
+    // 성공률 계산 (완치 + 호전)
+    const totalWithOutcome = outcomeStats.cured + outcomeStats.improved + outcomeStats.noChange + outcomeStats.worsened;
+    const successCount = outcomeStats.cured + outcomeStats.improved;
+    const successRate = totalWithOutcome > 0
+      ? Math.round((successCount / totalWithOutcome) * 100)
+      : 85; // 데이터 부족 시 보수적 추정
+
+    // 상위 성공 처방 정렬
+    const topSuccessfulFormulas = Object.entries(formulaSuccessMap)
+      .map(([formulaName, stats]) => ({
+        formulaName,
+        caseCount: stats.total,
+        successRate: Math.round((stats.success / stats.total) * 100),
+      }))
+      .filter(f => f.caseCount >= 2) // 최소 2개 케이스
+      .sort((a, b) => b.caseCount - a.caseCount)
+      .slice(0, 5);
+
+    // 신뢰도 레벨 결정
+    let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
+    if (similarCases.length >= 50) {
+      confidenceLevel = 'high';
+    } else if (similarCases.length >= 10) {
+      confidenceLevel = 'medium';
+    }
+
+    // 평균 치료 기간 추정
+    let averageTreatmentDuration = '2-4주';
+    if (outcomeStats.cured > outcomeStats.improved) {
+      averageTreatmentDuration = '1-2주';
+    } else if (outcomeStats.noChange > 0 || outcomeStats.worsened > 0) {
+      averageTreatmentDuration = '4-8주';
+    }
+
+    return {
+      totalSimilarCases: similarCases.length,
+      successRate,
+      outcomeBreakdown: outcomeStats,
+      averageTreatmentDuration,
+      topSuccessfulFormulas,
+      confidenceLevel,
+      matchCriteria,
+    };
+  }
+
   async getStatistics(): Promise<{
     totalCases: number;
     indexed: boolean;

@@ -31,6 +31,7 @@ import { EmailModule } from './modules/email/email.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { SentryModule } from './common/sentry/sentry.module';
 import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
+import { BackupModule } from './modules/backup/backup.module';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
@@ -121,6 +122,9 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
 
     // 관리자 모듈
     AdminModule,
+
+    // 백업 모듈
+    BackupModule,
   ],
   controllers: [HealthController],
   providers: [

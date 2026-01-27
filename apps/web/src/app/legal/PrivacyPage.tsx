@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           <CardHeader>
             <CardTitle className="text-2xl">개인정보처리방침</CardTitle>
             <p className="text-sm text-muted-foreground">
-              시행일: 2024년 1월 1일 | 최종 수정: 2024년 1월 1일
+              시행일: 2024년 1월 1일 | 최종 수정: 2026년 1월 22일 (의료정보 특례 조항 추가)
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
@@ -87,8 +87,22 @@ export default function PrivacyPage() {
                     <td className="border border-gray-300 px-4 py-2">IP주소, 접속로그, 서비스 이용기록</td>
                     <td className="border border-gray-300 px-4 py-2">서비스 이용 시</td>
                   </tr>
+                  <tr className="bg-amber-50">
+                    <td className="border border-gray-300 px-4 py-2 font-medium text-amber-800">환자 의료정보 (민감정보)</td>
+                    <td className="border border-gray-300 px-4 py-2 text-amber-800">증상, 진단 기록, 처방 내역, 복용 약물, 체질 정보, 설진/맥진/복진 소견</td>
+                    <td className="border border-gray-300 px-4 py-2 text-amber-800">AI 진단 서비스 이용 시</td>
+                  </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-4 p-4 border-l-4 border-amber-500 bg-amber-50 rounded">
+              <h3 className="font-semibold text-amber-800 mb-2">민감정보(의료정보) 처리 안내</h3>
+              <p className="text-sm text-amber-700">
+                환자의 의료정보는 「개인정보 보호법」 제23조에 따른 민감정보에 해당합니다.
+                회사는 의료정보 처리 시 정보주체(환자)의 별도 동의를 받거나,
+                「의료법」 등 법령에서 민감정보의 처리를 요구하거나 허용하는 경우에만 처리합니다.
+              </p>
             </div>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">제3조 (개인정보의 처리 및 보유기간)</h2>
@@ -102,6 +116,8 @@ export default function PrivacyPage() {
                   <li>접속로그: 통신비밀보호법에 따라 3개월</li>
                   <li>계약 및 청약철회 기록: 전자상거래법에 따라 5년</li>
                   <li>소비자 불만 또는 분쟁처리 기록: 전자상거래법에 따라 3년</li>
+                  <li className="text-amber-700 font-medium">환자 의료정보 접근기록: 의료법 시행규칙에 따라 5년</li>
+                  <li className="text-amber-700 font-medium">AI 진단 결과 기록: 서비스 이용 종료 후 3년 (의료분쟁 대비)</li>
                 </ul>
               </li>
             </ol>
@@ -170,6 +186,81 @@ export default function PrivacyPage() {
               <li>기술적 조치: 개인정보처리시스템 등의 접근권한 관리, 접속기록 보관, 암호화 기술 적용</li>
               <li>물리적 조치: 전산실, 자료보관실 등의 접근통제</li>
             </ul>
+
+            <h2 className="text-lg font-semibold mt-6 mb-3">제8조의2 (의료정보의 특별 보호조치)</h2>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+              <p className="text-gray-700 leading-relaxed mb-3">
+                회사는 환자의 의료정보(민감정보)에 대해 다음과 같은 강화된 보호조치를 적용합니다:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700">
+                <li>
+                  <strong>암호화 (Encryption)</strong>
+                  <ul className="list-circle list-inside ml-4 mt-1 text-sm">
+                    <li>전송 시: TLS 1.3 프로토콜을 통한 종단간 암호화</li>
+                    <li>저장 시: AES-256-GCM 알고리즘을 통한 데이터베이스 필드 레벨 암호화</li>
+                    <li>암호화 키: 별도 보안 키 관리 시스템(KMS)을 통한 관리</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>접근 통제 (Access Control)</strong>
+                  <ul className="list-circle list-inside ml-4 mt-1 text-sm">
+                    <li>역할 기반 접근 제어(RBAC) 적용</li>
+                    <li>의료정보 접근 시 2단계 인증 필수</li>
+                    <li>모든 접근 기록 로깅 및 감사 추적</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>데이터 최소화 (Data Minimization)</strong>
+                  <ul className="list-circle list-inside ml-4 mt-1 text-sm">
+                    <li>AI 분석에 필요한 최소한의 정보만 처리</li>
+                    <li>환자 식별 정보(이름, 주민번호 등)는 수집하지 않음</li>
+                    <li>익명화/가명화 처리 우선 적용</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>접근 로그 보관</strong>
+                  <ul className="list-circle list-inside ml-4 mt-1 text-sm">
+                    <li>의료정보 열람/수정/삭제 기록: 5년간 보관</li>
+                    <li>로그에 포함되는 정보: 접근자 ID, 접근 시각, 접근 유형, IP 주소</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+
+            <h2 className="text-lg font-semibold mt-6 mb-3">제8조의3 (의료법 등 관계법령 준수)</h2>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700">
+              <li>
+                회사는 「의료법」 제21조(기록 열람 등), 제22조(진료기록부 등), 제23조(전자의무기록)의 규정을 준수합니다.
+              </li>
+              <li>
+                본 서비스는 임상결정지원 소프트웨어로서, 「의료기기법」 관련 규정에 따라 적법하게 운영됩니다.
+              </li>
+              <li>
+                의료정보의 국외 이전: 회사는 환자의 의료정보를 국외로 이전하지 않습니다.
+                데이터 저장 및 처리는 대한민국 내 서버에서만 이루어집니다.
+              </li>
+              <li>
+                의료정보 유출 시 대응: 의료정보 유출 사고 발생 시, 지체 없이 정보주체에게 통지하고,
+                보건복지부 및 개인정보보호위원회에 신고합니다.
+              </li>
+            </ol>
+
+            <h2 className="text-lg font-semibold mt-6 mb-3">제8조의4 (환자 권리 보장)</h2>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-3">
+              <p className="text-gray-700 leading-relaxed mb-3">
+                환자(정보주체)는 자신의 의료정보에 대해 다음의 권리를 가집니다:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>열람권:</strong> 본인의 의료정보 처리 현황을 열람할 수 있습니다.</li>
+                <li><strong>정정·삭제권:</strong> 잘못된 의료정보의 정정 또는 삭제를 요청할 수 있습니다.</li>
+                <li><strong>처리정지권:</strong> 의료정보 처리의 정지를 요청할 수 있습니다.</li>
+                <li><strong>동의 철회권:</strong> 언제든지 의료정보 처리에 대한 동의를 철회할 수 있습니다.</li>
+                <li><strong>이동권:</strong> 본인의 의료정보를 다른 서비스로 이전 요청할 수 있습니다.</li>
+              </ul>
+              <p className="text-sm text-gray-600 mt-3">
+                * 권리 행사: 서비스 내 [설정 &gt; 개인정보 관리] 또는 privacy@ongojisin.kr로 요청
+              </p>
+            </div>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">제9조 (개인정보 보호책임자)</h2>
             <div className="bg-gray-100 p-4 rounded-lg mt-3">

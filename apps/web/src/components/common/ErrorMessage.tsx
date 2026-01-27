@@ -279,4 +279,163 @@ export function SuccessMessage({
   )
 }
 
+// ========== 추가 표준화된 에러 메시지 ==========
+
+/** 서버 에러 */
+export function ServerErrorMessage({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <ErrorMessage
+      severity="error"
+      message="서버 오류가 발생했습니다"
+      description="일시적인 서버 문제입니다. 잠시 후 다시 시도해 주세요."
+      suggestion="문제가 지속되면 고객지원에 문의해 주세요."
+      onRetry={onRetry}
+    />
+  )
+}
+
+/** 데이터 로드 실패 */
+export function DataLoadErrorMessage({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <ErrorMessage
+      severity="error"
+      message="데이터를 불러올 수 없습니다"
+      description="데이터 로드 중 문제가 발생했습니다."
+      onRetry={onRetry}
+    />
+  )
+}
+
+/** AI 분석 실패 */
+export function AIAnalysisErrorMessage({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <ErrorMessage
+      severity="warning"
+      message="AI 분석에 실패했습니다"
+      description="일시적인 AI 서비스 문제입니다. 잠시 후 다시 시도해 주세요."
+      suggestion="입력 내용을 확인하고 다시 시도하세요."
+      onRetry={onRetry}
+    />
+  )
+}
+
+/** 검색 결과 없음 */
+export function NoResultsMessage({ searchTerm }: { searchTerm?: string }) {
+  return (
+    <ErrorMessage
+      severity="info"
+      message="검색 결과가 없습니다"
+      description={searchTerm ? `"${searchTerm}"에 대한 검색 결과를 찾을 수 없습니다.` : '조건에 맞는 결과가 없습니다.'}
+      suggestion="다른 검색어나 조건으로 다시 시도해 보세요."
+    />
+  )
+}
+
+/** 입력 오류 */
+export function ValidationErrorMessage({ message, fields }: { message?: string; fields?: string[] }) {
+  return (
+    <ErrorMessage
+      severity="warning"
+      message={message || "입력 내용을 확인해 주세요"}
+      description={fields ? `문제가 있는 항목: ${fields.join(', ')}` : undefined}
+      suggestion="필수 항목을 모두 입력하고 형식을 확인하세요."
+    />
+  )
+}
+
+/** 세션 만료 */
+export function SessionExpiredMessage({ onLogin }: { onLogin?: () => void }) {
+  return (
+    <ErrorMessage
+      severity="warning"
+      message="세션이 만료되었습니다"
+      description="장시간 미사용으로 로그아웃되었습니다."
+      action={onLogin ? { label: '다시 로그인', onClick: onLogin } : undefined}
+    />
+  )
+}
+
+/** 결제 실패 */
+export function PaymentErrorMessage({ errorCode, onRetry }: { errorCode?: string; onRetry?: () => void }) {
+  const errorMessages: Record<string, string> = {
+    'INSUFFICIENT_FUNDS': '잔액이 부족합니다.',
+    'CARD_DECLINED': '카드 결제가 거부되었습니다.',
+    'CARD_EXPIRED': '카드가 만료되었습니다.',
+    'INVALID_CARD': '유효하지 않은 카드입니다.',
+    'DEFAULT': '결제 처리 중 문제가 발생했습니다.',
+  }
+
+  return (
+    <ErrorMessage
+      severity="error"
+      message="결제에 실패했습니다"
+      description={errorMessages[errorCode || 'DEFAULT']}
+      suggestion="다른 결제 수단을 사용하거나 카드사에 문의하세요."
+      onRetry={onRetry}
+    />
+  )
+}
+
+/** 유지보수 안내 */
+export function MaintenanceMessage({ endTime }: { endTime?: string }) {
+  return (
+    <ErrorMessage
+      severity="info"
+      message="서비스 점검 중입니다"
+      description={endTime ? `예상 완료 시간: ${endTime}` : '잠시 후 다시 이용해 주세요.'}
+      suggestion="점검이 완료되면 정상적으로 서비스를 이용하실 수 있습니다."
+    />
+  )
+}
+
+// ========== 표준화된 에러 코드 매핑 ==========
+
+export const ERROR_MESSAGES = {
+  // 네트워크
+  NETWORK_ERROR: '네트워크 연결을 확인해 주세요.',
+  TIMEOUT: '요청 시간이 초과되었습니다. 다시 시도해 주세요.',
+
+  // 인증
+  UNAUTHORIZED: '로그인이 필요합니다.',
+  SESSION_EXPIRED: '세션이 만료되었습니다. 다시 로그인해 주세요.',
+  INVALID_CREDENTIALS: '아이디 또는 비밀번호가 올바르지 않습니다.',
+
+  // 권한
+  FORBIDDEN: '접근 권한이 없습니다.',
+  PLAN_REQUIRED: '이 기능은 유료 플랜에서 사용할 수 있습니다.',
+  LIMIT_EXCEEDED: '이용 한도를 초과했습니다.',
+
+  // 서버
+  SERVER_ERROR: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+  SERVICE_UNAVAILABLE: '서비스를 일시적으로 사용할 수 없습니다.',
+
+  // 데이터
+  NOT_FOUND: '요청한 데이터를 찾을 수 없습니다.',
+  DATA_LOAD_FAILED: '데이터를 불러오는데 실패했습니다.',
+  SAVE_FAILED: '저장에 실패했습니다. 다시 시도해 주세요.',
+
+  // 입력
+  VALIDATION_ERROR: '입력 내용을 확인해 주세요.',
+  REQUIRED_FIELD: '필수 항목을 입력해 주세요.',
+  INVALID_FORMAT: '올바른 형식으로 입력해 주세요.',
+
+  // AI
+  AI_ANALYSIS_FAILED: 'AI 분석에 실패했습니다. 다시 시도해 주세요.',
+  AI_SERVICE_BUSY: 'AI 서비스가 바쁩니다. 잠시 후 다시 시도해 주세요.',
+
+  // 결제
+  PAYMENT_FAILED: '결제에 실패했습니다.',
+  CARD_DECLINED: '카드 결제가 거부되었습니다.',
+
+  // 기본
+  UNKNOWN: '알 수 없는 오류가 발생했습니다.',
+} as const
+
+export type ErrorCode = keyof typeof ERROR_MESSAGES
+
+/** 에러 코드로 메시지 가져오기 */
+export function getErrorMessage(code: ErrorCode | string): string {
+  return ERROR_MESSAGES[code as ErrorCode] || ERROR_MESSAGES.UNKNOWN
+}
+
 export default ErrorMessage

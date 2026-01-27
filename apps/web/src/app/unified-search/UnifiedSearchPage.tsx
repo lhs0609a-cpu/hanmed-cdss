@@ -597,7 +597,7 @@ export default function UnifiedSearchPage() {
             {/* Quick Access */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
-                to="/case-search"
+                to="/dashboard/case-search"
                 className="bg-white rounded-xl p-5 border border-gray-200 hover:border-amber-300 hover:shadow-lg transition-all group"
               >
                 <div className="p-3 bg-amber-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
@@ -608,7 +608,7 @@ export default function UnifiedSearchPage() {
               </Link>
 
               <Link
-                to="/consultation"
+                to="/dashboard/consultation"
                 className="bg-white rounded-xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all group"
               >
                 <div className="p-3 bg-blue-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
@@ -619,7 +619,7 @@ export default function UnifiedSearchPage() {
               </Link>
 
               <Link
-                to="/interactions"
+                to="/dashboard/interactions"
                 className="bg-white rounded-xl p-5 border border-gray-200 hover:border-red-300 hover:shadow-lg transition-all group"
               >
                 <div className="p-3 bg-red-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
@@ -630,7 +630,7 @@ export default function UnifiedSearchPage() {
               </Link>
 
               <Link
-                to="/formulas"
+                to="/dashboard/formulas"
                 className="bg-white rounded-xl p-5 border border-gray-200 hover:border-teal-300 hover:shadow-lg transition-all group"
               >
                 <div className="p-3 bg-teal-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users,
@@ -122,14 +122,44 @@ interface NewPatientForm {
   mainComplaint: string
 }
 
+// 로컬스토리지 키
+const PATIENTS_STORAGE_KEY = 'hanmed_patients'
+
+// 로컬스토리지에서 환자 데이터 로드
+function loadPatientsFromStorage(): Patient[] {
+  try {
+    const stored = localStorage.getItem(PATIENTS_STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    console.error('Failed to load patients from storage:', e)
+  }
+  return initialPatients
+}
+
+// 로컬스토리지에 환자 데이터 저장
+function savePatientsToStorage(patients: Patient[]): void {
+  try {
+    localStorage.setItem(PATIENTS_STORAGE_KEY, JSON.stringify(patients))
+  } catch (e) {
+    console.error('Failed to save patients to storage:', e)
+  }
+}
+
 export default function PatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients)
+  const [patients, setPatients] = useState<Patient[]>(() => loadPatientsFromStorage())
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [newPatientName, setNewPatientName] = useState('')
   const [showTour, setShowTour] = useState(true)
+
+  // 환자 데이터 변경 시 로컬스토리지에 저장
+  useEffect(() => {
+    savePatientsToStorage(patients)
+  }, [patients])
 
   // 새 환자 폼
   const [newPatient, setNewPatient] = useState<NewPatientForm>({

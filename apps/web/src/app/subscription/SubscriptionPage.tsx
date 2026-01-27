@@ -8,6 +8,8 @@ import {
   useSubscribe,
   useCancelSubscription,
   useCancelSubscriptionImmediately,
+  useTrialStatus,
+  useStartFreeTrial,
 } from '@/hooks/useSubscription';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,10 +34,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard, ExternalLink } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard, ExternalLink, Gift, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ROICalculator } from '@/components/dashboard';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -71,11 +74,24 @@ export default function SubscriptionPage() {
   const { data: plans, isLoading: plansLoading } = usePlans();
   const { data: subscriptionInfo } = useSubscriptionInfo();
   const { data: usage } = useUsage();
+  const { data: trialStatus } = useTrialStatus();
 
   const registerCard = useRegisterCard();
   const subscribe = useSubscribe();
   const cancelSubscription = useCancelSubscription();
   const cancelImmediately = useCancelSubscriptionImmediately();
+  const startTrial = useStartFreeTrial();
+
+  const handleStartTrial = () => {
+    startTrial.mutate(undefined, {
+      onSuccess: (data) => {
+        toast.success(data.message);
+      },
+      onError: (error: Error) => {
+        toast.error(error.message || '무료 체험 시작에 실패했습니다.');
+      },
+    });
+  };
 
   const currentTier = subscriptionInfo?.tier || user?.subscriptionTier || 'free';
   const hasBillingKey = subscriptionInfo?.hasBillingKey || false;
@@ -184,6 +200,71 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
+      {/* Free Trial Banner */}
+      {trialStatus?.canStartTrial && currentTier === 'free' && (
+        <Card className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <Gift className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">7일 무료 체험</h3>
+                  <p className="text-purple-100 text-sm">
+                    Professional 플랜의 모든 기능을 카드 등록 없이 무료로 체험해보세요!
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleStartTrial}
+                disabled={startTrial.isPending}
+                className="bg-white text-purple-600 hover:bg-purple-50 font-semibold px-8"
+              >
+                {startTrial.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                무료 체험 시작
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trial Status Banner */}
+      {trialStatus?.isTrialing && (
+        <Card className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <Clock className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">무료 체험 중</h3>
+                  <p className="text-emerald-100 text-sm">
+                    Professional 플랜 체험 중입니다.
+                    <span className="font-semibold ml-1">
+                      {trialStatus.daysRemaining}일 남음
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-emerald-100">체험 종료일</p>
+                <p className="font-semibold">
+                  {trialStatus.trialEndsAt
+                    ? new Date(trialStatus.trialEndsAt).toLocaleDateString('ko-KR')
+                    : '-'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Billing Toggle */}
       <div className="flex justify-center">
         <div className="inline-flex items-center gap-2 p-1 bg-gray-100 rounded-xl">
@@ -258,6 +339,9 @@ export default function SubscriptionPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* ROI Calculator */}
+      <ROICalculator />
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

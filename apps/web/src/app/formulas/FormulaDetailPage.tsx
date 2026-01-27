@@ -178,7 +178,7 @@ export default function FormulaDetailPage() {
         <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
         <p className="text-gray-500">처방을 찾을 수 없습니다</p>
         <button
-          onClick={() => navigate('/formulas')}
+          onClick={() => navigate('/dashboard/formulas')}
           className="mt-4 text-blue-500 hover:underline"
         >
           목록으로 돌아가기
@@ -377,7 +377,7 @@ export default function FormulaDetailPage() {
             </Link>
 
             <Link
-              to="/interactions"
+              to="/dashboard/interactions"
               className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
             >
               <Shield className="h-5 w-5" />

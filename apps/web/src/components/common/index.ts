@@ -22,6 +22,7 @@ export {
 
 // UI Components
 export { default as Loader } from './Loader'
+export { AnalysisProgress, LoadingWithTime } from './AnalysisProgress'
 export {
   Skeleton,
   SkeletonText,
@@ -61,7 +62,28 @@ export {
   UpgradeRequiredMessage,
   UsageLimitMessage,
   SuccessMessage,
+  ServerErrorMessage,
+  DataLoadErrorMessage,
+  AIAnalysisErrorMessage,
+  NoResultsMessage,
+  ValidationErrorMessage,
+  SessionExpiredMessage,
+  PaymentErrorMessage,
+  MaintenanceMessage,
+  ERROR_MESSAGES,
+  getErrorMessage,
 } from './ErrorMessage'
+
+// Usage Limit Modal
+export { UsageLimitModal } from './UsageLimitModal'
+
+// Medical Term Tooltips
+export {
+  TermTooltip,
+  TermBadge,
+  SimplifiedLabel,
+  MEDICAL_TERMS,
+} from './TermTooltip'
 
 // Responsive Utilities
 export {
@@ -73,3 +95,11 @@ export {
   touchTargetSize,
   safeAreaInsets,
 } from './ResponsiveContainer'
+
+// Search Category Filter
+export {
+  SearchCategoryFilter,
+  InlineSearchFilter,
+  DEFAULT_SEARCH_CATEGORIES,
+  type SearchCategory,
+} from './SearchCategoryFilter'

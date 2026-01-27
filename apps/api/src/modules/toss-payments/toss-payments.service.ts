@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThan, IsNull } from 'typeorm';
+import { Repository, DataSource, LessThanOrEqual, MoreThan, IsNull, QueryRunner } from 'typeorm';
 import axios from 'axios';
 import {
   User,
@@ -25,6 +25,13 @@ import {
 } from '../../database/entities/usage-tracking.entity';
 import { Payment, PaymentStatus } from '../../database/entities/payment.entity';
 import { Refund, RefundStatus } from '../../database/entities/refund.entity';
+import {
+  getPaymentErrorInfo,
+  createPaymentErrorResponse,
+  categorizePaymentFailure,
+  PaymentFailureCategory,
+  PaymentErrorInfo,
+} from './payment-errors';
 
 // 플랜별 가격 정보 (초과 사용료 포함)
 export const PLAN_PRICES = {
@@ -96,6 +103,7 @@ export class TossPaymentsService {
 
   constructor(
     private configService: ConfigService,
+    private dataSource: DataSource,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Subscription)
@@ -162,19 +170,31 @@ export class TossPaymentsService {
         cardNumber: card.number, // 마스킹된 카드번호
       };
     } catch (error) {
-      this.logger.error('빌링키 발급 실패:', error.response?.data || error);
-      throw new BadRequestException(
-        error.response?.data?.message || '빌링키 발급에 실패했습니다.',
-      );
+      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR';
+      const errorInfo = getPaymentErrorInfo(errorCode);
+
+      this.logger.error(`빌링키 발급 실패: userId=${userId}, code=${errorCode}`, {
+        errorCode,
+        errorMessage: error?.response?.data?.message,
+      });
+
+      throw new BadRequestException({
+        message: errorInfo.userMessage,
+        action: errorInfo.actionRequired,
+        code: errorInfo.code,
+        originalMessage: process.env.NODE_ENV === 'development'
+          ? error.response?.data?.message
+          : undefined,
+      });
     }
   }
 
-  // 빌링키로 결제 요청
+  // 빌링키로 결제 요청 (트랜잭션 적용)
   async payWithBillingKey(
     userId: string,
     tier: SubscriptionTier,
     interval: BillingInterval,
-  ): Promise<{ success: boolean; paymentKey: string }> {
+  ): Promise<{ success: boolean; paymentKey: string; error?: PaymentErrorInfo }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
@@ -191,7 +211,30 @@ export class TossPaymentsService {
     const orderId = `order_${userId}_${Date.now()}`;
     const orderName = `온고지신 AI ${price.name} 플랜 (${interval === BillingInterval.YEARLY ? '연간' : '월간'})`;
 
+    // QueryRunner를 사용하여 트랜잭션 시작
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let pendingPayment: Payment | null = null;
+
     try {
+      // 1단계: 결제 전에 PENDING 상태의 Payment 레코드 먼저 생성
+      pendingPayment = queryRunner.manager.create(Payment, {
+        userId,
+        orderId,
+        orderName,
+        amount,
+        baseAmount: amount,
+        overageAmount: 0,
+        overageCount: 0,
+        status: PaymentStatus.PENDING,
+      });
+      await queryRunner.manager.save(Payment, pendingPayment);
+
+      this.logger.log(`결제 시작: userId=${userId}, orderId=${orderId}, amount=${amount}`);
+
+      // 2단계: 토스 API 호출 (결제 진행)
       const response = await axios.post<TossPaymentResponse>(
         `${this.apiUrl}/billing/${billingKey}`,
         {
@@ -212,22 +255,219 @@ export class TossPaymentsService {
 
       const { paymentKey, status } = response.data;
 
-      if (status === 'DONE') {
-        // 구독 정보 생성/업데이트
-        await this.createOrUpdateSubscription(userId, tier, interval, paymentKey, orderId);
-        return { success: true, paymentKey };
+      if (status !== 'DONE') {
+        throw new Error('결제가 완료되지 않았습니다.');
       }
 
-      throw new BadRequestException('결제가 완료되지 않았습니다.');
-    } catch (error) {
-      this.logger.error('결제 실패:', error.response?.data || error);
-      throw new BadRequestException(
-        error.response?.data?.message || '결제에 실패했습니다.',
+      // 3단계: 결제 성공 - Payment 상태 업데이트
+      pendingPayment.paymentKey = paymentKey;
+      pendingPayment.status = PaymentStatus.PAID;
+      pendingPayment.paidAt = new Date();
+      await queryRunner.manager.save(Payment, pendingPayment);
+
+      // 4단계: 구독 정보 생성/업데이트 (트랜잭션 내에서)
+      await this.createOrUpdateSubscriptionWithTransaction(
+        queryRunner,
+        userId,
+        tier,
+        interval,
+        paymentKey,
+        orderId,
+        pendingPayment.id,
       );
+
+      // 5단계: 모든 작업 성공 - 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      this.logger.log(`결제 완료: userId=${userId}, paymentKey=${paymentKey}`);
+
+      return { success: true, paymentKey };
+    } catch (error) {
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+
+      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR';
+      const errorInfo = getPaymentErrorInfo(errorCode);
+      const failureCategory = categorizePaymentFailure(errorCode);
+
+      this.logger.error(`결제 실패: userId=${userId}, code=${errorCode}, category=${failureCategory}`, {
+        errorCode,
+        errorMessage: error?.response?.data?.message || error.message,
+        failureCategory,
+        orderId,
+      });
+
+      // 결제 실패 기록 (트랜잭션 외부에서 별도 저장)
+      await this.recordFailedPayment(userId, orderId, orderName, amount, errorCode, errorInfo.userMessage);
+
+      // 토스에서 이미 결제가 된 경우 환불 처리 시도
+      if (error.response?.data?.paymentKey) {
+        await this.attemptRefundOnFailure(error.response.data.paymentKey, orderId, amount);
+      }
+
+      // 카드 문제인 경우 사용자에게 알림 필요 표시
+      if (errorInfo.notifyUser) {
+        this.logger.log(`결제 실패 알림 필요: userId=${userId}, error=${errorInfo.userMessage}`);
+      }
+
+      throw new BadRequestException({
+        message: errorInfo.userMessage,
+        action: errorInfo.actionRequired,
+        code: errorInfo.code,
+        retryable: errorInfo.retryable,
+        category: failureCategory,
+      });
+    } finally {
+      // QueryRunner 해제
+      await queryRunner.release();
     }
   }
 
-  // 구독 생성/업데이트
+  /**
+   * 결제 실패 시 환불 시도 (토스에서 결제는 됐지만 DB 저장 실패한 경우)
+   */
+  private async attemptRefundOnFailure(
+    paymentKey: string,
+    orderId: string,
+    amount: number,
+  ): Promise<void> {
+    try {
+      this.logger.warn(`DB 저장 실패로 환불 시도: paymentKey=${paymentKey}, orderId=${orderId}`);
+
+      await axios.post(
+        `${this.apiUrl}/payments/${paymentKey}/cancel`,
+        {
+          cancelReason: '시스템 오류로 인한 자동 환불',
+          cancelAmount: amount,
+        },
+        {
+          headers: {
+            Authorization: this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      this.logger.log(`자동 환불 완료: paymentKey=${paymentKey}`);
+    } catch (refundError) {
+      // 환불도 실패한 경우 관리자 알림 필요
+      this.logger.error(
+        `자동 환불 실패 - 수동 확인 필요: paymentKey=${paymentKey}, orderId=${orderId}`,
+        refundError,
+      );
+      // TODO: 관리자에게 알림 발송 (이메일/슬랙 등)
+    }
+  }
+
+  /**
+   * 결제 실패 기록 (트랜잭션 외부)
+   */
+  private async recordFailedPayment(
+    userId: string,
+    orderId: string,
+    orderName: string,
+    amount: number,
+    errorCode: string,
+    errorMessage: string,
+  ): Promise<void> {
+    try {
+      const failedPayment = this.paymentRepository.create({
+        userId,
+        orderId,
+        orderName,
+        amount,
+        baseAmount: amount,
+        status: PaymentStatus.FAILED,
+        failureCode: errorCode,
+        failureMessage: errorMessage,
+      });
+      await this.paymentRepository.save(failedPayment);
+    } catch (err) {
+      this.logger.error('결제 실패 기록 저장 실패:', err);
+    }
+  }
+
+  /**
+   * 결제 시도 기록
+   */
+  private async recordPaymentAttempt(
+    userId: string,
+    orderId: string,
+    amount: number,
+    success: boolean,
+    errorCode?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    try {
+      // 간단한 로그 기록 (추후 별도 테이블로 분리 가능)
+      this.logger.log(`결제 시도 기록: userId=${userId}, orderId=${orderId}, amount=${amount}, success=${success}`, {
+        userId,
+        orderId,
+        amount,
+        success,
+        errorCode,
+        errorMessage,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      this.logger.error('결제 시도 기록 실패:', err);
+    }
+  }
+
+  // 구독 생성/업데이트 (트랜잭션 내에서 실행)
+  private async createOrUpdateSubscriptionWithTransaction(
+    queryRunner: QueryRunner,
+    userId: string,
+    tier: SubscriptionTier,
+    interval: BillingInterval,
+    paymentKey: string,
+    orderId: string,
+    paymentId: string,
+  ): Promise<void> {
+    const now = new Date();
+    const periodEnd = new Date(now);
+
+    if (interval === BillingInterval.YEARLY) {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
+
+    // 기존 활성 구독 취소
+    await queryRunner.manager.update(
+      Subscription,
+      { userId, status: SubscriptionStatus.ACTIVE },
+      { status: SubscriptionStatus.CANCELED, canceledAt: now },
+    );
+
+    // 새 구독 생성
+    const subscription = queryRunner.manager.create(Subscription, {
+      userId,
+      stripeSubscriptionId: paymentKey, // 토스 paymentKey 저장
+      stripePriceId: orderId,
+      status: SubscriptionStatus.ACTIVE,
+      billingInterval: interval,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+    });
+
+    const savedSubscription = await queryRunner.manager.save(Subscription, subscription);
+
+    // Payment에 구독 ID 연결
+    await queryRunner.manager.update(Payment, paymentId, {
+      subscriptionId: savedSubscription.id,
+    });
+
+    // 사용자 구독 정보 업데이트
+    await queryRunner.manager.update(User, userId, {
+      subscriptionTier: tier,
+      subscriptionExpiresAt: periodEnd,
+    });
+
+    this.logger.log(`구독 생성 완료: userId=${userId}, tier=${tier}, interval=${interval}`);
+  }
+
+  // 구독 생성/업데이트 (레거시 - 트랜잭션 없이)
   private async createOrUpdateSubscription(
     userId: string,
     tier: SubscriptionTier,

@@ -86,7 +86,7 @@ export default function DrugSearchModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden mx-4">
+      <div className="relative w-full max-w-2xl max-h-[70vh] bg-white rounded-2xl shadow-2xl overflow-hidden mx-4">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between mb-4">

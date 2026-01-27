@@ -6,9 +6,9 @@
 
 @layer base {
   :root {
-    /* 모던 한의학 테마 - 청록/민트 계열 */
-    --background: 210 20% 98%;
-    --foreground: 224 71% 4%;
+    /* 모던 한의학 테마 - 청록/민트 계열 (부드러운 배경색) */
+    --background: 210 15% 98.5%;
+    --foreground: 224 50% 12%;
     --card: 0 0% 100%;
     --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
@@ -22,8 +22,8 @@
     --secondary: 30 25% 95%;
     --secondary-foreground: 224 71% 4%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 220 10% 97%;
+    --muted-foreground: 220 9% 50%;
 
     /* Accent: 골드/앰버 - 한의학적 고급스러움 */
     --accent: 38 92% 50%;
@@ -503,6 +503,16 @@
     from { width: 0%; }
   }
 
+  /* 무한 프로그레스 바 (킬러 피처 데모용) */
+  .animate-progress {
+    animation: progress-infinite 2s ease-in-out forwards;
+  }
+
+  @keyframes progress-infinite {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+
   /* 슬라이드 인 메뉴 */
   .slide-in-menu {
     animation: slide-in-menu 0.3s ease-out forwards;
@@ -533,6 +543,154 @@
     to {
       opacity: 1;
       transform: scaleY(1) translateY(0);
+    }
+  }
+
+  /* ========== 모바일/반응형 유틸리티 ========== */
+
+  /* 스크롤바 숨기기 (모바일 수평 스크롤용) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe Area 인셋 (노치/홈 인디케이터 대응) */
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pl-safe-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .pr-safe-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .p-safe {
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+
+  /* 모바일 하단 네비게이션용 safe area */
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+  }
+
+  /* 터치 친화적 최소 크기 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .touch-target-lg {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* 스냅 스크롤 */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+  }
+  .snap-y {
+    scroll-snap-type: y mandatory;
+  }
+  .snap-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+  .snap-start {
+    scroll-snap-align: start;
+  }
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  /* 모바일 터치 피드백 */
+  .touch-feedback {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-feedback:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+
+  /* 모바일 텍스트 크기 자동 조정 방지 */
+  .text-size-adjust-none {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+
+  /* 모바일 키보드 올라올 때 뷰포트 조정 */
+  .keyboard-aware {
+    min-height: 100dvh;
+  }
+
+  /* 풀스크린 모바일 컨테이너 */
+  .mobile-fullscreen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* 모바일 전용 표시/숨김 */
+  @media (max-width: 767px) {
+    .mobile-only {
+      display: block;
+    }
+    .desktop-only {
+      display: none;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .mobile-only {
+      display: none;
+    }
+    .desktop-only {
+      display: block;
+    }
+  }
+
+  /* 모바일에서 전체 너비 버튼 */
+  @media (max-width: 640px) {
+    .btn-mobile-full {
+      width: 100%;
+    }
+  }
+
+  /* 고정 하단 버튼 (모바일) */
+  .fixed-bottom-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+    background: white;
+    border-top: 1px solid hsl(var(--border));
+    z-index: 40;
+  }
+
+  /* 모바일 드래그 핸들 */
+  .drag-handle {
+    width: 36px;
+    height: 4px;
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 2px;
+    margin: 8px auto;
+  }
+
+  /* 카드 수평 스크롤 아이템 */
+  .scroll-card {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+  }
+
+  @media (max-width: 640px) {
+    .scroll-card {
+      flex: 0 0 calc(100vw - 2rem);
     }
   }
 }

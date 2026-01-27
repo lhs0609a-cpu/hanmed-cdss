@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useToast } from '@/hooks/useToast'
 import {
   Plus,
   X,
@@ -28,7 +29,8 @@ import {
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
-import { logError } from '@/lib/errors'
+import { logError, getErrorMessage } from '@/lib/errors'
+import { ErrorMessage } from '@/components/common'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { CaseMatchListItem } from '@/components/case-match'
 import type { MatchedCase } from '@/types/case-search'
@@ -195,8 +197,12 @@ const COMMON_SYMPTOMS = [
   '호흡곤란', '심계', '흉통', '요통', '관절통', '부종', '자한', '도한',
 ]
 
+const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
+
 export default function ConsultationPage() {
   const { showHanja } = useHanjaSettings()
+  const navigate = useNavigate()
+  const { toast } = useToast()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
@@ -353,9 +359,42 @@ export default function ConsultationPage() {
   }
 
   const confirmSelectFormula = () => {
-    // 처방 선택 완료 - 실제로는 환자 차트에 저장
-    setShowSelectConfirm(false)
-    alert(`${selectedForSelect?.formula_name} 처방이 선택되었습니다.\n환자 차트에 기록됩니다.`)
+    if (!selectedForSelect) return
+
+    try {
+      // 처방 기록 생성
+      const prescriptionRecord = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        formulaName: selectedForSelect.formula_name,
+        herbs: selectedForSelect.herbs,
+        rationale: selectedForSelect.rationale,
+        confidenceScore: selectedForSelect.confidence_score,
+        chiefComplaint,
+        symptoms: symptoms.map(s => s.name),
+        constitution: constitution || undefined,
+        analysis,
+      }
+
+      // localStorage에 저장
+      const existingRecords = JSON.parse(localStorage.getItem(PRESCRIPTIONS_STORAGE_KEY) || '[]')
+      existingRecords.unshift(prescriptionRecord)
+      // 최대 100개까지 저장
+      localStorage.setItem(PRESCRIPTIONS_STORAGE_KEY, JSON.stringify(existingRecords.slice(0, 100)))
+
+      setShowSelectConfirm(false)
+      toast({
+        title: '처방이 선택되었습니다',
+        description: `${selectedForSelect.formula_name}이(가) 진료 기록에 저장되었습니다.`,
+      })
+    } catch (err) {
+      console.error('Failed to save prescription:', err)
+      toast({
+        title: '저장 실패',
+        description: '처방 저장 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const copyToClipboard = () => {
@@ -515,10 +554,12 @@ export default function ConsultationPage() {
               </button>
 
               {error && (
-                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
-                </div>
+                <ErrorMessage
+                  message={error}
+                  compact
+                  onRetry={handleSubmit}
+                  className="mt-3"
+                />
               )}
             </div>
           ) : (
@@ -792,10 +833,10 @@ export default function ConsultationPage() {
               </button>
 
               {error && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
-                </div>
+                <ErrorMessage
+                  message={error}
+                  onRetry={handleSubmit}
+                />
               )}
             </>
           )}
@@ -952,7 +993,7 @@ export default function ConsultationPage() {
                     </p>
                   </div>
                   <Link
-                    to="/interactions"
+                    to="/dashboard/interactions"
                     className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1"
                   >
                     검사하기
@@ -1008,7 +1049,7 @@ export default function ConsultationPage() {
                           />
                         ))}
                         <Link
-                          to="/case-search"
+                          to="/dashboard/case-search"
                           className="flex items-center justify-center gap-2 py-3 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
                         >
                           더 많은 치험례 검색하기
@@ -1020,7 +1061,7 @@ export default function ConsultationPage() {
                         <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                         <p className="text-sm">유사한 치험례를 찾지 못했습니다</p>
                         <Link
-                          to="/case-search"
+                          to="/dashboard/case-search"
                           className="inline-flex items-center gap-1 mt-2 text-indigo-600 hover:underline text-sm"
                         >
                           직접 검색하기
@@ -1054,7 +1095,7 @@ export default function ConsultationPage() {
       {/* 처방 상세 정보 모달 */}
       {showDetailModal && selectedFormula && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[70vh] overflow-hidden">
             {/* 모달 헤더 */}
             <div className="bg-gradient-to-r from-teal-500 to-emerald-500 px-6 py-4 text-white">
               <div className="flex items-center justify-between">

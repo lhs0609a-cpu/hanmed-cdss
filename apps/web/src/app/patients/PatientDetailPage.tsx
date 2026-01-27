@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -17,8 +17,26 @@ import {
   CheckCircle,
   AlertCircle,
   Brain,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+// 로컬스토리지 키
+const PATIENTS_STORAGE_KEY = 'hanmed_patients'
+const VISITS_STORAGE_KEY = 'hanmed_patient_visits'
+
+interface StoredPatient {
+  id: string
+  name: string
+  birthDate: string
+  gender: 'M' | 'F'
+  phone: string
+  constitution?: string
+  lastVisit: string
+  totalVisits: number
+  mainComplaint: string
+  isActive: boolean
+}
 
 interface VisitRecord {
   id: string
@@ -46,7 +64,7 @@ interface NewVisitForm {
   notes: string
 }
 
-const demoPatient = {
+const defaultDemoPatient = {
   id: '1',
   name: '김영희',
   birthDate: '1985-03-15',
@@ -60,7 +78,7 @@ const demoPatient = {
   medicalHistory: '2020년 위염 진단',
 }
 
-const initialVisits: VisitRecord[] = [
+const defaultVisits: VisitRecord[] = [
   {
     id: '1',
     date: '2024-01-15',
@@ -93,13 +111,97 @@ const initialVisits: VisitRecord[] = [
   },
 ]
 
+// 로컬스토리지에서 환자 데이터 로드
+function loadPatientFromStorage(patientId: string): StoredPatient | null {
+  try {
+    const stored = localStorage.getItem(PATIENTS_STORAGE_KEY)
+    if (stored) {
+      const patients: StoredPatient[] = JSON.parse(stored)
+      return patients.find(p => p.id === patientId) || null
+    }
+  } catch (e) {
+    console.error('Failed to load patient from storage:', e)
+  }
+  return null
+}
+
+// 로컬스토리지에서 환자 진료 기록 로드
+function loadVisitsFromStorage(patientId: string): VisitRecord[] {
+  try {
+    const stored = localStorage.getItem(`${VISITS_STORAGE_KEY}_${patientId}`)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    console.error('Failed to load visits from storage:', e)
+  }
+  return []
+}
+
+// 로컬스토리지에 환자 진료 기록 저장
+function saveVisitsToStorage(patientId: string, visits: VisitRecord[]): void {
+  try {
+    localStorage.setItem(`${VISITS_STORAGE_KEY}_${patientId}`, JSON.stringify(visits))
+  } catch (e) {
+    console.error('Failed to save visits to storage:', e)
+  }
+}
+
 export default function PatientDetailPage() {
-  const { id: _id } = useParams<{ id: string }>()
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'progress'>('overview')
   const [showNewVisitModal, setShowNewVisitModal] = useState(false)
-  const [visits, setVisits] = useState<VisitRecord[]>(initialVisits)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [patient, setPatient] = useState<typeof defaultDemoPatient | null>(null)
+  const [visits, setVisits] = useState<VisitRecord[]>([])
+
+  // 환자 데이터 로드
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false)
+      return
+    }
+
+    const storedPatient = loadPatientFromStorage(id)
+    let storedVisits = loadVisitsFromStorage(id)
+
+    if (storedPatient) {
+      // 로컬스토리지에서 찾은 환자
+      setPatient({
+        id: storedPatient.id,
+        name: storedPatient.name,
+        birthDate: storedPatient.birthDate,
+        gender: storedPatient.gender,
+        phone: storedPatient.phone,
+        address: '',
+        constitution: storedPatient.constitution || '',
+        allergies: [],
+        medications: [],
+        mainComplaint: storedPatient.mainComplaint,
+        medicalHistory: '',
+      })
+      // 진료 기록이 없으면 빈 배열
+      setVisits(storedVisits.length > 0 ? storedVisits : [])
+    } else if (id === '1') {
+      // 기본 데모 환자
+      setPatient(defaultDemoPatient)
+      setVisits(defaultVisits)
+    } else {
+      // 찾을 수 없는 환자
+      setPatient(null)
+    }
+
+    setIsLoading(false)
+  }, [id])
+
+  // 진료 기록 변경 시 저장
+  useEffect(() => {
+    if (id && visits.length > 0) {
+      saveVisitsToStorage(id, visits)
+    }
+  }, [id, visits])
 
   // 새 진료 기록 폼
   const [newVisit, setNewVisit] = useState<NewVisitForm>({
@@ -128,11 +230,6 @@ export default function PatientDetailPage() {
     if (current > previous) return { icon: TrendingUp, color: 'text-red-500', label: '악화' }
     return { icon: Minus, color: 'text-gray-500', label: '유지' }
   }
-
-  const latestVisit = visits[0]
-  const previousVisit = visits[1]
-  const trend = getTrend(latestVisit.painScore, previousVisit?.painScore || latestVisit.painScore)
-  const TrendIcon = trend.icon
 
   // 경과 데이터 계산
   const progressData: ProgressData[] = visits
@@ -203,6 +300,45 @@ export default function PatientDetailPage() {
     return 'bg-red-100 text-red-700'
   }
 
+  // 로딩 중
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    )
+  }
+
+  // 환자를 찾을 수 없음
+  if (!patient) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">환자 정보</h1>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
+          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">환자를 찾을 수 없습니다</h2>
+          <p className="text-gray-600 mb-4">요청하신 환자 정보가 존재하지 않습니다.</p>
+          <Link
+            to="/dashboard/patients"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            환자 목록으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const latestVisit = visits[0]
+  const previousVisit = visits[1]
+  const hasVisits = visits.length > 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -215,18 +351,18 @@ export default function PatientDetailPage() {
             <div
               className={cn(
                 'w-12 h-12 rounded-full flex items-center justify-center',
-                demoPatient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
+                patient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
               )}
             >
-              <User className={cn('h-6 w-6', demoPatient.gender === 'F' ? 'text-pink-500' : 'text-blue-500')} />
+              <User className={cn('h-6 w-6', patient.gender === 'F' ? 'text-pink-500' : 'text-blue-500')} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{demoPatient.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
               <p className="text-gray-500">
-                {demoPatient.gender === 'F' ? '여' : '남'}, 만 {calculateAge(demoPatient.birthDate)}세
-                {demoPatient.constitution && (
+                {patient.gender === 'F' ? '여' : '남'}, 만 {calculateAge(patient.birthDate)}세
+                {patient.constitution && (
                   <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
-                    {demoPatient.constitution}
+                    {patient.constitution}
                   </span>
                 )}
               </p>
@@ -234,7 +370,7 @@ export default function PatientDetailPage() {
           </div>
         </div>
         <Link
-          to="/consultation"
+          to="/dashboard/consultation"
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all mr-2"
         >
           <Brain className="h-5 w-5" />
@@ -258,55 +394,69 @@ export default function PatientDetailPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">현재 통증 점수</p>
           <div className="flex items-center gap-2">
-            <p className="text-2xl font-bold text-gray-900">{latestVisit.painScore}/10</p>
-            <TrendIcon className={cn('h-5 w-5', trend.color)} />
+            {hasVisits ? (
+              <>
+                <p className="text-2xl font-bold text-gray-900">{latestVisit.painScore}/10</p>
+                {previousVisit && (() => {
+                  const trend = getTrend(latestVisit.painScore, previousVisit.painScore)
+                  const TrendIcon = trend.icon
+                  return <TrendIcon className={cn('h-5 w-5', trend.color)} />
+                })()}
+              </>
+            ) : (
+              <p className="text-2xl font-bold text-gray-400">-</p>
+            )}
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">최근 처방</p>
-          <p className="text-lg font-bold text-gray-900 truncate">{latestVisit.prescription}</p>
+          <p className="text-lg font-bold text-gray-900 truncate">
+            {hasVisits ? latestVisit.prescription : '-'}
+          </p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">다음 예약</p>
-          <p className="text-lg font-bold text-blue-600">01/29 (월) 14:00</p>
+          <p className="text-sm text-gray-500">주소증</p>
+          <p className="text-lg font-bold text-gray-900 truncate">{patient.mainComplaint || '-'}</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={cn(
-            'px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px',
-            activeTab === 'overview'
-              ? 'text-blue-600 border-blue-600'
-              : 'text-gray-500 border-transparent hover:text-gray-700'
-          )}
-        >
-          환자 정보
-        </button>
-        <button
-          onClick={() => setActiveTab('visits')}
-          className={cn(
-            'px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px',
-            activeTab === 'visits'
-              ? 'text-blue-600 border-blue-600'
-              : 'text-gray-500 border-transparent hover:text-gray-700'
-          )}
-        >
-          진료 기록 ({visits.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('progress')}
-          className={cn(
-            'px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px',
-            activeTab === 'progress'
-              ? 'text-blue-600 border-blue-600'
-              : 'text-gray-500 border-transparent hover:text-gray-700'
-          )}
-        >
-          경과 추이
-        </button>
+      {/* Tabs - 모바일에서 가로 스크롤 가능 */}
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-1 md:gap-2 border-b border-gray-200 min-w-max">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={cn(
+              'px-3 md:px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px whitespace-nowrap',
+              activeTab === 'overview'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            )}
+          >
+            환자 정보
+          </button>
+          <button
+            onClick={() => setActiveTab('visits')}
+            className={cn(
+              'px-3 md:px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px whitespace-nowrap',
+              activeTab === 'visits'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            )}
+          >
+            진료 기록 ({visits.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('progress')}
+            className={cn(
+              'px-3 md:px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-px whitespace-nowrap',
+              activeTab === 'progress'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            )}
+          >
+            경과 추이
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -321,19 +471,19 @@ export default function PatientDetailPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-500">생년월일</span>
-                <span className="font-medium">{demoPatient.birthDate}</span>
+                <span className="font-medium">{patient.birthDate}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">연락처</span>
-                <span className="font-medium">{demoPatient.phone}</span>
+                <span className="font-medium">{patient.phone}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">주소</span>
-                <span className="font-medium">{demoPatient.address}</span>
+                <span className="font-medium">{patient.address}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">체질</span>
-                <span className="font-medium">{demoPatient.constitution || '미진단'}</span>
+                <span className="font-medium">{patient.constitution || '미진단'}</span>
               </div>
             </div>
           </div>
@@ -347,16 +497,16 @@ export default function PatientDetailPage() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-2">주소증</p>
-                <p className="text-gray-900">{demoPatient.mainComplaint}</p>
+                <p className="text-gray-900">{patient.mainComplaint}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-2">과거력</p>
-                <p className="text-gray-900">{demoPatient.medicalHistory}</p>
+                <p className="text-gray-900">{patient.medicalHistory}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-2">알레르기</p>
                 <div className="flex flex-wrap gap-2">
-                  {demoPatient.allergies.map((allergy, i) => (
+                  {patient.allergies.map((allergy, i) => (
                     <span key={i} className="px-2 py-1 bg-red-100 text-red-700 text-sm rounded-lg">
                       {allergy}
                     </span>
@@ -366,7 +516,7 @@ export default function PatientDetailPage() {
               <div>
                 <p className="text-sm text-gray-500 mb-2">복용 약물</p>
                 <div className="flex flex-wrap gap-2">
-                  {demoPatient.medications.map((med, i) => (
+                  {patient.medications.map((med, i) => (
                     <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg">
                       {med}
                     </span>
@@ -380,7 +530,19 @@ export default function PatientDetailPage() {
 
       {activeTab === 'visits' && (
         <div className="space-y-4">
-          {visits.map((visit, index) => (
+          {visits.length === 0 ? (
+            <div className="bg-gray-50 rounded-2xl p-8 text-center">
+              <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">아직 진료 기록이 없습니다.</p>
+              <button
+                onClick={() => setShowNewVisitModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                첫 진료 기록 추가
+              </button>
+            </div>
+          ) : visits.map((visit, index) => (
             <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -449,11 +611,25 @@ export default function PatientDetailPage() {
 
       {activeTab === 'progress' && (
         <div className="space-y-6">
-          {/* Pain Score Chart */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-6">통증 점수 추이</h3>
-            <div className="h-64 flex items-end justify-around gap-4">
-              {progressData.map((data, index) => (
+          {progressData.length === 0 ? (
+            <div className="bg-gray-50 rounded-2xl p-8 text-center">
+              <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">진료 기록이 있어야 경과 추이를 확인할 수 있습니다.</p>
+              <button
+                onClick={() => setShowNewVisitModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                첫 진료 기록 추가
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Pain Score Chart */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 className="font-bold text-gray-900 mb-6">통증 점수 추이</h3>
+                <div className="h-64 flex items-end justify-around gap-4">
+                  {progressData.map((data, index) => (
                 <div key={index} className="flex-1 flex flex-col items-center">
                   <div className="w-full flex flex-col items-center">
                     <span className="text-sm font-bold text-gray-900 mb-2">{data.painScore}</span>
@@ -541,6 +717,8 @@ export default function PatientDetailPage() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       )}
 
@@ -551,7 +729,7 @@ export default function PatientDetailPage() {
             <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">새 진료 기록</h2>
-                <p className="text-blue-100 text-sm">{demoPatient.name} 환자</p>
+                <p className="text-blue-100 text-sm">{patient.name} 환자</p>
               </div>
               <button onClick={() => setShowNewVisitModal(false)} className="p-1 hover:bg-white/20 rounded-lg">
                 <X className="h-5 w-5" />
@@ -559,10 +737,20 @@ export default function PatientDetailPage() {
             </div>
 
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] space-y-4">
+              {/* 필수 입력 안내 */}
+              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span><strong>(필수)</strong> 표시된 항목은 반드시 입력해야 합니다.</span>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  증상 <span className="text-red-500">*</span>
-                  <span className="text-gray-400 font-normal ml-1">(쉼표로 구분)</span>
+                  <span className="flex items-center gap-1">
+                    증상
+                    <span className="text-red-500 font-bold" aria-hidden="true">*</span>
+                    <span className="text-xs text-red-500 font-medium">(필수)</span>
+                  </span>
+                  <span className="text-gray-400 font-normal ml-1 text-xs">(쉼표로 구분)</span>
                 </label>
                 <input
                   type="text"
@@ -583,7 +771,11 @@ export default function PatientDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  진단 <span className="text-red-500">*</span>
+                  <span className="flex items-center gap-1">
+                    진단
+                    <span className="text-red-500 font-bold" aria-hidden="true">*</span>
+                    <span className="text-xs text-red-500 font-medium">(필수)</span>
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -604,7 +796,11 @@ export default function PatientDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  처방 <span className="text-red-500">*</span>
+                  <span className="flex items-center gap-1">
+                    처방
+                    <span className="text-red-500 font-bold" aria-hidden="true">*</span>
+                    <span className="text-xs text-red-500 font-medium">(필수)</span>
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -624,7 +820,12 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">맥진 소견 (선택)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-1">
+                    맥진 소견
+                    <span className="text-xs text-gray-400 font-normal">(선택)</span>
+                  </span>
+                </label>
                 <input
                   type="text"
                   value={newVisit.pulseNote}
@@ -653,7 +854,12 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">메모 (선택)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-1">
+                    메모
+                    <span className="text-xs text-gray-400 font-normal">(선택)</span>
+                  </span>
+                </label>
                 <textarea
                   value={newVisit.notes}
                   onChange={(e) => setNewVisit({ ...newVisit, notes: e.target.value })}
