@@ -27,6 +27,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -e
             echo "========== 배포 시작: $(date) =========="
@@ -53,8 +54,40 @@ jobs:
             TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
             ENVEOF
 
-            # Docker Compose로 서비스 재시작
+            # 기존 서비스 중지
             sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
+
+            # SSL 인증서 확인 및 발급 (없는 경우에만)
+            if [ ! -f /etc/letsencrypt/live/api.ongojisin.co.kr/fullchain.pem ]; then
+              echo "========== SSL 인증서 발급 =========="
+              sudo apt-get update
+              sudo apt-get install -y certbot
+              sudo mkdir -p /var/www/certbot
+
+              # 80번 포트 해제 확인
+              sudo fuser -k 80/tcp || true
+
+              # 인증서 발급 (standalone 모드)
+              sudo certbot certonly --standalone \
+                -d api.ongojisin.co.kr \
+                --non-interactive \
+                --agree-tos \
+                --email lhs0609c@naver.com \
+                || echo "인증서 발급 실패"
+            else
+              echo "========== SSL 인증서 존재함 =========="
+            fi
+
+            # SSL 인증서 존재 여부에 따라 nginx 설정 선택
+            if [ -f /etc/letsencrypt/live/api.ongojisin.co.kr/fullchain.pem ]; then
+              echo "========== HTTPS 모드로 시작 =========="
+              cp infra/nginx/nginx.conf infra/nginx/nginx-active.conf
+            else
+              echo "========== HTTP 모드로 시작 (SSL 인증서 없음) =========="
+              cp infra/nginx/nginx-http.conf infra/nginx/nginx-active.conf
+            fi
+
+            # Docker Compose로 서비스 시작
             sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod pull || true
             sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod build --no-cache
             sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
@@ -67,6 +100,7 @@ jobs:
             # API 헬스 체크
             curl -sf http://localhost:3001/api/v1/health || echo "API 헬스체크 실패 (정상 작동 중일 수 있음)"
             curl -sf http://localhost:8080/health || echo "AI Engine 헬스체크 실패 (정상 작동 중일 수 있음)"
+            curl -sf https://api.ongojisin.co.kr/api/v1/health || echo "HTTPS 헬스체크 실패 (정상 작동 중일 수 있음)"
 
             echo "========== 배포 완료: $(date) =========="
 
