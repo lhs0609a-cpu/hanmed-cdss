@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Brain,
   Sparkles,
@@ -722,7 +721,6 @@ const patternDatabase: Record<string, Omit<PatternResult, 'pattern' | 'confidenc
 }
 
 export default function PatternDiagnosisPage() {
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [step, setStep] = useState<'constitution' | 'symptoms' | 'pulse' | 'tongue' | 'palgang' | 'result'>('constitution')
   const [bodyConstitution, setBodyConstitution] = useState<BodyConstitutionResult | null>(null)
