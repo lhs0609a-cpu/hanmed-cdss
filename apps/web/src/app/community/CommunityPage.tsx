@@ -21,6 +21,7 @@ import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
 import type { CommunityLevel } from '@/types/level'
 import { useAuthStore } from '@/stores/authStore'
+import { useToast } from '@/hooks/useToast'
 import api from '@/services/api'
 
 // 더미 게시글 데이터
@@ -182,7 +183,10 @@ const postTypeConfig = {
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { toast } = useToast()
   const token = useAuthStore((state) => state.accessToken)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isGuest = useAuthStore((state) => state.isGuest)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
@@ -287,6 +291,29 @@ export default function CommunityPage() {
     return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
   }
 
+  // 글쓰기 버튼 클릭 핸들러 - 로그인 여부 확인
+  const handleWriteClick = () => {
+    if (!isAuthenticated && isGuest) {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '글을 작성하려면 로그인해 주세요.',
+        variant: 'destructive',
+      })
+      navigate('/login', { state: { from: '/dashboard/community/write' } })
+      return
+    }
+    if (!isAuthenticated) {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '글을 작성하려면 로그인해 주세요.',
+        variant: 'destructive',
+      })
+      navigate('/login', { state: { from: '/dashboard/community/write' } })
+      return
+    }
+    navigate('/dashboard/community/write')
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -299,7 +326,7 @@ export default function CommunityPage() {
           <p className="mt-1 text-gray-600">한의사/한약사 전문가들과 함께 지식을 나누세요</p>
         </div>
         <button
-          onClick={() => navigate('/dashboard/community/write')}
+          onClick={handleWriteClick}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
         >
           <Plus className="h-5 w-5" />
@@ -413,7 +440,7 @@ export default function CommunityPage() {
           return (
             <Link
               key={post.id}
-              to={`/community/post/${post.id}`}
+              to={`/dashboard/community/post/${post.id}`}
               className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-teal-200 transition-all group"
             >
               <div className="flex items-start justify-between gap-4">
@@ -509,7 +536,7 @@ export default function CommunityPage() {
             <p className="text-gray-500">게시글이 없습니다</p>
             <p className="text-sm text-gray-400 mt-1">첫 번째 글을 작성해보세요!</p>
             <button
-              onClick={() => navigate('/dashboard/community/write')}
+              onClick={handleWriteClick}
               className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
             >
               글쓰기

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   Send,
@@ -13,8 +13,11 @@ import {
   Plus,
   Save,
   Trash2,
+  LogIn,
+  AlertCircle,
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
+import { useAuthStore } from '@/stores/authStore'
 import type { PostType } from '../../types'
 
 const DRAFT_STORAGE_KEY = 'hanmed_post_draft'
@@ -49,10 +52,61 @@ const forumCategories = [
   { slug: 'neuropsychiatry', name: '신경정신과' },
 ]
 
+// 로그인 필요 화면 컴포넌트
+function LoginRequiredScreen({ isGuest }: { isGuest: boolean }) {
+  const navigate = useNavigate()
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="h-8 w-8 text-amber-600" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          로그인이 필요합니다
+        </h2>
+        <p className="text-gray-600 mb-6">
+          커뮤니티에 글을 작성하려면 로그인해 주세요.
+          {isGuest && (
+            <span className="block text-sm text-gray-500 mt-2">
+              현재 게스트 모드로 이용 중입니다.
+            </span>
+          )}
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+          >
+            <ArrowLeft className="h-4 w-4 inline mr-2" />
+            돌아가기
+          </button>
+          <Link
+            to="/login"
+            state={{ from: '/dashboard/community/write' }}
+            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center gap-2"
+          >
+            <LogIn className="h-5 w-5" />
+            로그인하기
+          </Link>
+        </div>
+        <p className="mt-6 text-sm text-gray-500">
+          아직 계정이 없으신가요?{' '}
+          <Link to="/register" className="text-teal-600 hover:underline font-medium">
+            회원가입
+          </Link>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function WritePostPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isGuest = useAuthStore((state) => state.isGuest)
 
   const [postType, setPostType] = useState<PostType>(
     (searchParams.get('type') as PostType) || 'qna'
@@ -71,6 +125,9 @@ export default function WritePostPage() {
 
   // Load draft on mount
   useEffect(() => {
+    // 인증되지 않은 사용자는 draft 로드하지 않음
+    if (!isAuthenticated) return
+
     try {
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
       if (savedDraft) {
@@ -95,7 +152,7 @@ export default function WritePostPage() {
     } catch (err) {
       console.error('Failed to load draft:', err)
     }
-  }, [])
+  }, [isAuthenticated, searchParams, toast])
 
   // Auto-save draft (debounced)
   const saveDraft = useCallback(() => {
@@ -122,6 +179,7 @@ export default function WritePostPage() {
 
   // Auto-save every 30 seconds if content changed
   useEffect(() => {
+    if (!isAuthenticated) return
     if (!title.trim() && !content.trim()) return
 
     const timer = setTimeout(() => {
@@ -129,7 +187,7 @@ export default function WritePostPage() {
     }, 30000) // 30 seconds
 
     return () => clearTimeout(timer)
-  }, [title, content, tags, saveDraft])
+  }, [isAuthenticated, title, content, tags, saveDraft])
 
   // Manual save draft
   const handleSaveDraft = () => {
@@ -213,6 +271,11 @@ export default function WritePostPage() {
       })
       setIsSubmitting(false)
     }
+  }
+
+  // 로그인하지 않은 사용자 (게스트 포함)에게 안내 메시지 표시
+  if (!isAuthenticated) {
+    return <LoginRequiredScreen isGuest={isGuest} />
   }
 
   return (
