@@ -9,6 +9,7 @@ on:
       - 'apps/ai-engine/**'
       - 'docker-compose.prod.yml'
       - 'infra/nginx/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
