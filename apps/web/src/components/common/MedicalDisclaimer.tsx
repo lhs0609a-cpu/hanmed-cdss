@@ -63,7 +63,12 @@ export function MedicalDisclaimer({
   }
 
   // mandatory 모드: 최초 동의 전까지 모달 표시
-  if (variant === 'mandatory' && !hasAcceptedTerms) {
+  // 이미 동의한 경우 아무것도 표시하지 않음
+  if (variant === 'mandatory') {
+    if (hasAcceptedTerms) {
+      return null
+    }
+    // 동의 전이면 모달 표시
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -179,6 +184,7 @@ export function MedicalDisclaimer({
     )
   }
 
+  // banner 모드: 이미 오늘 확인했거나 닫았으면 표시하지 않음
   if (!isVisible || (hasSeenToday && variant === 'banner')) {
     return null
   }
