@@ -872,19 +872,11 @@ export default function PatternDiagnosisPage() {
         description: `${results[0].pattern} (${results[0].hanja}) 진단 결과가 저장되었습니다.`,
       })
 
-      // 잠시 후 환자 관리 페이지로 이동 옵션 제공
+      // 잠시 후 환자 관리 페이지로 이동 옵션 안내
       setTimeout(() => {
         toast({
-          title: '환자 차트로 이동하시겠습니까?',
+          title: '환자 차트에서 확인하세요',
           description: '환자 관리 페이지에서 전체 기록을 확인할 수 있습니다.',
-          action: (
-            <button
-              onClick={() => navigate('/dashboard/patients')}
-              className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
-            >
-              이동
-            </button>
-          ),
         })
       }, 1000)
 

@@ -204,13 +204,16 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
     interactionsChecked: 0,
   })
 
-  // 사용 통계 업데이트 (다른 컴포넌트에서 호출)
-  const _updateStats = (type: string, increment: number = 1) => {
+  // 사용 통계 업데이트 (향후 다른 컴포넌트에서 호출 예정)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const updateStats = (type: string, increment: number = 1) => {
     const storedStats = localStorage.getItem('user_value_stats')
     const stats = storedStats ? JSON.parse(storedStats) : getDefaultStats()
     stats[type] = (stats[type] || 0) + increment
     localStorage.setItem('user_value_stats', JSON.stringify(stats))
   }
+  // TODO: Export updateStats for use in AI query components
+  void updateStats
 
   // 컴팩트 버전 with enhanced visuals
   if (compact) {
