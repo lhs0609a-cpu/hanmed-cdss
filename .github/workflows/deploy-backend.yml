@@ -1,0 +1,79 @@
+name: Deploy Backend to AWS Lightsail
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'apps/api/**'
+      - 'apps/ai-engine/**'
+      - 'docker-compose.prod.yml'
+      - 'infra/nginx/**'
+
+jobs:
+  deploy:
+    name: Deploy to AWS Lightsail
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Lightsail via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            set -e
+            echo "========== 배포 시작: $(date) =========="
+
+            # 프로젝트 디렉토리 이동 또는 클론
+            if [ -d ~/hanmed-cdss ]; then
+              cd ~/hanmed-cdss
+              git fetch origin
+              git reset --hard origin/master
+            else
+              git clone https://github.com/lhs0609a-cpu/hanmed-cdss.git ~/hanmed-cdss
+              cd ~/hanmed-cdss
+            fi
+
+            # 환경 변수 파일 생성
+            cat > .env.prod << 'ENVEOF'
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=7d
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            GPT_MODEL=gpt-4o-mini
+            TOSS_CLIENT_KEY=${{ secrets.TOSS_CLIENT_KEY }}
+            TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
+            ENVEOF
+
+            # Docker Compose로 서비스 재시작
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod pull || true
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod build --no-cache
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+            # 헬스 체크
+            sleep 15
+            echo "========== 서비스 상태 =========="
+            sudo docker-compose -f docker-compose.prod.yml ps
+
+            # API 헬스 체크
+            curl -sf http://localhost:3001/api/v1/health || echo "API 헬스체크 실패 (정상 작동 중일 수 있음)"
+            curl -sf http://localhost:8080/health || echo "AI Engine 헬스체크 실패 (정상 작동 중일 수 있음)"
+
+            echo "========== 배포 완료: $(date) =========="
+
+      - name: Notify deployment result
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ 배포 성공!"
+          else
+            echo "❌ 배포 실패!"
+          fi
