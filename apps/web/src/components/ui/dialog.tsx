@@ -35,6 +35,10 @@ interface DialogContentProps {
 export function DialogContent({ children, className, onClose }: DialogContentProps) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
       className={cn(
         'relative z-50 w-full max-w-lg rounded-lg bg-white p-6 shadow-lg',
         className
@@ -59,11 +63,11 @@ export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLD
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />
+  return <h2 id="dialog-title" className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />
 }
 
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-muted-foreground', className)} {...props} />
+  return <p id="dialog-description" className={cn('text-sm text-muted-foreground', className)} {...props} />
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
