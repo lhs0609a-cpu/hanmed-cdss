@@ -14,7 +14,7 @@ git pull origin master
 
 echo "2. API 의존성 설치..."
 cd $PROJECT_DIR/apps/api
-npm install --production
+npm install
 
 echo "3. API 빌드..."
 npm run build
