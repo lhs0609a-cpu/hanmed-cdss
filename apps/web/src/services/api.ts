@@ -22,9 +22,15 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - 401 에러 처리
+// Response interceptor - 래핑 해제 및 401 에러 처리
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 백엔드 TransformInterceptor가 { success, data, timestamp } 형식으로 래핑함
+    if (response.data && response.data.success !== undefined) {
+      response.data = response.data.data
+    }
+    return response
+  },
   async (error) => {
     if (error.response?.status === 401) {
       // 토큰 만료 시 로그아웃
