@@ -54,8 +54,22 @@ jobs:
             TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
             ENVEOF
 
-            # 기존 서비스 중지
-            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
+            # 기존 서비스 강제 중지 및 정리
+            echo "========== 기존 컨테이너 정리 =========="
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down --remove-orphans 2>/dev/null || true
+
+            # 컨테이너 이름으로 강제 중지 (포트 충돌 방지)
+            sudo docker stop hanmed-ai-engine hanmed-api hanmed-nginx 2>/dev/null || true
+            sudo docker rm -f hanmed-ai-engine hanmed-api hanmed-nginx 2>/dev/null || true
+
+            # 포트 사용 중인 컨테이너 강제 종료
+            sudo docker ps -q --filter "publish=8080" | xargs -r sudo docker stop || true
+            sudo docker ps -q --filter "publish=3001" | xargs -r sudo docker stop || true
+            sudo docker ps -q --filter "publish=80" | xargs -r sudo docker stop || true
+            sudo docker ps -q --filter "publish=443" | xargs -r sudo docker stop || true
+
+            # 사용하지 않는 네트워크 정리
+            sudo docker network prune -f 2>/dev/null || true
 
             # SSL 인증서 확인 및 발급 (없는 경우에만)
             if [ ! -f /etc/letsencrypt/live/api.ongojisin.co.kr/fullchain.pem ]; then
