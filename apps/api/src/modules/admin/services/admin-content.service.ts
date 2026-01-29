@@ -236,7 +236,7 @@ export class AdminContentService {
         formulaId: id,
         herbId: herb.herbId,
         amount: herb.amount,
-        role: herb.role,
+        role: herb.role as any,
         notes: herb.notes,
       });
     });

@@ -26,7 +26,7 @@ describe('AuthService', () => {
     passwordHash: 'hashed-password',
     subscriptionTier: 'free',
     isVerified: true,
-  };
+  } as any;
 
   beforeEach(async () => {
     const mockUsersService = {

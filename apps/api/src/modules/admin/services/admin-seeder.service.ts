@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../../database/entities/user.entity';
+import { User, SubscriptionTier } from '../../../database/entities/user.entity';
 import { UserRole, UserStatus } from '../../../database/entities/enums';
 
 @Injectable()
@@ -70,7 +70,7 @@ export class AdminSeederService implements OnModuleInit {
           name: '최고관리자',
           role: UserRole.SUPER_ADMIN,
           status: UserStatus.ACTIVE,
-          subscriptionTier: 'clinic',
+          subscriptionTier: SubscriptionTier.CLINIC,
           isVerified: true,
           isLicenseVerified: true,
           contributionPoints: 0,

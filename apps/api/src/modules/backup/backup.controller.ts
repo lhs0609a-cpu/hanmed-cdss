@@ -8,11 +8,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminOnly } from '../../common/decorators/roles.decorator';
 import { BackupService } from './backup.service';
-import { GetUser } from '../../common/decorators/get-user.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../database/entities/user.entity';
 
 @Controller('backup')
@@ -25,7 +25,7 @@ export class BackupController {
    */
   @Get('status')
   @AdminOnly()
-  async getBackupStatus(@GetUser() user: User) {
+  async getBackupStatus(@CurrentUser() user: User) {
     return this.backupService.getBackupStatus();
   }
 
@@ -34,7 +34,7 @@ export class BackupController {
    */
   @Get('list')
   @AdminOnly()
-  async listBackups(@GetUser() user: User) {
+  async listBackups(@CurrentUser() user: User) {
     return this.backupService.listBackups();
   }
 
@@ -43,7 +43,7 @@ export class BackupController {
    */
   @Post('create')
   @AdminOnly()
-  async createBackup(@GetUser() user: User) {
+  async createBackup(@CurrentUser() user: User) {
     return this.backupService.createFullBackup();
   }
 
@@ -51,7 +51,7 @@ export class BackupController {
    * 내 데이터 내보내기 (사용자용 - 데이터 이동권)
    */
   @Get('export/my-data')
-  async exportMyData(@GetUser() user: User, @Res() res: Response) {
+  async exportMyData(@CurrentUser() user: User, @Res() res: Response) {
     const { data, filename } = await this.backupService.createUserDataExport(user.id);
 
     res.setHeader('Content-Type', 'application/json');
