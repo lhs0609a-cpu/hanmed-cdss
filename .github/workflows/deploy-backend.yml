@@ -57,33 +57,25 @@ jobs:
             # 기존 서비스 강제 중지 및 정리
             echo "========== 기존 컨테이너 정리 =========="
 
-            # 모든 hanmed 관련 컨테이너 강제 종료 및 제거
-            sudo docker ps -a --filter "name=hanmed" -q | xargs -r sudo docker rm -f || true
+            # 1. 모든 실행 중인 컨테이너 중지
+            sudo docker stop $(sudo docker ps -q) 2>/dev/null || true
 
-            # docker-compose down 시도
-            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down --remove-orphans --volumes 2>/dev/null || true
+            # 2. 모든 컨테이너 강제 제거 (실행 중 + 중지된 것 모두)
+            sudo docker rm -f $(sudo docker ps -a -q) 2>/dev/null || true
 
-            # 포트를 사용하는 모든 프로세스 강제 종료 (fuser 사용)
-            sudo fuser -k 3001/tcp 2>/dev/null || true
-            sudo fuser -k 8080/tcp 2>/dev/null || true
-            sudo fuser -k 80/tcp 2>/dev/null || true
-            sudo fuser -k 443/tcp 2>/dev/null || true
-
-            # 잠시 대기 후 다시 확인
-            sleep 3
-
-            # 포트 사용 중인 Docker 컨테이너 모두 종료
-            for port in 3001 8080 80 443; do
-              CONTAINER=$(sudo docker ps -q --filter "publish=$port")
-              if [ -n "$CONTAINER" ]; then
-                echo "포트 $port 사용 중인 컨테이너 종료: $CONTAINER"
-                sudo docker rm -f $CONTAINER || true
-              fi
-            done
-
-            # 사용하지 않는 Docker 리소스 정리
+            # 3. 모든 Docker 네트워크 정리 (기본 네트워크 제외)
             sudo docker network prune -f 2>/dev/null || true
-            sudo docker system prune -f 2>/dev/null || true
+
+            # 4. Docker 시스템 전체 정리
+            sudo docker system prune -af 2>/dev/null || true
+
+            # 5. Docker 데몬 재시작으로 포트 바인딩 완전 해제
+            sudo systemctl restart docker
+            sleep 5
+
+            # 6. 포트 사용 현황 확인
+            echo "========== 포트 사용 현황 =========="
+            sudo netstat -tlnp | grep -E ':(3001|8080|80|443) ' || echo "사용 중인 포트 없음"
 
             echo "========== 컨테이너 정리 완료 =========="
 
