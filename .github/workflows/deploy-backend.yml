@@ -83,7 +83,20 @@ jobs:
             # 7. Docker 데몬 상태 확인
             sudo systemctl status docker --no-pager || true
 
-            # 8. 정리 후 포트 사용 현황 재확인
+            # 8. 호스트에서 직접 실행 중인 Node.js 프로세스 종료
+            echo "호스트 Node.js 프로세스 종료..."
+            sudo pkill -f "node.*3001" 2>/dev/null || true
+            sudo pkill -f "node.*dist/main" 2>/dev/null || true
+
+            # 9. 포트를 사용하는 모든 프로세스 강제 종료
+            echo "포트 점유 프로세스 강제 종료..."
+            sudo fuser -k 3001/tcp 2>/dev/null || true
+            sudo fuser -k 8080/tcp 2>/dev/null || true
+            sudo fuser -k 80/tcp 2>/dev/null || true
+            sudo fuser -k 443/tcp 2>/dev/null || true
+            sleep 3
+
+            # 10. 정리 후 포트 사용 현황 재확인
             echo "========== 정리 후 포트 사용 현황 =========="
             sudo ss -tlnp | grep -E ':(3001|8080|80|443) ' || echo "사용 중인 포트 없음"
             echo "실행 중인 컨테이너:"
