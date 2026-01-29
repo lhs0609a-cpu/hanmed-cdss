@@ -9,7 +9,7 @@ import { Payment } from '../../database/entities/payment.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
-interface BackupMetadata {
+export interface BackupMetadata {
   id: string;
   timestamp: string;
   type: 'full' | 'incremental';

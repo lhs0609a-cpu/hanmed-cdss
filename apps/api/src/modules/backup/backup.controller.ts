@@ -11,7 +11,7 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminOnly } from '../../common/decorators/roles.decorator';
-import { BackupService } from './backup.service';
+import { BackupService, BackupMetadata } from './backup.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../database/entities/user.entity';
 

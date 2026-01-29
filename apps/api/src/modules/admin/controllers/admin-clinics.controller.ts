@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole } from '../../../database/entities/enums';
 import { AdminClinicsService } from '../services/admin-clinics.service';
 import {
   GetClinicsQueryDto,
@@ -22,7 +23,7 @@ import {
 
 @Controller('admin/clinics')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'super_admin')
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminClinicsController {
   constructor(private readonly clinicsService: AdminClinicsService) {}
 

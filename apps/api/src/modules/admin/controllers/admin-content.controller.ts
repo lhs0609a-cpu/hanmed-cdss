@@ -14,6 +14,7 @@ import {
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole } from '../../../database/entities/enums';
 import { AdminContentService } from '../services/admin-content.service';
 import {
   PaginationQueryDto,
@@ -30,7 +31,7 @@ import {
 
 @Controller('admin/content')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('content_manager', 'admin', 'super_admin')
+@Roles(UserRole.CONTENT_MANAGER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminContentController {
   constructor(private readonly contentService: AdminContentService) {}
 

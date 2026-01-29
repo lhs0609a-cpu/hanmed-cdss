@@ -43,7 +43,6 @@ export class SentryModule implements OnModuleInit {
         // Integrations
         integrations: [
           Sentry.httpIntegration({ tracing: true }),
-          Sentry.expressIntegration(),
         ],
 
         // Ignore common non-critical errors
