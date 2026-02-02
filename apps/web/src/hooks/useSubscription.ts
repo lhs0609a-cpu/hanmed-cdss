@@ -26,8 +26,8 @@ export function usePlans() {
   return useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
-      const { data } = await api.get<{ data: PlansResponse }>('/subscription/plans');
-      const plans = data.data.plans;
+      const { data } = await api.get<PlansResponse>('/subscription/plans');
+      const plans = data.plans;
       setPlans(plans);
       return plans;
     },
@@ -42,10 +42,9 @@ export function useSubscriptionInfo() {
   return useQuery({
     queryKey: ['subscription-info'],
     queryFn: async () => {
-      const { data } = await api.get<{ data: SubscriptionInfo }>('/subscription/info');
-      const info = data.data;
-      setSubscription(info);
-      return info;
+      const { data } = await api.get<SubscriptionInfo>('/subscription/info');
+      setSubscription(data);
+      return data;
     },
   });
 }
@@ -57,10 +56,9 @@ export function useUsage() {
   return useQuery({
     queryKey: ['usage'],
     queryFn: async () => {
-      const { data } = await api.get<{ data: Usage }>('/subscription/usage');
-      const usage = data.data;
-      setUsage(usage);
-      return usage;
+      const { data } = await api.get<Usage>('/subscription/usage');
+      setUsage(data);
+      return data;
     },
     refetchInterval: 1000 * 60 * 5, // 5분마다 갱신
   });
@@ -72,10 +70,11 @@ export function useRegisterCard() {
 
   return useMutation({
     mutationFn: async (dto: RegisterCardDto) => {
-      const { data } = await api.post<{
-        data: { success: boolean; message: string; cardNumber: string };
-      }>('/subscription/register-card', dto);
-      return data.data;
+      const { data } = await api.post<{ success: boolean; message: string; cardNumber: string }>(
+        '/subscription/register-card',
+        dto
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
@@ -89,10 +88,11 @@ export function useSubscribe() {
 
   return useMutation({
     mutationFn: async (dto: SubscribeDto) => {
-      const { data } = await api.post<{
-        data: { success: boolean; message: string; paymentKey: string };
-      }>('/subscription/subscribe', dto);
-      return data.data;
+      const { data } = await api.post<{ success: boolean; message: string; paymentKey: string }>(
+        '/subscription/subscribe',
+        dto
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
@@ -107,10 +107,10 @@ export function useCancelSubscription() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.post<{
-        data: { success: boolean; message: string };
-      }>('/subscription/cancel');
-      return data.data;
+      const { data } = await api.post<{ success: boolean; message: string }>(
+        '/subscription/cancel'
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
@@ -124,10 +124,10 @@ export function useCancelSubscriptionImmediately() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.delete<{
-        data: { success: boolean; message: string };
-      }>('/subscription/cancel-immediately');
-      return data.data;
+      const { data } = await api.delete<{ success: boolean; message: string }>(
+        '/subscription/cancel-immediately'
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
@@ -195,10 +195,10 @@ export function usePaymentHistory(page: number = 1, limit: number = 10) {
   return useQuery({
     queryKey: ['payment-history', page, limit],
     queryFn: async () => {
-      const { data } = await api.get<{ data: PaymentHistoryResponse }>(
+      const { data } = await api.get<PaymentHistoryResponse>(
         `/subscription/payments?page=${page}&limit=${limit}`
       );
-      return data.data;
+      return data;
     },
   });
 }
@@ -209,10 +209,11 @@ export function useRefund() {
 
   return useMutation({
     mutationFn: async (dto: RefundRequestDto) => {
-      const { data } = await api.post<{
-        data: { success: boolean; refundAmount: number; refundId: string };
-      }>('/subscription/refund', dto);
-      return data.data;
+      const { data } = await api.post<{ success: boolean; refundAmount: number; refundId: string }>(
+        '/subscription/refund',
+        dto
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-history'] });
@@ -226,10 +227,10 @@ export function useRefundHistory() {
   return useQuery({
     queryKey: ['refund-history'],
     queryFn: async () => {
-      const { data } = await api.get<{ data: { refunds: RefundRecord[] } }>(
+      const { data } = await api.get<{ refunds: RefundRecord[] }>(
         '/subscription/refunds'
       );
-      return data.data;
+      return data;
     },
   });
 }
@@ -241,6 +242,8 @@ export interface TrialStatus {
   daysRemaining: number | null;
   trialEndsAt: string | null;
   canStartTrial: boolean;
+  aiUsed?: number;
+  aiLimit?: number;
 }
 
 // 무료 체험 상태 조회
@@ -248,8 +251,8 @@ export function useTrialStatus() {
   return useQuery({
     queryKey: ['trial-status'],
     queryFn: async () => {
-      const { data } = await api.get<{ data: TrialStatus }>('/subscription/trial/status');
-      return data.data;
+      const { data } = await api.get<TrialStatus>('/subscription/trial/status');
+      return data;
     },
     staleTime: 1000 * 60 * 5, // 5분
   });
@@ -261,10 +264,10 @@ export function useStartFreeTrial() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.post<{
-        data: { success: boolean; trialEndsAt: string; message: string };
-      }>('/subscription/trial/start');
-      return data.data;
+      const { data } = await api.post<{ success: boolean; trialEndsAt: string; message: string }>(
+        '/subscription/trial/start'
+      );
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
