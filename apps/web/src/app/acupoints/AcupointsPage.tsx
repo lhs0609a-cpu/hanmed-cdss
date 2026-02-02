@@ -1,12 +1,28 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   Search,
   MapPin,
-  Filter,
   Zap,
   Target,
   Info,
   Ruler,
+  Star,
+  StarOff,
+  History,
+  GitCompare,
+  X,
+  ChevronRight,
+  Sparkles,
+  Heart,
+  Brain,
+  Activity,
+  Eye,
+  Ear,
+  Wind,
+  Hand,
+  Footprints,
+  CircleDot,
+  TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,29 +41,109 @@ interface Acupoint {
   techniques: string[]
   cautions?: string
   relatedPoints?: string[]
+  bodyRegion?: string
+}
+
+interface QuickPreset {
+  id: string
+  name: string
+  icon: React.ReactNode
+  color: string
+  description: string
+  points: string[]
+}
+
+interface BodyRegion {
+  id: string
+  name: string
+  icon: React.ReactNode
 }
 
 const meridians = [
-  { code: 'LU', name: '수태음폐경', color: 'bg-gray-500' },
-  { code: 'LI', name: '수양명대장경', color: 'bg-yellow-500' },
-  { code: 'ST', name: '족양명위경', color: 'bg-yellow-600' },
-  { code: 'SP', name: '족태음비경', color: 'bg-yellow-700' },
-  { code: 'HT', name: '수소음심경', color: 'bg-red-500' },
-  { code: 'SI', name: '수태양소장경', color: 'bg-red-600' },
-  { code: 'BL', name: '족태양방광경', color: 'bg-blue-500' },
-  { code: 'KI', name: '족소음신경', color: 'bg-blue-700' },
-  { code: 'PC', name: '수궐음심포경', color: 'bg-purple-500' },
-  { code: 'TE', name: '수소양삼초경', color: 'bg-purple-600' },
-  { code: 'GB', name: '족소양담경', color: 'bg-green-500' },
-  { code: 'LR', name: '족궐음간경', color: 'bg-green-700' },
-  { code: 'GV', name: '독맥', color: 'bg-indigo-500' },
-  { code: 'CV', name: '임맥', color: 'bg-pink-500' },
+  { code: 'LU', name: '수태음폐경', color: 'bg-gray-500', textColor: 'text-gray-600', bgLight: 'bg-gray-50' },
+  { code: 'LI', name: '수양명대장경', color: 'bg-yellow-500', textColor: 'text-yellow-600', bgLight: 'bg-yellow-50' },
+  { code: 'ST', name: '족양명위경', color: 'bg-yellow-600', textColor: 'text-yellow-700', bgLight: 'bg-yellow-50' },
+  { code: 'SP', name: '족태음비경', color: 'bg-yellow-700', textColor: 'text-yellow-800', bgLight: 'bg-yellow-50' },
+  { code: 'HT', name: '수소음심경', color: 'bg-red-500', textColor: 'text-red-600', bgLight: 'bg-red-50' },
+  { code: 'SI', name: '수태양소장경', color: 'bg-red-600', textColor: 'text-red-700', bgLight: 'bg-red-50' },
+  { code: 'BL', name: '족태양방광경', color: 'bg-blue-500', textColor: 'text-blue-600', bgLight: 'bg-blue-50' },
+  { code: 'KI', name: '족소음신경', color: 'bg-blue-700', textColor: 'text-blue-800', bgLight: 'bg-blue-50' },
+  { code: 'PC', name: '수궐음심포경', color: 'bg-purple-500', textColor: 'text-purple-600', bgLight: 'bg-purple-50' },
+  { code: 'TE', name: '수소양삼초경', color: 'bg-purple-600', textColor: 'text-purple-700', bgLight: 'bg-purple-50' },
+  { code: 'GB', name: '족소양담경', color: 'bg-green-500', textColor: 'text-green-600', bgLight: 'bg-green-50' },
+  { code: 'LR', name: '족궐음간경', color: 'bg-green-700', textColor: 'text-green-800', bgLight: 'bg-green-50' },
+  { code: 'GV', name: '독맥', color: 'bg-indigo-500', textColor: 'text-indigo-600', bgLight: 'bg-indigo-50' },
+  { code: 'CV', name: '임맥', color: 'bg-pink-500', textColor: 'text-pink-600', bgLight: 'bg-pink-50' },
+]
+
+// 부위별 분류
+const bodyRegions: BodyRegion[] = [
+  { id: 'head', name: '두면부', icon: <Brain className="h-4 w-4" /> },
+  { id: 'neck', name: '경항부', icon: <CircleDot className="h-4 w-4" /> },
+  { id: 'chest', name: '흉부', icon: <Heart className="h-4 w-4" /> },
+  { id: 'abdomen', name: '복부', icon: <Activity className="h-4 w-4" /> },
+  { id: 'back', name: '배부', icon: <Wind className="h-4 w-4" /> },
+  { id: 'arm', name: '상지', icon: <Hand className="h-4 w-4" /> },
+  { id: 'leg', name: '하지', icon: <Footprints className="h-4 w-4" /> },
+]
+
+// 빠른 조합 프리셋
+const quickPresets: QuickPreset[] = [
+  {
+    id: 'headache',
+    name: '두통',
+    icon: <Brain className="h-5 w-5" />,
+    color: 'from-purple-500 to-indigo-500',
+    description: '두통, 편두통 치료 핵심 경혈',
+    points: ['합곡', '태충', '풍지', '백회', '태양'],
+  },
+  {
+    id: 'digestion',
+    name: '소화불량',
+    icon: <Activity className="h-5 w-5" />,
+    color: 'from-orange-500 to-amber-500',
+    description: '위장 기능 개선 경혈 조합',
+    points: ['족삼리', '중완', '내관', '천추', '공손'],
+  },
+  {
+    id: 'insomnia',
+    name: '불면증',
+    icon: <Star className="h-5 w-5" />,
+    color: 'from-indigo-500 to-purple-500',
+    description: '수면 장애 개선 경혈',
+    points: ['신문', '내관', '삼음교', '백회', '안면'],
+  },
+  {
+    id: 'shoulder',
+    name: '견비통',
+    icon: <Hand className="h-5 w-5" />,
+    color: 'from-blue-500 to-cyan-500',
+    description: '어깨 통증 치료 경혈',
+    points: ['견우', '견료', '곡지', '외관', '합곡'],
+  },
+  {
+    id: 'lumbago',
+    name: '요통',
+    icon: <Wind className="h-5 w-5" />,
+    color: 'from-green-500 to-emerald-500',
+    description: '허리 통증 치료 경혈',
+    points: ['신수', '위중', '곤륜', '환도', '대장수'],
+  },
+  {
+    id: 'cold',
+    name: '감기',
+    icon: <Zap className="h-5 w-5" />,
+    color: 'from-cyan-500 to-blue-500',
+    description: '감기 증상 완화 경혈',
+    points: ['합곡', '대추', '풍지', '열결', '척택'],
+  },
 ]
 
 const symptomCategories = [
   '두통', '소화불량', '불면', '요통', '견비통', '월경통', '피로', '감기', '현훈', '구토', '변비', '심계', '이명', '비염', '천식'
 ]
 
+// 경혈 데이터 (기존 데이터에 bodyRegion 추가)
 const demoAcupoints: Acupoint[] = [
   // ===== 수태음폐경 (LU) =====
   {
@@ -65,6 +161,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['사법', '평보평사'],
     cautions: '심자 금기 (폐손상)',
     relatedPoints: ['폐수(BL13)', '척택(LU5)'],
+    bodyRegion: 'chest',
   },
   {
     id: 'lu5',
@@ -80,6 +177,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['해수', '천식', '객혈', '인후종통', '흉만', '소아경풍', '주비'],
     techniques: ['사법'],
     relatedPoints: ['합곡(LI4)', '대추(GV14)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'lu7',
@@ -95,6 +193,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '경항강통', '해수', '천식', '인후종통', '구안와사', '수완통'],
     techniques: ['보법', '사법'],
     relatedPoints: ['합곡(LI4)', '풍지(GB20)', '조해(KI6)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'lu9',
@@ -111,6 +210,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['보법'],
     cautions: '동맥 주의',
     relatedPoints: ['폐수(BL13)', '척택(LU5)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'lu11',
@@ -126,23 +226,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['인후종통', '비뉵', '발열', '중풍혼미', '전간', '수지마목'],
     techniques: ['점자 출혈', '사법'],
     relatedPoints: ['합곡(LI4)', '어제(LU10)'],
+    bodyRegion: 'arm',
   },
   // ===== 수양명대장경 (LI) =====
-  {
-    id: 'li1',
-    code: 'LI1',
-    name: '상양',
-    hanja: '商陽',
-    pinyin: 'Shangyang',
-    meridian: '수양명대장경',
-    meridianCode: 'LI',
-    location: '시지 말절 요측, 조갑각에서 0.1촌',
-    depth: '0.1촌',
-    angle: '직자 또는 점자',
-    indications: ['인후종통', '치통', '이명', '열병', '혼미'],
-    techniques: ['사법', '점자출혈'],
-    relatedPoints: ['합곡(LI4)', '소상(LU11)'],
-  },
   {
     id: 'li4',
     code: 'LI4',
@@ -158,21 +244,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['보법', '사법', '온침', '뜸'],
     cautions: '임신부 금침',
     relatedPoints: ['곡지(LI11)', '열결(LU7)', '태충(LR3)'],
-  },
-  {
-    id: 'li10',
-    code: 'LI10',
-    name: '수삼리',
-    hanja: '手三里',
-    pinyin: 'Shousanli',
-    meridian: '수양명대장경',
-    meridianCode: 'LI',
-    location: '전완 배면, 양계에서 곡지까지 2촌',
-    depth: '0.8~1.2촌',
-    angle: '직자',
-    indications: ['치통', '견비통', '상지불수', '복통', '설사', '편두통'],
-    techniques: ['보법', '사법', '뜸'],
-    relatedPoints: ['곡지(LI11)', '합곡(LI4)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'li11',
@@ -188,6 +260,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['발열', '인후종통', '눈병', '치통', '두통', '현훈', '고혈압', '피부병', '상지마비', '복통', '설사'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['합곡(LI4)', '외관(TE5)', '혈해(SP10)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'li15',
@@ -203,6 +276,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['견비통', '상지불수', '반신불수', '풍습비', '두드러기'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['견료(TE14)', '곡지(LI11)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'li20',
@@ -218,69 +292,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['비색', '비연', '비뉵', '구안와사', '면양', '담도회충증'],
     techniques: ['사법'],
     relatedPoints: ['합곡(LI4)', '인당(EX-HN3)'],
+    bodyRegion: 'head',
   },
   // ===== 족양명위경 (ST) =====
-  {
-    id: 'st2',
-    code: 'ST2',
-    name: '사백',
-    hanja: '四白',
-    pinyin: 'Sibai',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '안면부, 동공 직하방, 안와하공 함요처',
-    depth: '0.2~0.3촌',
-    angle: '직자',
-    indications: ['눈병', '구안와사', '두통', '현훈', '삼차신경통'],
-    techniques: ['사법'],
-    cautions: '심자 금기',
-    relatedPoints: ['합곡(LI4)', '태양(EX-HN5)'],
-  },
-  {
-    id: 'st6',
-    code: 'ST6',
-    name: '협거',
-    hanja: '頰車',
-    pinyin: 'Jiache',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '하악각 전상방, 교근 융기처',
-    depth: '0.3~0.5촌',
-    angle: '직자 또는 사자',
-    indications: ['구안와사', '치통', '하악통', '아관긴급', '경항강통'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)', '하관(ST7)'],
-  },
-  {
-    id: 'st7',
-    code: 'ST7',
-    name: '하관',
-    hanja: '下關',
-    pinyin: 'Xiaguan',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '이전방, 관골궁 하연, 하악골과상돌기 함요처',
-    depth: '0.3~0.5촌',
-    angle: '직자',
-    indications: ['이농', '이명', '치통', '구안와사', '아관긴급'],
-    techniques: ['사법'],
-    relatedPoints: ['협거(ST6)', '청궁(SI19)'],
-  },
-  {
-    id: 'st8',
-    code: 'ST8',
-    name: '두유',
-    hanja: '頭維',
-    pinyin: 'Touwei',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '두부, 이마모서리 위 0.5촌, 두유발제 내측',
-    depth: '0.5~1촌',
-    angle: '평자',
-    indications: ['두통', '현훈', '눈병', '다루'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)', '태양(EX-HN5)'],
-  },
   {
     id: 'st25',
     code: 'ST25',
@@ -295,6 +309,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['복통', '복창', '설사', '변비', '이질', '월경불조', '수종'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['족삼리(ST36)', '상거허(ST37)'],
+    bodyRegion: 'abdomen',
   },
   {
     id: 'st36',
@@ -310,21 +325,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['위통', '구토', '복창', '설사', '변비', '소화불량', '하지마비', '각기', '허로', '수종', '중풍', '전간'],
     techniques: ['보법', '사법', '온침', '뜸'],
     relatedPoints: ['중완(CV12)', '내관(PC6)', '합곡(LI4)'],
-  },
-  {
-    id: 'st37',
-    code: 'ST37',
-    name: '상거허',
-    hanja: '上巨虛',
-    pinyin: 'Shangjuxu',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '족삼리 아래 3촌',
-    depth: '1~1.5촌',
-    angle: '직자',
-    indications: ['복통', '설사', '이질', '장옹', '하지마비'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['족삼리(ST36)', '천추(ST25)'],
+    bodyRegion: 'leg',
   },
   {
     id: 'st40',
@@ -340,53 +341,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['담음', '해수', '천식', '두통', '현훈', '전간', '하지마비', '변비'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['족삼리(ST36)', '중완(CV12)', '폐수(BL13)'],
-  },
-  {
-    id: 'st44',
-    code: 'ST44',
-    name: '내정',
-    hanja: '內庭',
-    pinyin: 'Neiting',
-    meridian: '족양명위경',
-    meridianCode: 'ST',
-    location: '족배부, 제2·3지 사이, 지간접합부 후방',
-    depth: '0.3~0.5촌',
-    angle: '직자 또는 사자',
-    indications: ['치통', '인후종통', '비뉵', '위통', '복창', '설사', '열병', '족배종통'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)', '족삼리(ST36)'],
+    bodyRegion: 'leg',
   },
   // ===== 족태음비경 (SP) =====
-  {
-    id: 'sp3',
-    code: 'SP3',
-    name: '태백',
-    hanja: '太白',
-    pinyin: 'Taibai',
-    meridian: '족태음비경',
-    meridianCode: 'SP',
-    location: '족내측, 제1중족골두 후하방 적백육제',
-    depth: '0.5~0.8촌',
-    angle: '직자',
-    indications: ['위통', '복창', '구토', '설사', '변비', '각기', '체중절통'],
-    techniques: ['보법', '사법'],
-    relatedPoints: ['족삼리(ST36)', '공손(SP4)'],
-  },
-  {
-    id: 'sp4',
-    code: 'SP4',
-    name: '공손',
-    hanja: '公孫',
-    pinyin: 'Gongsun',
-    meridian: '족태음비경',
-    meridianCode: 'SP',
-    location: '족내측, 제1중족골 기저부 전하연',
-    depth: '0.6~1촌',
-    angle: '직자',
-    indications: ['위통', '구토', '복통', '설사', '심통', '불면', '전간', '각기'],
-    techniques: ['보법', '사법', '뜸'],
-    relatedPoints: ['내관(PC6)', '족삼리(ST36)'],
-  },
   {
     id: 'sp6',
     code: 'SP6',
@@ -402,21 +359,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['보법', '사법', '뜸'],
     cautions: '임신부 금침',
     relatedPoints: ['족삼리(ST36)', '혈해(SP10)', '관원(CV4)'],
-  },
-  {
-    id: 'sp9',
-    code: 'SP9',
-    name: '음릉천',
-    hanja: '陰陵泉',
-    pinyin: 'Yinlingquan',
-    meridian: '족태음비경',
-    meridianCode: 'SP',
-    location: '경골 내측과 후하방 함요처',
-    depth: '1~2촌',
-    angle: '직자',
-    indications: ['복창', '수종', '소변불리', '유뇨', '슬통', '설사', '황달'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['삼음교(SP6)', '족삼리(ST36)'],
+    bodyRegion: 'leg',
   },
   {
     id: 'sp10',
@@ -432,38 +375,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['월경불조', '붕루', '경폐', '풍진', '습진', '슬통', '고관절통'],
     techniques: ['보법', '사법', '뜸'],
     relatedPoints: ['삼음교(SP6)', '곡지(LI11)'],
+    bodyRegion: 'leg',
   },
   // ===== 수소음심경 (HT) =====
-  {
-    id: 'ht3',
-    code: 'HT3',
-    name: '소해',
-    hanja: '少海',
-    pinyin: 'Shaohai',
-    meridian: '수소음심경',
-    meridianCode: 'HT',
-    location: '주횡문 내측단, 상완골내측상과 전면',
-    depth: '0.5~1촌',
-    angle: '직자',
-    indications: ['심통', '주비', '상완통', '수전', '건망', '전간'],
-    techniques: ['보법', '사법'],
-    relatedPoints: ['신문(HT7)', '내관(PC6)'],
-  },
-  {
-    id: 'ht5',
-    code: 'HT5',
-    name: '통리',
-    hanja: '通里',
-    pinyin: 'Tongli',
-    meridian: '수소음심경',
-    meridianCode: 'HT',
-    location: '전완 전면, 완횡문 상 1촌, 척측수근굴근건 요측',
-    depth: '0.3~0.5촌',
-    angle: '직자',
-    indications: ['심계', '혀가 뻣뻣함', '설강불리', '완비', '현훈'],
-    techniques: ['보법', '사법'],
-    relatedPoints: ['신문(HT7)'],
-  },
   {
     id: 'ht7',
     code: 'HT7',
@@ -478,6 +392,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['심통', '심계', '불면', '건망', '전간', '치매', '울증', '히스테리'],
     techniques: ['보법', '사법'],
     relatedPoints: ['내관(PC6)', '백회(GV20)', '삼음교(SP6)'],
+    bodyRegion: 'arm',
   },
   // ===== 수태양소장경 (SI) =====
   {
@@ -494,85 +409,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '경항강통', '요배통', '전간', '학질', '이명', '눈병'],
     techniques: ['사법'],
     relatedPoints: ['신맥(BL62)', '합곡(LI4)'],
-  },
-  {
-    id: 'si6',
-    code: 'SI6',
-    name: '양로',
-    hanja: '養老',
-    pinyin: 'Yanglao',
-    meridian: '수태양소장경',
-    meridianCode: 'SI',
-    location: '전완 배면, 척골두 요측 함요처',
-    depth: '0.3~0.5촌',
-    angle: '직자 또는 사자',
-    indications: ['목훈', '견비완통', '요통', '낙침'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)', '곡지(LI11)'],
-  },
-  {
-    id: 'si19',
-    code: 'SI19',
-    name: '청궁',
-    hanja: '聽宮',
-    pinyin: 'Tinggong',
-    meridian: '수태양소장경',
-    meridianCode: 'SI',
-    location: '이전방, 이주 중앙 전방, 하악골과상돌기 후연 함요처',
-    depth: '0.5~1촌',
-    angle: '직자',
-    indications: ['이롱', '이명', '이농', '치통', '전간'],
-    techniques: ['사법'],
-    relatedPoints: ['예풍(TE17)', '하관(ST7)'],
+    bodyRegion: 'arm',
   },
   // ===== 족태양방광경 (BL) =====
-  {
-    id: 'bl2',
-    code: 'BL2',
-    name: '찬죽',
-    hanja: '攢竹',
-    pinyin: 'Zanzhu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '안면부, 미두 함요처',
-    depth: '0.3~0.5촌',
-    angle: '사자(하방) 또는 평자',
-    indications: ['두통', '눈병', '딸꾹질', '면통', '미릉골통'],
-    techniques: ['사법'],
-    cautions: '심자 금기',
-    relatedPoints: ['태양(EX-HN5)', '합곡(LI4)'],
-  },
-  {
-    id: 'bl10',
-    code: 'BL10',
-    name: '천주',
-    hanja: '天柱',
-    pinyin: 'Tianzhu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '후두부, 승모근 외연, 후발제 내, 아문 외측 1.3촌',
-    depth: '0.5~0.8촌',
-    angle: '직자 또는 사자',
-    indications: ['두통', '경항강통', '인후종통', '비색', '전간', '히스테리'],
-    techniques: ['사법'],
-    cautions: '심자 금기',
-    relatedPoints: ['풍지(GB20)', '풍부(GV16)'],
-  },
-  {
-    id: 'bl11',
-    code: 'BL11',
-    name: '대저',
-    hanja: '大杼',
-    pinyin: 'Dazhu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '제1흉추극돌기 하 외측 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['해수', '발열', '두통', '경항강통', '골증조열'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['대추(GV14)', '폐수(BL13)'],
-  },
   {
     id: 'bl13',
     code: 'BL13',
@@ -587,6 +426,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['해수', '천식', '객혈', '폐결핵', '골증조열', '도한'],
     techniques: ['보법', '사법', '뜸'],
     relatedPoints: ['태연(LU9)', '중부(LU1)'],
+    bodyRegion: 'back',
   },
   {
     id: 'bl15',
@@ -602,66 +442,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['심통', '심계', '불면', '건망', '전간', '해수', '토혈'],
     techniques: ['보법', '사법', '뜸'],
     relatedPoints: ['신문(HT7)', '내관(PC6)'],
-  },
-  {
-    id: 'bl17',
-    code: 'BL17',
-    name: '격수',
-    hanja: '膈俞',
-    pinyin: 'Geshu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '제7흉추극돌기 하 외측 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['구토', '딸꾹질', '천식', '해수', '토혈', '빈혈', '야맹증'],
-    techniques: ['보법', '사법', '뜸'],
-    relatedPoints: ['혈해(SP10)', '삼음교(SP6)'],
-  },
-  {
-    id: 'bl18',
-    code: 'BL18',
-    name: '간수',
-    hanja: '肝俞',
-    pinyin: 'Ganshu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '제9흉추극돌기 하 외측 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['황달', '협통', '토혈', '비뉵', '눈병', '현훈', '전간', '정신병'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['태충(LR3)', '기문(LR14)'],
-  },
-  {
-    id: 'bl20',
-    code: 'BL20',
-    name: '비수',
-    hanja: '脾俞',
-    pinyin: 'Pishu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '제11흉추극돌기 하 외측 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['복창', '황달', '구토', '설사', '이질', '수종', '식욕부진'],
-    techniques: ['보법', '뜸'],
-    relatedPoints: ['족삼리(ST36)', '삼음교(SP6)'],
-  },
-  {
-    id: 'bl21',
-    code: 'BL21',
-    name: '위수',
-    hanja: '胃俞',
-    pinyin: 'Weishu',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '제12흉추극돌기 하 외측 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['위통', '구토', '복창', '장명', '소아감질'],
-    techniques: ['보법', '뜸'],
-    relatedPoints: ['중완(CV12)', '족삼리(ST36)'],
+    bodyRegion: 'back',
   },
   {
     id: 'bl23',
@@ -677,6 +458,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['유정', '양위', '월경불조', '대하', '소변불리', '수종', '요통', '이명', '이롱'],
     techniques: ['보법', '뜸'],
     relatedPoints: ['관원(CV4)', '태계(KI3)', '명문(GV4)'],
+    bodyRegion: 'back',
   },
   {
     id: 'bl25',
@@ -692,6 +474,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['복창', '설사', '변비', '요통', '좌골신경통'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['천추(ST25)', '상거허(ST37)'],
+    bodyRegion: 'back',
   },
   {
     id: 'bl40',
@@ -707,21 +490,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['요통', '하지마비', '슬통', '복통', '구토', '설사', '소변불리', '열병', '피부병'],
     techniques: ['사법', '점자출혈'],
     relatedPoints: ['신수(BL23)', '곤륜(BL60)'],
-  },
-  {
-    id: 'bl57',
-    code: 'BL57',
-    name: '승산',
-    hanja: '承山',
-    pinyin: 'Chengshan',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '비복근 양두 사이, 위중과 곤륜 연결선 중점',
-    depth: '1~2촌',
-    angle: '직자',
-    indications: ['치질', '탈항', '변비', '요배통', '하지마비', '비복근경련', '각기'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['위중(BL40)', '곤륜(BL60)'],
+    bodyRegion: 'leg',
   },
   {
     id: 'bl60',
@@ -738,21 +507,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['사법', '뜸'],
     cautions: '임신부 금침',
     relatedPoints: ['후계(SI3)', '태계(KI3)'],
-  },
-  {
-    id: 'bl62',
-    code: 'BL62',
-    name: '신맥',
-    hanja: '申脈',
-    pinyin: 'Shenmai',
-    meridian: '족태양방광경',
-    meridianCode: 'BL',
-    location: '외과첨 직하 함요처',
-    depth: '0.3~0.5촌',
-    angle: '직자',
-    indications: ['두통', '현훈', '불면', '전간', '요퇴통', '족근통'],
-    techniques: ['사법'],
-    relatedPoints: ['후계(SI3)', '조해(KI6)'],
+    bodyRegion: 'leg',
   },
   // ===== 족소음신경 (KI) =====
   {
@@ -769,6 +524,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두정통', '현훈', '혼미', '전간', '소아경풍', '인후종통', '대소변곤란', '발열'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['백회(GV20)', '인중(GV26)'],
+    bodyRegion: 'leg',
   },
   {
     id: 'ki3',
@@ -784,53 +540,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['이명', '이롱', '인후종통', '치통', '해수', '천식', '객혈', '불면', '유정', '양위', '월경불조', '요통'],
     techniques: ['보법', '뜸'],
     relatedPoints: ['신수(BL23)', '관원(CV4)'],
-  },
-  {
-    id: 'ki6',
-    code: 'KI6',
-    name: '조해',
-    hanja: '照海',
-    pinyin: 'Zhaohai',
-    meridian: '족소음신경',
-    meridianCode: 'KI',
-    location: '내과첨 직하 1촌 함요처',
-    depth: '0.5~0.8촌',
-    angle: '직자',
-    indications: ['인후건통', '월경불조', '음정', '소변빈삭', '전간', '불면', '변비'],
-    techniques: ['보법'],
-    relatedPoints: ['열결(LU7)', '삼음교(SP6)'],
-  },
-  {
-    id: 'ki7',
-    code: 'KI7',
-    name: '복류',
-    hanja: '復溜',
-    pinyin: 'Fuliu',
-    meridian: '족소음신경',
-    meridianCode: 'KI',
-    location: '내과첨 상 2촌, 아킬레스건 전연',
-    depth: '0.5~1촌',
-    angle: '직자',
-    indications: ['수종', '복창', '설사', '자한', '도한', '요척통', '하지위비'],
-    techniques: ['보법', '뜸'],
-    relatedPoints: ['태계(KI3)', '합곡(LI4)'],
+    bodyRegion: 'leg',
   },
   // ===== 수궐음심포경 (PC) =====
-  {
-    id: 'pc3',
-    code: 'PC3',
-    name: '곡택',
-    hanja: '曲澤',
-    pinyin: 'Quze',
-    meridian: '수궐음심포경',
-    meridianCode: 'PC',
-    location: '주횡문 상, 상완이두근건 척측',
-    depth: '0.8~1촌 또는 점자출혈',
-    angle: '직자',
-    indications: ['심통', '심계', '위통', '구토', '열병', '주비', '상완통'],
-    techniques: ['사법', '점자출혈'],
-    relatedPoints: ['내관(PC6)', '척택(LU5)'],
-  },
   {
     id: 'pc6',
     code: 'PC6',
@@ -845,38 +557,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['심통', '심계', '흉민', '구토', '위통', '불면', '전간', '울증', '눈병', '히스테리', '멀미'],
     techniques: ['보법', '사법', '온침'],
     relatedPoints: ['족삼리(ST36)', '중완(CV12)', '신문(HT7)', '공손(SP4)'],
-  },
-  {
-    id: 'pc8',
-    code: 'PC8',
-    name: '노궁',
-    hanja: '勞宮',
-    pinyin: 'Laogong',
-    meridian: '수궐음심포경',
-    meridianCode: 'PC',
-    location: '수장부, 제2·3중수골 사이, 제3중수지관절 근위',
-    depth: '0.3~0.5촌',
-    angle: '직자',
-    indications: ['심통', '전간', '구토', '구창', '구취', '수장다한'],
-    techniques: ['사법'],
-    relatedPoints: ['신문(HT7)', '내관(PC6)'],
+    bodyRegion: 'arm',
   },
   // ===== 수소양삼초경 (TE) =====
-  {
-    id: 'te3',
-    code: 'TE3',
-    name: '중저',
-    hanja: '中渚',
-    pinyin: 'Zhongzhu',
-    meridian: '수소양삼초경',
-    meridianCode: 'TE',
-    location: '수배부, 제4·5중수골 사이, 제4중수지관절 후방',
-    depth: '0.5~0.8촌',
-    angle: '직자',
-    indications: ['두통', '이명', '이롱', '인후종통', '견비통', '수지굴신불리'],
-    techniques: ['사법'],
-    relatedPoints: ['외관(TE5)', '예풍(TE17)'],
-  },
   {
     id: 'te5',
     code: 'TE5',
@@ -891,6 +574,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['발열', '두통', '이명', '이롱', '협통', '상지마비', '수지동통', '변비'],
     techniques: ['사법'],
     relatedPoints: ['합곡(LI4)', '곡지(LI11)', '내관(PC6)'],
+    bodyRegion: 'arm',
   },
   {
     id: 'te14',
@@ -906,99 +590,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['견비통', '상지불수'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['견우(LI15)', '견정(SI9)'],
-  },
-  {
-    id: 'te17',
-    code: 'TE17',
-    name: '예풍',
-    hanja: '翳風',
-    pinyin: 'Yifeng',
-    meridian: '수소양삼초경',
-    meridianCode: 'TE',
-    location: '이수 후방, 유양돌기와 하악각 사이 함요처',
-    depth: '0.5~1촌',
-    angle: '직자',
-    indications: ['이명', '이롱', '이농', '구안와사', '치통', '하악통', '경항강통'],
-    techniques: ['사법'],
-    relatedPoints: ['청궁(SI19)', '풍지(GB20)'],
-  },
-  {
-    id: 'te23',
-    code: 'TE23',
-    name: '사죽공',
-    hanja: '絲竹空',
-    pinyin: 'Sizhukong',
-    meridian: '수소양삼초경',
-    meridianCode: 'TE',
-    location: '안면부, 미모 외측단 함요처',
-    depth: '0.3~0.5촌',
-    angle: '평자(후방)',
-    indications: ['두통', '눈병', '면통', '전간'],
-    techniques: ['사법'],
-    cautions: '심자 금기',
-    relatedPoints: ['태양(EX-HN5)', '찬죽(BL2)'],
+    bodyRegion: 'arm',
   },
   // ===== 족소양담경 (GB) =====
-  {
-    id: 'gb1',
-    code: 'GB1',
-    name: '동자료',
-    hanja: '瞳子髎',
-    pinyin: 'Tongziliao',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '안면부, 외자 외측 0.5촌 함요처',
-    depth: '0.3~0.5촌',
-    angle: '사자(후방) 또는 평자',
-    indications: ['두통', '눈병', '구안와사'],
-    techniques: ['사법'],
-    relatedPoints: ['태양(EX-HN5)', '합곡(LI4)'],
-  },
-  {
-    id: 'gb2',
-    code: 'GB2',
-    name: '청회',
-    hanja: '聽會',
-    pinyin: 'Tinghui',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '이전방, 이주간절흔 전방, 하악골과상돌기 후연',
-    depth: '0.5~1촌',
-    angle: '직자',
-    indications: ['이명', '이롱', '이농', '치통', '구안와사', '하악통'],
-    techniques: ['사법'],
-    relatedPoints: ['청궁(SI19)', '예풍(TE17)'],
-  },
-  {
-    id: 'gb8',
-    code: 'GB8',
-    name: '솔곡',
-    hanja: '率谷',
-    pinyin: 'Shuaigu',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '이첨 직상 발제 상 1.5촌',
-    depth: '0.5~0.8촌',
-    angle: '평자',
-    indications: ['편두통', '현훈', '구토', '소아경풍'],
-    techniques: ['사법'],
-    relatedPoints: ['두유(ST8)', '풍지(GB20)'],
-  },
-  {
-    id: 'gb14',
-    code: 'GB14',
-    name: '양백',
-    hanja: '陽白',
-    pinyin: 'Yangbai',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '전두부, 미상연 중점 직상 1촌',
-    depth: '0.3~0.5촌',
-    angle: '평자(하방)',
-    indications: ['두통', '눈병', '안면신경마비', '안검경련'],
-    techniques: ['사법'],
-    relatedPoints: ['찬죽(BL2)', '태양(EX-HN5)'],
-  },
   {
     id: 'gb20',
     code: 'GB20',
@@ -1014,6 +608,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['사법', '평보평사'],
     cautions: '심자 금기',
     relatedPoints: ['백회(GV20)', '합곡(LI4)', '태양(EX-HN5)'],
+    bodyRegion: 'neck',
   },
   {
     id: 'gb21',
@@ -1030,6 +625,7 @@ const demoAcupoints: Acupoint[] = [
     techniques: ['사법', '뜸'],
     cautions: '심자 금기 (기흉), 임신부 금침',
     relatedPoints: ['견우(LI15)', '곡지(LI11)'],
+    bodyRegion: 'neck',
   },
   {
     id: 'gb30',
@@ -1045,6 +641,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['요퇴통', '좌골신경통', '하지마비', '풍습비', '중풍'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['위중(BL40)', '양릉천(GB34)'],
+    bodyRegion: 'leg',
   },
   {
     id: 'gb34',
@@ -1060,53 +657,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['협통', '구고', '구토', '황달', '슬통', '하지마비', '각기', '근경련'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['족삼리(ST36)', '음릉천(SP9)'],
-  },
-  {
-    id: 'gb39',
-    code: 'GB39',
-    name: '현종',
-    hanja: '懸鍾',
-    pinyin: 'Xuanzhong',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '외과첨 상 3촌, 비골 전연',
-    depth: '0.5~0.8촌',
-    angle: '직자',
-    indications: ['반신불수', '경항강통', '흉협창통', '슬통', '하지마비', '각기', '치매'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['양릉천(GB34)', '삼음교(SP6)'],
-  },
-  {
-    id: 'gb41',
-    code: 'GB41',
-    name: '족임읍',
-    hanja: '足臨泣',
-    pinyin: 'Zulinqi',
-    meridian: '족소양담경',
-    meridianCode: 'GB',
-    location: '족배부, 제4·5중족골 접합부 후방',
-    depth: '0.3~0.5촌',
-    angle: '직자',
-    indications: ['두통', '현훈', '눈병', '유옹', '협통', '월경불조', '족배종통'],
-    techniques: ['사법'],
-    relatedPoints: ['외관(TE5)', '풍지(GB20)'],
+    bodyRegion: 'leg',
   },
   // ===== 족궐음간경 (LR) =====
-  {
-    id: 'lr2',
-    code: 'LR2',
-    name: '행간',
-    hanja: '行間',
-    pinyin: 'Xingjian',
-    meridian: '족궐음간경',
-    meridianCode: 'LR',
-    location: '족배부, 제1·2지 사이, 지간접합부 후방 적백육제',
-    depth: '0.5~0.8촌',
-    angle: '사자(상방)',
-    indications: ['두통', '현훈', '눈병', '협통', '월경불조', '붕루', '소변불리', '전간', '소아경풍'],
-    techniques: ['사법'],
-    relatedPoints: ['태충(LR3)', '합곡(LI4)'],
-  },
   {
     id: 'lr3',
     code: 'LR3',
@@ -1121,37 +674,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '현훈', '목적종통', '협통', '월경불조', '붕루', '소변불리', '전간', '소아경풍', '고혈압', '불면'],
     techniques: ['보법', '사법'],
     relatedPoints: ['합곡(LI4)', '백회(GV20)', '풍지(GB20)'],
-  },
-  {
-    id: 'lr8',
-    code: 'LR8',
-    name: '곡천',
-    hanja: '曲泉',
-    pinyin: 'Ququan',
-    meridian: '족궐음간경',
-    meridianCode: 'LR',
-    location: '슬횡문 내측단, 반건양근건 내측 함요처',
-    depth: '1~1.5촌',
-    angle: '직자',
-    indications: ['소변불리', '유뇨', '음양', '양위', '음정', '대하', '슬통', '하지마비'],
-    techniques: ['보법', '사법'],
-    relatedPoints: ['삼음교(SP6)', '음릉천(SP9)'],
-  },
-  {
-    id: 'lr14',
-    code: 'LR14',
-    name: '기문',
-    hanja: '期門',
-    pinyin: 'Qimen',
-    meridian: '족궐음간경',
-    meridianCode: 'LR',
-    location: '흉부, 유두 직하, 제6늑간',
-    depth: '0.5~0.8촌',
-    angle: '사자',
-    indications: ['흉협통', '구토', '딸꾹질', '토산', '황달', '유옹'],
-    techniques: ['사법', '뜸'],
-    cautions: '심자 금기 (기흉)',
-    relatedPoints: ['간수(BL18)', '태충(LR3)'],
+    bodyRegion: 'leg',
   },
   // ===== 독맥 (GV) =====
   {
@@ -1168,6 +691,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['요통', '유정', '양위', '대하', '월경불조', '설사', '소아발육부진'],
     techniques: ['보법', '뜸'],
     relatedPoints: ['신수(BL23)', '관원(CV4)'],
+    bodyRegion: 'back',
   },
   {
     id: 'gv14',
@@ -1183,22 +707,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['발열', '학질', '해수', '천식', '두통', '경항강통', '중풍', '전간', '골증조열'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['풍지(GB20)', '합곡(LI4)', '곡지(LI11)'],
-  },
-  {
-    id: 'gv16',
-    code: 'GV16',
-    name: '풍부',
-    hanja: '風府',
-    pinyin: 'Fengfu',
-    meridian: '독맥',
-    meridianCode: 'GV',
-    location: '후두부, 후발제 직상 1촌, 외후두융기 직하 함요처',
-    depth: '0.5~1촌',
-    angle: '직자(턱 방향)',
-    indications: ['두통', '경항강통', '현훈', '인후종통', '실어', '중풍', '전간'],
-    techniques: ['사법'],
-    cautions: '심자 금기 (연수손상)',
-    relatedPoints: ['풍지(GB20)', '백회(GV20)'],
+    bodyRegion: 'neck',
   },
   {
     id: 'gv20',
@@ -1214,21 +723,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '현훈', '중풍', '불면', '건망', '탈항', '자궁탈수', '이명', '고혈압', '정신병'],
     techniques: ['보법', '사법', '뜸'],
     relatedPoints: ['풍지(GB20)', '태양(EX-HN5)', '인당(EX-HN3)'],
-  },
-  {
-    id: 'gv23',
-    code: 'GV23',
-    name: '상성',
-    hanja: '上星',
-    pinyin: 'Shangxing',
-    meridian: '독맥',
-    meridianCode: 'GV',
-    location: '두부, 전정중선 상, 전발제에서 1촌',
-    depth: '0.5~0.8촌',
-    angle: '평자(후방)',
-    indications: ['두통', '눈병', '비색', '비연', '비뉵', '전간'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['인당(EX-HN3)', '합곡(LI4)'],
+    bodyRegion: 'head',
   },
   {
     id: 'gv26',
@@ -1244,23 +739,9 @@ const demoAcupoints: Acupoint[] = [
     indications: ['혼미', '전간', '중풍', '구안와사', '요척통', '급성요좌', '소아경풍', '히스테리'],
     techniques: ['사법'],
     relatedPoints: ['합곡(LI4)', '백회(GV20)', '용천(KI1)'],
+    bodyRegion: 'head',
   },
   // ===== 임맥 (CV) =====
-  {
-    id: 'cv3',
-    code: 'CV3',
-    name: '중극',
-    hanja: '中極',
-    pinyin: 'Zhongji',
-    meridian: '임맥',
-    meridianCode: 'CV',
-    location: '복부, 전정중선 상, 배꼽 아래 4촌',
-    depth: '1~1.5촌',
-    angle: '직자',
-    indications: ['유뇨', '소변불리', '유정', '양위', '월경불조', '대하', '붕루', '불임'],
-    techniques: ['보법', '뜸'],
-    relatedPoints: ['관원(CV4)', '삼음교(SP6)'],
-  },
   {
     id: 'cv4',
     code: 'CV4',
@@ -1275,6 +756,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['유정', '양위', '월경불조', '붕루', '대하', '요통', '설사', '탈항', '허로', '유뇨', '빈뇨'],
     techniques: ['보법', '뜸'],
     relatedPoints: ['기해(CV6)', '신궐(CV8)', '삼음교(SP6)'],
+    bodyRegion: 'abdomen',
   },
   {
     id: 'cv6',
@@ -1290,22 +772,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['복통', '설사', '변비', '유뇨', '유정', '양위', '월경불조', '허탈', '중풍탈증'],
     techniques: ['보법', '뜸'],
     relatedPoints: ['관원(CV4)', '족삼리(ST36)'],
-  },
-  {
-    id: 'cv8',
-    code: 'CV8',
-    name: '신궐',
-    hanja: '神闕',
-    pinyin: 'Shenque',
-    meridian: '임맥',
-    meridianCode: 'CV',
-    location: '복부, 배꼽 중앙',
-    depth: '금침',
-    angle: '-',
-    indications: ['복통', '설사', '탈항', '수종', '중풍탈증', '허탈'],
-    techniques: ['뜸 (침 금기)'],
-    cautions: '침 금기',
-    relatedPoints: ['관원(CV4)', '기해(CV6)'],
+    bodyRegion: 'abdomen',
   },
   {
     id: 'cv12',
@@ -1321,6 +788,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['위통', '구토', '딸꾹질', '복창', '설사', '황달', '전간'],
     techniques: ['보법', '사법', '뜸'],
     relatedPoints: ['족삼리(ST36)', '내관(PC6)', '비수(BL20)'],
+    bodyRegion: 'abdomen',
   },
   {
     id: 'cv17',
@@ -1336,37 +804,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['흉민', '심통', '해수', '천식', '유옹', '유즙불행', '딸꾹질'],
     techniques: ['사법', '뜸'],
     relatedPoints: ['내관(PC6)', '폐수(BL13)'],
-  },
-  {
-    id: 'cv22',
-    code: 'CV22',
-    name: '천돌',
-    hanja: '天突',
-    pinyin: 'Tiantu',
-    meridian: '임맥',
-    meridianCode: 'CV',
-    location: '경부, 흉골상연 중앙 함요처',
-    depth: '0.3~0.5촌 (하방 사자)',
-    angle: '사자(하방)',
-    indications: ['해수', '천식', '흉통', '인후종통', '매핵기', '구토', '딸꾹질'],
-    techniques: ['사법'],
-    cautions: '심자 금기',
-    relatedPoints: ['열결(LU7)', '합곡(LI4)'],
-  },
-  {
-    id: 'cv24',
-    code: 'CV24',
-    name: '승장',
-    hanja: '承漿',
-    pinyin: 'Chengjiang',
-    meridian: '임맥',
-    meridianCode: 'CV',
-    location: '안면부, 턱끝 정중앙 함요처',
-    depth: '0.2~0.3촌',
-    angle: '사자(상방)',
-    indications: ['구안와사', '치통', '잇몸종통', '다연', '구창', '전간'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)', '협거(ST6)'],
+    bodyRegion: 'chest',
   },
   // ===== 경외기혈 (Extra Points) =====
   {
@@ -1383,6 +821,7 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '현훈', '비색', '비연', '눈병', '불면', '소아경풍', '전간'],
     techniques: ['사법'],
     relatedPoints: ['합곡(LI4)', '영향(LI20)'],
+    bodyRegion: 'head',
   },
   {
     id: 'ex-hn5',
@@ -1398,93 +837,113 @@ const demoAcupoints: Acupoint[] = [
     indications: ['두통', '편두통', '눈병', '구안와사', '치통'],
     techniques: ['사법', '점자출혈'],
     relatedPoints: ['합곡(LI4)', '풍지(GB20)'],
-  },
-  {
-    id: 'ex-b2',
-    code: 'EX-B2',
-    name: '협척',
-    hanja: '夾脊',
-    pinyin: 'Jiaji',
-    meridian: '경외기혈',
-    meridianCode: 'EX',
-    location: '척추 양측, 각 극돌기 하 외측 0.5촌 (17쌍)',
-    depth: '0.5~1촌',
-    angle: '사자',
-    indications: ['상응 내장 질환', '척추 질환'],
-    techniques: ['보법', '사법', '뜸'],
-    relatedPoints: ['해당 배수혈'],
-  },
-  {
-    id: 'ex-ue9',
-    code: 'EX-UE9',
-    name: '외노궁',
-    hanja: '外勞宮',
-    pinyin: 'Wailaogong',
-    meridian: '경외기혈',
-    meridianCode: 'EX',
-    location: '수배부, 제2·3중수골 사이, 중수지관절 후방 0.5촌',
-    depth: '0.5~0.8촌',
-    angle: '직자',
-    indications: ['낙침', '수배통', '수지마목', '수저종'],
-    techniques: ['사법'],
-    relatedPoints: ['합곡(LI4)'],
-  },
-  {
-    id: 'ex-le4',
-    code: 'EX-LE4',
-    name: '내슬안',
-    hanja: '內膝眼',
-    pinyin: 'Neixiyan',
-    meridian: '경외기혈',
-    meridianCode: 'EX',
-    location: '슬부, 슬개인대 내측 함요처',
-    depth: '0.5~1촌',
-    angle: '사자(외하방)',
-    indications: ['슬통', '하지마비', '각기'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['독비(ST35)', '양릉천(GB34)'],
-  },
-  {
-    id: 'ex-le7',
-    code: 'EX-LE7',
-    name: '난미',
-    hanja: '闌尾',
-    pinyin: 'Lanwei',
-    meridian: '경외기혈',
-    meridianCode: 'EX',
-    location: '하퇴 전면, 족삼리 하 약 2촌 압통점',
-    depth: '1~1.5촌',
-    angle: '직자',
-    indications: ['급성 충수염', '만성 충수염', '소화불량'],
-    techniques: ['사법', '뜸'],
-    relatedPoints: ['족삼리(ST36)', '천추(ST25)'],
+    bodyRegion: 'head',
   },
 ]
+
+const STORAGE_KEY = 'acupoint-favorites'
+const RECENT_KEY = 'acupoint-recent'
 
 export default function AcupointsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMeridian, setSelectedMeridian] = useState<string | null>(null)
   const [selectedSymptom, setSelectedSymptom] = useState<string | null>(null)
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<Acupoint | null>(null)
-
-  const filteredPoints = demoAcupoints.filter((point) => {
-    const matchesSearch =
-      !searchQuery ||
-      point.name.includes(searchQuery) ||
-      point.hanja.includes(searchQuery) ||
-      point.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      point.indications.some((ind) => ind.includes(searchQuery))
-
-    const matchesMeridian = !selectedMeridian || point.meridianCode === selectedMeridian
-
-    const matchesSymptom =
-      !selectedSymptom || point.indications.some((ind) => ind.includes(selectedSymptom))
-
-    return matchesSearch && matchesMeridian && matchesSymptom
+  const [compareMode, setCompareMode] = useState(false)
+  const [comparePoints, setComparePoints] = useState<Acupoint[]>([])
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
   })
+  const [recentPoints, setRecentPoints] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(RECENT_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [hoveredPoint, setHoveredPoint] = useState<Acupoint | null>(null)
 
-  const getMeridianColor = (code: string) => {
-    return meridians.find((m) => m.code === code)?.color || 'bg-gray-500'
+  // 즐겨찾기 토글
+  const toggleFavorite = useCallback((pointId: string) => {
+    setFavorites(prev => {
+      const newFavorites = prev.includes(pointId)
+        ? prev.filter(id => id !== pointId)
+        : [...prev, pointId]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }, [])
+
+  // 최근 본 경혈 추가
+  const addToRecent = useCallback((pointId: string) => {
+    setRecentPoints(prev => {
+      const filtered = prev.filter(id => id !== pointId)
+      const newRecent = [pointId, ...filtered].slice(0, 10)
+      localStorage.setItem(RECENT_KEY, JSON.stringify(newRecent))
+      return newRecent
+    })
+  }, [])
+
+  // 경혈 선택
+  const handleSelectPoint = useCallback((point: Acupoint) => {
+    if (compareMode) {
+      if (comparePoints.find(p => p.id === point.id)) {
+        setComparePoints(prev => prev.filter(p => p.id !== point.id))
+      } else if (comparePoints.length < 3) {
+        setComparePoints(prev => [...prev, point])
+      }
+    } else {
+      setSelectedPoint(point)
+      addToRecent(point.id)
+    }
+  }, [compareMode, comparePoints, addToRecent])
+
+  // 프리셋 클릭
+  const handlePresetClick = useCallback((preset: QuickPreset) => {
+    const points = demoAcupoints.filter(p => preset.points.includes(p.name))
+    if (points.length > 0) {
+      setCompareMode(true)
+      setComparePoints(points.slice(0, 3))
+    }
+  }, [])
+
+  // 필터링된 경혈 목록
+  const filteredPoints = useMemo(() => {
+    return demoAcupoints.filter((point) => {
+      const matchesSearch =
+        !searchQuery ||
+        point.name.includes(searchQuery) ||
+        point.hanja.includes(searchQuery) ||
+        point.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        point.indications.some((ind) => ind.includes(searchQuery))
+
+      const matchesMeridian = !selectedMeridian || point.meridianCode === selectedMeridian
+      const matchesSymptom = !selectedSymptom || point.indications.some((ind) => ind.includes(selectedSymptom))
+      const matchesRegion = !selectedRegion || point.bodyRegion === selectedRegion
+      const matchesFavorites = !showFavoritesOnly || favorites.includes(point.id)
+
+      return matchesSearch && matchesMeridian && matchesSymptom && matchesRegion && matchesFavorites
+    })
+  }, [searchQuery, selectedMeridian, selectedSymptom, selectedRegion, showFavoritesOnly, favorites])
+
+  // 최근 본 경혈
+  const recentPointsList = useMemo(() => {
+    return recentPoints
+      .map(id => demoAcupoints.find(p => p.id === id))
+      .filter((p): p is Acupoint => p !== undefined)
+      .slice(0, 5)
+  }, [recentPoints])
+
+  const getMeridianStyle = (code: string) => {
+    return meridians.find((m) => m.code === code) || { color: 'bg-gray-500', textColor: 'text-gray-600', bgLight: 'bg-gray-50' }
   }
 
   return (
@@ -1499,6 +958,94 @@ export default function AcupointsPage() {
           경락별, 부위별, 증상별로 경혈을 검색하세요
         </p>
       </div>
+
+      {/* Quick Presets */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-amber-500" />
+          <h2 className="font-bold text-gray-900">빠른 증상별 경혈 조합</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {quickPresets.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => handlePresetClick(preset)}
+              className={cn(
+                'group relative p-4 rounded-xl border-2 border-transparent bg-gradient-to-br text-white transition-all hover:scale-105 hover:shadow-lg',
+                preset.color
+              )}
+            >
+              <div className="flex flex-col items-center gap-2">
+                {preset.icon}
+                <span className="font-bold">{preset.name}</span>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="text-center px-2">
+                  <p className="text-xs mb-1">{preset.description}</p>
+                  <p className="text-[10px] opacity-75">{preset.points.join(', ')}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent & Favorites Bar */}
+      {(recentPointsList.length > 0 || favorites.length > 0) && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* 최근 본 경혈 */}
+            {recentPointsList.length > 0 && (
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-500">최근:</span>
+                <div className="flex gap-1">
+                  {recentPointsList.map(point => (
+                    <button
+                      key={point.id}
+                      onClick={() => handleSelectPoint(point)}
+                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      {point.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 즐겨찾기 필터 */}
+            <button
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                showFavoritesOnly
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              <Star className={cn('h-4 w-4', showFavoritesOnly && 'fill-amber-500')} />
+              즐겨찾기 ({favorites.length})
+            </button>
+
+            {/* 비교 모드 */}
+            <button
+              onClick={() => {
+                setCompareMode(!compareMode)
+                if (!compareMode) setComparePoints([])
+              }}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ml-auto',
+                compareMode
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              <GitCompare className="h-4 w-4" />
+              {compareMode ? `비교 중 (${comparePoints.length}/3)` : '비교 모드'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -1516,10 +1063,46 @@ export default function AcupointsPage() {
           </div>
         </div>
 
+        {/* Body Region Filter */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-500">부위:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedRegion(null)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                !selectedRegion
+                  ? 'bg-teal-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              전체
+            </button>
+            {bodyRegions.map((region) => (
+              <button
+                key={region.id}
+                onClick={() => setSelectedRegion(region.id)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1',
+                  selectedRegion === region.id
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                )}
+              >
+                {region.icon}
+                {region.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Meridian Filter */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+            <TrendingUp className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-500">경락:</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1541,11 +1124,11 @@ export default function AcupointsPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1',
                   selectedMeridian === meridian.code
-                    ? 'bg-rose-500 text-white'
+                    ? `${meridian.bgLight} ${meridian.textColor} ring-2 ring-current`
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
-                <span className={cn('w-2 h-2 rounded-full', meridian.color)} />
+                <span className={cn('w-2.5 h-2.5 rounded-full', meridian.color)} />
                 {meridian.code}
               </button>
             ))}
@@ -1588,64 +1171,204 @@ export default function AcupointsPage() {
         </div>
       </div>
 
+      {/* Compare Mode Panel */}
+      {compareMode && comparePoints.length > 0 && (
+        <div className="bg-indigo-50 rounded-2xl shadow-sm border border-indigo-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-indigo-900 flex items-center gap-2">
+              <GitCompare className="h-5 w-5" />
+              경혈 비교 ({comparePoints.length}/3)
+            </h2>
+            <button
+              onClick={() => {
+                setCompareMode(false)
+                setComparePoints([])
+              }}
+              className="text-indigo-600 hover:text-indigo-800 text-sm"
+            >
+              비교 종료
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {comparePoints.map((point) => {
+              const style = getMeridianStyle(point.meridianCode)
+              return (
+                <div key={point.id} className="bg-white rounded-xl p-4 relative">
+                  <button
+                    onClick={() => setComparePoints(prev => prev.filter(p => p.id !== point.id))}
+                    className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <X className="h-4 w-4 text-gray-400" />
+                  </button>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={cn('w-3 h-3 rounded-full', style.color)} />
+                    <h3 className="font-bold">{point.name}</h3>
+                    <span className="text-gray-500 text-sm">{point.code}</span>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-gray-500">경락</p>
+                      <p className="font-medium">{point.meridian}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">주치</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {point.indications.slice(0, 5).map((ind, i) => (
+                          <span key={i} className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-xs rounded">
+                            {ind}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">깊이</p>
+                      <p className="font-medium">{point.depth}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {comparePoints.length < 3 && (
+              <div className="border-2 border-dashed border-indigo-200 rounded-xl p-4 flex items-center justify-center text-indigo-400">
+                <p className="text-sm">경혈을 클릭하여 추가</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Results */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Points List */}
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">
-            {filteredPoints.length}개의 경혈
+          <p className="text-sm text-gray-500 flex items-center justify-between">
+            <span>{filteredPoints.length}개의 경혈</span>
+            {compareMode && <span className="text-indigo-600">경혈을 클릭하여 비교에 추가</span>}
           </p>
-          {filteredPoints.map((point) => (
-            <button
-              key={point.id}
-              onClick={() => setSelectedPoint(point)}
-              className={cn(
-                'w-full text-left bg-white rounded-xl shadow-sm border p-4 transition-all hover:shadow-md',
-                selectedPoint?.id === point.id
-                  ? 'border-rose-500 ring-2 ring-rose-500/20'
-                  : 'border-gray-100 hover:border-rose-200'
-              )}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className={cn('w-3 h-3 rounded-full', getMeridianColor(point.meridianCode))} />
-                  <span className="font-bold text-gray-900">{point.name}</span>
-                  <span className="text-gray-500">{point.hanja}</span>
-                </div>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
-                  {point.code}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{point.meridian}</p>
-              <div className="flex flex-wrap gap-1">
-                {point.indications.slice(0, 4).map((ind, i) => (
-                  <span key={i} className="px-2 py-0.5 bg-rose-50 text-rose-600 text-xs rounded">
-                    {ind}
-                  </span>
-                ))}
-                {point.indications.length > 4 && (
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">
-                    +{point.indications.length - 4}
-                  </span>
+          {filteredPoints.map((point) => {
+            const style = getMeridianStyle(point.meridianCode)
+            const isCompareSelected = comparePoints.some(p => p.id === point.id)
+            const isFavorite = favorites.includes(point.id)
+
+            return (
+              <div
+                key={point.id}
+                className="relative"
+                onMouseEnter={() => setHoveredPoint(point)}
+                onMouseLeave={() => setHoveredPoint(null)}
+              >
+                <button
+                  onClick={() => handleSelectPoint(point)}
+                  className={cn(
+                    'w-full text-left bg-white rounded-xl shadow-sm border p-4 transition-all hover:shadow-md',
+                    selectedPoint?.id === point.id && !compareMode
+                      ? 'border-rose-500 ring-2 ring-rose-500/20'
+                      : isCompareSelected
+                        ? 'border-indigo-500 ring-2 ring-indigo-500/20'
+                        : 'border-gray-100 hover:border-rose-200'
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('w-3 h-3 rounded-full', style.color)} />
+                      <span className="font-bold text-gray-900">{point.name}</span>
+                      <span className="text-gray-500">{point.hanja}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                        {point.code}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{point.meridian}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {point.indications.slice(0, 4).map((ind, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-rose-50 text-rose-600 text-xs rounded">
+                        {ind}
+                      </span>
+                    ))}
+                    {point.indications.length > 4 && (
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">
+                        +{point.indications.length - 4}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {/* 즐겨찾기 버튼 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleFavorite(point.id)
+                  }}
+                  className="absolute top-3 right-14 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  {isFavorite ? (
+                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                  ) : (
+                    <StarOff className="h-4 w-4 text-gray-300 hover:text-amber-500" />
+                  )}
+                </button>
+
+                {/* 호버 미리보기 툴팁 */}
+                {hoveredPoint?.id === point.id && !compareMode && (
+                  <div className="absolute left-full ml-2 top-0 z-10 w-64 bg-white rounded-xl shadow-lg border border-gray-200 p-4 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-blue-500" />
+                      <p className="text-sm font-medium text-gray-900">취혈 위치</p>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">{point.location}</p>
+
+                    <div className="flex gap-3 text-xs">
+                      <div>
+                        <p className="text-gray-500">깊이</p>
+                        <p className="font-medium">{point.depth}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">각도</p>
+                        <p className="font-medium">{point.angle}</p>
+                      </div>
+                    </div>
+
+                    {point.cautions && (
+                      <div className="mt-2 p-2 bg-red-50 rounded-lg">
+                        <p className="text-xs text-red-600">{point.cautions}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </button>
-          ))}
+            )
+          })}
         </div>
 
         {/* Point Detail */}
         <div className="lg:sticky lg:top-4 h-fit">
-          {selectedPoint ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+          {selectedPoint && !compareMode ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6 animate-in fade-in duration-300">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={cn('w-4 h-4 rounded-full', getMeridianColor(selectedPoint.meridianCode))} />
+                    <span className={cn('w-4 h-4 rounded-full', getMeridianStyle(selectedPoint.meridianCode).color)} />
                     <h2 className="text-2xl font-bold text-gray-900">
                       {selectedPoint.name}
                     </h2>
                     <span className="text-xl text-gray-500">{selectedPoint.hanja}</span>
+                    <button
+                      onClick={() => toggleFavorite(selectedPoint.id)}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      {favorites.includes(selectedPoint.id) ? (
+                        <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+                      ) : (
+                        <Star className="h-5 w-5 text-gray-300" />
+                      )}
+                    </button>
                   </div>
                   <p className="text-gray-500">{selectedPoint.pinyin}</p>
                 </div>
@@ -1655,9 +1378,11 @@ export default function AcupointsPage() {
               </div>
 
               {/* Meridian */}
-              <div className="p-4 bg-gray-50 rounded-xl">
+              <div className={cn('p-4 rounded-xl', getMeridianStyle(selectedPoint.meridianCode).bgLight)}>
                 <p className="text-sm text-gray-500 mb-1">소속 경락</p>
-                <p className="font-medium text-gray-900">{selectedPoint.meridian}</p>
+                <p className={cn('font-medium', getMeridianStyle(selectedPoint.meridianCode).textColor)}>
+                  {selectedPoint.meridian}
+                </p>
               </div>
 
               {/* Location */}
@@ -1734,23 +1459,32 @@ export default function AcupointsPage() {
                   <p className="font-medium text-gray-900 mb-3">배혈 (관련 혈위)</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedPoint.relatedPoints.map((rp, i) => (
-                      <span
+                      <button
                         key={i}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg"
+                        onClick={() => {
+                          const pointName = rp.split('(')[0]
+                          const found = demoAcupoints.find(p => p.name === pointName)
+                          if (found) handleSelectPoint(found)
+                        }}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
                       >
                         {rp}
-                      </span>
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-          ) : (
+          ) : !compareMode ? (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
               <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">경혈을 선택하면 상세 정보가 표시됩니다</p>
+              <p className="text-sm text-gray-400 mt-2">
+                리스트에 마우스를 올리면 미리보기를 볼 수 있습니다
+              </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

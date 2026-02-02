@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, X, Info, Shield, CheckCircle2, FileWarning } from 'lucide-react'
+import { AlertTriangle, X, Info, Shield, CheckCircle2, FileWarning, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -12,10 +12,12 @@ import { cn } from '@/lib/utils'
  */
 
 interface MedicalDisclaimerProps {
-  variant?: 'banner' | 'compact' | 'modal' | 'mandatory'
+  variant?: 'banner' | 'compact' | 'modal' | 'mandatory' | 'collapsible'
   dismissible?: boolean
   onDismiss?: () => void
   onAccept?: () => void
+  /** 기본 접힌 상태 (collapsible, banner 모드에서 사용) */
+  defaultCollapsed?: boolean
 }
 
 // 최초 동의 여부 확인 키
@@ -26,9 +28,11 @@ export function MedicalDisclaimer({
   variant = 'banner',
   dismissible = true,
   onDismiss,
-  onAccept
+  onAccept,
+  defaultCollapsed = true, // 기본 접힌 상태
 }: MedicalDisclaimerProps) {
   const [isVisible, setIsVisible] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const [hasSeenToday, setHasSeenToday] = useState(false)
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false)
   const [checkboxChecked, setCheckboxChecked] = useState(false)
@@ -201,6 +205,86 @@ export function MedicalDisclaimer({
     )
   }
 
+  // collapsible 또는 banner 모드에서 접힌 상태
+  if (variant === 'collapsible' || (variant === 'banner' && defaultCollapsed)) {
+    return (
+      <div className={cn(
+        'relative bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200',
+      )}>
+        <div className="max-w-7xl mx-auto px-4">
+          {/* 접힌 상태: 간단한 바 */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="w-full py-2 flex items-center justify-between text-left hover:bg-amber-100/30 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-800">
+                의료 참고 정보 안내
+              </span>
+              <span className="text-xs text-amber-600 hidden sm:inline">
+                (AI 추천은 참고용 정보입니다)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {isCollapsed ? (
+                <>
+                  <span className="text-xs text-amber-500">자세히 보기</span>
+                  <ChevronDown className="h-4 w-4 text-amber-500" />
+                </>
+              ) : (
+                <>
+                  <span className="text-xs text-amber-500">접기</span>
+                  <ChevronUp className="h-4 w-4 text-amber-500" />
+                </>
+              )}
+            </div>
+          </button>
+
+          {/* 펼친 상태: 전체 내용 */}
+          {!isCollapsed && (
+            <div className="pb-3 pt-1 border-t border-amber-200/50">
+              <div className="flex items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-amber-800 space-y-1">
+                    <p>
+                      <span className="font-medium">본 서비스는 의료기기가 아닙니다.</span>{' '}
+                      온고지신 AI가 제공하는 모든 처방 추천, 변증 분석, 임상 정보는
+                      <span className="font-medium text-amber-900"> 참고용 정보</span>이며,
+                      의료법상 진단 또는 처방 행위로 간주되지 않습니다.
+                    </p>
+                    <p className="text-amber-700">
+                      최종 진단 및 치료 결정은 반드시
+                      <span className="font-medium"> 한의사의 전문적인 진찰과 판단</span>에 따라 이루어져야 합니다.
+                      AI 추천 결과를 맹신하지 마시고, 환자의 개별적 상황을 종합적으로 고려하여 주십시오.
+                    </p>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-amber-200/50">
+                    <p className="text-xs text-amber-600">
+                      의료법 제27조 및 의료기기법에 따라 본 서비스는 의료 행위 또는 의료기기에 해당하지 않습니다.
+                      본 서비스 이용으로 인한 의료 결정의 책임은 사용자 및 담당 의료인에게 있습니다.
+                    </p>
+                  </div>
+                </div>
+
+                {dismissible && (
+                  <button
+                    onClick={handleDismiss}
+                    className="flex-shrink-0 p-1.5 rounded-lg hover:bg-amber-200/50 transition-colors"
+                    aria-label="닫기"
+                  >
+                    <X className="h-4 w-4 text-amber-600" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 기존 banner 모드 (defaultCollapsed=false일 때)
   return (
     <div className={cn(
       'relative bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200',

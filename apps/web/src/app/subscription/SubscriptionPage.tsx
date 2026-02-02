@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { useSEO, PAGE_SEO } from '@/hooks/useSEO';
 import {
   usePlans,
   useSubscriptionInfo,
@@ -34,11 +35,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, Loader2, CreditCard, ExternalLink, Gift, Clock } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ROICalculator } from '@/components/dashboard';
+import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -55,6 +57,8 @@ const planColors: Record<string, string> = {
 };
 
 export default function SubscriptionPage() {
+  useSEO(PAGE_SEO.subscription);
+
   const user = useAuthStore((state) => state.user);
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [showCardModal, setShowCardModal] = useState(false);
@@ -183,11 +187,7 @@ export default function SubscriptionPage() {
   };
 
   if (plansLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
-      </div>
-    );
+    return <SkeletonSubscriptionPage />;
   }
 
   return (
@@ -210,9 +210,9 @@ export default function SubscriptionPage() {
                   <Gift className="h-7 w-7" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">7일 무료 체험</h3>
+                  <h3 className="text-xl font-bold">14일 무료 체험</h3>
                   <p className="text-purple-100 text-sm">
-                    Professional 플랜의 모든 기능을 카드 등록 없이 무료로 체험해보세요!
+                    Professional 플랜을 14일간 AI 쿼리 30건과 함께 카드 등록 없이 무료로 체험해보세요!
                   </p>
                 </div>
               </div>
@@ -249,6 +249,11 @@ export default function SubscriptionPage() {
                     <span className="font-semibold ml-1">
                       {trialStatus.daysRemaining}일 남음
                     </span>
+                    {trialStatus.aiLimit && (
+                      <span className="ml-2">
+                        · AI {trialStatus.aiUsed || 0}/{trialStatus.aiLimit}건
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -303,7 +308,14 @@ export default function SubscriptionPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-sm text-gray-600">AI 쿼리</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-600">AI 쿼리</p>
+                  {usage.aiQuery.isTrial && (
+                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 text-xs">
+                      체험
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-2xl font-bold text-gray-900">
                   {usage.aiQuery.used}
                   <span className="text-sm font-normal text-gray-500">
@@ -672,37 +684,105 @@ export default function SubscriptionPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Cancel Subscription Dialog */}
+      {/* Cancel Subscription Dialog - Retention Screen */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>구독을 취소하시겠습니까?</AlertDialogTitle>
-            <AlertDialogDescription>
-              구독을 취소하면 현재 결제 기간이 끝난 후 Free 플랜으로 전환됩니다.
+            <AlertDialogTitle className="text-xl">정말 떠나시나요?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                {/* Usage Statistics */}
+                {usage && (
+                  <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-100 mt-4">
+                    <p className="text-sm font-medium text-teal-800 mb-3">
+                      지금까지 온고지신 AI와 함께한 성과
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-teal-600">{usage.aiQuery.used}건</p>
+                        <p className="text-xs text-gray-600">AI 분석 수행</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-teal-600">
+                          {Math.round((usage.aiQuery.used || 0) * 5 / 60)}시간
+                        </p>
+                        <p className="text-xs text-gray-600">예상 절약 시간</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-teal-600 mt-3 text-center">
+                      * AI 분석 1건당 평균 5분 절약 기준
+                    </p>
+                  </div>
+                )}
+
+                {/* Special Offer */}
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-purple-900">잠깐, 특별 제안이 있어요!</p>
+                      <p className="text-sm text-purple-700 mt-1">
+                        지금 유지하시면 다음 결제 시 <span className="font-bold">30% 할인</span>을 적용해 드립니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What you'll lose */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">취소 시 잃게 되는 것:</p>
+                  <ul className="space-y-1.5">
+                    <li className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                      AI 처방 추천 무제한 사용
+                    </li>
+                    <li className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                      6,000+ 치험례 고급 검색
+                    </li>
+                    <li className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                      약물 상호작용 상세 분석
+                    </li>
+                    <li className="text-sm text-gray-600 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                      우선 고객 지원
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel>돌아가기</AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={handleCancelSubscription}
-              disabled={cancelSubscription.isPending}
-            >
-              {cancelSubscription.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              기간 종료 후 취소
-            </Button>
-            <AlertDialogAction
-              onClick={handleCancelImmediately}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={cancelImmediately.isPending}
-            >
-              {cancelImmediately.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              즉시 취소
-            </AlertDialogAction>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogCancel className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:from-teal-600 hover:to-emerald-600 border-0">
+              30% 할인 받고 유지하기
+            </AlertDialogCancel>
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleCancelSubscription}
+                disabled={cancelSubscription.isPending}
+              >
+                {cancelSubscription.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                기간 종료 후 취소
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleCancelImmediately}
+                disabled={cancelImmediately.isPending}
+              >
+                {cancelImmediately.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                즉시 취소
+              </Button>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

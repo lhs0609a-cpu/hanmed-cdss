@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
-import { ValueMetricsDashboard, KillerFeatureHighlight } from '@/components/dashboard'
+import { ExportDialog } from '@/components/common'
+import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
 import {
   Stethoscope,
   BookOpen,
@@ -140,6 +142,8 @@ const recentActivities = [
 ]
 
 export default function DashboardPage() {
+  useSEO(PAGE_SEO.dashboard)
+
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
@@ -267,6 +271,7 @@ export default function DashboardPage() {
       <div data-tour="quick-actions">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900">빠른 실행</h2>
+          <ExportDialog />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map((action) => (
@@ -384,6 +389,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Tour Guide */}
+      {/* Statistics Charts */}
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">진료 통계</h2>
+        <DashboardCharts />
+      </div>
+
       {showTour && (
         <TourGuide
           tourId="dashboard"

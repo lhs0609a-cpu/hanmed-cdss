@@ -74,18 +74,31 @@ export function AnalysisProgress({
   const progress = Math.min((elapsedTime / totalDuration) * 100, 95)
 
   if (compact) {
+    const currentStepLabel = steps[Math.min(currentStep, steps.length - 1)]?.label
     return (
-      <div className={cn('flex items-center gap-3', className)}>
-        <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+      <div
+        className={cn('flex items-center gap-3', className)}
+        role="status"
+        aria-live="polite"
+        aria-label={`AI 분석 진행 중: ${currentStepLabel}`}
+      >
+        <Loader2 className="h-5 w-5 animate-spin text-teal-500" aria-hidden="true" />
         <div className="flex-1 min-w-0">
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-1.5 bg-gray-200 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuenow={Math.round(progress)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="AI 분석 진행률"
+          >
             <div
               className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            {steps[Math.min(currentStep, steps.length - 1)]?.label}...
+            {currentStepLabel}...
             <span className="ml-2 text-gray-400">{(elapsedTime / 1000).toFixed(1)}초</span>
           </p>
         </div>
@@ -93,15 +106,22 @@ export function AnalysisProgress({
     )
   }
 
+  const currentStepLabel = steps[Math.min(currentStep, steps.length - 1)]?.label
+
   return (
-    <div className={cn('bg-white rounded-2xl border border-gray-100 p-6', className)}>
+    <div
+      className={cn('bg-white rounded-2xl border border-gray-100 p-6', className)}
+      role="region"
+      aria-label="AI 분석 진행 상황"
+      aria-busy="true"
+    >
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-teal-100 rounded-xl animate-pulse">
+        <div className="p-2 bg-teal-100 rounded-xl animate-pulse" aria-hidden="true">
           <Brain className="h-6 w-6 text-teal-600" />
         </div>
         <div>
-          <h3 className="font-bold text-gray-900">AI 분석 중</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="font-bold text-gray-900" id="analysis-title">AI 분석 중</h3>
+          <p className="text-sm text-gray-500" aria-live="polite">
             경과 시간: {(elapsedTime / 1000).toFixed(1)}초
           </p>
         </div>
@@ -109,13 +129,21 @@ export function AnalysisProgress({
 
       {/* Progress Bar */}
       <div className="mb-6">
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-2 bg-gray-200 rounded-full overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-labelledby="analysis-title"
+          aria-valuetext={`${Math.round(progress)}% 완료, 현재 단계: ${currentStepLabel}`}
+        >
           <div
             className="h-full bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 rounded-full transition-all duration-300 animate-pulse"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-400">
+        <div className="flex justify-between mt-2 text-xs text-gray-400" aria-hidden="true">
           <span>0%</span>
           <span>{Math.round(progress)}%</span>
           <span>100%</span>
@@ -123,14 +151,15 @@ export function AnalysisProgress({
       </div>
 
       {/* Steps */}
-      <div className="space-y-3">
+      <ol className="space-y-3" aria-label="AI 분석 단계">
         {steps.map((step, index) => {
           const isComplete = index < currentStep
           const isCurrent = index === currentStep
           const Icon = step.icon
+          const stepStatus = isComplete ? '완료' : isCurrent ? '진행 중' : '대기 중'
 
           return (
-            <div
+            <li
               key={step.id}
               className={cn(
                 'flex items-center gap-3 p-3 rounded-xl transition-all',
@@ -138,6 +167,8 @@ export function AnalysisProgress({
                 isCurrent && 'bg-teal-50 animate-pulse',
                 !isComplete && !isCurrent && 'opacity-50'
               )}
+              aria-current={isCurrent ? 'step' : undefined}
+              aria-label={`${step.label}: ${stepStatus}`}
             >
               <div
                 className={cn(
@@ -146,6 +177,7 @@ export function AnalysisProgress({
                   isCurrent && 'bg-teal-100 text-teal-600',
                   !isComplete && !isCurrent && 'bg-gray-100 text-gray-400'
                 )}
+                aria-hidden="true"
               >
                 {isComplete ? (
                   <CheckCircle2 className="h-4 w-4" />
@@ -166,15 +198,15 @@ export function AnalysisProgress({
                 {step.label}
               </span>
               {isComplete && (
-                <span className="ml-auto text-xs text-emerald-600">완료</span>
+                <span className="ml-auto text-xs text-emerald-600" aria-hidden="true">완료</span>
               )}
               {isCurrent && (
-                <span className="ml-auto text-xs text-teal-500">진행 중...</span>
+                <span className="ml-auto text-xs text-teal-500" aria-hidden="true">진행 중...</span>
               )}
-            </div>
+            </li>
           )
         })}
-      </div>
+      </ol>
 
       {/* Tip */}
       <div className="mt-6 p-3 bg-amber-50 rounded-xl border border-amber-100">
@@ -199,8 +231,13 @@ export function LoadingWithTime({ label = '로딩 중' }: { label?: string }) {
   }, [])
 
   return (
-    <div className="flex items-center gap-2 text-gray-500">
-      <Loader2 className="h-4 w-4 animate-spin" />
+    <div
+      className="flex items-center gap-2 text-gray-500"
+      role="status"
+      aria-live="polite"
+      aria-label={`${label}, ${seconds}초 경과`}
+    >
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
       <span className="text-sm">{label}</span>
       <span className="text-xs text-gray-400">({seconds}초)</span>
     </div>

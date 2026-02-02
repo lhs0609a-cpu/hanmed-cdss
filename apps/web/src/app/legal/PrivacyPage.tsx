@@ -166,7 +166,7 @@ export default function PrivacyPage() {
                   <li>처리정지 요구</li>
                 </ul>
               </li>
-              <li>권리 행사는 서비스 내 설정 메뉴 또는 이메일(privacy@ongojisin.kr)을 통해 하실 수 있습니다.</li>
+              <li>권리 행사는 서비스 내 설정 메뉴 또는 이메일(privacy@ongojisin.ai)을 통해 하실 수 있습니다.</li>
               <li>권리 행사 요구는 10일 이내에 처리됩니다.</li>
             </ol>
 
@@ -258,7 +258,7 @@ export default function PrivacyPage() {
                 <li><strong>이동권:</strong> 본인의 의료정보를 다른 서비스로 이전 요청할 수 있습니다.</li>
               </ul>
               <p className="text-sm text-gray-600 mt-3">
-                * 권리 행사: 서비스 내 [설정 &gt; 개인정보 관리] 또는 privacy@ongojisin.kr로 요청
+                * 권리 행사: 서비스 내 [설정 &gt; 개인정보 관리] 또는 privacy@ongojisin.ai로 요청
               </p>
             </div>
 
@@ -266,10 +266,9 @@ export default function PrivacyPage() {
             <div className="bg-gray-100 p-4 rounded-lg mt-3">
               <p className="text-gray-700">
                 <strong>개인정보 보호책임자</strong><br />
-                성명: 김보안<br />
-                직책: 개인정보보호팀장<br />
-                연락처: 02-1234-5679<br />
-                이메일: privacy@ongojisin.kr
+                성명: 양보름<br />
+                직책: 대표<br />
+                이메일: privacy@ongojisin.ai
               </p>
             </div>
 
@@ -289,12 +288,12 @@ export default function PrivacyPage() {
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>주식회사 온고지신</strong><br />
-                서울특별시 강남구 테헤란로 123<br />
-                대표: 홍길동<br />
-                사업자등록번호: 123-45-67890<br />
-                고객센터: 02-1234-5678<br />
-                이메일: support@ongojisin.kr
+                <strong>머프키치</strong><br />
+                경기도 의왕시<br />
+                대표: 양보름<br />
+                사업자등록번호: 신청 예정<br />
+                고객센터: support@ongojisin.ai<br />
+                이메일: privacy@ongojisin.ai
               </p>
             </div>
           </CardContent>

@@ -18,18 +18,20 @@ interface ROICalculatorProps {
 }
 
 // Calculation constants
-const TIME_SAVED_PER_SEARCH = 3 // minutes per AI search
-const AVERAGE_CONSULTATION_VALUE = 15000 // KRW (원)
+const TIME_SAVED_PER_SEARCH = 5 // minutes per AI search (분석 시간 + 문헌 검색 시간)
+const AVERAGE_CONSULTATION_VALUE = 20000 // KRW (원) - 한의원 평균 진료비
 const ADDITIONAL_PATIENTS_PER_HOUR = 2 // patients that can be seen with saved time
 
+// 실제 요금제와 일치
 const plans = [
-  { name: 'Basic', price: 29000, queries: 100 },
-  { name: 'Professional', price: 79000, queries: 300 },
+  { name: 'Basic', price: 19900, queries: 50 },
+  { name: 'Professional', price: 99000, queries: 300 },
   { name: 'Clinic', price: 199000, queries: -1 }, // -1 = unlimited
 ]
 
 export function ROICalculator({ compact = false }: ROICalculatorProps) {
-  const [monthlySearches, setMonthlySearches] = useState(100)
+  // 기본값: Professional 플랜 기준 월 150회 (하루 약 5회)
+  const [monthlySearches, setMonthlySearches] = useState(150)
   const [selectedPlan, setSelectedPlan] = useState<number>(1) // Professional default
 
   const calculations = useMemo(() => {

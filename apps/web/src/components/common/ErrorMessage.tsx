@@ -7,9 +7,12 @@ import {
   RefreshCw,
   ArrowRight,
   LucideIcon,
+  Wifi,
+  WifiOff,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 type ErrorSeverity = 'error' | 'warning' | 'info' | 'success'
 
@@ -35,6 +38,10 @@ interface ErrorMessageProps {
   compact?: boolean
   /** 추가 클래스 */
   className?: string
+  /** 자동 재시도 활성화 (초 단위, 0이면 비활성화) */
+  autoRetrySeconds?: number
+  /** 재시도 중인지 여부 */
+  isRetrying?: boolean
 }
 
 const severityConfig: Record<
@@ -92,14 +99,45 @@ export function ErrorMessage({
   action,
   compact = false,
   className,
+  autoRetrySeconds = 0,
+  isRetrying = false,
 }: ErrorMessageProps) {
   const [dismissed, setDismissed] = useState(false)
+  const [countdown, setCountdown] = useState(autoRetrySeconds)
+  const [autoRetryPaused, setAutoRetryPaused] = useState(false)
+  const countdownRef = useRef<NodeJS.Timeout | null>(null)
   const config = severityConfig[severity]
   const Icon = config.icon
+
+  // 자동 재시도 카운트다운
+  useEffect(() => {
+    if (autoRetrySeconds > 0 && onRetry && !autoRetryPaused && !isRetrying) {
+      setCountdown(autoRetrySeconds)
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownRef.current) clearInterval(countdownRef.current)
+            onRetry()
+            return autoRetrySeconds
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current)
+    }
+  }, [autoRetrySeconds, onRetry, autoRetryPaused, isRetrying])
+
+  const handlePauseAutoRetry = useCallback(() => {
+    setAutoRetryPaused(true)
+    if (countdownRef.current) clearInterval(countdownRef.current)
+  }, [])
 
   if (dismissed) return null
 
   const handleDismiss = () => {
+    handlePauseAutoRetry()
     setDismissed(true)
     onDismiss?.()
   }
@@ -163,11 +201,36 @@ export function ErrorMessage({
             </p>
           )}
 
-          {(onRetry || action) && (
+          {/* 자동 재시도 카운트다운 표시 */}
+          {autoRetrySeconds > 0 && onRetry && !autoRetryPaused && !isRetrying && (
+            <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+              <Clock className="w-4 h-4 animate-pulse" />
+              <span>{countdown}초 후 자동으로 다시 시도합니다</span>
+              <button
+                onClick={handlePauseAutoRetry}
+                className="text-gray-400 hover:text-gray-600 underline ml-2"
+              >
+                취소
+              </button>
+            </div>
+          )}
+
+          {/* 재시도 중 표시 */}
+          {isRetrying && (
+            <div className="flex items-center gap-2 mt-3 text-sm text-blue-600">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>다시 연결 중...</span>
+            </div>
+          )}
+
+          {(onRetry || action) && !isRetrying && (
             <div className="flex items-center gap-2 mt-3">
               {onRetry && (
                 <button
-                  onClick={onRetry}
+                  onClick={() => {
+                    handlePauseAutoRetry()
+                    onRetry()
+                  }}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                     config.buttonColor
@@ -209,15 +272,25 @@ export function ErrorMessage({
 
 // ========== 프리셋 에러 메시지 ==========
 
-/** 네트워크 에러 */
-export function NetworkErrorMessage({ onRetry }: { onRetry?: () => void }) {
+/** 네트워크 에러 - 자동 재시도 포함 */
+export function NetworkErrorMessage({
+  onRetry,
+  autoRetrySeconds = 10,
+  isRetrying = false,
+}: {
+  onRetry?: () => void
+  autoRetrySeconds?: number
+  isRetrying?: boolean
+}) {
   return (
     <ErrorMessage
-      severity="error"
-      message="네트워크 연결 오류"
-      description="서버와 연결할 수 없습니다."
-      suggestion="인터넷 연결을 확인하고 다시 시도해 주세요."
+      severity="warning"
+      message="일시적인 연결 문제가 발생했습니다"
+      description="서버와의 연결이 불안정합니다. 잠시 후 자동으로 다시 시도합니다."
+      suggestion="인터넷 연결을 확인해 주세요. 문제가 지속되면 잠시 후 다시 시도해 주세요."
       onRetry={onRetry}
+      autoRetrySeconds={autoRetrySeconds}
+      isRetrying={isRetrying}
     />
   )
 }
@@ -281,15 +354,25 @@ export function SuccessMessage({
 
 // ========== 추가 표준화된 에러 메시지 ==========
 
-/** 서버 에러 */
-export function ServerErrorMessage({ onRetry }: { onRetry?: () => void }) {
+/** 서버 에러 - 자동 재시도 포함 */
+export function ServerErrorMessage({
+  onRetry,
+  autoRetrySeconds = 10,
+  isRetrying = false,
+}: {
+  onRetry?: () => void
+  autoRetrySeconds?: number
+  isRetrying?: boolean
+}) {
   return (
     <ErrorMessage
-      severity="error"
-      message="서버 오류가 발생했습니다"
-      description="일시적인 서버 문제입니다. 잠시 후 다시 시도해 주세요."
-      suggestion="문제가 지속되면 고객지원에 문의해 주세요."
+      severity="warning"
+      message="서버 연결 중 문제가 발생했습니다"
+      description="일시적인 서버 문제입니다. 잠시 후 자동으로 다시 연결을 시도합니다."
+      suggestion="문제가 지속되면 support@ongojisin.ai로 문의해 주세요."
       onRetry={onRetry}
+      autoRetrySeconds={autoRetrySeconds}
+      isRetrying={isRetrying}
     />
   )
 }
@@ -306,15 +389,25 @@ export function DataLoadErrorMessage({ onRetry }: { onRetry?: () => void }) {
   )
 }
 
-/** AI 분석 실패 */
-export function AIAnalysisErrorMessage({ onRetry }: { onRetry?: () => void }) {
+/** AI 분석 실패 - 자동 재시도 포함 */
+export function AIAnalysisErrorMessage({
+  onRetry,
+  autoRetrySeconds = 10,
+  isRetrying = false,
+}: {
+  onRetry?: () => void
+  autoRetrySeconds?: number
+  isRetrying?: boolean
+}) {
   return (
     <ErrorMessage
       severity="warning"
-      message="AI 분석에 실패했습니다"
-      description="일시적인 AI 서비스 문제입니다. 잠시 후 다시 시도해 주세요."
-      suggestion="입력 내용을 확인하고 다시 시도하세요."
+      message="AI 분석 서비스 연결 중입니다"
+      description="AI 서비스가 일시적으로 바쁩니다. 잠시 후 자동으로 다시 시도합니다."
+      suggestion="계속 문제가 발생하면 입력 내용을 확인하고 다시 시도해 주세요."
       onRetry={onRetry}
+      autoRetrySeconds={autoRetrySeconds}
+      isRetrying={isRetrying}
     />
   )
 }

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import type { LoginResponse } from '@/types'
 
 export default function RegisterPage() {
+  useSEO(PAGE_SEO.register)
+
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
   const [formData, setFormData] = useState({
@@ -16,8 +19,23 @@ export default function RegisterPage() {
     licenseNumber: '',
     clinicName: '',
   })
+  const [consents, setConsents] = useState({
+    terms: false,        // 이용약관 (필수)
+    privacy: false,      // 개인정보처리방침 (필수)
+    marketing: false,    // 마케팅 정보 수신 (선택)
+  })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  const allRequiredConsentsChecked = consents.terms && consents.privacy
+
+  const handleConsentAll = (checked: boolean) => {
+    setConsents({
+      terms: checked,
+      privacy: checked,
+      marketing: checked,
+    })
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -46,6 +64,9 @@ export default function RegisterPage() {
         name: formData.name,
         licenseNumber: formData.licenseNumber || undefined,
         clinicName: formData.clinicName || undefined,
+        consentTerms: consents.terms,
+        consentPrivacy: consents.privacy,
+        consentMarketing: consents.marketing,
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
@@ -167,12 +188,75 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* 약관 동의 */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+              <input
+                type="checkbox"
+                id="consent-all"
+                checked={consents.terms && consents.privacy && consents.marketing}
+                onChange={(e) => handleConsentAll(e.target.checked)}
+                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <label htmlFor="consent-all" className="text-sm font-semibold text-gray-900">
+                전체 동의
+              </label>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="consent-terms"
+                checked={consents.terms}
+                onChange={(e) => setConsents({ ...consents, terms: e.target.checked })}
+                className="h-4 w-4 mt-0.5 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <label htmlFor="consent-terms" className="text-sm text-gray-700">
+                <span className="text-red-500">[필수]</span>{' '}
+                <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                  이용약관
+                </Link>
+                에 동의합니다
+              </label>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="consent-privacy"
+                checked={consents.privacy}
+                onChange={(e) => setConsents({ ...consents, privacy: e.target.checked })}
+                className="h-4 w-4 mt-0.5 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <label htmlFor="consent-privacy" className="text-sm text-gray-700">
+                <span className="text-red-500">[필수]</span>{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline">
+                  개인정보처리방침
+                </Link>
+                에 동의합니다
+              </label>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="consent-marketing"
+                checked={consents.marketing}
+                onChange={(e) => setConsents({ ...consents, marketing: e.target.checked })}
+                className="h-4 w-4 mt-0.5 text-primary focus:ring-primary border-gray-300 rounded"
+              />
+              <label htmlFor="consent-marketing" className="text-sm text-gray-700">
+                <span className="text-gray-500">[선택]</span> 마케팅 정보 수신에 동의합니다
+              </label>
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+            disabled={isLoading || !allRequiredConsentsChecked}
+            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? '가입 중...' : '회원가입'}
+            {isLoading ? '가입 중...' : !allRequiredConsentsChecked ? '필수 약관에 동의해주세요' : '회원가입'}
           </button>
 
           <p className="text-center text-sm text-gray-600">

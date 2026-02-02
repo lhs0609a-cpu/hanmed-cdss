@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search,
   BookOpen,
@@ -16,6 +16,7 @@ import {
   Hash,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
 
 // API에서 반환하는 케이스 타입
@@ -67,18 +68,31 @@ function formatObservations(text: string): { number: string; content: string }[]
 }
 
 export default function CasesPage() {
+  useSEO(PAGE_SEO.cases)
+
   const token = useAuthStore((state) => state.accessToken)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchCategory, setSearchCategory] = useState('all')
-  const [selectedConstitution, setSelectedConstitution] = useState('')
-  const [selectedOutcome, setSelectedOutcome] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // URL 파라미터에서 초기값 로드 (뒤로가기 시 상태 유지)
+  const initialSearch = searchParams.get('q') || searchParams.get('keyword') || ''
+  const initialCategory = searchParams.get('category') || 'all'
+  const initialConstitution = searchParams.get('constitution') || ''
+  const initialOutcome = searchParams.get('outcome') || ''
+  const initialPage = parseInt(searchParams.get('page') || '1', 10)
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const [searchCategory, setSearchCategory] = useState(initialCategory)
+  const [selectedConstitution, setSelectedConstitution] = useState(initialConstitution)
+  const [selectedOutcome, setSelectedOutcome] = useState(initialOutcome)
 
   // API 데이터 상태
   const [cases, setCases] = useState<CaseRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const [totalCases, setTotalCases] = useState(0)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(initialPage)
   const [totalPages, setTotalPages] = useState(0)
   const [stats, setStats] = useState({ cured: 0, improved: 0, total: 0 })
   const ITEMS_PER_PAGE = 20
@@ -88,25 +102,82 @@ export default function CasesPage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
 
   // 디바운스된 검색어
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch)
 
-  // 검색어 디바운스
+  // URL 파라미터 업데이트 함수
+  const updateSearchParams = useCallback((updates: Record<string, string | number>) => {
+    const newParams = new URLSearchParams(searchParams)
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value !== '' && value !== 'all' && value !== 1) {
+        newParams.set(key, String(value))
+      } else {
+        newParams.delete(key)
+      }
+    })
+    // replace: true로 설정하여 히스토리 스택 오염 방지
+    setSearchParams(newParams, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  // 검색어 디바운스 + URL 업데이트
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setCurrentPage(1) // 검색 시 첫 페이지로
+      setCurrentPage(1)
+      updateSearchParams({ q: searchQuery, page: 1 })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [searchQuery, updateSearchParams])
 
-  // 필터 변경 시 첫 페이지로
+  // 필터 변경 시 첫 페이지로 + URL 업데이트
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedConstitution, selectedOutcome, searchCategory])
+    updateSearchParams({
+      category: searchCategory,
+      constitution: selectedConstitution,
+      outcome: selectedOutcome,
+      page: 1,
+    })
+  }, [selectedConstitution, selectedOutcome, searchCategory, updateSearchParams])
+
+  // 페이지 변경 시 URL 업데이트
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage)
+    updateSearchParams({ page: newPage })
+    // 페이지 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [updateSearchParams])
+
+  // 사용자 친화적 에러 메시지 변환
+  const getUserFriendlyError = (err: Error | unknown): string => {
+    const message = err instanceof Error ? err.message : String(err)
+
+    // 네트워크 에러
+    if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
+      return '서버와의 연결이 일시적으로 불안정합니다'
+    }
+    // 타임아웃
+    if (message.includes('timeout') || message.includes('시간')) {
+      return '요청 처리 시간이 초과되었습니다'
+    }
+    // 서버 에러
+    if (message.includes('500') || message.includes('502') || message.includes('503')) {
+      return '서버가 일시적으로 응답하지 않습니다'
+    }
+    // 인증 에러
+    if (message.includes('401') || message.includes('인증')) {
+      return '로그인이 필요하거나 세션이 만료되었습니다'
+    }
+
+    return '데이터를 불러오는 중 문제가 발생했습니다'
+  }
 
   // API에서 데이터 가져오기
-  const fetchCases = useCallback(async () => {
-    setLoading(true)
+  const fetchCases = useCallback(async (isManualRetry = false) => {
+    if (isManualRetry) {
+      setIsRetrying(true)
+    } else {
+      setLoading(true)
+    }
     setError(null)
 
     try {
@@ -129,12 +200,19 @@ export default function CasesPage() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
+
       const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
         headers,
+        signal: controller.signal,
       })
 
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
-        throw new Error('데이터를 불러오는데 실패했습니다')
+        throw new Error(`서버 응답 오류 (${response.status})`)
       }
 
       const data = await response.json()
@@ -143,21 +221,33 @@ export default function CasesPage() {
       setCases(result.cases || [])
       setTotalCases(result.total || 0)
       setTotalPages(result.total_pages || 0)
+      setRetryCount(0) // 성공 시 재시도 카운트 리셋
 
       // 통계 계산
       const cured = (result.cases || []).filter((c: CaseRecord) => c.outcome === '완치').length
       const improved = (result.cases || []).filter((c: CaseRecord) => c.outcome === '호전').length
       setStats({ cured, improved, total: result.total || 0 })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '오류가 발생했습니다')
-      setCases([])
+      const friendlyError = getUserFriendlyError(err)
+      setError(friendlyError)
+      setRetryCount((prev) => prev + 1)
+      // 에러 시에도 기존 데이터는 유지 (첫 로드 제외)
+      if (cases.length === 0) {
+        setCases([])
+      }
     } finally {
       setLoading(false)
+      setIsRetrying(false)
     }
-  }, [currentPage, debouncedSearch, searchCategory, selectedConstitution, selectedOutcome, token])
+  }, [currentPage, debouncedSearch, searchCategory, selectedConstitution, selectedOutcome, token, cases.length])
+
+  // 수동 재시도 핸들러
+  const handleRetry = useCallback(() => {
+    fetchCases(true)
+  }, [fetchCases])
 
   useEffect(() => {
-    fetchCases()
+    fetchCases(false)
   }, [fetchCases])
 
   const openDetailModal = useCallback((caseItem: CaseRecord) => {
@@ -275,13 +365,24 @@ export default function CasesPage() {
           </div>
         )}
 
-        {/* 에러 상태 */}
+        {/* 에러 상태 - 자동 재시도 포함 */}
         {error && !loading && (
           <ErrorMessage
+            severity="warning"
             message={error}
-            description="AI Engine 서버가 실행 중인지 확인해주세요"
-            suggestion="잠시 후 다시 시도하거나, 서버 상태를 확인해 주세요."
-            onRetry={fetchCases}
+            description={
+              retryCount > 2
+                ? '여러 번 시도했지만 연결에 실패했습니다. 네트워크 상태를 확인해 주세요.'
+                : '잠시 후 자동으로 다시 연결을 시도합니다.'
+            }
+            suggestion={
+              retryCount > 2
+                ? '문제가 지속되면 support@ongojisin.ai로 문의해 주세요.'
+                : '인터넷 연결을 확인하시거나 잠시 기다려 주세요.'
+            }
+            onRetry={handleRetry}
+            autoRetrySeconds={retryCount > 2 ? 0 : 10}
+            isRetrying={isRetrying}
           />
         )}
 
@@ -379,7 +480,7 @@ export default function CasesPage() {
         {!loading && !error && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
               className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
@@ -401,7 +502,7 @@ export default function CasesPage() {
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => handlePageChange(pageNum)}
                     className={`w-10 h-10 rounded-lg font-medium ${
                       currentPage === pageNum
                         ? 'bg-amber-500 text-white'
@@ -414,7 +515,7 @@ export default function CasesPage() {
               })}
             </div>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >

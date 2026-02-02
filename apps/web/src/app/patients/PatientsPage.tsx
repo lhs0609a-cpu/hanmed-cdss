@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
+import { ExportDialog } from '@/components/common'
 
 const patientsTourSteps = [
   {
@@ -281,14 +282,17 @@ export default function PatientsPage() {
           </h1>
           <p className="mt-1 text-gray-500">환자 차트와 진료 기록을 관리합니다</p>
         </div>
-        <button
-          data-tour="add-patient"
-          onClick={() => setShowNewPatientModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          새 환자 등록
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportDialog defaultType="patients" />
+          <button
+            data-tour="add-patient"
+            onClick={() => setShowNewPatientModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            새 환자 등록
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

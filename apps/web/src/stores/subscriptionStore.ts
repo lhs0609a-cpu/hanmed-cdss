@@ -13,7 +13,12 @@ export interface Plan {
 }
 
 export interface Usage {
-  aiQuery: { used: number; limit: number };
+  aiQuery: {
+    used: number;
+    limit: number;
+    isTrial?: boolean;
+    trialEndsAt?: string | null;
+  };
   resetDate: string;
 }
 

@@ -12,16 +12,18 @@ export interface KeyboardShortcut {
 
 // 주요 페이지 라우트
 const ROUTES = {
-  dashboard: '/',
-  consultation: '/consultation',
-  search: '/unified-search',
-  cases: '/cases',
-  caseSearch: '/case-search',
-  formulas: '/formulas',
-  herbs: '/herbs',
-  interactions: '/interactions',
-  patients: '/patients',
-  settings: '/settings',
+  dashboard: '/dashboard',
+  consultation: '/dashboard/consultation',
+  search: '/dashboard/unified-search',
+  cases: '/dashboard/cases',
+  caseSearch: '/dashboard/case-search',
+  formulas: '/dashboard/formulas',
+  herbs: '/dashboard/herbs',
+  interactions: '/dashboard/interactions',
+  patients: '/dashboard/patients',
+  settings: '/dashboard/settings',
+  subscription: '/dashboard/subscription',
+  community: '/dashboard/community',
 }
 
 export function useKeyboardShortcuts() {
@@ -89,6 +91,20 @@ export function useKeyboardShortcuts() {
       category: 'navigation',
       action: () => navigate(ROUTES.patients),
     },
+    {
+      key: 'g',
+      modifiers: ['alt'],
+      description: '설정',
+      category: 'navigation',
+      action: () => navigate(ROUTES.settings),
+    },
+    {
+      key: 'm',
+      modifiers: ['alt'],
+      description: '커뮤니티',
+      category: 'navigation',
+      action: () => navigate(ROUTES.community),
+    },
     // 검색 단축키
     {
       key: 'k',
@@ -118,6 +134,33 @@ export function useKeyboardShortcuts() {
       },
     },
     // 액션 단축키
+    {
+      key: 'n',
+      modifiers: ['alt'],
+      description: '새 진료 시작',
+      category: 'action',
+      action: () => navigate(ROUTES.consultation),
+    },
+    {
+      key: 'e',
+      modifiers: ['alt'],
+      description: '데이터 내보내기',
+      category: 'action',
+      action: () => {
+        // ExportDialog 열기 이벤트 발생
+        window.dispatchEvent(new CustomEvent('open-export-dialog'))
+      },
+    },
+    {
+      key: 'd',
+      modifiers: ['alt'],
+      description: '다크/라이트 모드 전환',
+      category: 'action',
+      action: () => {
+        // Theme toggle 이벤트 발생
+        window.dispatchEvent(new CustomEvent('toggle-theme'))
+      },
+    },
     {
       key: '?',
       description: '단축키 도움말',

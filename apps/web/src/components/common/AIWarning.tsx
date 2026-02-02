@@ -34,15 +34,20 @@ export function AIWarning({
   isRetrying
 }: AIWarningProps) {
   const config = getWarningConfig(type)
+  const isError = type === 'api_key_missing' || type === 'api_error'
 
   return (
-    <div className={cn(
-      'flex items-start gap-3 p-4 rounded-xl border',
-      config.bgColor,
-      config.borderColor,
-      className
-    )}>
-      <div className={cn('p-2 rounded-lg', config.iconBgColor)}>
+    <div
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? 'assertive' : 'polite'}
+      className={cn(
+        'flex items-start gap-3 p-4 rounded-xl border',
+        config.bgColor,
+        config.borderColor,
+        className
+      )}
+    >
+      <div className={cn('p-2 rounded-lg', config.iconBgColor)} aria-hidden="true">
         <config.Icon className={cn('h-5 w-5', config.iconColor)} />
       </div>
 
@@ -59,13 +64,15 @@ export function AIWarning({
           <button
             onClick={onRetry}
             disabled={isRetrying}
+            aria-label={isRetrying ? 'AI 분석 재시도 중' : 'AI 분석 다시 시도하기'}
+            aria-busy={isRetrying}
             className={cn(
               'mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
               'bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed',
               config.textColor
             )}
           >
-            <RefreshCw className={cn('h-4 w-4', isRetrying && 'animate-spin')} />
+            <RefreshCw className={cn('h-4 w-4', isRetrying && 'animate-spin')} aria-hidden="true" />
             {isRetrying ? '재시도 중...' : '다시 시도'}
           </button>
         )}
@@ -88,30 +95,40 @@ export function AIConfidenceBadge({
 }) {
   if (!isAiGenerated) {
     return (
-      <span className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full',
-        'bg-red-100 text-red-700 border border-red-200',
-        className
-      )}>
-        <AlertTriangle className="h-3 w-3" />
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full',
+          'bg-red-100 text-red-700 border border-red-200',
+          className
+        )}
+        role="status"
+        aria-label="AI 분석 결과 아님, 기본 추천 데이터 기반"
+      >
+        <AlertTriangle className="h-3 w-3" aria-hidden="true" />
         AI 분석 아님
       </span>
     )
   }
 
   const level = getConfidenceLevel(confidence)
+  const confidencePercent = Math.round(confidence * 100)
+  const confidenceDescription = confidence >= 0.8 ? '높음' : confidence >= 0.6 ? '보통' : '낮음'
 
   return (
-    <span className={cn(
-      'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full',
-      level.bgColor,
-      level.textColor,
-      level.borderColor,
-      'border',
-      className
-    )}>
-      {level.showWarning && <AlertCircle className="h-3 w-3" />}
-      신뢰도 {Math.round(confidence * 100)}%
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full',
+        level.bgColor,
+        level.textColor,
+        level.borderColor,
+        'border',
+        className
+      )}
+      role="status"
+      aria-label={`AI 분석 신뢰도 ${confidencePercent}%, ${confidenceDescription}`}
+    >
+      {level.showWarning && <AlertCircle className="h-3 w-3" aria-hidden="true" />}
+      신뢰도 {confidencePercent}%
     </span>
   )
 }

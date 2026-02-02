@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
+import { ThemeToggle, GlossaryButton, KeyboardHint } from '@/components/common'
 import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
 import { useState, useEffect } from 'react'
 import {
@@ -43,6 +44,11 @@ import {
   PanelLeftClose,
   PanelLeft,
   Command,
+  BarChart3,
+  Receipt,
+  Target,
+  Share2,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -132,6 +138,19 @@ const menuSections: MenuSection[] = [
       { name: '보험 코드', href: '/dashboard/insurance', icon: FileText, description: '청구 코드' },
       { name: '수가/상병 검색', href: '/dashboard/insurance-fee', icon: DollarSign, description: '심평원 API', badge: 'NEW' },
       { name: '문서 템플릿', href: '/dashboard/documents', icon: FileText, description: '동의서/안내문' },
+    ],
+  },
+  {
+    id: 'pro',
+    title: 'Pro 기능',
+    icon: <Sparkles className="h-3 w-3" />,
+    color: 'text-emerald-500',
+    items: [
+      { name: '진료 성과', href: '/dashboard/analytics', icon: BarChart3, description: '통계 분석', badge: 'PRO' },
+      { name: '스마트 청구', href: '/dashboard/smart-insurance', icon: Receipt, description: 'AI 자동화', badge: 'PRO' },
+      { name: '환자 CRM', href: '/dashboard/crm', icon: Target, description: '리텐션', badge: 'PRO' },
+      { name: '케이스 공유', href: '/dashboard/case-network', icon: Share2, description: '네트워크', badge: 'PRO' },
+      { name: '약재 재고', href: '/dashboard/inventory', icon: Package, description: '가격/재고', badge: 'PRO' },
     ],
   },
 ]
@@ -234,11 +253,13 @@ export default function DashboardLayout() {
           </div>
           <div className="flex items-center gap-1">
             <HanjaToggle compact />
+            <GlossaryButton variant="icon" className="p-2" />
+            <ThemeToggle />
             <button
-              className="p-2 rounded-xl hover:bg-white/50 transition-colors relative"
+              className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors relative"
               aria-label="알림"
             >
-              <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
+              <Bell className="h-5 w-5 text-gray-700 dark:text-gray-300" aria-hidden="true" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-label="새 알림 있음" />
             </button>
           </div>
@@ -248,7 +269,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-white/95 backdrop-blur-xl border-r border-gray-200/50 transform transition-all duration-300 ease-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-300 ease-out lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isMinimized ? 'lg:w-20' : 'lg:w-72'
         )}
@@ -341,10 +362,11 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          {/* Hanja Toggle (full mode only) */}
+          {/* Hanja Toggle & Glossary (full mode only) */}
           {!isMinimized && (
-            <div className="px-4 mb-2">
+            <div className="px-4 mb-2 flex items-center gap-2">
               <HanjaToggle />
+              <GlossaryButton variant="link" />
             </div>
           )}
 
@@ -551,6 +573,8 @@ export default function DashboardLayout() {
         <div
           className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          role="presentation"
+          aria-hidden="true"
         />
       )}
 
@@ -599,8 +623,16 @@ export default function DashboardLayout() {
         </div>
       </main>
 
+      {/* Keyboard Shortcut Hint - 데스크톱만 */}
+      <div className="hidden lg:block">
+        <KeyboardHint />
+      </div>
+
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 safe-area-bottom">
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 safe-area-bottom"
+        aria-label="모바일 하단 메뉴"
+      >
         <div className="flex items-center justify-around px-2 py-1">
           {[
             { name: '홈', href: '/dashboard', icon: LayoutDashboard },
@@ -709,15 +741,17 @@ function MenuItemComponent({
         to={item.href}
         onClick={onClick}
         className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+          'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:ring-offset-1',
           isMinimized && 'lg:justify-center lg:px-2',
           isActive
             ? `bg-gradient-to-r ${gradients[sectionColor]} text-white shadow-lg shadow-${sectionColor}-500/30`
             : `text-gray-600 ${hoverBg[sectionColor]} hover:text-gray-900`
         )}
         title={isMinimized ? item.name : undefined}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={`${item.name}${item.description ? ` - ${item.description}` : ''}${item.badge ? ` (${item.badge})` : ''}`}
       >
-        <item.icon className={cn('h-4 w-4 flex-shrink-0', isActive ? '' : iconColors[sectionColor])} />
+        <item.icon className={cn('h-4 w-4 flex-shrink-0', isActive ? '' : iconColors[sectionColor])} aria-hidden="true" />
         {!isMinimized && (
           <>
             <span className="flex-1 truncate">{item.name}</span>
@@ -760,14 +794,15 @@ function MenuItemComponent({
             onToggleFavorite()
           }}
           className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all',
+            'absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50',
             isFavorite
               ? 'text-amber-500 opacity-100'
               : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-amber-500'
           )}
-          title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+          aria-label={isFavorite ? `${item.name} 즐겨찾기 해제` : `${item.name} 즐겨찾기 추가`}
+          aria-pressed={isFavorite}
         >
-          <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
+          <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} aria-hidden="true" />
         </button>
       )}
     </div>

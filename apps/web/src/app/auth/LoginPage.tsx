@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
+import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { Sparkles, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
 
@@ -21,6 +22,8 @@ const DEMO_CONFIG = {
 }
 
 export default function LoginPage() {
+  useSEO(PAGE_SEO.login)
+
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
   const [email, setEmail] = useState('')

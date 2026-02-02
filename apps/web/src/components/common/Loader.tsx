@@ -27,8 +27,13 @@ export default function Loader({
   className,
 }: LoaderProps) {
   const content = (
-    <div className={cn('flex flex-col items-center justify-center gap-3', className)}>
-      <Loader2 className={cn('animate-spin text-teal-500', sizeClasses[size])} />
+    <div
+      className={cn('flex flex-col items-center justify-center gap-3', className)}
+      role="status"
+      aria-live="polite"
+      aria-label={text || '로딩 중'}
+    >
+      <Loader2 className={cn('animate-spin text-teal-500', sizeClasses[size])} aria-hidden="true" />
       {text && (
         <p className={cn('text-gray-500', textSizeClasses[size])}>{text}</p>
       )}
@@ -37,7 +42,12 @@ export default function Loader({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-label="로딩 중"
+      >
         {content}
       </div>
     )
@@ -62,8 +72,8 @@ export function Skeleton({
 // Button loader state
 export function ButtonLoader({ text = '처리 중...' }: { text?: string }) {
   return (
-    <span className="flex items-center gap-2">
-      <Loader2 className="h-4 w-4 animate-spin" />
+    <span className="flex items-center gap-2" role="status" aria-label={text}>
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
       {text}
     </span>
   )
@@ -94,7 +104,7 @@ export function CardSkeleton() {
 // Page loading state
 export function PageLoader({ text = '로딩 중...' }: { text?: string }) {
   return (
-    <div className="flex items-center justify-center min-h-[400px]">
+    <div className="flex items-center justify-center min-h-[400px]" aria-busy="true">
       <Loader size="lg" text={text} />
     </div>
   )

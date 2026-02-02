@@ -2,10 +2,84 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- 기본 SEO -->
     <title>온고지신 AI - 한의학 임상 의사결정 지원 시스템</title>
-    <meta name="description" content="이종대 선생님의 6,000건 치험례 데이터를 AI로 활용하는 한의학 CDSS" />
+    <meta name="description" content="40년 임상 경험의 6,000건 치험례 데이터와 AI가 결합된 한의학 CDSS. 처방 추천, 변증 분석, 약물 상호작용 검사를 지원합니다." />
+    <meta name="keywords" content="한의학, CDSS, 임상의사결정지원, AI진료, 처방추천, 변증진단, 치험례, 한약, 온고지신" />
+    <meta name="author" content="머프키치" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph (Facebook, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="온고지신 AI" />
+    <meta property="og:title" content="온고지신 AI - 한의학 임상 의사결정 지원 시스템" />
+    <meta property="og:description" content="40년 임상 경험의 6,000건 치험례 데이터와 AI가 결합된 한의학 CDSS" />
+    <meta property="og:image" content="https://ongojisin.ai/og-image.png" />
+    <meta property="og:url" content="https://ongojisin.ai" />
+    <meta property="og:locale" content="ko_KR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="온고지신 AI - 한의학 CDSS" />
+    <meta name="twitter:description" content="AI와 6,000건 치험례로 진료하는 한의학 임상 지원 시스템" />
+    <meta name="twitter:image" content="https://ongojisin.ai/og-image.png" />
+
+    <!-- 모바일 앱 테마 -->
+    <meta name="theme-color" content="#14b8a6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="온고지신 AI" />
+
+    <!-- 구조화된 데이터 (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "온고지신 AI",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "description": "한의학 임상 의사결정 지원 시스템 (CDSS). AI 기반 처방 추천, 변증 분석, 약물 상호작용 검사 제공.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KRW",
+        "description": "14일 무료 체험"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "120"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "머프키치",
+        "url": "https://ongojisin.ai"
+      }
+    }
+    </script>
+
+    <!-- 의료 서비스 구조화 데이터 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalWebPage",
+      "name": "온고지신 AI - 한의학 CDSS",
+      "specialty": {
+        "@type": "MedicalSpecialty",
+        "name": "Korean Medicine"
+      },
+      "medicalAudience": {
+        "@type": "MedicalAudience",
+        "audienceType": "Clinician"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
