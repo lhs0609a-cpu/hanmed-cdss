@@ -9,7 +9,6 @@ import {
   Pause,
   Plus,
   Settings,
-  Calendar,
   RefreshCw,
   ChevronRight,
   Zap,

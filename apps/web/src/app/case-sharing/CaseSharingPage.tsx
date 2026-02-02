@@ -7,7 +7,6 @@ import {
   Bookmark,
   Heart,
   Search,
-  Filter,
   Plus,
   Award,
   ChevronRight,

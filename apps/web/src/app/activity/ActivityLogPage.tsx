@@ -1,24 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Activity,
   Search,
   Stethoscope,
-  FileText,
   LogIn,
   Settings,
   Download,
-  Filter,
   Calendar,
   ChevronLeft,
   ChevronRight,
   Clock,
-  User,
   Pill,
   BookOpen,
   CreditCard,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'

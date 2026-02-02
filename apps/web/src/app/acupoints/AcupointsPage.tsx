@@ -16,8 +16,6 @@ import {
   Heart,
   Brain,
   Activity,
-  Eye,
-  Ear,
   Wind,
   Hand,
   Footprints,
