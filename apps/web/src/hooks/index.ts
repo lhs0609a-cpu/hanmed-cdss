@@ -1,7 +1,7 @@
 export { useFormValidation } from './useFormValidation'
 export { useKeyboardShortcuts, formatShortcut } from './useKeyboardShortcuts'
 export { useToast } from './useToast'
-export { useSubscription } from './useSubscription'
+export { useSubscriptionInfo } from './useSubscription'
 
 // Accessibility hooks
 export {

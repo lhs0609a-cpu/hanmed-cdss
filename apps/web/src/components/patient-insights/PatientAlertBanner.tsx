@@ -7,7 +7,6 @@ import {
   X,
   ChevronRight,
   Bell,
-  Users,
 } from 'lucide-react';
 import { usePatientAlerts, type PatientAlert } from '@/hooks/usePatientInsights';
 

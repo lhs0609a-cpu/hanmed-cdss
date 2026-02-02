@@ -18,7 +18,7 @@ export function useNetworkStatus() {
   })
 
   const handleOnline = useCallback(() => {
-    setStatus((prev) => ({
+    setStatus(() => ({
       isOnline: true,
       isReconnecting: false,
       lastOnline: new Date(),

@@ -73,7 +73,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // 키보드 단축키 이벤트 리스너
   useEffect(() => {
     const handleToggleTheme = () => {
-      setThemeState((current) => {
+      setThemeState(() => {
         const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark'
         return newTheme
       })

@@ -198,7 +198,7 @@ export function PreVisitSummary({ patientId, reservationId }: PreVisitSummaryPro
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          {analysis.medicationAdherence.takenDoses}/{analysis.medicationAdherence.totalDoses}회 복용
+          {analysis.medicationAdherence.totalDoses - analysis.medicationAdherence.missedDoses}/{analysis.medicationAdherence.totalDoses}회 복용
           {analysis.medicationAdherence.missedDoses > 0 &&
             ` · ${analysis.medicationAdherence.missedDoses}회 누락`}
         </p>

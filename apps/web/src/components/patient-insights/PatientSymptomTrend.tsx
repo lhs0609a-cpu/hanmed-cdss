@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 import { usePatientSymptomSummary } from '@/hooks/usePatientInsights';
 

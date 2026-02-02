@@ -1,50 +1,43 @@
 /**
- * i18n 설정
+ * i18n 설정 (Stub)
  *
- * 필요한 패키지 설치:
+ * i18n 라이브러리가 설치되어 있지 않으므로
+ * 기본적인 한국어만 지원하는 스텁 구현입니다.
+ *
+ * 실제 다국어 지원이 필요한 경우:
  * pnpm add i18next react-i18next i18next-browser-languagedetector
  */
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import LanguageDetector from 'i18next-browser-languagedetector'
 
-// 번역 파일 import
-import koCommon from '@/locales/ko/common.json'
-import enCommon from '@/locales/en/common.json'
-
-const resources = {
-  ko: {
-    common: koCommon,
-  },
-  en: {
-    common: enCommon,
-  },
+// 한국어 기본 번역
+const koTranslations: Record<string, string> = {
+  'app.name': '온고지신 AI',
+  'nav.dashboard': '대시보드',
+  'nav.consultation': '진료',
+  'nav.patients': '환자 관리',
+  'nav.settings': '설정',
 }
 
-i18n
-  .use(LanguageDetector) // 브라우저 언어 감지
-  .use(initReactI18next) // React 바인딩
-  .init({
-    resources,
-    defaultNS: 'common',
-    fallbackLng: 'ko', // 기본 언어
-    supportedLngs: ['ko', 'en'],
+/**
+ * 번역 함수 (스텁)
+ */
+export function t(key: string, defaultValue?: string): string {
+  return koTranslations[key] || defaultValue || key
+}
 
-    interpolation: {
-      escapeValue: false, // React는 기본적으로 XSS 방지
-    },
+/**
+ * 현재 언어 가져오기
+ */
+export function getCurrentLanguage(): string {
+  return 'ko'
+}
 
-    detection: {
-      // 언어 감지 순서
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      // localStorage 키 이름
-      lookupLocalStorage: 'hanmed-language',
-      // 감지된 언어 캐싱
-      caches: ['localStorage'],
-    },
-  })
-
-export default i18n
+/**
+ * 언어 변경 (스텁)
+ */
+export function changeLanguage(_lang: string): void {
+  // 현재는 한국어만 지원
+  console.log('다국어 지원은 추후 업데이트 예정입니다.')
+}
 
 /**
  * 지원 언어 목록
@@ -55,3 +48,11 @@ export const SUPPORTED_LANGUAGES = [
 ] as const
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]['code']
+
+// 기본 export
+export default {
+  t,
+  getCurrentLanguage,
+  changeLanguage,
+  SUPPORTED_LANGUAGES,
+}
