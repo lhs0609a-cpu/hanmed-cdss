@@ -349,11 +349,158 @@ const positions = [
   { id: 'right-chi', position: 'right' as const, level: 'chi' as const, name: '우척', organ: '신(화)/명문' },
 ]
 
+interface PulseAnalysis {
+  overallPattern: string
+  patternType: '표증' | '이증' | '허증' | '실증' | '한증' | '열증' | '복합'
+  affectedOrgans: string[]
+  recommendations: string[]
+  relatedFormulas: string[]
+  severity: 'mild' | 'moderate' | 'severe'
+}
+
+// 맥진 분석 함수
+const analyzePulseRecords = (records: Record<string, PulseRecord>): PulseAnalysis | null => {
+  const recordedPulses = Object.values(records)
+  if (recordedPulses.length === 0) return null
+
+  const pulseNames = recordedPulses.map(r => r.pulseType)
+  const affectedOrgans: string[] = []
+  const patterns: string[] = []
+  const recommendations: string[] = []
+  const relatedFormulas: string[] = []
+
+  // 표리 분석
+  const hasFloating = pulseNames.some(p => p.includes('부'))
+  const hasSinking = pulseNames.some(p => p.includes('침') || p.includes('복'))
+
+  // 한열 분석
+  const hasSlow = pulseNames.some(p => p.includes('지') || p.includes('완'))
+  const hasFast = pulseNames.some(p => p.includes('삭') || p.includes('질'))
+
+  // 허실 분석
+  const hasWeak = pulseNames.some(p => p.includes('허') || p.includes('미') || p.includes('약') || p.includes('세'))
+  const hasStrong = pulseNames.some(p => p.includes('실') || p.includes('홍') || p.includes('대'))
+
+  // 특수 맥상
+  const hasWiry = pulseNames.some(p => p.includes('현'))
+  const hasSlippery = pulseNames.some(p => p.includes('활'))
+  const hasRough = pulseNames.some(p => p.includes('삽'))
+  const hasTight = pulseNames.some(p => p.includes('긴'))
+  const hasIrregular = pulseNames.some(p => p.includes('결') || p.includes('대') || p.includes('촉'))
+
+  // 영향 받는 장부 분석
+  Object.entries(records).forEach(([posId, record]) => {
+    const pos = positions.find(p => p.id === posId)
+    if (pos && record.strength <= 2) {
+      affectedOrgans.push(`${pos.organ} (허약)`)
+    } else if (pos && record.strength >= 4) {
+      affectedOrgans.push(`${pos.organ} (항진)`)
+    }
+  })
+
+  // 패턴 판단
+  let patternType: PulseAnalysis['patternType'] = '복합'
+  let overallPattern = ''
+
+  if (hasFloating && hasFast) {
+    patternType = '표증'
+    overallPattern = '표열증 (表熱證)'
+    patterns.push('외감풍열')
+    recommendations.push('발한해표, 청열')
+    relatedFormulas.push('은교산', '상국음')
+  } else if (hasFloating && hasSlow) {
+    patternType = '표증'
+    overallPattern = '표한증 (表寒證)'
+    patterns.push('외감풍한')
+    recommendations.push('발한해표, 온산')
+    relatedFormulas.push('마황탕', '계지탕')
+  } else if (hasSinking && hasSlow && hasWeak) {
+    patternType = '허증'
+    overallPattern = '양허증 (陽虛證)'
+    patterns.push('양기부족', '내한')
+    recommendations.push('온양보기')
+    relatedFormulas.push('부자이중환', '사역탕', '팔미지황환')
+  } else if (hasSinking && hasFast && hasWeak) {
+    patternType = '허증'
+    overallPattern = '음허증 (陰虛證)'
+    patterns.push('음액부족', '허열')
+    recommendations.push('자음청열')
+    relatedFormulas.push('육미지황환', '지백지황환', '대보음환')
+  } else if (hasStrong && hasFast) {
+    patternType = '열증'
+    overallPattern = '실열증 (實熱證)'
+    patterns.push('열사내성')
+    recommendations.push('청열사화')
+    relatedFormulas.push('백호탕', '황련해독탕')
+  } else if (hasStrong && hasSlow && hasTight) {
+    patternType = '한증'
+    overallPattern = '실한증 (實寒證)'
+    patterns.push('한사내성')
+    recommendations.push('온중산한')
+    relatedFormulas.push('이중환', '오수유탕')
+  } else if (hasWiry) {
+    patternType = '실증'
+    overallPattern = '간기울결 (肝氣鬱結)'
+    patterns.push('간담 문제', '기체')
+    recommendations.push('소간해울, 이기')
+    relatedFormulas.push('소요산', '시호소간산')
+  } else if (hasSlippery && hasFast) {
+    patternType = '실증'
+    overallPattern = '담열증 (痰熱證)'
+    patterns.push('담음', '열')
+    recommendations.push('청열화담')
+    relatedFormulas.push('청기화담환', '온담탕')
+  } else if (hasRough) {
+    patternType = '허증'
+    overallPattern = '혈허/혈어 (血虛/血瘀)'
+    patterns.push('혈액 문제')
+    recommendations.push('보혈 또는 활혈거어')
+    relatedFormulas.push('사물탕', '도홍사물탕', '혈부축어탕')
+  } else if (hasIrregular) {
+    patternType = '복합'
+    overallPattern = '기혈어체 또는 장기허손'
+    patterns.push('맥률 불규칙')
+    recommendations.push('심장 기능 확인 필요', '기혈조화')
+    relatedFormulas.push('자감초탕', '귀비탕')
+  } else if (hasWeak) {
+    patternType = '허증'
+    overallPattern = '기혈양허 (氣血兩虛)'
+    patterns.push('기허', '혈허')
+    recommendations.push('보기양혈')
+    relatedFormulas.push('팔물탕', '십전대보탕', '귀비탕')
+  }
+
+  // 중증도 판단
+  const avgStrength = recordedPulses.reduce((sum, r) => sum + r.strength, 0) / recordedPulses.length
+  let severity: PulseAnalysis['severity'] = 'mild'
+  if (avgStrength <= 2 || hasIrregular) {
+    severity = 'severe'
+  } else if (avgStrength <= 3 || patterns.length >= 3) {
+    severity = 'moderate'
+  }
+
+  return {
+    overallPattern: overallPattern || '추가 진찰 필요',
+    patternType,
+    affectedOrgans: [...new Set(affectedOrgans)],
+    recommendations: [...new Set(recommendations)],
+    relatedFormulas: [...new Set(relatedFormulas)],
+    severity,
+  }
+}
+
 export default function PulseDiagnosisPage() {
   const [records, setRecords] = useState<Record<string, PulseRecord>>({})
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null)
   const [selectedPulseInfo, setSelectedPulseInfo] = useState<PulseType | null>(null)
   const [overallNotes, setOverallNotes] = useState('')
+  const [analysis, setAnalysis] = useState<PulseAnalysis | null>(null)
+
+  // 맥진 기록이 변경될 때마다 자동 분석
+  const handleAnalyze = () => {
+    const result = analyzePulseRecords(records)
+    setAnalysis(result)
+  }
 
   const handlePulseSelect = (positionId: string, pulseName: string) => {
     const position = positions.find((p) => p.id === positionId)
@@ -597,6 +744,91 @@ export default function PulseDiagnosisPage() {
               className="w-full h-32 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
             />
           </div>
+
+          {/* Analyze Button */}
+          {Object.keys(records).length >= 2 && (
+            <button
+              onClick={handleAnalyze}
+              className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
+            >
+              <Activity className="h-5 w-5" />
+              AI 맥진 분석
+            </button>
+          )}
+
+          {/* Analysis Result */}
+          {analysis && (
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
+              <h2 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                맥진 분석 결과
+              </h2>
+
+              {/* Main Pattern */}
+              <div className="p-4 bg-white rounded-xl mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-500">변증 패턴</span>
+                  <span className={cn(
+                    'px-2 py-1 text-xs font-medium rounded',
+                    analysis.severity === 'mild' && 'bg-green-100 text-green-700',
+                    analysis.severity === 'moderate' && 'bg-yellow-100 text-yellow-700',
+                    analysis.severity === 'severe' && 'bg-red-100 text-red-700'
+                  )}>
+                    {analysis.severity === 'mild' && '경증'}
+                    {analysis.severity === 'moderate' && '중등도'}
+                    {analysis.severity === 'severe' && '주의 필요'}
+                  </span>
+                </div>
+                <p className="text-xl font-bold text-purple-900">{analysis.overallPattern}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
+                  {analysis.patternType}
+                </span>
+              </div>
+
+              {/* Affected Organs */}
+              {analysis.affectedOrgans.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-purple-800 mb-2">관련 장부</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.affectedOrgans.map((organ, i) => (
+                      <span key={i} className="px-2 py-1 bg-white text-purple-700 text-sm rounded-lg border border-purple-200">
+                        {organ}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {analysis.recommendations.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-purple-800 mb-2">치료 방향</p>
+                  <ul className="space-y-1">
+                    {analysis.recommendations.map((rec, i) => (
+                      <li key={i} className="text-sm text-purple-700 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Related Formulas */}
+              {analysis.relatedFormulas.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-purple-800 mb-2">추천 처방</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.relatedFormulas.map((formula, i) => (
+                      <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-lg">
+                        {formula}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3">
