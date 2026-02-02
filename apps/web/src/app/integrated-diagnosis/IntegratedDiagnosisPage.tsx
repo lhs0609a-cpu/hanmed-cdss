@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
+import { useToast } from '@/hooks/use-toast'
 import {
   Search,
   Stethoscope,
@@ -240,6 +242,193 @@ const INTEGRATION_DATA: Record<string, IntegrationData> = {
       '빈혈, 당뇨 등 기저 질환 확인',
     ],
   },
+  'G44': {
+    icd10: 'G44',
+    koreanPatterns: [
+      {
+        pattern: '풍한두통',
+        hanja: '風寒頭痛',
+        description: '외감 풍한에 의한 두통. 후두부 통증, 오한, 발열, 무한.',
+        formulas: [
+          { name: '천궁다조산', school: 'later' },
+          { name: '갈근탕', school: 'classical' },
+        ],
+      },
+      {
+        pattern: '기혈휴허',
+        hanja: '氣血虧虛',
+        description: '기혈 부족으로 인한 두통. 만성적, 은은한 통증, 피로 동반.',
+        formulas: [
+          { name: '보중익기탕', school: 'later' },
+          { name: '팔진탕', school: 'later' },
+        ],
+      },
+    ],
+    evidenceLevel: 'B',
+    references: [
+      '대한침구의학회지 2019;36(2):89-98',
+    ],
+    cautions: [
+      '긴장성 두통과 편두통 감별 필요',
+      '신경학적 검사 권장',
+    ],
+  },
+  'M54': {
+    icd10: 'M54',
+    koreanPatterns: [
+      {
+        pattern: '풍한습비',
+        hanja: '風寒濕痺',
+        description: '풍한습 사기가 경락에 침범하여 발생. 냉하면 악화, 온하면 호전.',
+        formulas: [
+          { name: '독활기생탕', school: 'later' },
+          { name: '오적산', school: 'later' },
+        ],
+      },
+      {
+        pattern: '신허요통',
+        hanja: '腎虛腰痛',
+        description: '신기 부족으로 인한 요통. 만성, 은은한 통증, 시큰거림.',
+        formulas: [
+          { name: '육미지황환', school: 'later' },
+          { name: '팔미지황환', school: 'later' },
+        ],
+      },
+      {
+        pattern: '어혈요통',
+        hanja: '瘀血腰痛',
+        description: '어혈로 인한 요통. 고정된 위치, 찌르는 통증, 야간 악화.',
+        formulas: [
+          { name: '신통축어탕', school: 'later' },
+          { name: '도핵승기탕', school: 'classical' },
+        ],
+      },
+    ],
+    evidenceLevel: 'A',
+    references: [
+      '한방재활의학과학회지 2021;31(1):23-35',
+      '대한침구의학회지 2020;37(4):178-189',
+    ],
+    cautions: [
+      '디스크, 협착증 등 구조적 문제 배제',
+      '하지 방사통 시 정밀 검사 권장',
+    ],
+  },
+  'J06': {
+    icd10: 'J06',
+    koreanPatterns: [
+      {
+        pattern: '풍한표증',
+        hanja: '風寒表證',
+        description: '풍한 외감으로 인한 감기. 오한, 발열, 두통, 코막힘, 무한.',
+        formulas: [
+          { name: '갈근탕', school: 'classical' },
+          { name: '마황탕', school: 'classical' },
+          { name: '소청룡탕', school: 'classical' },
+        ],
+      },
+      {
+        pattern: '풍열표증',
+        hanja: '風熱表證',
+        description: '풍열 외감으로 인한 감기. 발열 위주, 인통, 황담, 유한.',
+        formulas: [
+          { name: '은교산', school: 'later' },
+          { name: '상국음', school: 'later' },
+        ],
+      },
+    ],
+    evidenceLevel: 'A',
+    references: [
+      '대한한방내과학회지 2019;40(5):823-834',
+    ],
+    cautions: [
+      '세균 감염 시 항생제 병용 고려',
+      '고열 지속 시 정밀 검사',
+    ],
+  },
+  'I10': {
+    icd10: 'I10',
+    koreanPatterns: [
+      {
+        pattern: '간양상항',
+        hanja: '肝陽上亢',
+        description: '간양이 상역하여 발생. 두통, 현훈, 안면홍조, 조급.',
+        formulas: [
+          { name: '천마구등음', school: 'later' },
+          { name: '용담사간탕', school: 'later' },
+        ],
+      },
+      {
+        pattern: '음허양항',
+        hanja: '陰虛陽亢',
+        description: '음허로 양이 억제되지 못함. 현훈, 오심번열, 요슬산연.',
+        formulas: [
+          { name: '육미지황환', school: 'later' },
+          { name: '지백지황환', school: 'later' },
+        ],
+      },
+      {
+        pattern: '담습옹성',
+        hanja: '痰濕壅盛',
+        description: '담습이 성하여 발생. 비만, 흉민, 담다, 어지러움.',
+        formulas: [
+          { name: '반하백출천마탕', school: 'later' },
+          { name: '온담탕', school: 'later' },
+        ],
+      },
+    ],
+    evidenceLevel: 'B',
+    references: [
+      '대한한방내과학회지 2020;41(6):1012-1024',
+    ],
+    cautions: [
+      '양방 혈압 약물과 병용 시 상호작용 주의',
+      '정기적인 혈압 모니터링 필수',
+      '합병증 동반 시 양방 치료 우선',
+    ],
+  },
+  'E11': {
+    icd10: 'E11',
+    koreanPatterns: [
+      {
+        pattern: '음허조열',
+        hanja: '陰虛燥熱',
+        description: '음액 부족으로 조열 발생. 구갈, 다식, 다뇨, 체중감소.',
+        formulas: [
+          { name: '맥문동탕', school: 'later' },
+          { name: '백호가인삼탕', school: 'classical' },
+        ],
+      },
+      {
+        pattern: '기음양허',
+        hanja: '氣陰兩虛',
+        description: '기와 음이 모두 허약. 피로, 구갈, 자한, 권태감.',
+        formulas: [
+          { name: '생맥산', school: 'later' },
+          { name: '삼기음', school: 'later' },
+        ],
+      },
+      {
+        pattern: '신양허쇠',
+        hanja: '腎陽虛衰',
+        description: '신양이 쇠약해짐. 하지냉감, 부종, 다뇨, 야뇨.',
+        formulas: [
+          { name: '팔미지황환', school: 'later' },
+          { name: '금궤신기환', school: 'classical' },
+        ],
+      },
+    ],
+    evidenceLevel: 'B',
+    references: [
+      '대한한방내과학회지 2019;40(3):456-470',
+      '한방당뇨연구회지 2020;5(1):12-25',
+    ],
+    cautions: [
+      '양방 혈당 조절 약물 병용 필수',
+      '합병증 모니터링 중요',
+      '저혈당 증상 주의',
+    ],
+  },
 }
 
 const schoolIcons: Record<MedicineSchool, React.ReactNode> = {
@@ -269,9 +458,46 @@ const evidenceLabels = {
 }
 
 export default function IntegratedDiagnosisPage() {
+  const navigate = useNavigate()
+  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedICD, setSelectedICD] = useState<ICD10Code | null>(null)
   const [expandedPatterns, setExpandedPatterns] = useState<Set<string>>(new Set())
+
+  // AI 상담으로 이동
+  const handleNavigateToConsultation = () => {
+    if (selectedICD) {
+      navigate('/consultation', {
+        state: {
+          icd10Code: selectedICD.code,
+          diseaseName: selectedICD.nameKr,
+          patterns: integrationData?.koreanPatterns.map(p => p.pattern) || []
+        }
+      })
+    }
+  }
+
+  // 진료 기록 저장
+  const handleSaveRecord = () => {
+    if (selectedICD && integrationData) {
+      // 로컬 스토리지에 저장
+      const savedRecords = JSON.parse(localStorage.getItem('integratedDiagnosisRecords') || '[]')
+      const newRecord = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        icd10: selectedICD,
+        patterns: integrationData.koreanPatterns,
+        evidenceLevel: integrationData.evidenceLevel
+      }
+      savedRecords.push(newRecord)
+      localStorage.setItem('integratedDiagnosisRecords', JSON.stringify(savedRecords))
+
+      toast({
+        title: '저장 완료',
+        description: `${selectedICD.nameKr} (${selectedICD.code}) 진단 기록이 저장되었습니다.`,
+      })
+    }
+  }
 
   // 검색 필터링
   const filteredCodes = ICD10_SAMPLE.filter(
@@ -490,11 +716,17 @@ export default function IntegratedDiagnosisPage() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  <button className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                  <button
+                    onClick={handleNavigateToConsultation}
+                    className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
                     <Activity className="h-5 w-5" />
                     AI 상담으로 이동
                   </button>
-                  <button className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                  <button
+                    onClick={handleSaveRecord}
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                  >
                     <FileText className="h-5 w-5" />
                     진료 기록 저장
                   </button>

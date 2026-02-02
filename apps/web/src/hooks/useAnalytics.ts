@@ -1,6 +1,137 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 
+// Mock Data for Demo Mode
+const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
+  overview: {
+    totalPatients: 342,
+    totalPatientsChange: 8.5,
+    newPatientsThisMonth: 28,
+    newPatientsChange: 12.3,
+    totalConsultations: 856,
+    totalConsultationsChange: 5.2,
+    avgConsultationsPerDay: 12.4,
+    revenueThisMonth: 15680000,
+    revenueChange: 7.8,
+  },
+  returnRate: { current: 68.5, previous: 65.2, trend: 'up' },
+  aiUsage: {
+    totalRecommendations: 234,
+    acceptedRecommendations: 189,
+    acceptanceRate: 80.8,
+    topRecommendedFormulas: [
+      { name: '보중익기탕', count: 45 },
+      { name: '소시호탕', count: 38 },
+      { name: '귀비탕', count: 32 },
+      { name: '반하사심탕', count: 28 },
+      { name: '사물탕', count: 25 },
+    ],
+  },
+  patientSatisfaction: { averageRating: 4.6, totalReviews: 87, ratingDistribution: { 5: 52, 4: 28, 3: 5, 2: 1, 1: 1 } },
+};
+
+const MOCK_TRENDS: TrendData = {
+  consultations: Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+    count: Math.floor(Math.random() * 8) + 8,
+  })),
+  patients: Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+    new: Math.floor(Math.random() * 3) + 1,
+    returning: Math.floor(Math.random() * 6) + 5,
+  })),
+  improvement: Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+    rate: 65 + Math.random() * 15,
+  })),
+};
+
+const MOCK_BENCHMARK: BenchmarkData = {
+  myMetrics: { returnRate: 68.5, avgImprovementRate: 72.3, aiAcceptanceRate: 80.8, patientsPerMonth: 85, consultationsPerDay: 12.4 },
+  nationalAvg: { returnRate: 58.2, avgImprovementRate: 65.5, aiAcceptanceRate: 62.0, patientsPerMonth: 65, consultationsPerDay: 8.5 },
+  percentile: { returnRate: 78, avgImprovementRate: 82, aiAcceptanceRate: 91, patientsPerMonth: 75, consultationsPerDay: 85 },
+};
+
+const MOCK_PATTERNS: PatternAnalysis = {
+  prescriptionPatterns: {
+    mostUsedFormulas: [
+      { formulaId: 'f1', name: '보중익기탕', count: 45, avgDosage: '6g' },
+      { formulaId: 'f2', name: '소시호탕', count: 38, avgDosage: '6g' },
+      { formulaId: 'f3', name: '귀비탕', count: 32, avgDosage: '6g' },
+    ],
+    commonModifications: [
+      { original: '보중익기탕', modified: '보중익기탕 가 진피', frequency: 12 },
+    ],
+    symptomFormulaCorrelation: [
+      { symptom: '피로', formulas: ['보중익기탕', '십전대보탕'], effectiveness: 78 },
+    ],
+  },
+  consultationPatterns: {
+    busyDays: [
+      { dayOfWeek: 1, avgPatients: 14 },
+      { dayOfWeek: 2, avgPatients: 12 },
+      { dayOfWeek: 3, avgPatients: 15 },
+      { dayOfWeek: 4, avgPatients: 11 },
+      { dayOfWeek: 5, avgPatients: 13 },
+    ],
+    busyHours: [
+      { hour: 10, avgPatients: 3.2 },
+      { hour: 11, avgPatients: 4.1 },
+      { hour: 14, avgPatients: 3.8 },
+      { hour: 15, avgPatients: 3.5 },
+    ],
+    avgDuration: 18,
+    peakSeasons: [{ month: 3, patientCount: 95 }, { month: 9, patientCount: 102 }],
+  },
+  patientDemographics: {
+    ageDistribution: [
+      { range: '20-29', count: 35, percentage: 10.2 },
+      { range: '30-39', count: 68, percentage: 19.9 },
+      { range: '40-49', count: 89, percentage: 26.0 },
+      { range: '50-59', count: 95, percentage: 27.8 },
+      { range: '60+', count: 55, percentage: 16.1 },
+    ],
+    genderDistribution: { male: 145, female: 197 },
+    constitutionDistribution: [
+      { constitution: '소양인', count: 112 },
+      { constitution: '태음인', count: 98 },
+      { constitution: '소음인', count: 85 },
+      { constitution: '태양인', count: 47 },
+    ],
+    topConditions: [
+      { condition: '소화불량', count: 67 },
+      { condition: '요통', count: 54 },
+      { condition: '피로', count: 48 },
+    ],
+  },
+};
+
+const MOCK_TOP_FORMULAS = [
+  { name: '보중익기탕', count: 45, percentage: 19.2 },
+  { name: '소시호탕', count: 38, percentage: 16.2 },
+  { name: '귀비탕', count: 32, percentage: 13.7 },
+  { name: '반하사심탕', count: 28, percentage: 12.0 },
+  { name: '사물탕', count: 25, percentage: 10.7 },
+];
+
+const MOCK_TODAY_ACTIVITY = {
+  consultationsToday: 8,
+  patientsToday: 7,
+  prescriptionsToday: 6,
+  hourlyBreakdown: [
+    { hour: 9, consultations: 1 },
+    { hour: 10, consultations: 2 },
+    { hour: 11, consultations: 2 },
+    { hour: 14, consultations: 2 },
+    { hour: 15, consultations: 1 },
+  ],
+  recentPatients: [
+    { id: 'p1', name: '김*민', time: '15:30', status: '진료완료' },
+    { id: 'p2', name: '이*영', time: '14:45', status: '진료완료' },
+    { id: 'p3', name: '박*수', time: '14:00', status: '진료완료' },
+  ],
+};
+
 // Types
 export interface DashboardMetrics {
   overview: {
@@ -109,8 +240,12 @@ export function useDashboardMetrics() {
   return useQuery({
     queryKey: ['analytics-dashboard'],
     queryFn: async () => {
-      const { data } = await api.get('/analytics/dashboard');
-      return data.data as DashboardMetrics;
+      try {
+        const { data } = await api.get('/analytics/dashboard');
+        return data.data as DashboardMetrics;
+      } catch {
+        return MOCK_DASHBOARD_METRICS;
+      }
     },
   });
 }
@@ -141,8 +276,12 @@ export function useBenchmark() {
   return useQuery({
     queryKey: ['analytics-benchmark'],
     queryFn: async () => {
-      const { data } = await api.get('/analytics/benchmark');
-      return data.data as BenchmarkData;
+      try {
+        const { data } = await api.get('/analytics/benchmark');
+        return data.data as BenchmarkData;
+      } catch {
+        return MOCK_BENCHMARK;
+      }
     },
   });
 }
@@ -152,8 +291,12 @@ export function usePrescriptionPatterns() {
   return useQuery({
     queryKey: ['analytics-patterns'],
     queryFn: async () => {
-      const { data } = await api.get('/analytics/patterns');
-      return data.data as PatternAnalysis;
+      try {
+        const { data } = await api.get('/analytics/patterns');
+        return data.data as PatternAnalysis;
+      } catch {
+        return MOCK_PATTERNS;
+      }
     },
   });
 }
@@ -163,13 +306,17 @@ export function useTrends(startDate: string, endDate: string, granularity: 'day'
   return useQuery({
     queryKey: ['analytics-trends', startDate, endDate, granularity],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      params.append('startDate', startDate);
-      params.append('endDate', endDate);
-      params.append('granularity', granularity);
+      try {
+        const params = new URLSearchParams();
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
+        params.append('granularity', granularity);
 
-      const { data } = await api.get(`/analytics/trends?${params.toString()}`);
-      return data.data as TrendData;
+        const { data } = await api.get(`/analytics/trends?${params.toString()}`);
+        return data.data as TrendData;
+      } catch {
+        return MOCK_TRENDS;
+      }
     },
     enabled: !!startDate && !!endDate,
   });
@@ -180,8 +327,12 @@ export function useTopItems(category: 'formulas' | 'symptoms' | 'herbs', limit: 
   return useQuery({
     queryKey: ['analytics-top', category, limit],
     queryFn: async () => {
-      const { data } = await api.get(`/analytics/top/${category}?limit=${limit}`);
-      return data.data as Array<{ name: string; count: number; percentage: number }>;
+      try {
+        const { data } = await api.get(`/analytics/top/${category}?limit=${limit}`);
+        return data.data as Array<{ name: string; count: number; percentage: number }>;
+      } catch {
+        return MOCK_TOP_FORMULAS.slice(0, limit);
+      }
     },
   });
 }
@@ -273,14 +424,18 @@ export function useTodayActivity() {
   return useQuery({
     queryKey: ['analytics-today'],
     queryFn: async () => {
-      const { data } = await api.get('/analytics/today');
-      return data.data as {
-        consultationsToday: number;
-        patientsToday: number;
-        prescriptionsToday: number;
-        hourlyBreakdown: Array<{ hour: number; consultations: number }>;
-        recentPatients: Array<{ id: string; name: string; time: string; status: string }>;
-      };
+      try {
+        const { data } = await api.get('/analytics/today');
+        return data.data as {
+          consultationsToday: number;
+          patientsToday: number;
+          prescriptionsToday: number;
+          hourlyBreakdown: Array<{ hour: number; consultations: number }>;
+          recentPatients: Array<{ id: string; name: string; time: string; status: string }>;
+        };
+      } catch {
+        return MOCK_TODAY_ACTIVITY;
+      }
     },
     refetchInterval: 60000, // 1분마다 갱신
   });

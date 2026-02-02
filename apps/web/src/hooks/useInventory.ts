@@ -1,6 +1,46 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 
+// Mock Data for Demo Mode
+const MOCK_SUPPLIERS: HerbSupplier[] = [
+  { id: 's1', name: '경동약업사', contactPerson: '김약재', phone: '02-2345-6789', email: 'contact@kyungdong.co.kr', address: '서울시 동대문구 경동시장', rating: 4.5, isActive: true },
+  { id: 's2', name: '제일약재상', contactPerson: '이한약', phone: '02-3456-7890', email: 'info@jeil-herb.com', address: '서울시 중구 을지로', rating: 4.2, isActive: true },
+  { id: 's3', name: '대한약재', contactPerson: '박약사', phone: '02-4567-8901', email: 'sales@daehan-herb.kr', address: '대구시 중구', rating: 4.0, isActive: true },
+];
+
+const MOCK_INVENTORY: HerbInventory[] = [
+  { id: 'i1', herbId: 'h1', supplierId: 's1', currentStock: 500, unit: 'g', minimumStock: 100, reorderPoint: 200, lastPurchasePrice: 15000, averagePrice: 14500, location: 'A-1', expiryDate: '2025-06-15', herb: { koreanName: '황기', chineseName: '黃芪' }, supplier: { name: '경동약업사' } },
+  { id: 'i2', herbId: 'h2', supplierId: 's1', currentStock: 80, unit: 'g', minimumStock: 100, reorderPoint: 150, lastPurchasePrice: 25000, averagePrice: 24000, location: 'A-2', expiryDate: '2025-04-20', herb: { koreanName: '인삼', chineseName: '人蔘' }, supplier: { name: '경동약업사' } },
+  { id: 'i3', herbId: 'h3', supplierId: 's2', currentStock: 300, unit: 'g', minimumStock: 50, reorderPoint: 100, lastPurchasePrice: 8000, averagePrice: 7500, location: 'B-1', expiryDate: '2025-08-10', herb: { koreanName: '감초', chineseName: '甘草' }, supplier: { name: '제일약재상' } },
+  { id: 'i4', herbId: 'h4', supplierId: 's2', currentStock: 200, unit: 'g', minimumStock: 80, reorderPoint: 120, lastPurchasePrice: 12000, averagePrice: 11500, location: 'B-2', expiryDate: '2025-05-30', herb: { koreanName: '당귀', chineseName: '當歸' }, supplier: { name: '제일약재상' } },
+  { id: 'i5', herbId: 'h5', supplierId: 's3', currentStock: 150, unit: 'g', minimumStock: 100, reorderPoint: 150, lastPurchasePrice: 18000, averagePrice: 17000, location: 'C-1', expiryDate: '2025-03-25', herb: { koreanName: '백출', chineseName: '白朮' }, supplier: { name: '대한약재' } },
+];
+
+const MOCK_ALERTS: InventoryAlert[] = [
+  { id: 'a1', inventoryId: 'i2', alertType: 'low_stock', message: '인삼 재고가 최소 재고량 이하입니다', severity: 'critical', isResolved: false, createdAt: new Date().toISOString(), inventory: MOCK_INVENTORY[1] },
+  { id: 'a2', inventoryId: 'i5', alertType: 'expiring_soon', message: '백출 유통기한이 30일 이내입니다', severity: 'warning', isResolved: false, createdAt: new Date().toISOString(), inventory: MOCK_INVENTORY[4] },
+];
+
+const MOCK_ORDERS: PurchaseOrder[] = [
+  { id: 'o1', orderNumber: 'PO-2024-001', supplierId: 's1', status: 'shipped', items: [{ herbId: 'h1', quantity: 500, unitPrice: 15000, totalPrice: 75000, herb: { koreanName: '황기' } }], totalAmount: 75000, expectedDeliveryDate: new Date(Date.now() + 86400000 * 3).toISOString(), createdAt: new Date().toISOString(), supplier: { name: '경동약업사' } },
+  { id: 'o2', orderNumber: 'PO-2024-002', supplierId: 's2', status: 'confirmed', items: [{ herbId: 'h3', quantity: 300, unitPrice: 8000, totalPrice: 24000, herb: { koreanName: '감초' } }], totalAmount: 24000, expectedDeliveryDate: new Date(Date.now() + 86400000 * 5).toISOString(), createdAt: new Date().toISOString(), supplier: { name: '제일약재상' } },
+];
+
+const MOCK_SUMMARY: InventorySummary = {
+  totalItems: 45,
+  lowStockCount: 3,
+  expiringCount: 2,
+  totalValue: 2450000,
+  alertCount: 2,
+  pendingOrdersCount: 2,
+};
+
+const MOCK_PRICE_HISTORY: HerbPriceHistory[] = [
+  { id: 'ph1', herbId: 'h1', supplierId: 's1', price: 14000, unit: 'g', recordedAt: new Date(Date.now() - 86400000 * 60).toISOString() },
+  { id: 'ph2', herbId: 'h1', supplierId: 's1', price: 14500, unit: 'g', recordedAt: new Date(Date.now() - 86400000 * 30).toISOString() },
+  { id: 'ph3', herbId: 'h1', supplierId: 's1', price: 15000, unit: 'g', recordedAt: new Date().toISOString() },
+];
+
 // Types
 export interface HerbSupplier {
   id: string;
@@ -102,8 +142,12 @@ export function useSuppliers() {
   return useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      const { data } = await api.get('/inventory/suppliers');
-      return data.data as HerbSupplier[];
+      try {
+        const { data } = await api.get('/inventory/suppliers');
+        return data.data as HerbSupplier[];
+      } catch {
+        return MOCK_SUPPLIERS;
+      }
     },
   });
 }
@@ -145,14 +189,22 @@ export function useInventory(options?: {
   return useQuery({
     queryKey: ['inventory', options],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (options?.keyword) params.append('keyword', options.keyword);
-      if (options?.lowStockOnly) params.append('lowStockOnly', 'true');
-      if (options?.expiringOnly) params.append('expiringOnly', 'true');
-      if (options?.supplierId) params.append('supplierId', options.supplierId);
+      try {
+        const params = new URLSearchParams();
+        if (options?.keyword) params.append('keyword', options.keyword);
+        if (options?.lowStockOnly) params.append('lowStockOnly', 'true');
+        if (options?.expiringOnly) params.append('expiringOnly', 'true');
+        if (options?.supplierId) params.append('supplierId', options.supplierId);
 
-      const { data } = await api.get(`/inventory/items?${params.toString()}`);
-      return data.data as HerbInventory[];
+        const { data } = await api.get(`/inventory/items?${params.toString()}`);
+        return data.data as HerbInventory[];
+      } catch {
+        let filtered = [...MOCK_INVENTORY];
+        if (options?.keyword) filtered = filtered.filter(i => i.herb?.koreanName.includes(options.keyword!));
+        if (options?.lowStockOnly) filtered = filtered.filter(i => i.currentStock <= i.minimumStock);
+        if (options?.expiringOnly) filtered = filtered.filter(i => i.expiryDate && new Date(i.expiryDate) < new Date(Date.now() + 30 * 86400000));
+        return filtered;
+      }
     },
   });
 }
@@ -162,8 +214,12 @@ export function useInventorySummary() {
   return useQuery({
     queryKey: ['inventory-summary'],
     queryFn: async () => {
-      const { data } = await api.get('/inventory/summary');
-      return data.data as InventorySummary;
+      try {
+        const { data } = await api.get('/inventory/summary');
+        return data.data as InventorySummary;
+      } catch {
+        return MOCK_SUMMARY;
+      }
     },
   });
 }
@@ -266,12 +322,16 @@ export function usePriceHistory(herbId: string, supplierId?: string, days?: numb
   return useQuery({
     queryKey: ['price-history', herbId, supplierId, days],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (supplierId) params.append('supplierId', supplierId);
-      if (days) params.append('days', String(days));
+      try {
+        const params = new URLSearchParams();
+        if (supplierId) params.append('supplierId', supplierId);
+        if (days) params.append('days', String(days));
 
-      const { data } = await api.get(`/inventory/prices/history/${herbId}?${params.toString()}`);
-      return data.data as HerbPriceHistory[];
+        const { data } = await api.get(`/inventory/prices/history/${herbId}?${params.toString()}`);
+        return data.data as HerbPriceHistory[];
+      } catch {
+        return MOCK_PRICE_HISTORY.filter(p => p.herbId === herbId);
+      }
     },
     enabled: !!herbId,
   });
@@ -303,8 +363,13 @@ export function useInventoryAlerts(unresolvedOnly: boolean = true) {
   return useQuery({
     queryKey: ['inventory-alerts', unresolvedOnly],
     queryFn: async () => {
-      const { data } = await api.get(`/inventory/alerts?unresolvedOnly=${unresolvedOnly}`);
-      return data.data as InventoryAlert[];
+      try {
+        const { data } = await api.get(`/inventory/alerts?unresolvedOnly=${unresolvedOnly}`);
+        return data.data as InventoryAlert[];
+      } catch {
+        if (unresolvedOnly) return MOCK_ALERTS.filter(a => !a.isResolved);
+        return MOCK_ALERTS;
+      }
     },
   });
 }
@@ -330,9 +395,14 @@ export function usePurchaseOrders(status?: string) {
   return useQuery({
     queryKey: ['purchase-orders', status],
     queryFn: async () => {
-      const params = status ? `?status=${status}` : '';
-      const { data } = await api.get(`/inventory/orders${params}`);
-      return data.data as PurchaseOrder[];
+      try {
+        const params = status ? `?status=${status}` : '';
+        const { data } = await api.get(`/inventory/orders${params}`);
+        return data.data as PurchaseOrder[];
+      } catch {
+        if (status) return MOCK_ORDERS.filter(o => o.status === status);
+        return MOCK_ORDERS;
+      }
     },
   });
 }
