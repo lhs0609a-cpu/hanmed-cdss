@@ -13,17 +13,12 @@ import {
   Users,
   TrendingUp,
   BookOpen,
-  Zap,
-  Award,
   ChevronRight,
   Quote,
   AlertTriangle,
   FileText,
   Target,
   Lightbulb,
-  Phone,
-  Mail,
-  Building2,
   X,
 } from 'lucide-react'
 
@@ -123,8 +118,7 @@ const comparisonData = {
 export default function AdLandingPage() {
   const navigate = useNavigate()
   const [showVideo, setShowVideo] = useState(false)
-  const [email, setEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [, setEmail] = useState('')
 
   useUTMTracking()
 
@@ -134,18 +128,9 @@ export default function AdLandingPage() {
     navigate('/register' + (utmData ? `?ref=landing` : ''))
   }
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
-
-    setIsSubmitting(true)
-    // TODO: 이메일 수집 API 호출
-    setTimeout(() => {
-      setIsSubmitting(false)
-      alert('등록되었습니다! 곧 연락드리겠습니다.')
-      setEmail('')
-    }, 1000)
-  }
+  // 이메일 입력 초기화 (향후 사용 예정)
+  const resetEmail = () => setEmail('')
+  void resetEmail
 
   return (
     <div className="min-h-screen bg-white">

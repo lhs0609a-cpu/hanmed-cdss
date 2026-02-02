@@ -78,3 +78,18 @@ export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLD
     />
   )
 }
+
+// DialogTrigger - 트리거 요소를 래핑하는 간단한 컴포넌트
+interface DialogTriggerProps {
+  children: React.ReactNode
+  asChild?: boolean
+  onClick?: () => void
+}
+
+export function DialogTrigger({ children, onClick }: DialogTriggerProps) {
+  return (
+    <span onClick={onClick} className="cursor-pointer">
+      {children}
+    </span>
+  )
+}

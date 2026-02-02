@@ -674,7 +674,6 @@ export default function SymptomSearchPage() {
                   {suggestedSymptoms.map((symptomName) => {
                     const symptom = allSymptoms.find((s) => s.name === symptomName)
                     if (!symptom) return null
-                    const style = getCategoryStyle(symptom.category)
                     return (
                       <button
                         key={symptomName}

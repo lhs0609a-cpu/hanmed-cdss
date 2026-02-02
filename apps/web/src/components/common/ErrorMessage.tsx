@@ -7,8 +7,6 @@ import {
   RefreshCw,
   ArrowRight,
   LucideIcon,
-  Wifi,
-  WifiOff,
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'

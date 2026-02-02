@@ -1,4 +1,4 @@
-import { LucideIcon, Search, FileText, Users, BookOpen, Inbox, AlertCircle } from 'lucide-react'
+import { LucideIcon, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 

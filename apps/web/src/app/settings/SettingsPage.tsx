@@ -49,7 +49,6 @@ import {
   Upload,
   Accessibility,
   Moon,
-  Sun,
   Type,
   Eye,
   Keyboard,
@@ -103,7 +102,6 @@ export default function SettingsPage() {
 
   // 프로필 이미지
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
