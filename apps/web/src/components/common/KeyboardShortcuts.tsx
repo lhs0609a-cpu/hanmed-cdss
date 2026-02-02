@@ -585,6 +585,63 @@ function CommandButton({
   )
 }
 
+// Floating Keyboard Hint - 우하단에 표시되는 단축키 힌트
+interface KeyboardHintProps {
+  className?: string
+}
+
+export function KeyboardHint({ className }: KeyboardHintProps) {
+  const [isVisible, setIsVisible] = useState(true)
+  const [isDismissed, setIsDismissed] = useState(() => {
+    return localStorage.getItem('keyboard-hint-dismissed') === 'true'
+  })
+
+  if (isDismissed || !isVisible) return null
+
+  return (
+    <div
+      className={`fixed bottom-24 lg:bottom-6 right-4 z-40 animate-fade-in-up ${className}`}
+    >
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3 max-w-[200px]">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-100 rounded-lg">
+              <Keyboard className="h-4 w-4 text-indigo-600" />
+            </div>
+            <span className="text-xs font-semibold text-gray-900">단축키 팁</span>
+          </div>
+          <button
+            onClick={() => {
+              setIsDismissed(true)
+              localStorage.setItem('keyboard-hint-dismissed', 'true')
+            }}
+            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+            aria-label="닫기"
+          >
+            <X className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+        </div>
+        <div className="space-y-1.5 text-[11px]">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">빠른 검색</span>
+            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-mono">⌘K</kbd>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">모든 단축키</span>
+            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-mono">?</kbd>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsVisible(false)}
+          className="w-full mt-2 text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          임시로 숨기기
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Keyboard Shortcuts Provider - 전역에서 사용
 export function KeyboardShortcutsProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
