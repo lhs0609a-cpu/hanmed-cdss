@@ -9,6 +9,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +28,18 @@ import {
   MedicationLog,
 } from '../../src/services/healthService';
 import { getActivePrescriptions } from '../../src/services/prescriptionService';
+
+// 자주 사용하는 증상 목록
+const COMMON_SYMPTOMS = [
+  { id: 'headache', name: '두통', icon: 'fitness-outline', color: '#EF4444' },
+  { id: 'fatigue', name: '피로', icon: 'battery-dead-outline', color: '#F59E0B' },
+  { id: 'insomnia', name: '불면', icon: 'moon-outline', color: '#6366F1' },
+  { id: 'digestion', name: '소화불량', icon: 'restaurant-outline', color: '#10B981' },
+  { id: 'pain', name: '통증', icon: 'bandage-outline', color: '#EC4899' },
+  { id: 'cold', name: '오한', icon: 'snow-outline', color: '#3B82F6' },
+  { id: 'fever', name: '발열', icon: 'thermometer-outline', color: '#EF4444' },
+  { id: 'cough', name: '기침', icon: 'medical-outline', color: '#8B5CF6' },
+];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -153,9 +168,233 @@ function getConditionEmoji(value: number): string {
   return '😢';
 }
 
+// 빠른 증상 입력 모달 컴포넌트
+function QuickSymptomModal({
+  visible,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (symptoms: { id: string; severity: number }[], note?: string) => void;
+}) {
+  const [selectedSymptoms, setSelectedSymptoms] = useState<{ id: string; severity: number }[]>([]);
+  const [note, setNote] = useState('');
+
+  const handleSymptomToggle = (symptomId: string) => {
+    setSelectedSymptoms(prev => {
+      const existing = prev.find(s => s.id === symptomId);
+      if (existing) {
+        return prev.filter(s => s.id !== symptomId);
+      }
+      return [...prev, { id: symptomId, severity: 5 }];
+    });
+  };
+
+  const handleSeverityChange = (symptomId: string, severity: number) => {
+    setSelectedSymptoms(prev =>
+      prev.map(s => (s.id === symptomId ? { ...s, severity } : s))
+    );
+  };
+
+  const handleSubmit = () => {
+    if (selectedSymptoms.length === 0) {
+      Alert.alert('알림', '하나 이상의 증상을 선택해주세요.');
+      return;
+    }
+    onSubmit(selectedSymptoms, note || undefined);
+    setSelectedSymptoms([]);
+    setNote('');
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>빠른 증상 기록</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <Text style={styles.modalSubtitle}>증상 선택</Text>
+            <View style={styles.symptomGrid}>
+              {COMMON_SYMPTOMS.map(symptom => {
+                const isSelected = selectedSymptoms.some(s => s.id === symptom.id);
+                const selectedSymptom = selectedSymptoms.find(s => s.id === symptom.id);
+
+                return (
+                  <View key={symptom.id} style={styles.symptomItemContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.symptomItem,
+                        isSelected && { borderColor: symptom.color, backgroundColor: `${symptom.color}10` },
+                      ]}
+                      onPress={() => handleSymptomToggle(symptom.id)}
+                    >
+                      <Ionicons
+                        name={symptom.icon as any}
+                        size={24}
+                        color={isSelected ? symptom.color : '#9CA3AF'}
+                      />
+                      <Text style={[styles.symptomName, isSelected && { color: symptom.color }]}>
+                        {symptom.name}
+                      </Text>
+                    </TouchableOpacity>
+                    {isSelected && (
+                      <View style={styles.severitySlider}>
+                        <Text style={styles.severityLabel}>심각도: {selectedSymptom?.severity}/10</Text>
+                        <View style={styles.severityButtons}>
+                          {[1, 3, 5, 7, 10].map(level => (
+                            <TouchableOpacity
+                              key={level}
+                              style={[
+                                styles.severityButton,
+                                selectedSymptom?.severity === level && {
+                                  backgroundColor: symptom.color,
+                                },
+                              ]}
+                              onPress={() => handleSeverityChange(symptom.id, level)}
+                            >
+                              <Text
+                                style={[
+                                  styles.severityButtonText,
+                                  selectedSymptom?.severity === level && { color: '#FFFFFF' },
+                                ]}
+                              >
+                                {level}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.modalSubtitle, { marginTop: 16 }]}>메모 (선택)</Text>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="추가 메모를 입력하세요..."
+              value={note}
+              onChangeText={setNote}
+              multiline
+              numberOfLines={3}
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>취소</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.submitButtonText}>저장</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// 한의사 공유 모달
+function ShareWithDoctorModal({
+  visible,
+  onClose,
+  onShare,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onShare: (days: number, includeSymptoms: boolean, includeMedication: boolean) => void;
+}) {
+  const [days, setDays] = useState(7);
+  const [includeSymptoms, setIncludeSymptoms] = useState(true);
+  const [includeMedication, setIncludeMedication] = useState(true);
+
+  const handleShare = () => {
+    onShare(days, includeSymptoms, includeMedication);
+    onClose();
+    Alert.alert('공유 완료', '담당 한의사에게 건강 기록이 공유되었습니다.');
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { maxHeight: '50%' }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>한의사에게 공유</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalBody}>
+            <Text style={styles.modalSubtitle}>공유 기간</Text>
+            <View style={styles.periodButtons}>
+              {[3, 7, 14, 30].map(d => (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.periodButton, days === d && styles.periodButtonActive]}
+                  onPress={() => setDays(d)}
+                >
+                  <Text style={[styles.periodButtonText, days === d && styles.periodButtonTextActive]}>
+                    {d}일
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.modalSubtitle, { marginTop: 16 }]}>공유 항목</Text>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setIncludeSymptoms(!includeSymptoms)}
+            >
+              <Ionicons
+                name={includeSymptoms ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={includeSymptoms ? '#10B981' : '#9CA3AF'}
+              />
+              <Text style={styles.checkboxLabel}>증상 기록</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setIncludeMedication(!includeMedication)}
+            >
+              <Ionicons
+                name={includeMedication ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={includeMedication ? '#10B981' : '#9CA3AF'}
+              />
+              <Text style={styles.checkboxLabel}>복약 기록</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>취소</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#6366F1' }]} onPress={handleShare}>
+              <Ionicons name="share-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.submitButtonText}>공유하기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function HealthScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [refreshing, setRefreshing] = useState(false);
+  const [showQuickSymptom, setShowQuickSymptom] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
   const greeting = getGreeting();
@@ -219,6 +458,25 @@ export default function HealthScreen() {
       takenAt: new Date().toISOString(),
       status: 'skipped',
     });
+  };
+
+  const handleQuickSymptomSubmit = async (
+    symptoms: { id: string; severity: number }[],
+    note?: string
+  ) => {
+    // 실제로는 API를 호출해야 함
+    console.log('Quick symptom submit:', symptoms, note);
+    await refetchJournal();
+    Alert.alert('저장 완료', '증상이 기록되었습니다.');
+  };
+
+  const handleShareWithDoctor = async (
+    days: number,
+    includeSymptoms: boolean,
+    includeMedication: boolean
+  ) => {
+    // 실제로는 API를 호출해야 함
+    console.log('Share with doctor:', { days, includeSymptoms, includeMedication });
   };
 
   // 통계 계산
@@ -463,6 +721,36 @@ export default function HealthScreen() {
           </View>
         )}
       </View>
+
+      {/* 빠른 증상 기록 버튼 */}
+      <TouchableOpacity
+        style={styles.quickSymptomCard}
+        onPress={() => setShowQuickSymptom(true)}
+      >
+        <View style={styles.quickSymptomIconContainer}>
+          <Ionicons name="flash" size={24} color="#F59E0B" />
+        </View>
+        <View style={styles.quickSymptomContent}>
+          <Text style={styles.quickSymptomTitle}>빠른 증상 기록</Text>
+          <Text style={styles.quickSymptomSubtitle}>탭 한 번으로 증상을 기록하세요</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+      </TouchableOpacity>
+
+      {/* 한의사에게 공유 버튼 */}
+      <TouchableOpacity
+        style={styles.shareWithDoctorCard}
+        onPress={() => setShowShareModal(true)}
+      >
+        <View style={[styles.quickSymptomIconContainer, { backgroundColor: '#EEF2FF' }]}>
+          <Ionicons name="share-social" size={24} color="#6366F1" />
+        </View>
+        <View style={styles.quickSymptomContent}>
+          <Text style={styles.quickSymptomTitle}>한의사에게 공유</Text>
+          <Text style={styles.quickSymptomSubtitle}>건강 기록을 담당 한의사와 공유</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+      </TouchableOpacity>
 
       {/* 빠른 메뉴 */}
       <View style={styles.quickMenuSection}>
@@ -724,6 +1012,20 @@ export default function HealthScreen() {
       ) : (
         renderRemindersTab()
       )}
+
+      {/* 빠른 증상 입력 모달 */}
+      <QuickSymptomModal
+        visible={showQuickSymptom}
+        onClose={() => setShowQuickSymptom(false)}
+        onSubmit={handleQuickSymptomSubmit}
+      />
+
+      {/* 한의사 공유 모달 */}
+      <ShareWithDoctorModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onShare={handleShareWithDoctor}
+      />
     </SafeAreaView>
   );
 }
@@ -1390,5 +1692,219 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  // Quick Symptom Card
+  quickSymptomCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+  },
+  quickSymptomIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  quickSymptomContent: {
+    flex: 1,
+  },
+  quickSymptomTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  quickSymptomSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  shareWithDoctorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  submitButton: {
+    flex: 1,
+    flexDirection: 'row',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  submitButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Symptom Grid
+  symptomGrid: {
+    gap: 12,
+  },
+  symptomItemContainer: {
+    marginBottom: 8,
+  },
+  symptomItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 12,
+  },
+  symptomName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  severitySlider: {
+    paddingLeft: 48,
+    marginTop: 8,
+  },
+  severityLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  severityButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  severityButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  severityButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  noteInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  // Share Modal
+  periodButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  periodButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  periodButtonActive: {
+    backgroundColor: '#10B981',
+  },
+  periodButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  periodButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#374151',
   },
 });

@@ -234,6 +234,23 @@ HanMed 환자 앱에서 확인하세요.
         </View>
       </View>
 
+      {/* 과학적 분석 배너 */}
+      <TouchableOpacity
+        style={styles.scientificBanner}
+        onPress={() => router.push(`/scientific-report/${id}`)}
+      >
+        <View style={styles.scientificBannerIcon}>
+          <Ionicons name="flask" size={24} color="#3B82F6" />
+        </View>
+        <View style={styles.scientificBannerContent}>
+          <Text style={styles.scientificBannerTitle}>과학적 분석 보기</Text>
+          <Text style={styles.scientificBannerDesc}>
+            건강점수, 약리기전, 치료통계 등 상세 분석
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+      </TouchableOpacity>
+
       {/* 처방 리포트 */}
       <PrescriptionReport
         formulaName={formulaName}
@@ -457,5 +474,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#10B981',
+  },
+  scientificBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  scientificBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  scientificBannerContent: {
+    flex: 1,
+  },
+  scientificBannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E40AF',
+    marginBottom: 2,
+  },
+  scientificBannerDesc: {
+    fontSize: 12,
+    color: '#3B82F6',
   },
 });
