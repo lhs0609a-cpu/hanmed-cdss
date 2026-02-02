@@ -308,10 +308,10 @@ export default function LandingPage() {
     },
     {
       name: 'Clinic',
-      monthlyPrice: 199000, // 월 199,000원
-      dailyPrice: 6633, // 하루 약 6,633원
-      annualPrice: 1990000, // 연 1,990,000원 (17% 할인, 2개월 무료)
-      annualMonthlyPrice: 165833, // 연간 결제 시 월 환산
+      monthlyPrice: 299000, // 월 299,000원 (마진 개선: 42% → 54%)
+      dailyPrice: 9967, // 하루 약 9,967원
+      annualPrice: 2990000, // 연 2,990,000원 (17% 할인, 2개월 무료)
+      annualMonthlyPrice: 249167, // 연간 결제 시 월 환산
       description: '병원 및 팀을 위한 프리미엄',
       features: [
         'Professional의 모든 기능',
@@ -518,7 +518,7 @@ export default function LandingPage() {
     // 요금제/결제
     {
       question: '어떤 요금제가 있나요?',
-      answer: 'Basic(월 19,900원), Professional(월 99,000원), Clinic(월 199,000원) 세 가지 플랜이 있습니다. 연간 결제 시 17% 할인(2개월 무료)이 적용됩니다. 대형 병원/네트워크를 위한 Enterprise 맞춤형 플랜도 별도 문의 가능합니다.',
+      answer: 'Basic(월 19,900원), Professional(월 99,000원), Clinic(월 299,000원) 세 가지 플랜이 있습니다. 연간 결제 시 17% 할인(2개월 무료)이 적용됩니다. 대형 병원/네트워크를 위한 Enterprise 맞춤형 플랜도 별도 문의 가능합니다.',
       category: '요금제/결제',
     },
     {

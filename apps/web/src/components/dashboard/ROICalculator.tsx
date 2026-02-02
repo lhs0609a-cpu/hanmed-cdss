@@ -24,9 +24,9 @@ const ADDITIONAL_PATIENTS_PER_HOUR = 2 // patients that can be seen with saved t
 
 // 실제 요금제와 일치 (2024.02 수익성 최적화)
 const plans = [
-  { name: 'Basic', price: 19900, queries: 100 }, // 기존 50 → 100
+  { name: 'Basic', price: 19900, queries: 100 },
   { name: 'Professional', price: 99000, queries: 300 },
-  { name: 'Clinic', price: 199000, queries: 1500 }, // 기존 무제한 → Fair Use 1,500회
+  { name: 'Clinic', price: 299000, queries: 1500 }, // 마진 개선: ₩199,000 → ₩299,000
 ]
 
 export function ROICalculator({ compact = false }: ROICalculatorProps) {

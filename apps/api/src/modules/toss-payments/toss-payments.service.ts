@@ -66,12 +66,12 @@ export const PLAN_PRICES = {
     canExceed: true,
   },
   [SubscriptionTier.CLINIC]: {
-    monthly: 199000,
-    yearly: 1990000, // 17% 할인 (2개월 무료)
+    monthly: 299000, // 기존 199,000 → 299,000 (마진 개선)
+    yearly: 2990000, // 17% 할인 (2개월 무료)
     name: 'Clinic',
-    includedQueries: 1500, // Fair Use Policy: 월 1,500회 (기존 무제한)
-    overagePrice: 200, // 초과 시 건당 200원 (Fair Use)
-    canExceed: true, // Fair Use 정책으로 변경
+    includedQueries: 1500, // Fair Use Policy: 월 1,500회
+    overagePrice: 200, // 초과 시 건당 200원
+    canExceed: true,
   },
 };
 
