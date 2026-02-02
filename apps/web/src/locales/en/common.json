@@ -1,0 +1,76 @@
+{
+  "app": {
+    "name": "Ongojisin AI",
+    "tagline": "Traditional Korean Medicine CDSS"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "consultation": "AI Consultation",
+    "cases": "Clinical Cases",
+    "patients": "Patients",
+    "settings": "Settings",
+    "logout": "Logout",
+    "search": "Search"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password",
+    "rememberMe": "Remember me",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "demoLogin": "Try Demo Account"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "submit": "Submit",
+    "reset": "Reset",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and"
+  },
+  "errors": {
+    "generic": "An error occurred.",
+    "network": "Please check your network connection.",
+    "unauthorized": "Please log in to continue.",
+    "forbidden": "You don't have permission to access this.",
+    "notFound": "The requested item was not found.",
+    "serverError": "A server error occurred."
+  },
+  "success": {
+    "saved": "Saved successfully.",
+    "deleted": "Deleted successfully.",
+    "updated": "Updated successfully.",
+    "created": "Created successfully."
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "ko": "한국어",
+    "en": "English"
+  }
+}
