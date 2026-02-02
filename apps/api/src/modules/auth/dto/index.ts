@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -24,6 +24,19 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   clinicName?: string;
+
+  @ApiProperty({ description: '이용약관 동의 (필수)', example: true })
+  @IsBoolean()
+  consentTerms: boolean;
+
+  @ApiProperty({ description: '개인정보처리방침 동의 (필수)', example: true })
+  @IsBoolean()
+  consentPrivacy: boolean;
+
+  @ApiProperty({ description: '마케팅 정보 수신 동의 (선택)', example: false, required: false })
+  @IsOptional()
+  @IsBoolean()
+  consentMarketing?: boolean;
 }
 
 export class LoginDto {

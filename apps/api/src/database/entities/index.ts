@@ -42,3 +42,20 @@ export * from './medication-reminder.entity';
 export * from './medication-log.entity';
 export * from './health-journal.entity';
 export * from './patient-notification.entity';
+export * from './patient-health-score.entity';
+
+// Prognosis & Analytics entities
+export * from './prognosis-prediction.entity';
+export * from './practice-statistics.entity';
+
+// Insurance & Billing entities
+export * from './insurance-claim.entity';
+
+// CRM & Marketing entities
+export * from './crm-campaign.entity';
+
+// Case Sharing Network entities
+export * from './shared-case.entity';
+
+// Inventory Management entities
+export * from './herb-inventory.entity';

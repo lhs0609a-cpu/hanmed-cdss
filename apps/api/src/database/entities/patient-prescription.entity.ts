@@ -72,6 +72,7 @@ export interface DrugInteractionInfo {
 
 @Entity('patient_prescriptions')
 @Index(['patientId'])
+@Index(['practitionerId'])
 @Index(['status'])
 export class PatientPrescription {
   @PrimaryGeneratedColumn('uuid')
@@ -83,6 +84,9 @@ export class PatientPrescription {
   @ManyToOne(() => PatientAccount)
   @JoinColumn({ name: 'patientId' })
   patient: PatientAccount;
+
+  @Column({ nullable: true })
+  practitionerId: string;
 
   @Column({ nullable: true })
   recordId: string;

@@ -27,8 +27,10 @@ export enum SubscriptionStatus {
  */
 export const TRIAL_CONFIG = {
   /** 체험 기간 (일) */
-  TRIAL_DAYS: 7,
-  /** 체험 시 제공되는 플랜 */
+  TRIAL_DAYS: 14,
+  /** 체험 시 AI 쿼리 제한 (건) */
+  TRIAL_AI_LIMIT: 30,
+  /** 체험 시 제공되는 플랜 (UI 표시용, 실제 제한은 TRIAL_AI_LIMIT 적용) */
   TRIAL_TIER: SubscriptionTier.PROFESSIONAL,
   /** 체험 후 자동 전환 플랜 (null이면 FREE로 전환) */
   POST_TRIAL_TIER: null as SubscriptionTier | null,

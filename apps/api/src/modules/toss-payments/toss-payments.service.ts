@@ -32,6 +32,7 @@ import {
   PaymentFailureCategory,
   PaymentErrorInfo,
 } from './payment-errors';
+import { EmailService } from '../email/email.service';
 
 // 플랜별 가격 정보 (초과 사용료 포함)
 export const PLAN_PRICES = {
@@ -104,6 +105,7 @@ export class TossPaymentsService {
   constructor(
     private configService: ConfigService,
     private dataSource: DataSource,
+    private emailService: EmailService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Subscription)
@@ -700,7 +702,16 @@ export class TossPaymentsService {
       });
     }
 
-    const limit = PLAN_LIMITS[user.subscriptionTier];
+    // 무료 체험 중인지 확인
+    const trialSubscription = await this.subscriptionRepository.findOne({
+      where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
+    });
+
+    // 체험 중이면 TRIAL_AI_LIMIT(30건) 적용, 아니면 플랜별 제한 적용
+    const limit = trialSubscription
+      ? TRIAL_CONFIG.TRIAL_AI_LIMIT
+      : PLAN_LIMITS[user.subscriptionTier];
+
     if (usageType === UsageType.AI_QUERY && usage.count >= limit) {
       return false;
     }
@@ -726,12 +737,23 @@ export class TossPaymentsService {
     });
 
     const aiQueryUsage = usages.find((u) => u.usageType === UsageType.AI_QUERY);
-    const limit = PLAN_LIMITS[user.subscriptionTier];
+
+    // 무료 체험 중인지 확인
+    const trialSubscription = await this.subscriptionRepository.findOne({
+      where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
+    });
+
+    // 체험 중이면 TRIAL_AI_LIMIT(30건) 적용, 아니면 플랜별 제한 적용
+    const limit = trialSubscription
+      ? TRIAL_CONFIG.TRIAL_AI_LIMIT
+      : PLAN_LIMITS[user.subscriptionTier];
 
     return {
       aiQuery: {
         used: aiQueryUsage?.count || 0,
         limit: limit === Infinity ? -1 : limit,
+        isTrial: !!trialSubscription,
+        trialEndsAt: trialSubscription?.trialEndsAt || null,
       },
       resetDate: nextMonth.toISOString(),
     };
@@ -847,10 +869,10 @@ export class TossPaymentsService {
   // ========== 무료 체험 관련 ==========
 
   /**
-   * 무료 체험 시작 (7일)
+   * 무료 체험 시작 (14일 + AI 30건)
    * - 카드 등록 없이 바로 시작 가능
-   * - Professional 플랜 기능 제공
-   * - 7일 후 자동으로 Free 플랜으로 전환
+   * - Professional 플랜 기능 제공 (AI 쿼리는 30건으로 제한)
+   * - 14일 후 자동으로 Free 플랜으로 전환
    */
   async startFreeTrial(userId: string): Promise<{
     success: boolean;
@@ -913,10 +935,18 @@ export class TossPaymentsService {
 
     this.logger.log(`무료 체험 시작: userId=${userId}, trialEndsAt=${trialEndsAt.toISOString()}`);
 
+    // 체험 시작 이메일 발송
+    await this.emailService.sendTrialStartEmail(
+      user.email,
+      user.name,
+      trialEndsAt,
+      TRIAL_CONFIG.TRIAL_AI_LIMIT,
+    );
+
     return {
       success: true,
       trialEndsAt,
-      message: `${TRIAL_CONFIG.TRIAL_DAYS}일 무료 체험이 시작되었습니다. ${TRIAL_CONFIG.TRIAL_TIER} 플랜의 모든 기능을 이용하실 수 있습니다.`,
+      message: `${TRIAL_CONFIG.TRIAL_DAYS}일 무료 체험이 시작되었습니다. AI 쿼리 ${TRIAL_CONFIG.TRIAL_AI_LIMIT}건과 ${TRIAL_CONFIG.TRIAL_TIER} 플랜의 기능을 이용하실 수 있습니다.`,
     };
   }
 
@@ -928,6 +958,8 @@ export class TossPaymentsService {
     daysRemaining: number | null;
     trialEndsAt: Date | null;
     canStartTrial: boolean;
+    aiUsed?: number;
+    aiLimit?: number;
   }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -945,11 +977,19 @@ export class TossPaymentsService {
         (trialSubscription.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
 
+      // 체험 기간 AI 사용량 조회
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const aiUsage = await this.usageRepository.findOne({
+        where: { userId, usageType: UsageType.AI_QUERY, periodStart },
+      });
+
       return {
         isTrialing: true,
         daysRemaining: Math.max(0, daysRemaining),
         trialEndsAt: trialSubscription.trialEndsAt,
         canStartTrial: false,
+        aiUsed: aiUsage?.count || 0,
+        aiLimit: TRIAL_CONFIG.TRIAL_AI_LIMIT,
       };
     }
 
@@ -1028,6 +1068,10 @@ export class TossPaymentsService {
     });
 
     for (const trial of expiredTrials) {
+      // 사용자 정보 조회
+      const user = await this.userRepository.findOne({ where: { id: trial.userId } });
+      if (!user) continue;
+
       // 체험 종료 처리
       trial.status = SubscriptionStatus.CANCELED;
       trial.canceledAt = now;
@@ -1042,7 +1086,8 @@ export class TossPaymentsService {
 
       this.logger.log(`체험 만료 처리: userId=${trial.userId}`);
 
-      // TODO: 체험 만료 알림 이메일 발송
+      // 체험 만료 알림 이메일 발송
+      await this.emailService.sendTrialExpiredEmail(user.email, user.name);
     }
   }
 
@@ -1067,10 +1112,27 @@ export class TossPaymentsService {
     });
 
     for (const trial of expiringTrials) {
+      // 사용자 정보 조회
+      const user = await this.userRepository.findOne({ where: { id: trial.userId } });
+      if (!user || !trial.trialEndsAt) continue;
+
+      // 남은 일수 계산
+      const now = new Date();
+      const daysRemaining = Math.ceil(
+        (trial.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
       trial.trialEndingNotified = true;
       await this.subscriptionRepository.save(trial);
 
-      // TODO: 체험 종료 임박 알림 이메일 발송
+      // 체험 종료 임박 알림 이메일 발송
+      await this.emailService.sendTrialEndingEmail(
+        user.email,
+        user.name,
+        daysRemaining,
+        trial.trialEndsAt,
+      );
+
       this.logger.log(`체험 종료 임박 알림: userId=${trial.userId}, endsAt=${trial.trialEndsAt}`);
     }
   }

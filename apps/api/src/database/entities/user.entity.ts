@@ -113,6 +113,25 @@ export class User {
   @Column({ default: 0 })
   acceptedAnswerCount: number; // 채택된 답변 수
 
+  // 약관 동의 관련 필드
+  @Column({ default: false })
+  consentTerms: boolean; // 이용약관 동의
+
+  @Column({ default: false })
+  consentPrivacy: boolean; // 개인정보처리방침 동의
+
+  @Column({ default: false })
+  consentMarketing: boolean; // 마케팅 정보 수신 동의
+
+  @Column({ nullable: true })
+  consentTermsAt: Date | null; // 이용약관 동의 일시
+
+  @Column({ nullable: true })
+  consentPrivacyAt: Date | null; // 개인정보처리방침 동의 일시
+
+  @Column({ nullable: true })
+  consentMarketingAt: Date | null; // 마케팅 동의 일시
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -9,9 +9,13 @@ import { Subscription } from '../../database/entities/subscription.entity';
 import { UsageTracking } from '../../database/entities/usage-tracking.entity';
 import { Payment } from '../../database/entities/payment.entity';
 import { Refund } from '../../database/entities/refund.entity';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Subscription, UsageTracking, Payment, Refund])],
+  imports: [
+    TypeOrmModule.forFeature([User, Subscription, UsageTracking, Payment, Refund]),
+    EmailModule,
+  ],
   controllers: [TossPaymentsController, TossWebhookController],
   providers: [TossPaymentsService, BillingSchedulerService],
   exports: [TossPaymentsService],

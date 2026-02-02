@@ -80,6 +80,8 @@ describe('AuthService', () => {
       name: '새 사용자',
       licenseNumber: '12345',
       clinicName: '테스트 한의원',
+      consentTerms: true,
+      consentPrivacy: true,
     };
 
     it('새 사용자를 성공적으로 등록해야 함', async () => {

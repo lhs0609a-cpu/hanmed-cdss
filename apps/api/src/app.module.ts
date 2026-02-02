@@ -32,6 +32,14 @@ import { CacheModule } from './modules/cache/cache.module';
 import { SentryModule } from './common/sentry/sentry.module';
 import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';
 import { BackupModule } from './modules/backup/backup.module';
+import { ExportModule } from './modules/export/export.module';
+import { PrognosisModule } from './modules/prognosis/prognosis.module';
+import { PatientInsightsModule } from './modules/patient-insights/patient-insights.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { InsuranceModule } from './modules/insurance/insurance.module';
+import { CrmModule } from './modules/crm/crm.module';
+import { CaseSharingModule } from './modules/case-sharing/case-sharing.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
@@ -125,6 +133,18 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
 
     // 백업 모듈
     BackupModule,
+
+    // 데이터 내보내기 모듈
+    ExportModule,
+
+    // 킬러 기능 모듈
+    PrognosisModule,        // AI 예후 예측
+    PatientInsightsModule,  // 환자 인사이트 대시보드
+    AnalyticsModule,        // 진료 성과 분석
+    InsuranceModule,        // 스마트 보험청구
+    CrmModule,              // 환자 CRM & 리텐션
+    CaseSharingModule,      // 케이스 공유 네트워크
+    InventoryModule,        // 약재 재고/가격 관리
   ],
   controllers: [HealthController],
   providers: [

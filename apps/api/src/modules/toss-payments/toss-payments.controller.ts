@@ -161,8 +161,8 @@ export class TossPaymentsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: '7일 무료 체험 시작',
-    description: '카드 등록 없이 Professional 플랜을 7일간 무료로 체험할 수 있습니다. 1회만 사용 가능합니다.',
+    summary: '14일 무료 체험 시작',
+    description: '카드 등록 없이 Professional 플랜을 14일간(AI 쿼리 30건) 무료로 체험할 수 있습니다. 1회만 사용 가능합니다.',
   })
   async startFreeTrial(@CurrentUser() user: User) {
     return this.tossPaymentsService.startFreeTrial(user.id);

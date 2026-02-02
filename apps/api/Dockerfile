@@ -36,6 +36,9 @@ COPY --from=builder /app/dist ./dist
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001 -G nodejs
 
+# Create backups directory with proper permissions
+RUN mkdir -p /app/backups && chown nestjs:nodejs /app/backups
+
 USER nestjs
 
 # Expose port

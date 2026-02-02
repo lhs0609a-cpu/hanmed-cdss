@@ -19,6 +19,8 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:5173',
     'https://hanmed-cdss.vercel.app',
+    'https://ongojisin.co.kr',
+    'https://www.ongojisin.co.kr',
     process.env.CORS_ORIGIN,
   ].filter(Boolean);
 

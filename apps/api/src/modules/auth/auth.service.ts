@@ -28,7 +28,12 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, name, licenseNumber, clinicName } = registerDto;
+    const { email, password, name, licenseNumber, clinicName, consentTerms, consentPrivacy, consentMarketing } = registerDto;
+
+    // 필수 동의 확인
+    if (!consentTerms || !consentPrivacy) {
+      throw new ConflictException('이용약관과 개인정보처리방침에 동의해주세요.');
+    }
 
     // 이메일 중복 확인
     const existingUser = await this.usersService.findByEmail(email);
@@ -39,6 +44,9 @@ export class AuthService {
     // 비밀번호 해시
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // 동의 시간 기록
+    const now = new Date();
+
     // 사용자 생성
     const user = await this.usersService.create({
       email,
@@ -46,6 +54,12 @@ export class AuthService {
       name,
       licenseNumber,
       clinicName,
+      consentTerms,
+      consentPrivacy,
+      consentMarketing: consentMarketing || false,
+      consentTermsAt: now,
+      consentPrivacyAt: now,
+      consentMarketingAt: consentMarketing ? now : null,
     });
 
     // 토큰 발급

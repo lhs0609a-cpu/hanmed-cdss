@@ -9,6 +9,12 @@ interface CreateUserDto {
   name: string;
   licenseNumber?: string;
   clinicName?: string;
+  consentTerms?: boolean;
+  consentPrivacy?: boolean;
+  consentMarketing?: boolean;
+  consentTermsAt?: Date | null;
+  consentPrivacyAt?: Date | null;
+  consentMarketingAt?: Date | null;
 }
 
 @Injectable()
