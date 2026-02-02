@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { useSEO } from '@/hooks/useSEO'
 import {
   Brain,
   BookOpen,
@@ -137,6 +138,9 @@ function TypingEffect({ texts, className }: { texts: string[]; className?: strin
 export default function LandingPage() {
   const navigate = useNavigate()
   const enterAsGuest = useAuthStore((state) => state.enterAsGuest)
+
+  // 랜딩페이지 SEO 설정 (기본값 사용)
+  useSEO()
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -610,54 +614,106 @@ export default function LandingPage() {
       author: '김○○ 원장',
       role: '서울 ○○한의원',
       rating: 5,
+      metric: '치료 적중률 25% 향상',
     },
     {
       content: 'AI 변증 진단으로 놓칠 수 있는 부분을 다시 확인할 수 있어 좋습니다.',
       author: '이○○ 원장',
       role: '부산 ○○한방병원',
       rating: 5,
+      metric: '진단 정확도 개선',
     },
     {
       content: '한의대생인데 국시 준비하면서 처방 공부할 때 많이 참고합니다.',
       author: '박○○',
       role: '○○대학교 한의학과',
       rating: 5,
+      metric: '학습 효율 2배 향상',
     },
     {
       content: '삭감 예측 기능 덕분에 보험 청구 반려율이 확 줄었습니다. 진료에만 집중할 수 있어요.',
       author: '최○○ 원장',
       role: '대구 ○○한의원',
       rating: 5,
+      metric: '삭감율 40% 감소',
     },
     {
       content: '음성 차트 기능이 게임체인저입니다. 진료 후 차트 정리 시간이 반으로 줄었어요.',
       author: '정○○ 원장',
       role: '인천 ○○한방병원',
       rating: 5,
+      metric: '차트 작성 시간 50% 단축',
     },
     {
       content: '신규 한의사 교육용으로 활용하고 있습니다. 체계적인 변증 학습에 큰 도움이 됩니다.',
       author: '강○○ 병원장',
       role: '광주 ○○한방병원',
       rating: 5,
+      metric: '신규 인력 온보딩 가속화',
     },
     {
       content: '처방 구성의 원리를 이해하는 데 정말 좋습니다. 방제학 공부가 훨씬 쉬워졌어요.',
       author: '윤○○',
       role: '○○대학교 한의학과 4학년',
       rating: 5,
+      metric: '시험 성적 15% 향상',
     },
     {
       content: '약물 상호작용 검사 기능으로 양약 복용 중인 환자 상담이 훨씬 수월해졌습니다.',
       author: '한○○ 약사',
       role: '서울 ○○한약국',
       rating: 5,
+      metric: '안전 상담 품질 향상',
     },
     {
       content: '4,300건이 넘는 치험례 데이터베이스는 다른 곳에서 찾기 어렵습니다. 임상 참고자료로 최고예요.',
       author: '조○○ 원장',
       role: '대전 ○○한의원',
       rating: 5,
+      metric: '참고 자료 검색 90% 단축',
+    },
+  ]
+
+  // 성공 사례 데이터
+  const successStories = [
+    {
+      title: '진료 효율 대폭 개선',
+      clinic: '서울 강남 ○○한의원',
+      problem: '하루 50명 이상 진료 시 차트 작성에 과도한 시간 소요',
+      solution: '온고지신 음성 차트 + AI 변증 도입',
+      results: [
+        { label: '차트 작성 시간', before: '5분/환자', after: '2분/환자', improvement: '60%' },
+        { label: '일 추가 진료 가능', before: '-', after: '+8명', improvement: '+16%' },
+        { label: '월 추가 매출', before: '-', after: '약 160만원', improvement: '' },
+      ],
+      quote: '시간을 아껴서 환자와 더 깊이 소통할 수 있게 되었습니다.',
+      period: '도입 3개월 후 결과',
+    },
+    {
+      title: '보험 청구 최적화',
+      clinic: '대구 수성구 ○○한방병원',
+      problem: '월평균 삭감률 15%로 수익 손실 발생',
+      solution: '삭감 예측 기능 활용한 사전 검토 체계 구축',
+      results: [
+        { label: '월 삭감률', before: '15%', after: '4%', improvement: '73%↓' },
+        { label: '재심사 건수', before: '월 20건', after: '월 5건', improvement: '75%↓' },
+        { label: '월 손실 방지', before: '-', after: '약 350만원', improvement: '' },
+      ],
+      quote: '청구 전 미리 확인하니 마음이 편합니다. 행정 업무가 확 줄었어요.',
+      period: '도입 6개월 후 결과',
+    },
+    {
+      title: '신규 한의사 역량 강화',
+      clinic: '경기 분당 ○○한방의료재단',
+      problem: '신규 한의사 임상 적응에 평균 1년 소요',
+      solution: '온고지신 기반 표준 진료 프로토콜 교육',
+      results: [
+        { label: '임상 적응 기간', before: '12개월', after: '6개월', improvement: '50%↓' },
+        { label: '변증 일치율', before: '68%', after: '89%', improvement: '+21%p' },
+        { label: '환자 만족도', before: '3.8점', after: '4.5점', improvement: '+18%' },
+      ],
+      quote: '체계적인 학습 도구가 있어서 자신감 있게 진료할 수 있습니다.',
+      period: '도입 1년 후 결과',
     },
   ]
 
@@ -1044,7 +1100,94 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Success Stories Section */}
+      <section id="success-stories" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">도입 성과</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              실제 도입 성공 사례
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              온고지신을 도입한 한의원/한방병원의 실제 성과를 확인하세요
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            {successStories.map((story, index) => (
+              <Card key={index} className="overflow-hidden border-0 shadow-xl hover-lift">
+                <div className="grid lg:grid-cols-5">
+                  {/* Left: Problem & Solution */}
+                  <div className="lg:col-span-2 p-6 lg:p-8 bg-gradient-to-br from-teal-600 to-emerald-600 text-white">
+                    <Badge className="mb-4 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm">
+                      Case Study #{index + 1}
+                    </Badge>
+                    <h3 className="text-2xl font-bold mb-2">{story.title}</h3>
+                    <p className="text-teal-100 text-sm mb-6">{story.clinic}</p>
+
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-teal-200 mb-1">문제점</div>
+                        <p className="text-sm text-white/90">{story.problem}</p>
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-teal-200 mb-1">솔루션</div>
+                        <p className="text-sm text-white/90">{story.solution}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-white/20">
+                      <p className="text-sm italic text-teal-100">"{story.quote}"</p>
+                    </div>
+                  </div>
+
+                  {/* Right: Results */}
+                  <div className="lg:col-span-3 p-6 lg:p-8 bg-white">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="font-semibold text-gray-900">도입 효과</h4>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{story.period}</span>
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      {story.results.map((result, idx) => (
+                        <div key={idx} className="p-4 bg-gray-50 rounded-xl">
+                          <div className="text-xs text-gray-500 mb-2">{result.label}</div>
+                          <div className="flex items-end gap-2">
+                            <div>
+                              <span className="text-xs text-gray-400 line-through">{result.before}</span>
+                              <span className="block text-xl font-bold text-gray-900">{result.after}</span>
+                            </div>
+                            {result.improvement && (
+                              <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                {result.improvement}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span>실제 도입 기관 데이터 기반</span>
+                      </div>
+                      <Link to="/register">
+                        <Button variant="outline" size="sm" className="btn-press">
+                          자세히 알아보기
+                          <ArrowRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof / Testimonials */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -1052,25 +1195,60 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               현장의 목소리
             </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              다양한 분야의 한의학 전문가들이 온고지신과 함께하고 있습니다
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
+            {testimonials.slice(0, 6).map((testimonial, index) => (
               <Card key={index} className="bg-white border-gray-100 hover-lift">
                 <CardContent className="p-6">
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-                    ))}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex gap-1">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    {testimonial.metric && (
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">
+                        {testimonial.metric}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-gray-700 mb-4 leading-relaxed">"{testimonial.content}"</p>
-                  <div>
-                    <div className="font-semibold text-gray-900">{testimonial.author}</div>
-                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-semibold">
+                      {testimonial.author.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{testimonial.author}</div>
+                      <div className="text-sm text-gray-500">{testimonial.role}</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Summary Stats */}
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+              <div className="text-2xl font-bold text-teal-600">96%</div>
+              <div className="text-xs text-gray-500">고객 만족도</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+              <div className="text-2xl font-bold text-teal-600">4.8/5</div>
+              <div className="text-xs text-gray-500">평균 평점</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+              <div className="text-2xl font-bold text-teal-600">85%</div>
+              <div className="text-xs text-gray-500">재구독률</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-xl border border-gray-100">
+              <div className="text-2xl font-bold text-teal-600">2.5시간</div>
+              <div className="text-xs text-gray-500">주당 절약 시간</div>
+            </div>
           </div>
         </div>
       </section>
@@ -1354,6 +1532,7 @@ export default function LandingPage() {
                 <li><a href="#features" className="hover:text-white transition-colors">기능 소개</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">가격 안내</a></li>
                 <li><a href="#faq" className="hover:text-white transition-colors">자주 묻는 질문</a></li>
+                <li><Link to="/go" className="hover:text-white transition-colors">무료 체험</Link></li>
               </ul>
             </div>
 

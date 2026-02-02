@@ -107,10 +107,10 @@ export class CaseSearchService {
     const topK = request.options?.topK || 10;
     const minConfidence = request.options?.minConfidence || 0;
 
-    // 검색 텍스트 구성
+    // 검색 텍스트 구성 - 방어적 코딩
     const queryText = [
       request.chiefComplaint,
-      ...request.symptoms.map(s => s.name),
+      ...(request.symptoms || []).map(s => s?.name).filter(Boolean),
       request.diagnosis,
     ]
       .filter(Boolean)
@@ -159,11 +159,11 @@ export class CaseSearchService {
     let keywordScore = 0;
     let metadataScore = 0;
 
-    // 키워드 매칭 (주소증 + 증상)
+    // 키워드 매칭 (주소증 + 증상) - 방어적 코딩으로 undefined/null 처리
     const queryTerms = [
-      request.chiefComplaint.toLowerCase(),
-      ...request.symptoms.map(s => s.name.toLowerCase()),
-    ];
+      (request.chiefComplaint || '').toLowerCase(),
+      ...(request.symptoms || []).map(s => (s?.name || '').toLowerCase()),
+    ].filter(term => term.length > 0); // 빈 문자열 제거
 
     const caseTerms = [
       (caseData.chief_complaint || '').toLowerCase(),
@@ -239,10 +239,12 @@ export class CaseSearchService {
   ): Array<{ type: string; description: string; contribution: number }> {
     const reasons: Array<{ type: string; description: string; contribution: number }> = [];
 
-    // 주소증 매칭
+    // 주소증 매칭 - 방어적 코딩
+    const chiefComplaint = request.chiefComplaint || '';
     if (
       caseData.chief_complaint &&
-      request.chiefComplaint.toLowerCase().includes(caseData.chief_complaint.toLowerCase().substring(0, 5))
+      chiefComplaint &&
+      chiefComplaint.toLowerCase().includes(caseData.chief_complaint.toLowerCase().substring(0, 5))
     ) {
       reasons.push({
         type: 'chief_complaint',
@@ -251,9 +253,10 @@ export class CaseSearchService {
       });
     }
 
-    // 증상 매칭
-    const matchedSymptoms = request.symptoms.filter(s =>
-      (caseData.symptoms || []).some((cs: string) =>
+    // 증상 매칭 - 방어적 코딩
+    const symptoms = request.symptoms || [];
+    const matchedSymptoms = symptoms.filter(s =>
+      s?.name && (caseData.symptoms || []).some((cs: string) =>
         cs.toLowerCase().includes(s.name.toLowerCase()) ||
         s.name.toLowerCase().includes(cs.toLowerCase())
       ),
@@ -338,10 +341,13 @@ export class CaseSearchService {
     const formulaSuccessMap: Record<string, { success: number; total: number }> = {};
     const matchCriteria: string[] = [];
 
-    // 주소증 매칭 기준 추가
-    matchCriteria.push(`주소증: "${request.chiefComplaint}"`);
-    if (request.symptoms.length > 0) {
-      matchCriteria.push(`증상 ${request.symptoms.length}개: ${request.symptoms.map(s => s.name).join(', ')}`);
+    // 주소증 매칭 기준 추가 - 방어적 코딩
+    if (request.chiefComplaint) {
+      matchCriteria.push(`주소증: "${request.chiefComplaint}"`);
+    }
+    const symptoms = request.symptoms || [];
+    if (symptoms.length > 0) {
+      matchCriteria.push(`증상 ${symptoms.length}개: ${symptoms.map(s => s?.name).filter(Boolean).join(', ')}`);
     }
     if (request.diagnosis) {
       matchCriteria.push(`진단: ${request.diagnosis}`);

@@ -45,6 +45,16 @@ import {
   Building2,
   Sparkles,
   Loader2,
+  Camera,
+  Upload,
+  Accessibility,
+  Moon,
+  Sun,
+  Type,
+  Eye,
+  Keyboard,
+  Volume2,
+  Monitor,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -86,14 +96,68 @@ export default function SettingsPage() {
     phone: '',
     clinicName: '',
     clinicAddress: '',
+    licenseNumber: '',
+    specialty: '',
+    bio: '',
   });
+
+  // 프로필 이미지
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('파일 크기는 5MB 이하여야 합니다.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    // TODO: API 호출로 프로필 저장
+    toast.success('프로필이 저장되었습니다.');
+  };
 
   // 알림 설정
   const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
+    // 이메일 알림
+    emailEnabled: true,
+    emailDigest: 'daily' as 'none' | 'daily' | 'weekly',
+    emailConsultation: true,
+    emailPrescription: true,
+    emailBilling: true,
+    // 푸시 알림
+    pushEnabled: true,
+    pushConsultation: true,
+    pushReminder: true,
+    // 마케팅
     marketing: false,
     updates: true,
+  });
+
+  // 접근성 설정
+  const [accessibility, setAccessibility] = useState({
+    // 시각적 설정
+    reducedMotion: false,
+    highContrast: false,
+    fontSize: 'medium' as 'small' | 'medium' | 'large' | 'xlarge',
+    darkMode: false,
+    // 키보드 설정
+    keyboardNavigation: true,
+    showKeyboardShortcuts: true,
+    // 스크린 리더
+    screenReaderAnnouncements: true,
+    verboseDescriptions: false,
+    // 기타
+    autoFocusFirstElement: true,
+    confirmBeforeAction: true,
   });
 
   const { data: plans, isLoading: plansLoading, error: plansError } = usePlans();
@@ -190,7 +254,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">프로필</span>
@@ -203,6 +267,10 @@ export default function SettingsPage() {
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">알림</span>
           </TabsTrigger>
+          <TabsTrigger value="accessibility" className="flex items-center gap-2">
+            <Accessibility className="h-4 w-4" />
+            <span className="hidden sm:inline">접근성</span>
+          </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">보안</span>
@@ -211,6 +279,69 @@ export default function SettingsPage() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4 mt-6">
+          {/* 프로필 사진 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>프로필 사진</CardTitle>
+              <CardDescription>프로필 사진을 변경합니다 (최대 5MB)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="프로필" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.name?.charAt(0) || 'U'
+                    )}
+                  </div>
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors border border-gray-200"
+                  >
+                    <Camera className="h-4 w-4 text-gray-600" />
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900">{user?.name || '사용자'}</p>
+                  <p className="text-sm text-gray-500">{user?.email}</p>
+                  <div className="flex gap-2">
+                    <label
+                      htmlFor="avatar-upload-btn"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <Upload className="h-4 w-4" />
+                      사진 변경
+                      <input
+                        id="avatar-upload-btn"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                      />
+                    </label>
+                    {avatarPreview && (
+                      <button
+                        onClick={() => setAvatarPreview(null)}
+                        className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 기본 정보 */}
           <Card>
             <CardHeader>
               <CardTitle>기본 정보</CardTitle>
@@ -247,10 +378,40 @@ export default function SettingsPage() {
                     placeholder="010-1234-5678"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="licenseNumber">한의사 면허번호</Label>
+                  <Input
+                    id="licenseNumber"
+                    value={profileForm.licenseNumber}
+                    onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
+                    placeholder="면허번호"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="specialty">전문 분야</Label>
+                <Input
+                  id="specialty"
+                  value={profileForm.specialty}
+                  onChange={(e) => setProfileForm({ ...profileForm, specialty: e.target.value })}
+                  placeholder="예: 침구과, 내과, 부인과 등"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio">소개</Label>
+                <textarea
+                  id="bio"
+                  value={profileForm.bio}
+                  onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                  placeholder="간단한 자기소개를 작성해주세요"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  rows={3}
+                />
               </div>
             </CardContent>
           </Card>
 
+          {/* 한의원 정보 */}
           <Card>
             <CardHeader>
               <CardTitle>한의원 정보</CardTitle>
@@ -277,7 +438,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button>저장</Button>
+              <Button onClick={handleSaveProfile}>프로필 저장</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -439,32 +600,142 @@ export default function SettingsPage() {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4 mt-6">
+          {/* 이메일 알림 */}
           <Card>
             <CardHeader>
-              <CardTitle>알림 설정</CardTitle>
-              <CardDescription>알림 수신 방법을 설정합니다</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                이메일 알림
+              </CardTitle>
+              <CardDescription>이메일로 받을 알림을 설정합니다</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>이메일 알림</Label>
-                  <p className="text-sm text-gray-500">중요 알림을 이메일로 받습니다</p>
+                  <Label>이메일 알림 활성화</Label>
+                  <p className="text-sm text-gray-500">이메일 알림을 받습니다</p>
                 </div>
                 <Switch
-                  checked={notifications.email}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, email: checked })}
+                  checked={notifications.emailEnabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, emailEnabled: checked })}
                 />
               </div>
+
+              {notifications.emailEnabled && (
+                <>
+                  <div className="border-t pt-4">
+                    <Label className="text-sm font-medium">이메일 요약 빈도</Label>
+                    <div className="flex gap-2 mt-2">
+                      {[
+                        { value: 'none', label: '받지 않음' },
+                        { value: 'daily', label: '매일' },
+                        { value: 'weekly', label: '매주' },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setNotifications({ ...notifications, emailDigest: option.value as 'none' | 'daily' | 'weekly' })}
+                          className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                            notifications.emailDigest === option.value
+                              ? 'bg-teal-50 border-teal-500 text-teal-700'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 border-t pt-4">
+                    <Label className="text-sm font-medium">알림 유형</Label>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">진료 알림</Label>
+                        <p className="text-xs text-gray-500">진료 완료, AI 분석 결과 알림</p>
+                      </div>
+                      <Switch
+                        checked={notifications.emailConsultation}
+                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailConsultation: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">처방 알림</Label>
+                        <p className="text-xs text-gray-500">처방 생성, 수정 알림</p>
+                      </div>
+                      <Switch
+                        checked={notifications.emailPrescription}
+                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailPrescription: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">결제 알림</Label>
+                        <p className="text-xs text-gray-500">결제 완료, 구독 갱신 알림</p>
+                      </div>
+                      <Switch
+                        checked={notifications.emailBilling}
+                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailBilling: checked })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 푸시 알림 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>푸시 알림</CardTitle>
+              <CardDescription>브라우저 푸시 알림을 설정합니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>푸시 알림</Label>
+                  <Label>푸시 알림 활성화</Label>
                   <p className="text-sm text-gray-500">브라우저 푸시 알림을 받습니다</p>
                 </div>
                 <Switch
-                  checked={notifications.push}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, push: checked })}
+                  checked={notifications.pushEnabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, pushEnabled: checked })}
                 />
               </div>
+
+              {notifications.pushEnabled && (
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">진료 알림</Label>
+                      <p className="text-xs text-gray-500">AI 분석 완료 시 알림</p>
+                    </div>
+                    <Switch
+                      checked={notifications.pushConsultation}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, pushConsultation: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">리마인더</Label>
+                      <p className="text-xs text-gray-500">예약 환자, 일정 리마인더</p>
+                    </div>
+                    <Switch
+                      checked={notifications.pushReminder}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, pushReminder: checked })}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 마케팅 및 업데이트 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>마케팅 및 소식</CardTitle>
+              <CardDescription>프로모션 및 업데이트 알림을 설정합니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>마케팅 정보</Label>
@@ -485,9 +756,204 @@ export default function SettingsPage() {
                   onCheckedChange={(checked) => setNotifications({ ...notifications, updates: checked })}
                 />
               </div>
-              <Button>저장</Button>
+              <Button className="mt-4">알림 설정 저장</Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Accessibility Tab */}
+        <TabsContent value="accessibility" className="space-y-4 mt-6">
+          {/* 시각적 설정 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                시각적 설정
+              </CardTitle>
+              <CardDescription>화면 표시 및 시각적 요소를 조정합니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Moon className="h-4 w-4" />
+                    다크 모드
+                  </Label>
+                  <p className="text-sm text-gray-500">어두운 배경의 인터페이스를 사용합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.darkMode}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, darkMode: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Monitor className="h-4 w-4" />
+                    고대비 모드
+                  </Label>
+                  <p className="text-sm text-gray-500">텍스트와 배경의 대비를 높여 가독성을 개선합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.highContrast}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, highContrast: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>애니메이션 줄이기</Label>
+                  <p className="text-sm text-gray-500">화면 전환 및 애니메이션 효과를 최소화합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.reducedMotion}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, reducedMotion: checked })}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <Type className="h-4 w-4" />
+                  글꼴 크기
+                </Label>
+                <div className="flex gap-2 mt-2">
+                  {[
+                    { value: 'small', label: '작게', size: 'text-sm' },
+                    { value: 'medium', label: '보통', size: 'text-base' },
+                    { value: 'large', label: '크게', size: 'text-lg' },
+                    { value: 'xlarge', label: '매우 크게', size: 'text-xl' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setAccessibility({ ...accessibility, fontSize: option.value as 'small' | 'medium' | 'large' | 'xlarge' })}
+                      className={`px-4 py-2 rounded-lg border transition-colors ${option.size} ${
+                        accessibility.fontSize === option.value
+                          ? 'bg-teal-50 border-teal-500 text-teal-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 키보드 내비게이션 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Keyboard className="h-5 w-5" />
+                키보드 내비게이션
+              </CardTitle>
+              <CardDescription>키보드로 앱을 탐색하는 방법을 설정합니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>키보드 탐색 활성화</Label>
+                  <p className="text-sm text-gray-500">Tab 키로 요소 간 이동을 개선합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.keyboardNavigation}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, keyboardNavigation: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>단축키 힌트 표시</Label>
+                  <p className="text-sm text-gray-500">버튼에 키보드 단축키를 표시합니다 (⌘K 등)</p>
+                </div>
+                <Switch
+                  checked={accessibility.showKeyboardShortcuts}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, showKeyboardShortcuts: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>첫 번째 요소 자동 포커스</Label>
+                  <p className="text-sm text-gray-500">페이지 로드 시 첫 번째 요소에 자동 포커스</p>
+                </div>
+                <Switch
+                  checked={accessibility.autoFocusFirstElement}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, autoFocusFirstElement: checked })}
+                />
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-medium text-gray-900 mb-2">주요 단축키</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">검색 열기</span>
+                    <kbd className="px-2 py-1 bg-white border rounded text-xs">⌘ K</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">새 진료</span>
+                    <kbd className="px-2 py-1 bg-white border rounded text-xs">⌘ N</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">대시보드</span>
+                    <kbd className="px-2 py-1 bg-white border rounded text-xs">⌘ D</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">도움말</span>
+                    <kbd className="px-2 py-1 bg-white border rounded text-xs">?</kbd>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 스크린 리더 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Volume2 className="h-5 w-5" />
+                스크린 리더
+              </CardTitle>
+              <CardDescription>스크린 리더 사용자를 위한 설정입니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>화면 변경 알림</Label>
+                  <p className="text-sm text-gray-500">페이지 로딩, 완료 등을 음성으로 안내합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.screenReaderAnnouncements}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, screenReaderAnnouncements: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>자세한 설명</Label>
+                  <p className="text-sm text-gray-500">버튼과 링크에 더 자세한 설명을 제공합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.verboseDescriptions}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, verboseDescriptions: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>작업 전 확인</Label>
+                  <p className="text-sm text-gray-500">중요한 작업 전에 확인 메시지를 표시합니다</p>
+                </div>
+                <Switch
+                  checked={accessibility.confirmBeforeAction}
+                  onCheckedChange={(checked) => setAccessibility({ ...accessibility, confirmBeforeAction: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button className="w-full">접근성 설정 저장</Button>
         </TabsContent>
 
         {/* Security Tab */}

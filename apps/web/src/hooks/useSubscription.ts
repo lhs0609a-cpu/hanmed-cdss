@@ -26,8 +26,22 @@ export function usePlans() {
   return useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
-      const { data } = await api.get<PlansResponse>('/subscription/plans');
-      const plans = data.plans;
+      const { data } = await api.get<PlansResponse | Plan[]>('/subscription/plans');
+
+      // API 응답 구조가 다를 수 있으므로 방어적으로 처리
+      // 1. data가 배열인 경우: data 자체가 plans
+      // 2. data.plans가 있는 경우: 래핑된 응답
+      // 3. 그 외: 빈 배열 반환
+      let plans: Plan[];
+      if (Array.isArray(data)) {
+        plans = data;
+      } else if (data && 'plans' in data && Array.isArray(data.plans)) {
+        plans = data.plans;
+      } else {
+        console.warn('[usePlans] Unexpected API response format:', data);
+        plans = [];
+      }
+
       setPlans(plans);
       return plans;
     },

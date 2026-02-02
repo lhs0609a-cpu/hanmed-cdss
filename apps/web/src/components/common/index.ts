@@ -34,12 +34,21 @@ export {
   SkeletonDashboard,
   SkeletonCaseCard,
   SkeletonSearchResults,
+  SkeletonAIResponse,
+  SkeletonForm,
+  SkeletonSubscriptionPage,
+  SkeletonConsultationPage,
+  SkeletonPatientList,
+  SkeletonHerbDetail,
+  SkeletonPostList,
+  SkeletonShimmer,
+  SkeletonPageWrapper,
 } from './Skeleton'
 export { default as Modal } from './Modal'
 export { default as PageGuide } from './PageGuide'
 export { default as TourGuide } from './TourGuide'
 export { PageTransition } from './PageTransition'
-export { KeyboardShortcutsProvider } from './KeyboardShortcuts'
+export { KeyboardShortcutsProvider, KeyboardHint, KeyboardShortcutsHelp, CommandPalette } from './KeyboardShortcuts'
 
 // Error Handling
 export { ErrorBoundary, PageErrorBoundary } from './ErrorBoundary'
@@ -77,15 +86,19 @@ export {
 // Usage Limit Modal
 export { UsageLimitModal } from './UsageLimitModal'
 
-// Medical Term Tooltips
+// Medical Term Tooltips & Glossary
 export {
   TermTooltip,
   TermBadge,
   SimplifiedLabel,
+  GlossaryModal,
+  GlossaryButton,
+  GlossaryText,
   MEDICAL_TERMS,
+  TERM_CATEGORIES,
 } from './TermTooltip'
 
-// Responsive Utilities
+// Responsive Utilities & Mobile Components
 export {
   ResponsiveContainer,
   ResponsiveGrid,
@@ -94,6 +107,12 @@ export {
   ResponsiveRender,
   touchTargetSize,
   safeAreaInsets,
+  // Mobile gesture & touch components
+  useSwipeGesture,
+  SwipeableCard,
+  TouchFriendlyButton,
+  SwipeCarousel,
+  PullToRefresh,
 } from './ResponsiveContainer'
 
 // Search Category Filter
@@ -103,3 +122,25 @@ export {
   DEFAULT_SEARCH_CATEGORIES,
   type SearchCategory,
 } from './SearchCategoryFilter'
+
+// Export Dialog
+export { ExportDialog } from './ExportDialog'
+
+// Theme Toggle
+export { ThemeToggle, ThemeToggleSimple } from './ThemeToggle'
+
+// Language Toggle
+export { LanguageToggle, LanguageToggleSimple } from './LanguageToggle'
+
+// Accessibility Components
+export {
+  VisuallyHidden,
+  SkipToContent,
+  LiveRegion,
+} from './VisuallyHidden'
+
+// Onboarding
+export { WelcomeModal } from './WelcomeModal'
+
+// Offline Status
+export { OfflineBanner } from './OfflineBanner'

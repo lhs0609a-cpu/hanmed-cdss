@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
+import { OfflineBanner } from '@/components/common/OfflineBanner'
+import { WelcomeModal } from '@/components/common/WelcomeModal'
 
 // Layouts
 import DashboardLayout from '@/components/layouts/DashboardLayout'
@@ -66,11 +68,22 @@ import SubscriptionSuccessPage from '@/app/subscription/SubscriptionSuccessPage'
 // Settings
 import SettingsPage from '@/app/settings/SettingsPage'
 
+// Activity Log
+import ActivityLogPage from '@/app/activity/ActivityLogPage'
+
 // Profile
 import ProfilePage from '@/app/profile/ProfilePage'
 
+// Killer Features - Analytics, Insurance, CRM, Case Sharing, Inventory
+import AnalyticsDashboardPage from '@/app/analytics/AnalyticsDashboardPage'
+import InsurancePage from '@/app/insurance/InsurancePage'
+import CrmPage from '@/app/crm/CrmPage'
+import CaseSharingPage from '@/app/case-sharing/CaseSharingPage'
+import InventoryPage from '@/app/inventory/InventoryPage'
+
 // Landing Page
 import LandingPage from '@/app/landing/LandingPage'
+import AdLandingPage from '@/app/landing/AdLandingPage'
 
 // Legal Pages
 import {
@@ -110,6 +123,9 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/go" element={<AdLandingPage />} />
+        <Route path="/start" element={<AdLandingPage />} />
+        <Route path="/trial" element={<AdLandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -174,6 +190,13 @@ function App() {
           <Route path="my-cases" element={<MyCasesPage />} />
           <Route path="statistics" element={<StatisticsDashboardPage />} />
 
+          {/* Killer Features */}
+          <Route path="analytics" element={<AnalyticsDashboardPage />} />
+          <Route path="smart-insurance" element={<InsurancePage />} />
+          <Route path="crm" element={<CrmPage />} />
+          <Route path="case-network" element={<CaseSharingPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
+
           {/* Community */}
           <Route path="community" element={<CommunityPage />} />
           <Route path="community/cases" element={<CommunityPage />} />
@@ -192,6 +215,9 @@ function App() {
 
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
+
+          {/* Activity Log */}
+          <Route path="activity" element={<ActivityLogPage />} />
 
           {/* Profile */}
           <Route path="profile" element={<ProfilePage />} />
@@ -219,6 +245,8 @@ function App() {
       </Routes>
 
       <Toaster />
+      <OfflineBanner />
+      <WelcomeModal />
     </HanjaSettingsProvider>
   )
 }
