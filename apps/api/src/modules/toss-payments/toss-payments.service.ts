@@ -34,39 +34,44 @@ import {
 } from './payment-errors';
 import { EmailService } from '../email/email.service';
 
-// 플랜별 가격 정보 (초과 사용료 포함)
+// 플랜별 가격 정보 (수익성 최적화 버전 - 2024.02)
+// 핵심 변경사항:
+// 1. Free: 30회/월로 제한 (기존 무제한 일일 10회에서 축소)
+// 2. Basic: 100회/월 + 초과 400원 (가치 인식 향상)
+// 3. Clinic: 1,500회/월 Fair Use (무제한 리스크 제거)
+// 4. 연간 결제 시 17% 할인 (2개월 무료)
 export const PLAN_PRICES = {
   [SubscriptionTier.FREE]: {
     monthly: 0,
     yearly: 0,
     name: 'Free',
-    includedQueries: 10,
-    overagePrice: 0, // 무료 플랜은 초과 불가
+    includedQueries: 30, // 월 30회 (일 1회 평균) - 전환 유도 목적
+    overagePrice: 0,
     canExceed: false,
   },
   [SubscriptionTier.BASIC]: {
     monthly: 19900,
-    yearly: 199000,
+    yearly: 199000, // 17% 할인 (2개월 무료)
     name: 'Basic',
-    includedQueries: 50,
-    overagePrice: 500, // 초과 시 건당 500원
+    includedQueries: 100, // 기존 50 → 100 (가치 인식 향상)
+    overagePrice: 400, // 기존 500 → 400 (업그레이드 유도)
     canExceed: true,
   },
   [SubscriptionTier.PROFESSIONAL]: {
     monthly: 99000,
-    yearly: 990000,
+    yearly: 990000, // 17% 할인 (2개월 무료)
     name: 'Professional',
     includedQueries: 300,
-    overagePrice: 300, // 초과 시 건당 300원
+    overagePrice: 300,
     canExceed: true,
   },
   [SubscriptionTier.CLINIC]: {
     monthly: 199000,
-    yearly: 1990000,
+    yearly: 1990000, // 17% 할인 (2개월 무료)
     name: 'Clinic',
-    includedQueries: -1, // 무제한
-    overagePrice: 0,
-    canExceed: false,
+    includedQueries: 1500, // Fair Use Policy: 월 1,500회 (기존 무제한)
+    overagePrice: 200, // 초과 시 건당 200원 (Fair Use)
+    canExceed: true, // Fair Use 정책으로 변경
   },
 };
 
@@ -797,7 +802,7 @@ export class TossPaymentsService {
           name: 'Free',
           description: '학생/수련생을 위한 무료 플랜',
           features: [
-            'AI 쿼리 10회/월',
+            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.FREE].includedQueries}회/월`,
             '기본 검색 기능',
             '커뮤니티 읽기',
           ],
@@ -812,7 +817,7 @@ export class TossPaymentsService {
           name: 'Basic',
           description: '한약사, 체험 사용자를 위한 기본 플랜',
           features: [
-            'AI 쿼리 50회/월 포함',
+            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.BASIC].includedQueries}회/월 포함`,
             `초과 시 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건`,
             '전체 검색 기능',
             '커뮤니티 참여',
@@ -829,7 +834,7 @@ export class TossPaymentsService {
           name: 'Professional',
           description: '봉직 한의사를 위한 전문가 플랜',
           features: [
-            'AI 쿼리 300회/월 포함',
+            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries}회/월 포함`,
             `초과 시 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].overagePrice}원/건`,
             '고급 분석 기능',
             '처방 비교 무제한',
@@ -846,16 +851,36 @@ export class TossPaymentsService {
           name: 'Clinic',
           description: '개원 한의사를 위한 최상위 플랜',
           features: [
-            'AI 쿼리 무제한',
+            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.CLINIC].includedQueries.toLocaleString()}회/월 (Fair Use)`,
             '모든 기능 이용',
-            '다중 계정 지원',
+            '다중 계정 지원 (최대 5명)',
             '전담 지원',
+            '맞춤형 리포트',
           ],
           monthlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].yearly,
-          aiQueryLimit: -1,
+          aiQueryLimit: PLAN_PRICES[SubscriptionTier.CLINIC].includedQueries,
+          overagePrice: PLAN_PRICES[SubscriptionTier.CLINIC].overagePrice,
+          canExceed: true,
+        },
+        {
+          tier: 'enterprise',
+          name: 'Enterprise',
+          description: '대형 병원/네트워크를 위한 맞춤형 플랜',
+          features: [
+            '무제한 AI 쿼리',
+            '전용 서버 환경',
+            '맞춤형 API 연동',
+            'SLA 보장 (99.9%)',
+            '전담 계정 매니저',
+            'HIPAA/개인정보 컴플라이언스',
+          ],
+          monthlyPrice: 0, // 별도 문의
+          yearlyPrice: 0,
+          aiQueryLimit: -1, // 무제한
           overagePrice: 0,
           canExceed: false,
+          isCustom: true, // 별도 문의 표시
         },
       ],
     };

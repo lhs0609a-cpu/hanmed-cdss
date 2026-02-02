@@ -268,16 +268,18 @@ export default function LandingPage() {
     },
   ]
 
+  // 가격 정책 최적화 (2024.02) - toss-payments.service.ts와 동기화
   const pricingPlans = [
     {
       name: 'Basic',
-      monthlyPrice: 18000, // 월 18,000원
-      dailyPrice: 600, // 하루 600원
-      annualPrice: 194000, // 연 194,000원 (10% 할인)
-      annualMonthlyPrice: 16167, // 연간 결제 시 월 환산
+      monthlyPrice: 19900, // 월 19,900원
+      dailyPrice: 663, // 하루 약 663원
+      annualPrice: 199000, // 연 199,000원 (17% 할인, 2개월 무료)
+      annualMonthlyPrice: 16583, // 연간 결제 시 월 환산
       description: '한의학 입문자를 위한 기본 플랜',
       features: [
-        '처방 검색 (일 10회)',
+        'AI 쿼리 월 100회',
+        '처방 검색 무제한',
         '약재 정보 열람',
         '기본 상호작용 검사',
         '커뮤니티 읽기',
@@ -287,14 +289,14 @@ export default function LandingPage() {
     },
     {
       name: 'Professional',
-      monthlyPrice: 90000, // 월 90,000원
-      dailyPrice: 3000, // 하루 3,000원
-      annualPrice: 972000, // 연 972,000원 (10% 할인)
-      annualMonthlyPrice: 81000, // 연간 결제 시 월 환산
+      monthlyPrice: 99000, // 월 99,000원
+      dailyPrice: 3300, // 하루 약 3,300원
+      annualPrice: 990000, // 연 990,000원 (17% 할인, 2개월 무료)
+      annualMonthlyPrice: 82500, // 연간 결제 시 월 환산
       description: '임상 한의사를 위한 전문 플랜',
       features: [
+        'AI 쿼리 월 300회',
         '무제한 처방 검색',
-        'AI 변증 진단 (월 100회)',
         '치험례 전체 열람',
         '삭감 예측 기능',
         '음성 차트 (월 50회)',
@@ -306,21 +308,21 @@ export default function LandingPage() {
     },
     {
       name: 'Clinic',
-      monthlyPrice: 180000, // 월 180,000원
-      dailyPrice: 6000, // 하루 6,000원
-      annualPrice: 1944000, // 연 1,944,000원 (10% 할인)
-      annualMonthlyPrice: 162000, // 연간 결제 시 월 환산
+      monthlyPrice: 199000, // 월 199,000원
+      dailyPrice: 6633, // 하루 약 6,633원
+      annualPrice: 1990000, // 연 1,990,000원 (17% 할인, 2개월 무료)
+      annualMonthlyPrice: 165833, // 연간 결제 시 월 환산
       description: '병원 및 팀을 위한 프리미엄',
       features: [
         'Professional의 모든 기능',
-        'AI 기능 무제한',
+        'AI 쿼리 월 1,500회 (Fair Use)',
         '팀 멤버 관리 (5명)',
         '개인 치험례 저장 무제한',
         'API 연동 지원',
         '전담 매니저 배정',
         '맞춤형 기능 개발',
       ],
-      cta: '문의하기',
+      cta: 'Clinic 시작하기',
       highlighted: false,
     },
   ]
@@ -375,7 +377,7 @@ export default function LandingPage() {
     },
     {
       question: 'AI 기능 사용 횟수에 제한이 있나요?',
-      answer: 'Basic 플랜에서는 AI 기능이 제한되며, Professional 플랜에서는 월 100회, Clinic 플랜에서는 무제한으로 사용할 수 있습니다.',
+      answer: 'Basic 플랜은 월 100회, Professional 플랜은 월 300회, Clinic 플랜은 월 1,500회 (Fair Use Policy)를 제공합니다. 초과 사용 시 건당 추가 요금이 적용됩니다.',
       category: 'AI 기능',
     },
     {
@@ -484,7 +486,7 @@ export default function LandingPage() {
     },
     {
       question: '음성 차트 사용 횟수에 제한이 있나요?',
-      answer: 'Professional 플랜에서는 월 50회, Clinic 플랜에서는 무제한으로 사용할 수 있습니다.',
+      answer: 'Professional 플랜에서는 월 50회, Clinic 플랜에서는 월 200회까지 사용할 수 있습니다.',
       category: '음성 차트',
     },
     {
@@ -516,7 +518,7 @@ export default function LandingPage() {
     // 요금제/결제
     {
       question: '어떤 요금제가 있나요?',
-      answer: 'Basic(연 199,000원), Professional(연 990,000원), Clinic(연 1,990,000원) 세 가지 플랜이 있습니다. 각 플랜별 기능 차이는 가격 안내에서 확인하실 수 있습니다.',
+      answer: 'Basic(월 19,900원), Professional(월 99,000원), Clinic(월 199,000원) 세 가지 플랜이 있습니다. 연간 결제 시 17% 할인(2개월 무료)이 적용됩니다. 대형 병원/네트워크를 위한 Enterprise 맞춤형 플랜도 별도 문의 가능합니다.',
       category: '요금제/결제',
     },
     {
