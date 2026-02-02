@@ -598,14 +598,14 @@ export default function AdLandingPage() {
               <div className="p-8">
                 <div className="text-center mb-8">
                   <p className="text-5xl font-bold text-gray-900">
-                    월 49,000<span className="text-xl font-normal text-gray-500">원</span>
+                    월 99,000<span className="text-xl font-normal text-gray-500">원</span>
                   </p>
-                  <p className="text-gray-500 mt-2">연간 결제 시 월 39,000원 (2개월 무료)</p>
+                  <p className="text-gray-500 mt-2">연간 결제 시 월 82,500원 (2개월 무료)</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   {[
-                    'AI 진료 상담 무제한',
+                    'AI 쿼리 월 300회',
                     '6,000+ 치험례 검색',
                     '한약-양약 상호작용 검사',
                     '처방 근거 문서화',

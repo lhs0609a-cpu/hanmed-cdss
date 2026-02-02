@@ -48,7 +48,7 @@ const dashboardTourSteps = [
   {
     target: '[data-tour="usage-stats"]',
     title: '사용량 현황',
-    content: '이번 달 AI 추천, 검색 사용량을 확인하세요. Pro로 업그레이드하면 무제한 사용이 가능합니다.',
+    content: '이번 달 AI 추천, 검색 사용량을 확인하세요. Pro 플랜은 월 300회, Clinic 플랜은 월 1,500회까지 사용 가능합니다.',
     placement: 'left' as const,
     tip: '사이드바 메뉴로 다른 기능들도 탐색해보세요!',
   },

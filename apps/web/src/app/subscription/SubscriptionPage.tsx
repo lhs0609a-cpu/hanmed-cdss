@@ -735,7 +735,7 @@ export default function SubscriptionPage() {
                   <ul className="space-y-1.5">
                     <li className="text-sm text-gray-600 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-                      AI 처방 추천 무제한 사용
+                      AI 처방 추천 대량 사용
                     </li>
                     <li className="text-sm text-gray-600 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />

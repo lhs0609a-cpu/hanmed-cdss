@@ -127,7 +127,7 @@ export function UsageLimitModal({
                 <Sparkles className="h-5 w-5 text-purple-600 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-purple-900">Clinic 플랜</p>
-                  <p className="text-xs text-purple-700">AI 쿼리 무제한 + 전담 지원</p>
+                  <p className="text-xs text-purple-700">AI 쿼리 1,500회/월 + 전담 지원</p>
                 </div>
               </div>
             </div>

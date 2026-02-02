@@ -491,7 +491,7 @@ export default function DashboardLayout() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-amber-900">Pro 업그레이드</p>
-                  <p className="text-[10px] text-amber-700 mt-0.5">무제한 AI 기능</p>
+                  <p className="text-[10px] text-amber-700 mt-0.5">AI 300회/월+</p>
                 </div>
               </div>
               <Link
