@@ -20,7 +20,6 @@ export class UserDataService {
   private readonly SYNC_ENABLED_TIERS: SubscriptionTier[] = [
     SubscriptionTier.PROFESSIONAL,
     SubscriptionTier.CLINIC,
-    SubscriptionTier.ENTERPRISE,
   ];
 
   constructor(
