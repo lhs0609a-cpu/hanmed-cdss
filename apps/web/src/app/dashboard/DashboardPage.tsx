@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
+import { useAppStats } from '@/hooks/useAppStats'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
+import { parseNaturalQuery, getGenderLabel } from '@/lib/parseNaturalQuery'
 import {
   Stethoscope,
   BookOpen,
@@ -17,6 +19,9 @@ import {
   ChevronRight,
   Zap,
   Search,
+  User,
+  Calendar,
+  Tag,
 } from 'lucide-react'
 
 const dashboardTourSteps = [
@@ -81,35 +86,7 @@ const stats = [
   },
 ]
 
-const quickActions = [
-  {
-    name: '새 진료 시작',
-    description: 'AI가 증상을 분석하고 최적의 처방을 추천해드립니다',
-    href: '/dashboard/consultation',
-    icon: Stethoscope,
-    gradient: 'from-teal-500 to-emerald-500',
-    shadowColor: 'shadow-teal-500/25',
-    badge: 'AI 추천',
-  },
-  {
-    name: '치험례 검색',
-    description: '6,000건의 임상 데이터에서 유사 사례를 찾아보세요',
-    href: '/dashboard/cases',
-    icon: BookOpen,
-    gradient: 'from-blue-500 to-indigo-500',
-    shadowColor: 'shadow-blue-500/25',
-    badge: '6,000건',
-  },
-  {
-    name: '상호작용 검사',
-    description: '양약-한약 간 상호작용을 빠르게 확인하세요',
-    href: '/dashboard/interactions',
-    icon: AlertTriangle,
-    gradient: 'from-amber-500 to-orange-500',
-    shadowColor: 'shadow-amber-500/25',
-    badge: '안전 검사',
-  },
-]
+// quickActions는 컴포넌트 내에서 동적으로 생성됨 (아래 참조)
 
 const recentActivities = [
   {
@@ -143,20 +120,67 @@ const recentActivities = [
 
 export default function DashboardPage() {
   useSEO(PAGE_SEO.dashboard)
+  const appStats = useAppStats()
 
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
+
+  // 동적 quickActions (치험례 수 반영)
+  const quickActions = useMemo(() => [
+    {
+      name: '새 진료 시작',
+      description: 'AI가 증상을 분석하고 최적의 처방을 추천해드립니다',
+      href: '/dashboard/consultation',
+      icon: Stethoscope,
+      gradient: 'from-teal-500 to-emerald-500',
+      shadowColor: 'shadow-teal-500/25',
+      badge: 'AI 추천',
+    },
+    {
+      name: '치험례 검색',
+      description: `${appStats.formatted.totalCases}의 임상 데이터에서 유사 사례를 찾아보세요`,
+      href: '/dashboard/cases',
+      icon: BookOpen,
+      gradient: 'from-blue-500 to-indigo-500',
+      shadowColor: 'shadow-blue-500/25',
+      badge: appStats.formatted.totalCases,
+    },
+    {
+      name: '상호작용 검사',
+      description: '양약-한약 간 상호작용을 빠르게 확인하세요',
+      href: '/dashboard/interactions',
+      icon: AlertTriangle,
+      gradient: 'from-amber-500 to-orange-500',
+      shadowColor: 'shadow-amber-500/25',
+      badge: '안전 검사',
+    },
+  ], [appStats.formatted.totalCases])
+
   const greeting =
     currentHour < 12 ? '좋은 아침이에요' : currentHour < 18 ? '안녕하세요' : '수고하셨어요'
   const [showTour, setShowTour] = useState(true)
   const [quickSearch, setQuickSearch] = useState('')
 
+  // 자연어 파싱 결과 (실시간)
+  const parsed = useMemo(() => parseNaturalQuery(quickSearch), [quickSearch])
+  const hasParsedInfo = parsed.symptoms.length > 0 || parsed.age || parsed.gender || parsed.constitution
+
   const handleQuickSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (quickSearch.trim()) {
-      navigate(`/dashboard/cases?keyword=${encodeURIComponent(quickSearch.trim())}`)
-    }
+    if (!quickSearch.trim()) return
+
+    // 자연어 파싱 후 AI 상담 페이지로 이동 (파싱된 데이터 전달)
+    navigate('/dashboard/consultation', {
+      state: {
+        naturalQuery: quickSearch.trim(),
+        parsedAge: parsed.age,
+        parsedGender: parsed.gender,
+        parsedConstitution: parsed.constitution,
+        parsedSymptoms: parsed.symptoms,
+        autoSubmit: true,
+      },
+    })
   }
 
   return (
@@ -197,7 +221,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Search Bar */}
+      {/* Quick Search Bar - 자연어 통합 검색 */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <form onSubmit={handleQuickSearch} className="flex items-center gap-3">
           <div className="flex-1 relative">
@@ -206,30 +230,65 @@ export default function DashboardPage() {
               type="text"
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
-              placeholder="증상, 처방명, 약재명으로 빠르게 검색... (예: 두통, 보중익기탕, 황기)"
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all"
+              placeholder="두통 소화불량 65세 여 ← 이렇게 입력 후 Enter"
+              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all text-[15px]"
             />
           </div>
           <button
             type="submit"
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all flex items-center gap-2"
+            disabled={!quickSearch.trim()}
+            className="px-6 py-3.5 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-700 disabled:bg-gray-200 disabled:text-gray-400 transition-all flex items-center gap-2"
           >
             <Sparkles className="h-4 w-4" />
-            AI 검색
+            AI 진단
           </button>
         </form>
-        <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <span className="text-xs text-gray-400">인기 검색어:</span>
-          {['두통', '요통', '불면', '소화불량', '보중익기탕'].map((term) => (
-            <button
-              key={term}
-              onClick={() => navigate(`/dashboard/cases?keyword=${encodeURIComponent(term)}`)}
-              className="px-2.5 py-1 bg-gray-100 hover:bg-teal-50 hover:text-teal-600 text-gray-600 text-xs rounded-lg transition-colors"
-            >
-              {term}
-            </button>
-          ))}
-        </div>
+
+        {/* 파싱 미리보기 */}
+        {hasParsedInfo && (
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="text-xs text-gray-400">AI 인식:</span>
+            {parsed.symptoms.map((s) => (
+              <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-lg border border-teal-200">
+                <Tag className="h-3 w-3" />
+                {s}
+              </span>
+            ))}
+            {parsed.age && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg border border-blue-200">
+                <Calendar className="h-3 w-3" />
+                {parsed.age}세
+              </span>
+            )}
+            {parsed.gender && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200">
+                <User className="h-3 w-3" />
+                {getGenderLabel(parsed.gender)}
+              </span>
+            )}
+            {parsed.constitution && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-lg border border-amber-200">
+                {parsed.constitution}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* 파싱 미리보기가 없을 때 예시 표시 */}
+        {!hasParsedInfo && (
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="text-xs text-gray-400">빠른 입력:</span>
+            {['두통 어지러움 50세 여', '소화불량 복통 30대 남', '요통 무릎통 60세', '불면 피로 스트레스'].map((term) => (
+              <button
+                key={term}
+                onClick={() => setQuickSearch(term)}
+                className="px-2.5 py-1 bg-gray-50 hover:bg-teal-50 hover:text-teal-600 text-gray-500 text-xs rounded-lg transition-colors border border-gray-200 hover:border-teal-200"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Killer Feature Highlight */}

@@ -144,3 +144,15 @@ export { WelcomeModal } from './WelcomeModal'
 
 // Offline Status
 export { OfflineBanner } from './OfflineBanner'
+
+// Session Management
+export { SessionWarningDialog } from './SessionWarningDialog'
+
+// Feature Spotlight / Tour
+export {
+  SpotlightProvider,
+  useSpotlight,
+  SPOTLIGHT_SEQUENCES,
+  type SpotlightTarget,
+  type SpotlightSequence,
+} from './FeatureSpotlight'

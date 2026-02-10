@@ -15,6 +15,9 @@ import type { FeeSearchResult } from '@/types'
 // 환경변수에서 API 키 가져오기
 const PUBLIC_DATA_API_KEY = import.meta.env.VITE_PUBLIC_DATA_API_KEY || ''
 
+// 데모 모드 여부 확인
+export const isInsuranceApiDemoMode = (): boolean => !PUBLIC_DATA_API_KEY
+
 // API 엔드포인트
 const API_ENDPOINTS = {
   // 수가기준정보조회서비스
@@ -39,10 +42,11 @@ export async function searchKoreanMedicineFee(
   keyword: string,
   pageNo: number = 1,
   numOfRows: number = 20
-): Promise<{ items: FeeSearchResult[]; totalCount: number }> {
+): Promise<{ items: FeeSearchResult[]; totalCount: number; isDemo?: boolean }> {
   if (!PUBLIC_DATA_API_KEY) {
     console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return getDemoKoreanFeeData(keyword)
+    const demoResult = getDemoKoreanFeeData(keyword)
+    return { ...demoResult, isDemo: true }
   }
 
   try {
@@ -71,7 +75,8 @@ export async function searchKoreanMedicineFee(
     const resultCode = xmlDoc.querySelector('resultCode')?.textContent
     if (resultCode !== '00') {
       console.warn('API 응답 코드:', resultCode)
-      return getDemoKoreanFeeData(keyword)
+      const demoResult = getDemoKoreanFeeData(keyword)
+      return { ...demoResult, isDemo: true }
     }
 
     const items: FeeSearchResult[] = []
@@ -99,7 +104,8 @@ export async function searchKoreanMedicineFee(
     return { items, totalCount }
   } catch (error) {
     console.error('한방 수가 검색 API 오류:', error)
-    return getDemoKoreanFeeData(keyword)
+    const demoResult = getDemoKoreanFeeData(keyword)
+    return { ...demoResult, isDemo: true }
   }
 }
 
@@ -197,10 +203,11 @@ export async function searchDiseaseCode(
   mdTpCd?: '1' | '2',
   pageNo: number = 1,
   numOfRows: number = 20
-): Promise<{ items: DiseaseInfo[]; totalCount: number }> {
+): Promise<{ items: DiseaseInfo[]; totalCount: number; isDemo?: boolean }> {
   if (!PUBLIC_DATA_API_KEY) {
     console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return getDemoDiseaseData(keyword, mdTpCd)
+    const demoResult = getDemoDiseaseData(keyword, mdTpCd)
+    return { ...demoResult, isDemo: true }
   }
 
   try {
@@ -232,7 +239,8 @@ export async function searchDiseaseCode(
     const resultCode = xmlDoc.querySelector('resultCode')?.textContent
     if (resultCode !== '00') {
       console.warn('API 응답 코드:', resultCode)
-      return getDemoDiseaseData(keyword, mdTpCd)
+      const demoResult = getDemoDiseaseData(keyword, mdTpCd)
+      return { ...demoResult, isDemo: true }
     }
 
     const items: DiseaseInfo[] = []
@@ -255,7 +263,8 @@ export async function searchDiseaseCode(
     return { items, totalCount }
   } catch (error) {
     console.error('질병 코드 검색 API 오류:', error)
-    return getDemoDiseaseData(keyword, mdTpCd)
+    const demoResult = getDemoDiseaseData(keyword, mdTpCd)
+    return { ...demoResult, isDemo: true }
   }
 }
 
@@ -266,7 +275,7 @@ export async function searchKoreanMedicineDisease(
   keyword: string,
   pageNo: number = 1,
   numOfRows: number = 20
-): Promise<{ items: DiseaseInfo[]; totalCount: number }> {
+): Promise<{ items: DiseaseInfo[]; totalCount: number; isDemo?: boolean }> {
   return searchDiseaseCode(keyword, '2', pageNo, numOfRows)
 }
 

@@ -26,5 +26,9 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "commander": "^14.0.3",
+    "import-local": "^3.2.0"
   }
 }

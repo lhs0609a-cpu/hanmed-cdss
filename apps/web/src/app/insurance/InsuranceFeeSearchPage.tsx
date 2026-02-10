@@ -12,11 +12,15 @@ import {
   BadgeCheck,
   BadgeX,
   HelpCircle,
+  AlertCircle,
+  RefreshCw,
+  WifiOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   searchKoreanMedicineFee,
   searchKoreanMedicineDisease,
+  isInsuranceApiDemoMode,
   type DiseaseInfo,
 } from '@/services/insurance-api'
 import type { FeeSearchResult } from '@/types'
@@ -33,11 +37,18 @@ const FEE_CATEGORIES = [
   { id: 'exam', label: '진찰' },
 ]
 
+interface SearchError {
+  message: string
+  type: 'network' | 'api' | 'empty' | 'timeout'
+}
+
 export default function InsuranceFeeSearchPage() {
   const [activeTab, setActiveTab] = useState<TabType>('fee')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [error, setError] = useState<SearchError | null>(null)
+  const [isDemoData, setIsDemoData] = useState(false)
 
   // 수가 검색 상태
   const [feeResults, setFeeResults] = useState<FeeSearchResult[]>([])
@@ -48,20 +59,67 @@ export default function InsuranceFeeSearchPage() {
   const [diseaseResults, setDiseaseResults] = useState<DiseaseInfo[]>([])
   const [diseaseTotalCount, setDiseaseTotalCount] = useState(0)
 
+  // API 키 미설정 여부 확인
+  const isApiKeyMissing = isInsuranceApiDemoMode()
+
   const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      setError({ message: '검색어를 입력해주세요.', type: 'empty' })
+      return
+    }
+
     setIsLoading(true)
+    setError(null)
+    setIsDemoData(false)
+
     try {
       if (activeTab === 'fee') {
         const result = await searchKoreanMedicineFee(searchQuery)
         setFeeResults(result.items)
         setFeeTotalCount(result.totalCount)
+        if (result.isDemo) setIsDemoData(true)
+
+        if (result.items.length === 0) {
+          setError({
+            message: `"${searchQuery}"에 대한 수가 검색 결과가 없습니다. 다른 검색어를 시도해보세요.`,
+            type: 'empty',
+          })
+        }
       } else {
         const result = await searchKoreanMedicineDisease(searchQuery)
         setDiseaseResults(result.items)
         setDiseaseTotalCount(result.totalCount)
+        if (result.isDemo) setIsDemoData(true)
+
+        if (result.items.length === 0) {
+          setError({
+            message: `"${searchQuery}"에 대한 상병 검색 결과가 없습니다. 다른 검색어를 시도해보세요.`,
+            type: 'empty',
+          })
+        }
       }
-    } catch (error) {
-      console.error('검색 오류:', error)
+    } catch (err) {
+      console.error('검색 오류:', err)
+
+      // 에러 타입 분류
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+
+      if (errorMessage.includes('network') || errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+        setError({
+          message: '네트워크 연결을 확인해주세요. 인터넷 연결이 불안정합니다.',
+          type: 'network',
+        })
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+        setError({
+          message: '서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+          type: 'timeout',
+        })
+      } else {
+        setError({
+          message: '검색 중 오류가 발생했습니다. 건강보험심사평가원 API 상태를 확인 중입니다.',
+          type: 'api',
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -147,6 +205,36 @@ export default function InsuranceFeeSearchPage() {
         </p>
       </div>
 
+      {/* Demo Mode Warning Banner */}
+      {(isApiKeyMissing || isDemoData) && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 mb-1">샘플 데이터 모드</h3>
+              <p className="text-sm text-amber-700">
+                현재 공공데이터 API 키가 설정되지 않아 <strong>샘플 데이터</strong>를 표시하고 있습니다.
+                실제 수가 정보와 다를 수 있으니 참고용으로만 활용해 주세요.
+              </p>
+              <p className="text-xs text-amber-600 mt-2">
+                정확한 수가 정보는{' '}
+                <a
+                  href="https://www.hira.or.kr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-amber-800"
+                >
+                  건강보험심사평가원
+                </a>
+                에서 확인하시기 바랍니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1.5">
         <div className="flex">
@@ -156,6 +244,7 @@ export default function InsuranceFeeSearchPage() {
               setSearchQuery('')
               setFeeResults([])
               setDiseaseResults([])
+              setError(null)
             }}
             className={cn(
               'flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2',
@@ -173,6 +262,7 @@ export default function InsuranceFeeSearchPage() {
               setSearchQuery('')
               setFeeResults([])
               setDiseaseResults([])
+              setError(null)
             }}
             className={cn(
               'flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2',
@@ -258,8 +348,112 @@ export default function InsuranceFeeSearchPage() {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div
+          className={cn(
+            'rounded-2xl border-2 p-6',
+            error.type === 'network' && 'bg-orange-50 border-orange-200',
+            error.type === 'api' && 'bg-red-50 border-red-200',
+            error.type === 'empty' && 'bg-blue-50 border-blue-200',
+            error.type === 'timeout' && 'bg-amber-50 border-amber-200'
+          )}
+        >
+          <div className="flex items-start gap-4">
+            <div
+              className={cn(
+                'p-3 rounded-xl',
+                error.type === 'network' && 'bg-orange-100',
+                error.type === 'api' && 'bg-red-100',
+                error.type === 'empty' && 'bg-blue-100',
+                error.type === 'timeout' && 'bg-amber-100'
+              )}
+            >
+              {error.type === 'network' && <WifiOff className="h-6 w-6 text-orange-600" />}
+              {error.type === 'api' && <AlertCircle className="h-6 w-6 text-red-600" />}
+              {error.type === 'empty' && <Search className="h-6 w-6 text-blue-600" />}
+              {error.type === 'timeout' && <AlertCircle className="h-6 w-6 text-amber-600" />}
+            </div>
+            <div className="flex-1">
+              <h3
+                className={cn(
+                  'font-bold mb-1',
+                  error.type === 'network' && 'text-orange-900',
+                  error.type === 'api' && 'text-red-900',
+                  error.type === 'empty' && 'text-blue-900',
+                  error.type === 'timeout' && 'text-amber-900'
+                )}
+              >
+                {error.type === 'network' && '네트워크 오류'}
+                {error.type === 'api' && 'API 오류'}
+                {error.type === 'empty' && '검색 결과 없음'}
+                {error.type === 'timeout' && '시간 초과'}
+              </h3>
+              <p
+                className={cn(
+                  'text-sm',
+                  error.type === 'network' && 'text-orange-700',
+                  error.type === 'api' && 'text-red-700',
+                  error.type === 'empty' && 'text-blue-700',
+                  error.type === 'timeout' && 'text-amber-700'
+                )}
+              >
+                {error.message}
+              </p>
+
+              {(error.type === 'network' || error.type === 'api' || error.type === 'timeout') && (
+                <button
+                  onClick={handleSearch}
+                  disabled={isLoading}
+                  className={cn(
+                    'mt-4 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors',
+                    error.type === 'network' && 'bg-orange-500 hover:bg-orange-600 text-white',
+                    error.type === 'api' && 'bg-red-500 hover:bg-red-600 text-white',
+                    error.type === 'timeout' && 'bg-amber-500 hover:bg-amber-600 text-white'
+                  )}
+                >
+                  <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+                  다시 시도
+                </button>
+              )}
+
+              {error.type === 'empty' && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="text-sm text-blue-600">추천 검색어:</span>
+                  {activeTab === 'fee'
+                    ? ['침술', '추나', '뜸', '부항'].map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => {
+                            setSearchQuery(term)
+                            setError(null)
+                          }}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition-colors"
+                        >
+                          {term}
+                        </button>
+                      ))
+                    : ['기허', '혈허', 'U200', '어혈'].map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => {
+                            setSearchQuery(term)
+                            setError(null)
+                          }}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition-colors"
+                        >
+                          {term}
+                        </button>
+                      ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results */}
-      {(feeResults.length > 0 || diseaseResults.length > 0) && (
+      {(feeResults.length > 0 || diseaseResults.length > 0) && !error && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Results Header */}
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -270,6 +464,11 @@ export default function InsuranceFeeSearchPage() {
                 ({activeTab === 'fee' ? filteredFeeResults.length : diseaseResults.length}건
                 {activeTab === 'fee' && feeCategory !== 'all' && ` / 전체 ${feeResults.length}건`})
               </span>
+              {isDemoData && (
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                  샘플 데이터
+                </span>
+              )}
             </div>
             <a
               href="https://www.hira.or.kr"
@@ -447,7 +646,7 @@ export default function InsuranceFeeSearchPage() {
       )}
 
       {/* Initial State */}
-      {feeResults.length === 0 && diseaseResults.length === 0 && !isLoading && (
+      {feeResults.length === 0 && diseaseResults.length === 0 && !isLoading && !error && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
           <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             {activeTab === 'fee' ? (

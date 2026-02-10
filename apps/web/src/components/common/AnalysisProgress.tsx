@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Brain, Search, Sparkles, Database, CheckCircle2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 
 interface AnalysisStep {
   id: string
@@ -211,7 +212,7 @@ export function AnalysisProgress({
       {/* Tip */}
       <div className="mt-6 p-3 bg-amber-50 rounded-xl border border-amber-100">
         <p className="text-xs text-amber-700">
-          💡 <strong>팁:</strong> AI 분석은 입력된 증상과 4,300+개의 치험례를 비교하여
+          💡 <strong>팁:</strong> AI 분석은 입력된 증상과 {formatStatNumber(BASE_STATS.cases)}개의 치험례를 비교하여
           가장 적합한 처방을 찾습니다. 정확한 분석을 위해 잠시만 기다려 주세요.
         </p>
       </div>

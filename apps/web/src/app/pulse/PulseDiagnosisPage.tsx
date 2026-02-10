@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   Activity,
   Save,
@@ -8,6 +8,10 @@ import {
   Clock,
   User,
   FileText,
+  Trash2,
+  History,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -489,12 +493,34 @@ const analyzePulseRecords = (records: Record<string, PulseRecord>): PulseAnalysi
   }
 }
 
+interface SavedPulseRecord {
+  id: string
+  timestamp: string
+  records: Record<string, PulseRecord>
+  overallNotes: string
+  analysis: PulseAnalysis | null
+}
+
 export default function PulseDiagnosisPage() {
   const [records, setRecords] = useState<Record<string, PulseRecord>>({})
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null)
   const [selectedPulseInfo, setSelectedPulseInfo] = useState<PulseType | null>(null)
   const [overallNotes, setOverallNotes] = useState('')
   const [analysis, setAnalysis] = useState<PulseAnalysis | null>(null)
+  const [savedRecords, setSavedRecords] = useState<SavedPulseRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('pulse_diagnosis_records')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch {
+          return []
+        }
+      }
+    }
+    return []
+  })
+  const [showHistory, setShowHistory] = useState(false)
 
   // 맥진 기록이 변경될 때마다 자동 분석
   const handleAnalyze = () => {
@@ -502,20 +528,49 @@ export default function PulseDiagnosisPage() {
     setAnalysis(result)
   }
 
+  // 복수 맥상 선택: 토글 방식으로 여러 맥 선택 가능
   const handlePulseSelect = (positionId: string, pulseName: string) => {
     const position = positions.find((p) => p.id === positionId)
     if (!position) return
 
-    setRecords((prev) => ({
-      ...prev,
-      [positionId]: {
-        position: position.position,
-        level: position.level,
-        pulseType: pulseName,
-        strength: prev[positionId]?.strength || 3,
-        notes: prev[positionId]?.notes || '',
-      },
-    }))
+    setRecords((prev) => {
+      const existing = prev[positionId]
+      if (existing) {
+        // 이미 선택된 맥상 목록을 쉼표로 관리
+        const currentPulses = existing.pulseType.split(', ').filter(Boolean)
+        const idx = currentPulses.indexOf(pulseName)
+        if (idx >= 0) {
+          // 이미 있으면 제거
+          currentPulses.splice(idx, 1)
+          if (currentPulses.length === 0) {
+            // 전부 제거되면 레코드 삭제
+            const { [positionId]: _, ...rest } = prev
+            return rest
+          }
+          return {
+            ...prev,
+            [positionId]: { ...existing, pulseType: currentPulses.join(', ') },
+          }
+        } else {
+          // 없으면 추가 (최대 3개)
+          if (currentPulses.length >= 3) return prev
+          return {
+            ...prev,
+            [positionId]: { ...existing, pulseType: [...currentPulses, pulseName].join(', ') },
+          }
+        }
+      }
+      return {
+        ...prev,
+        [positionId]: {
+          position: position.position,
+          level: position.level,
+          pulseType: pulseName,
+          strength: 3,
+          notes: '',
+        },
+      }
+    })
   }
 
   const handleStrengthChange = (positionId: string, strength: number) => {
@@ -535,18 +590,38 @@ export default function PulseDiagnosisPage() {
   }
 
   const handleSave = () => {
-    const pulseData = {
+    if (Object.keys(records).length === 0) {
+      return
+    }
+
+    const pulseData: SavedPulseRecord = {
+      id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       records,
       overallNotes,
+      analysis,
     }
-    // TODO: API 연동 시 실제 저장 로직으로 대체
-    // 개발 환경에서만 데이터 확인용
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.log('Saving pulse diagnosis:', pulseData)
-    }
-    alert('맥진 기록이 저장되었습니다.')
+
+    const newSavedRecords = [pulseData, ...savedRecords].slice(0, 30) // 최대 30개 유지
+    setSavedRecords(newSavedRecords)
+    localStorage.setItem('pulse_diagnosis_records', JSON.stringify(newSavedRecords))
+
+    // 저장 후 초기화
+    handleReset()
+    setShowHistory(true) // 저장 후 히스토리 표시
+  }
+
+  const loadSavedRecord = (saved: SavedPulseRecord) => {
+    setRecords(saved.records)
+    setOverallNotes(saved.overallNotes)
+    setAnalysis(saved.analysis)
+    setShowHistory(false)
+  }
+
+  const deleteSavedRecord = (id: string) => {
+    const newSavedRecords = savedRecords.filter(r => r.id !== id)
+    setSavedRecords(newSavedRecords)
+    localStorage.setItem('pulse_diagnosis_records', JSON.stringify(newSavedRecords))
   }
 
   return (
@@ -558,7 +633,7 @@ export default function PulseDiagnosisPage() {
           맥진 기록
         </h1>
         <p className="mt-1 text-gray-500">
-          육부위 맥진 결과를 기록하세요
+          육부위 맥진 결과를 기록하세요. 확실하지 않은 부위는 건너뛸 수 있습니다.
         </p>
       </div>
 
@@ -670,6 +745,7 @@ export default function PulseDiagnosisPage() {
                 {positions.find((p) => p.id === selectedPosition)?.name} 맥상 선택
               </h2>
 
+              <p className="text-xs text-gray-400 mb-3">복수 선택 가능 (최대 3개) - 확실하지 않으면 여러 맥을 선택하세요</p>
               <div className="space-y-4">
                 {pulseCategories.map((category) => (
                   <div key={category.name}>
@@ -677,6 +753,8 @@ export default function PulseDiagnosisPage() {
                     <div className="flex flex-wrap gap-2">
                       {category.pulses.map((pulse) => {
                         const pulseInfo = pulseTypes.find((p) => p.name.startsWith(pulse))
+                        const currentPulses = records[selectedPosition]?.pulseType?.split(', ') || []
+                        const isSelected = currentPulses.includes(pulse + '맥')
                         return (
                           <button
                             key={pulse}
@@ -686,7 +764,7 @@ export default function PulseDiagnosisPage() {
                             }}
                             className={cn(
                               'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                              records[selectedPosition]?.pulseType === pulse + '맥'
+                              isSelected
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
                             )}
@@ -745,11 +823,11 @@ export default function PulseDiagnosisPage() {
             />
           </div>
 
-          {/* Analyze Button */}
-          {Object.keys(records).length >= 2 && (
+          {/* Analyze Button - 1개만 입력해도 분석 가능 */}
+          {Object.keys(records).length >= 1 && (
             <button
               onClick={handleAnalyze}
-              className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-slate-600/30 transition-all flex items-center justify-center gap-2"
             >
               <Activity className="h-5 w-5" />
               AI 맥진 분석
@@ -758,8 +836,8 @@ export default function PulseDiagnosisPage() {
 
           {/* Analysis Result */}
           {analysis && (
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
-              <h2 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-slate-200 p-6">
+              <h2 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 맥진 분석 결과
               </h2>
@@ -779,8 +857,8 @@ export default function PulseDiagnosisPage() {
                     {analysis.severity === 'severe' && '주의 필요'}
                   </span>
                 </div>
-                <p className="text-xl font-bold text-purple-900">{analysis.overallPattern}</p>
-                <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
+                <p className="text-xl font-bold text-slate-900">{analysis.overallPattern}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full">
                   {analysis.patternType}
                 </span>
               </div>
@@ -788,10 +866,10 @@ export default function PulseDiagnosisPage() {
               {/* Affected Organs */}
               {analysis.affectedOrgans.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-purple-800 mb-2">관련 장부</p>
+                  <p className="text-sm font-medium text-slate-800 mb-2">관련 장부</p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.affectedOrgans.map((organ, i) => (
-                      <span key={i} className="px-2 py-1 bg-white text-purple-700 text-sm rounded-lg border border-purple-200">
+                      <span key={i} className="px-2 py-1 bg-white text-slate-700 text-sm rounded-lg border border-slate-200">
                         {organ}
                       </span>
                     ))}
@@ -802,11 +880,11 @@ export default function PulseDiagnosisPage() {
               {/* Recommendations */}
               {analysis.recommendations.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-purple-800 mb-2">치료 방향</p>
+                  <p className="text-sm font-medium text-slate-800 mb-2">치료 방향</p>
                   <ul className="space-y-1">
                     {analysis.recommendations.map((rec, i) => (
-                      <li key={i} className="text-sm text-purple-700 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                      <li key={i} className="text-sm text-slate-700 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-slate-600" />
                         {rec}
                       </li>
                     ))}
@@ -817,7 +895,7 @@ export default function PulseDiagnosisPage() {
               {/* Related Formulas */}
               {analysis.relatedFormulas.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-purple-800 mb-2">추천 처방</p>
+                  <p className="text-sm font-medium text-slate-800 mb-2">추천 처방</p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.relatedFormulas.map((formula, i) => (
                       <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-lg">
@@ -934,6 +1012,88 @@ export default function PulseDiagnosisPage() {
                     </div>
                   )
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Saved Records History */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full flex items-center justify-between"
+            >
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <History className="h-5 w-5 text-indigo-500" />
+                저장된 기록 ({savedRecords.length})
+              </h3>
+              {showHistory ? (
+                <ChevronUp className="h-5 w-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-400" />
+              )}
+            </button>
+
+            {showHistory && (
+              <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
+                {savedRecords.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">
+                    저장된 맥진 기록이 없습니다
+                  </p>
+                ) : (
+                  savedRecords.map((saved) => (
+                    <div
+                      key={saved.id}
+                      className="p-3 bg-gray-50 rounded-xl border border-gray-200 hover:border-indigo-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-xs text-gray-500">
+                            {new Date(saved.timestamp).toLocaleString('ko-KR')}
+                          </p>
+                          {saved.analysis && (
+                            <p className="text-sm font-medium text-indigo-700 mt-1">
+                              {saved.analysis.overallPattern}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => loadSavedRecord(saved)}
+                            className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+                            title="불러오기"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteSavedRecord(saved.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(saved.records).map(([posId, record]) => {
+                          const pos = positions.find(p => p.id === posId)
+                          return pos ? (
+                            <span
+                              key={posId}
+                              className="px-2 py-0.5 bg-white text-xs text-gray-600 rounded border"
+                            >
+                              {pos.name}: {record.pulseType}
+                            </span>
+                          ) : null
+                        })}
+                      </div>
+                      {saved.overallNotes && (
+                        <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                          {saved.overallNotes}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

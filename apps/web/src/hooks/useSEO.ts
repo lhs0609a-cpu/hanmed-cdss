@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 
 interface SEOProps {
   title?: string
@@ -10,7 +11,7 @@ interface SEOProps {
 }
 
 const DEFAULT_TITLE = '온고지신 AI'
-const DEFAULT_DESCRIPTION = '40년 임상 경험의 6,000건 치험례 데이터와 AI가 결합된 한의학 CDSS'
+const DEFAULT_DESCRIPTION = `40년 임상 경험의 ${formatStatNumber(BASE_STATS.cases)} 치험례 데이터와 AI가 결합된 한의학 CDSS`
 
 /**
  * 페이지별 SEO 메타데이터 설정 훅
@@ -86,12 +87,12 @@ export const PAGE_SEO = {
   },
   consultation: {
     title: 'AI 진료 상담',
-    description: '환자 증상을 입력하면 AI가 최적의 처방을 추천합니다. 6,000건 치험례 기반 분석.',
+    description: `환자 증상을 입력하면 AI가 최적의 처방을 추천합니다. ${formatStatNumber(BASE_STATS.cases)} 치험례 기반 분석.`,
     keywords: ['AI진료', '처방추천', '한의학상담'],
   },
   cases: {
     title: '치험례 검색',
-    description: '40년 임상 경험이 담긴 6,000건 치험례 데이터베이스를 검색하세요.',
+    description: `40년 임상 경험이 담긴 ${formatStatNumber(BASE_STATS.cases)} 치험례 데이터베이스를 검색하세요.`,
     keywords: ['치험례', '임상사례', '한의학케이스'],
   },
   subscription: {

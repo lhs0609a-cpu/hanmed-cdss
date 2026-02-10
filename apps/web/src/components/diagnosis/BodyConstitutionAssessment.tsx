@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   Thermometer,
   Flame,
@@ -323,12 +323,24 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
       {/* 체열 평가 */}
       {step === 'heat' && (
         <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Flame className="w-5 h-5 text-orange-500" />
-            <h3 className="font-medium text-gray-900">체열(寒熱) 평가</h3>
-            <span className="text-sm text-gray-500">
-              ({heatAnsweredCount}/{heatAssessmentQuestions.length})
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <h3 className="font-medium text-gray-900">체열(寒熱) 평가</h3>
+              <span className="text-sm text-gray-500">
+                ({heatAnsweredCount}/{heatAssessmentQuestions.length})
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const defaults: Record<string, number> = {}
+                heatAssessmentQuestions.forEach(q => { defaults[q.id] = 0 })
+                setHeatAnswers(defaults)
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              모두 "보통"으로 설정
+            </button>
           </div>
 
           <div className="space-y-6">
@@ -356,7 +368,20 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
             ))}
           </div>
 
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={() => {
+                // 건너뛰기: 모두 보통(0)으로 채우고 바로 근실도로
+                const defaults: Record<string, number> = {}
+                heatAssessmentQuestions.forEach(q => { defaults[q.id] = 0 })
+                setHeatAnswers(defaults)
+                setStep('strength')
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              건너뛰기
+              <ChevronRight className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setStep('strength')}
               disabled={!heatComplete}
@@ -377,12 +402,24 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
       {/* 근실도 평가 */}
       {step === 'strength' && (
         <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Dumbbell className="w-5 h-5 text-blue-500" />
-            <h3 className="font-medium text-gray-900">근실도(虛實) 평가</h3>
-            <span className="text-sm text-gray-500">
-              ({strengthAnsweredCount}/{strengthAssessmentQuestions.length})
-            </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Dumbbell className="w-5 h-5 text-blue-500" />
+              <h3 className="font-medium text-gray-900">근실도(虛實) 평가</h3>
+              <span className="text-sm text-gray-500">
+                ({strengthAnsweredCount}/{strengthAssessmentQuestions.length})
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const defaults: Record<string, number> = {}
+                strengthAssessmentQuestions.forEach(q => { defaults[q.id] = 0 })
+                setStrengthAnswers(defaults)
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              모두 "보통"으로 설정
+            </button>
           </div>
 
           <div className="space-y-6">
@@ -418,6 +455,19 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
               <ChevronLeft className="w-4 h-4" />
               이전
             </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  // 건너뛰기: 모두 보통(0)으로 채우고 결과로
+                  const defaults: Record<string, number> = {}
+                  strengthAssessmentQuestions.forEach(q => { defaults[q.id] = 0 })
+                  setStrengthAnswers(defaults)
+                  setStep('result')
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                건너뛰기
+              </button>
             <button
               onClick={() => setStep('result')}
               disabled={!strengthComplete}
@@ -431,6 +481,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
               결과 확인
               <ChevronRight className="w-4 h-4" />
             </button>
+            </div>
           </div>
         </div>
       )}
@@ -491,13 +542,13 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
             {/* 근실도 결과 */}
             <div className={cn(
               'p-4 rounded-xl border-2',
-              getBodyStrength(strengthScore) === 'deficient' ? 'border-purple-300 bg-purple-50' :
+              getBodyStrength(strengthScore) === 'deficient' ? 'border-slate-300 bg-slate-50' :
               getBodyStrength(strengthScore) === 'excess' ? 'border-green-300 bg-green-50' :
               'border-gray-300 bg-gray-50'
             )}>
               <div className="flex items-center gap-3 mb-3">
                 {getBodyStrength(strengthScore) === 'deficient' ? (
-                  <Feather className="w-8 h-8 text-purple-500" />
+                  <Feather className="w-8 h-8 text-slate-600" />
                 ) : getBodyStrength(strengthScore) === 'excess' ? (
                   <Dumbbell className="w-8 h-8 text-green-500" />
                 ) : (
@@ -523,7 +574,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
                   <span>평(平)</span>
                   <span>실(實)</span>
                 </div>
-                <div className="relative h-3 bg-gradient-to-r from-purple-400 via-gray-300 to-green-400 rounded-full">
+                <div className="relative h-3 bg-gradient-to-r from-slate-400 via-gray-300 to-green-400 rounded-full">
                   <div
                     className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-gray-800 rounded-full shadow"
                     style={{ left: `${((strengthScore + 10) / 20) * 100}%`, transform: 'translate(-50%, -50%)' }}

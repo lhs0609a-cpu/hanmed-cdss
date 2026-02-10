@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
+import { useAppStats } from '@/hooks/useAppStats'
 import { Sparkles, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
 
@@ -23,6 +24,7 @@ const DEMO_CONFIG = {
 
 export default function LoginPage() {
   useSEO(PAGE_SEO.login)
+  const appStats = useAppStats()
 
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
@@ -80,7 +82,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 space-y-6">
           <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
-            6,000건의 치험례로<br />
+            {appStats.formatted.totalCases}의 치험례로<br />
             <span className="text-white/90">처방을 추천받으세요</span>
           </h1>
           <p className="text-lg text-white/80 max-w-md">
@@ -91,7 +93,7 @@ export default function LoginPage() {
           {/* Feature cards */}
           <div className="grid grid-cols-2 gap-4 pt-4">
             <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
-              <div className="text-3xl font-bold text-white">6,000+</div>
+              <div className="text-3xl font-bold text-white">{appStats.formatted.totalCases}</div>
               <div className="text-sm text-white/70 mt-1">치험례 데이터</div>
             </div>
             <div className="bg-white/10 backdrop-blur rounded-2xl p-4">

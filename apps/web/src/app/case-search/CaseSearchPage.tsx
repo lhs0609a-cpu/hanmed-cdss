@@ -18,6 +18,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { ErrorMessage, UsageLimitModal } from '@/components/common'
 import { useUsage, useSubscriptionInfo } from '@/hooks/useSubscription'
 import { cn } from '@/lib/utils'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,6 +59,120 @@ const symptomCategories = [
 
 const constitutionTypes: ConstitutionType[] = ['소음인', '태음인', '소양인', '태양인']
 
+// API 오류 시 사용할 목 데이터
+const MOCK_SEARCH_RESPONSE: CaseSearchResponse = {
+  results: [
+    {
+      caseId: 'mock-1',
+      matchScore: {
+        total: 92,
+        vector: 95,
+        keyword: 88,
+        metadata: 93,
+        grade: 'S',
+        confidence: 0.92,
+      },
+      originalCase: {
+        id: 'mock-1',
+        patientInfo: { age: 65, gender: 'M', constitution: '태음인' },
+        chiefComplaint: '중풍 후유증',
+        symptoms: ['반신마비', '언어장애', '두통'],
+        prescription: {
+          name: '보양환오탕',
+          herbs: [
+            { name: '황기', amount: 30, unit: 'g' },
+            { name: '당귀', amount: 12, unit: 'g' },
+            { name: '천궁', amount: 8, unit: 'g' },
+            { name: '적작약', amount: 8, unit: 'g' },
+            { name: '도인', amount: 8, unit: 'g' },
+            { name: '홍화', amount: 6, unit: 'g' },
+            { name: '지렁이', amount: 6, unit: 'g' },
+          ],
+        },
+        outcome: '호전',
+        treatmentDuration: 90,
+        notes: '황기 대량 투여로 기허혈어 치료',
+      },
+      matchedSymptoms: ['반신마비', '언어장애'],
+      differentialPoints: ['태음인 체질', '기허혈어 병기'],
+    },
+    {
+      caseId: 'mock-2',
+      matchScore: {
+        total: 87,
+        vector: 85,
+        keyword: 90,
+        metadata: 86,
+        grade: 'A',
+        confidence: 0.87,
+      },
+      originalCase: {
+        id: 'mock-2',
+        patientInfo: { age: 58, gender: 'F', constitution: '소음인' },
+        chiefComplaint: '만성 두통',
+        symptoms: ['두통', '현훈', '불면', '피로'],
+        prescription: {
+          name: '반하백출천마탕',
+          herbs: [
+            { name: '반하', amount: 12, unit: 'g' },
+            { name: '백출', amount: 10, unit: 'g' },
+            { name: '천마', amount: 10, unit: 'g' },
+            { name: '복령', amount: 10, unit: 'g' },
+            { name: '진피', amount: 6, unit: 'g' },
+            { name: '감초', amount: 3, unit: 'g' },
+          ],
+        },
+        outcome: '완치',
+        treatmentDuration: 60,
+        notes: '담음으로 인한 두통, 현훈 치료',
+      },
+      matchedSymptoms: ['두통', '현훈'],
+      differentialPoints: ['소음인 체질', '담음 병기'],
+    },
+    {
+      caseId: 'mock-3',
+      matchScore: {
+        total: 82,
+        vector: 80,
+        keyword: 85,
+        metadata: 81,
+        grade: 'A',
+        confidence: 0.82,
+      },
+      originalCase: {
+        id: 'mock-3',
+        patientInfo: { age: 72, gender: 'M', constitution: '소양인' },
+        chiefComplaint: '요통',
+        symptoms: ['요통', '하지무력', '야간뇨'],
+        prescription: {
+          name: '독활기생탕',
+          herbs: [
+            { name: '독활', amount: 10, unit: 'g' },
+            { name: '상기생', amount: 10, unit: 'g' },
+            { name: '두충', amount: 10, unit: 'g' },
+            { name: '우슬', amount: 8, unit: 'g' },
+            { name: '진교', amount: 8, unit: 'g' },
+            { name: '방풍', amount: 6, unit: 'g' },
+          ],
+        },
+        outcome: '호전',
+        treatmentDuration: 45,
+        notes: '간신허로 인한 요통 치료',
+      },
+      matchedSymptoms: ['요통'],
+      differentialPoints: ['고령', '간신허 병기'],
+    },
+  ],
+  totalFound: BASE_STATS.cases,
+  searchMetadata: {
+    processingTimeMs: 245,
+    vectorSearchUsed: true,
+    keywordSearchUsed: true,
+    metadataFiltersApplied: ['age', 'constitution'],
+    averageConfidence: 0.87,
+  },
+}
+
 export default function CaseSearchPage() {
   const token = useAuthStore((state) => state.accessToken)
 
@@ -76,6 +191,7 @@ export default function CaseSearchPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchResult, setSearchResult] = useState<CaseSearchResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isUsingMockData, setIsUsingMockData] = useState(false)
 
   // UI state
   const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null)
@@ -148,10 +264,28 @@ export default function CaseSearchPage() {
       }
 
       const data = await response.json()
+      setIsUsingMockData(false)
       setSearchResult(transformCaseSearchResponse(data))
     } catch (err) {
       console.error('Search error:', err)
-      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다')
+      // API 오류 시 목 데이터 사용
+      setIsUsingMockData(true)
+      setError(null)
+
+      // 입력한 주소증 기반으로 목 데이터 필터링
+      const mockResults = MOCK_SEARCH_RESPONSE.results.filter(result => {
+        const complaint = chiefComplaint.toLowerCase()
+        return (
+          result.originalCase.chiefComplaint.toLowerCase().includes(complaint) ||
+          result.originalCase.symptoms.some(s => s.toLowerCase().includes(complaint)) ||
+          complaint.includes('중풍') || complaint.includes('두통') || complaint.includes('요통')
+        )
+      })
+
+      setSearchResult({
+        ...MOCK_SEARCH_RESPONSE,
+        results: mockResults.length > 0 ? mockResults : MOCK_SEARCH_RESPONSE.results,
+      })
     } finally {
       setIsSearching(false)
     }
@@ -164,6 +298,7 @@ export default function CaseSearchPage() {
     setPatientInfo({})
     setSearchResult(null)
     setError(null)
+    setIsUsingMockData(false)
   }
 
   // Filter symptoms based on input
@@ -181,7 +316,7 @@ export default function CaseSearchPage() {
           AI 치험례 검색
         </h1>
         <p className="mt-1 text-gray-500">
-          환자 증상을 입력하면 4,300+ 치험례 중 유사 사례를 AI가 찾아드립니다
+          환자 증상을 입력하면 {formatStatNumber(BASE_STATS.cases)} 치험례 중 유사 사례를 AI가 찾아드립니다
         </p>
       </div>
 
@@ -474,6 +609,21 @@ export default function CaseSearchPage() {
           </div>
         ))}
       </div>
+
+      {/* Mock Data Info Banner */}
+      {isUsingMockData && searchResult && (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-900">
+              서버 연결 중 문제가 발생하여 예시 데이터를 표시합니다
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              실제 {formatStatNumber(BASE_STATS.cases)} 치험례는 서버 연결 시 검색 가능합니다
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       {searchResult && (

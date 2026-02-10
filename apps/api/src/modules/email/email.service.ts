@@ -170,7 +170,7 @@ export class EmailService {
   }
 
   /**
-   * 체험 종료 임박 알림 이메일
+   * 체험 종료 임박 알림 이메일 (3일 전)
    */
   async sendTrialEndingEmail(
     email: string,
@@ -212,6 +212,122 @@ export class EmailService {
         `,
         buttonText: '요금제 보기',
         buttonUrl: `${frontendUrl}/subscription`,
+      }),
+    };
+
+    return this.sendMail(mailOptions);
+  }
+
+  /**
+   * 체험 종료 당일 알림 이메일 (D-Day)
+   */
+  async sendTrialEndingTodayEmail(
+    email: string,
+    userName: string,
+  ): Promise<boolean> {
+    if (!this.transporter) {
+      this.logger.log(`[DEV] 체험 종료 당일 알림: ${email}`);
+      return true;
+    }
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+
+    const mailOptions = {
+      from: this.configService.get<string>('SMTP_FROM') || '"온고지신 AI" <noreply@ongojisin.ai>',
+      to: email,
+      subject: '⚠️ [온고지신 AI] 무료 체험이 오늘 종료됩니다!',
+      html: this.getEmailTemplate({
+        title: '무료 체험이 오늘 종료됩니다',
+        content: `
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            안녕하세요 ${userName}님,<br><br>
+            온고지신 AI 무료 체험이 <strong style="color: #dc2626;">오늘 자정</strong>에 종료됩니다.
+          </p>
+
+          <div style="background-color: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <p style="color: #dc2626; margin: 0; font-weight: 600; font-size: 18px;">
+              ⏰ 체험 종료까지 몇 시간 남았습니다!
+            </p>
+          </div>
+
+          <div style="background-color: #f0fdf4; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <p style="color: #166534; margin: 0 0 12px 0; font-weight: 600;">🎁 지금 구독하면 특별 혜택!</p>
+            <p style="color: #4b5563; margin: 0;">
+              체험 기간 내 구독 시 <strong>첫 달 30% 할인</strong>이 자동 적용됩니다.
+            </p>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px;">
+            오늘 자정이 지나면 Free 플랜(월 30회)으로 자동 전환됩니다.<br>
+            모든 Pro 기능은 더 이상 이용하실 수 없습니다.
+          </p>
+        `,
+        buttonText: '지금 구독하고 30% 할인받기',
+        buttonUrl: `${frontendUrl}/subscription?promo=trial_convert`,
+      }),
+    };
+
+    return this.sendMail(mailOptions);
+  }
+
+  /**
+   * 체험 종료 후 3일 팔로업 이메일
+   */
+  async sendTrialFollowUpEmail(
+    email: string,
+    userName: string,
+    aiUsageCount: number,
+  ): Promise<boolean> {
+    if (!this.transporter) {
+      this.logger.log(`[DEV] 체험 종료 후 팔로업 알림: ${email}, 사용량: ${aiUsageCount}`);
+      return true;
+    }
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const estimatedTimeSaved = Math.round(aiUsageCount * 5); // AI 1회당 5분 절약 추정
+
+    const mailOptions = {
+      from: this.configService.get<string>('SMTP_FROM') || '"온고지신 AI" <noreply@ongojisin.ai>',
+      to: email,
+      subject: '💭 [온고지신 AI] 체험은 어떠셨나요? (특별 할인 안내)',
+      html: this.getEmailTemplate({
+        title: `${userName}님, 온고지신 AI가 그리우시다면...`,
+        content: `
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            안녕하세요 ${userName}님,<br><br>
+            온고지신 AI 무료 체험이 종료된 지 3일이 지났습니다.<br>
+            체험 기간 동안 저희 서비스가 도움이 되셨으면 좋겠습니다.
+          </p>
+
+          <div style="background-color: #f0fdf4; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <p style="color: #166534; margin: 0 0 12px 0; font-weight: 600;">📊 체험 기간 동안의 활동</p>
+            <div style="display: flex; justify-content: space-around; text-align: center;">
+              <div>
+                <p style="color: #166534; font-size: 28px; font-weight: bold; margin: 0;">${aiUsageCount}</p>
+                <p style="color: #6b7280; font-size: 12px; margin: 4px 0 0 0;">AI 분석 횟수</p>
+              </div>
+              <div>
+                <p style="color: #166534; font-size: 28px; font-weight: bold; margin: 0;">~${estimatedTimeSaved}분</p>
+                <p style="color: #6b7280; font-size: 12px; margin: 4px 0 0 0;">예상 절약 시간</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: linear-gradient(to right, #14b8a6, #10b981); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <p style="color: white; margin: 0 0 8px 0; font-weight: 600; font-size: 18px;">🎉 마지막 특별 할인!</p>
+            <p style="color: white; margin: 0; opacity: 0.9;">
+              이 이메일 수신 후 48시간 내 구독 시<br>
+              <strong style="font-size: 24px;">첫 3개월 50% 할인</strong>
+            </p>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px;">
+            Basic 플랜: 19,900원 → <strong>9,950원</strong>/월 (3개월)<br>
+            Professional 플랜: 99,000원 → <strong>49,500원</strong>/월 (3개월)
+          </p>
+        `,
+        buttonText: '50% 할인으로 다시 시작하기',
+        buttonUrl: `${frontendUrl}/subscription?promo=comeback_50`,
       }),
     };
 

@@ -22,11 +22,24 @@ export class CasesController {
   @ApiOperation({ summary: '치험례 목록 조회' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'searchField', required: false, type: String })
+  @ApiQuery({ name: 'constitution', required: false, type: String })
+  @ApiQuery({ name: 'outcome', required: false, type: String })
   async findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 20,
+    @Query('search') search?: string,
+    @Query('searchField') searchField?: string,
+    @Query('constitution') constitution?: string,
+    @Query('outcome') outcome?: string,
   ) {
-    return this.casesService.findAll(+page, +limit);
+    return this.casesService.findAll(+page, +limit, {
+      search,
+      searchField,
+      constitution,
+      outcome,
+    });
   }
 
   @Get('statistics')

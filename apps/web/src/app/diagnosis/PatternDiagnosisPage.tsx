@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   Brain,
   Sparkles,
@@ -895,7 +895,7 @@ export default function PatternDiagnosisPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Brain className="h-7 w-7 text-purple-500" />
+            <Brain className="h-7 w-7 text-slate-600" />
             AI 변증 진단
           </h1>
           <p className="mt-1 text-gray-500">
@@ -929,7 +929,7 @@ export default function PatternDiagnosisPage() {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2 rounded-xl transition-all',
                   step === s.key
-                    ? 'bg-purple-100 text-purple-700'
+                    ? 'bg-slate-100 text-slate-700'
                     : results.length > 0 ||
                       (s.key === 'constitution' && bodyConstitution !== null) ||
                       (s.key === 'symptoms' && selectedSymptoms.length > 0) ||
@@ -973,8 +973,8 @@ export default function PatternDiagnosisPage() {
 
       {step === 'symptoms' && (
         <div className="space-y-6">
-          <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
-            <p className="text-purple-700 text-sm">
+          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+            <p className="text-slate-700 text-sm">
               💡 환자가 호소하는 증상을 모두 선택해주세요. 정확한 변증을 위해 가능한 많은 증상을 선택하세요.
             </p>
           </div>
@@ -985,7 +985,7 @@ export default function PatternDiagnosisPage() {
               className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
             >
               <div className="flex items-center gap-2 mb-4">
-                <category.icon className="h-5 w-5 text-purple-500" />
+                <category.icon className="h-5 w-5 text-slate-600" />
                 <h3 className="font-bold text-gray-900">{category.name}</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -996,13 +996,13 @@ export default function PatternDiagnosisPage() {
                     className={cn(
                       'p-3 rounded-xl text-left transition-all',
                       selectedSymptoms.includes(symptom.id)
-                        ? 'bg-purple-100 border-2 border-purple-500 text-purple-700'
+                        ? 'bg-slate-100 border-2 border-slate-600 text-slate-700'
                         : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100 text-gray-700'
                     )}
                   >
                     <div className="flex items-center gap-2">
                       {selectedSymptoms.includes(symptom.id) ? (
-                        <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                        <CheckCircle2 className="h-4 w-4 text-slate-600" />
                       ) : (
                         <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                       )}
@@ -1016,7 +1016,7 @@ export default function PatternDiagnosisPage() {
 
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">
-              선택된 증상: <span className="font-bold text-purple-600">{selectedSymptoms.length}개</span>
+              선택된 증상: <span className="font-bold text-slate-700">{selectedSymptoms.length}개</span>
             </p>
             <button
               onClick={() => setStep('pulse')}
@@ -1024,7 +1024,7 @@ export default function PatternDiagnosisPage() {
               className={cn(
                 'flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all',
                 selectedSymptoms.length > 0
-                  ? 'bg-purple-500 text-white hover:bg-purple-600'
+                  ? 'bg-slate-600 text-white hover:bg-slate-700'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               )}
             >
@@ -1037,14 +1037,14 @@ export default function PatternDiagnosisPage() {
 
       {step === 'pulse' && (
         <div className="space-y-6">
-          <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
-            <p className="text-purple-700 text-sm">
-              💡 진맥에서 느껴지는 맥상을 선택해주세요. 복합맥(예: 현활맥)의 경우 해당하는 것을 모두 선택합니다.
+          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+            <p className="text-slate-700 text-sm">
+              진맥에서 느껴지는 맥상을 선택해주세요. 복합맥은 여러 개 선택 가능합니다. 확실하지 않으면 건너뛸 수 있습니다.
             </p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4">맥상 선택</h3>
+            <h3 className="font-bold text-gray-900 mb-4">맥상 선택 <span className="text-sm font-normal text-gray-400">(복수 선택 가능)</span></h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {pulseTypes.map((pulse) => (
                 <button
@@ -1053,13 +1053,13 @@ export default function PatternDiagnosisPage() {
                   className={cn(
                     'p-4 rounded-xl text-left transition-all',
                     selectedPulses.includes(pulse.id)
-                      ? 'bg-purple-100 border-2 border-purple-500'
+                      ? 'bg-slate-100 border-2 border-slate-600'
                       : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     {selectedPulses.includes(pulse.id) ? (
-                      <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                      <CheckCircle2 className="h-4 w-4 text-slate-600" />
                     ) : (
                       <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                     )}
@@ -1078,22 +1078,30 @@ export default function PatternDiagnosisPage() {
             >
               ← 이전
             </button>
-            <button
-              onClick={() => setStep('tongue')}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors"
-            >
-              다음: 설진 입력
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setStep('tongue')}
+                className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+              >
+                건너뛰기
+              </button>
+              <button
+                onClick={() => setStep('tongue')}
+                className="flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors"
+              >
+                다음: 설진 입력
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {step === 'tongue' && (
         <div className="space-y-6">
-          <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
-            <p className="text-purple-700 text-sm">
-              💡 혀의 상태를 관찰하여 해당하는 특징을 선택해주세요.
+          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+            <p className="text-slate-700 text-sm">
+              혀의 상태를 관찰하여 해당하는 특징을 선택해주세요. 확인이 어려우면 건너뛸 수 있습니다.
             </p>
           </div>
 
@@ -1111,13 +1119,13 @@ export default function PatternDiagnosisPage() {
                     className={cn(
                       'p-3 rounded-xl text-left transition-all',
                       selectedTongue.includes(option.id)
-                        ? 'bg-purple-100 border-2 border-purple-500'
+                        ? 'bg-slate-100 border-2 border-slate-600'
                         : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
                     )}
                   >
                     <div className="flex items-center gap-2">
                       {selectedTongue.includes(option.id) ? (
-                        <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                        <CheckCircle2 className="h-4 w-4 text-slate-600" />
                       ) : (
                         <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
                       )}
@@ -1136,21 +1144,29 @@ export default function PatternDiagnosisPage() {
             >
               ← 이전
             </button>
-            <button
-              onClick={() => setStep('palgang')}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors"
-            >
-              다음: 팔강변증
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setStep('palgang')}
+                className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors font-medium"
+              >
+                건너뛰기
+              </button>
+              <button
+                onClick={() => setStep('palgang')}
+                className="flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors"
+              >
+                다음: 팔강변증
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {step === 'palgang' && (
         <div className="space-y-6">
-          <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4">
-            <p className="text-purple-700 text-sm">
+          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+            <p className="text-slate-700 text-sm">
               💡 수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. AI가 자동으로 분석하거나 직접 선택할 수 있습니다.
             </p>
           </div>
@@ -1187,7 +1203,7 @@ export default function PatternDiagnosisPage() {
             <button
               onClick={analyzePatterns}
               disabled={analyzing}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl font-medium hover:shadow-lg transition-all"
             >
               {analyzing ? (
                 <>
@@ -1223,10 +1239,10 @@ export default function PatternDiagnosisPage() {
           <AIResultDisclaimer />
 
           {/* Main Result */}
-          <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-purple-200 text-sm mb-1">AI 변증 결과</p>
+                <p className="text-slate-200 text-sm mb-1">AI 변증 결과</p>
                 <h2 className="text-3xl font-bold">
                   {results[0].pattern} ({results[0].hanja})
                 </h2>
@@ -1235,7 +1251,7 @@ export default function PatternDiagnosisPage() {
                 일치도 {results[0].confidence}%
               </div>
             </div>
-            <p className="text-purple-100 mb-4">{results[0].description}</p>
+            <p className="text-slate-100 mb-4">{results[0].description}</p>
             <div className="flex flex-wrap gap-2">
               <span className="px-3 py-1 bg-white/20 rounded-lg text-sm">
                 <Flame className="h-3 w-3 inline mr-1" />
@@ -1250,20 +1266,20 @@ export default function PatternDiagnosisPage() {
           {/* Recommended Formulas */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Pill className="h-5 w-5 text-purple-500" />
+              <Pill className="h-5 w-5 text-slate-600" />
               추천 처방 <span className="text-xs font-normal text-gray-500">(참고용)</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {results[0].formulas.map((formula, index) => (
                 <div
                   key={formula}
-                  className="p-4 bg-purple-50 rounded-xl border border-purple-100"
+                  className="p-4 bg-slate-50 rounded-xl border border-slate-100"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-purple-200 text-purple-700 rounded-full flex items-center justify-center text-sm font-bold">
+                    <span className="w-6 h-6 bg-slate-200 text-slate-700 rounded-full flex items-center justify-center text-sm font-bold">
                       {index + 1}
                     </span>
-                    <span className="font-bold text-purple-900">{formula}</span>
+                    <span className="font-bold text-slate-900">{formula}</span>
                   </div>
                 </div>
               ))}
@@ -1331,7 +1347,7 @@ export default function PatternDiagnosisPage() {
                 </div>
                 <div className={cn(
                   'p-4 rounded-xl',
-                  bodyConstitution.bodyStrength === 'deficient' ? 'bg-purple-50 border border-purple-200' :
+                  bodyConstitution.bodyStrength === 'deficient' ? 'bg-slate-50 border border-slate-200' :
                   bodyConstitution.bodyStrength === 'excess' ? 'bg-green-50 border border-green-200' :
                   'bg-gray-50 border border-gray-200'
                 )}>
@@ -1353,7 +1369,7 @@ export default function PatternDiagnosisPage() {
           {palGangAnalysis && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Scale className="h-5 w-5 text-purple-500" />
+                <Scale className="h-5 w-5 text-slate-600" />
                 팔강변증 분석
               </h3>
               <PalGangSummary analysis={palGangAnalysis} />
@@ -1414,7 +1430,7 @@ export default function PatternDiagnosisPage() {
             <button
               onClick={saveToChart}
               disabled={isSavingToChart}
-              className="flex-1 py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-slate-600 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSavingToChart ? (
                 <>

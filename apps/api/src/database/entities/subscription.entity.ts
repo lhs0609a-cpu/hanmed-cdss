@@ -110,6 +110,14 @@ export class Subscription {
   @Column({ type: 'boolean', default: false })
   trialEndingNotified: boolean;
 
+  /** 추가 메타데이터 (알림 상태 등) */
+  @Column({ type: 'json', nullable: true })
+  metadata: {
+    todayNotified?: boolean;
+    followUpSent?: boolean;
+    [key: string]: unknown;
+  } | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

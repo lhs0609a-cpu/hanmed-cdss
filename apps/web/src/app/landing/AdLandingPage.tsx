@@ -21,6 +21,7 @@ import {
   Lightbulb,
   X,
 } from 'lucide-react'
+import { BASE_STATS, formatStatNumber, formatStatApprox } from '@/config/stats.config'
 
 // UTM 파라미터 추적
 function useUTMTracking() {
@@ -110,7 +111,7 @@ const comparisonData = {
     '3분 만에 최적 처방 추천',
     '데이터 기반 확신 있는 처방',
     '근거 자료로 명확한 설명',
-    'AI가 6,000건 치험례 즉시 검색',
+    `AI가 ${formatStatNumber(BASE_STATS.cases)} 치험례 즉시 검색`,
     '40년 임상 경험 즉시 활용',
   ],
 }
@@ -182,7 +183,7 @@ export default function AdLandingPage() {
 
               {/* Subheadline */}
               <p className="text-xl text-gray-600 leading-relaxed">
-                6,000건의 치험례를 학습한 AI가<br />
+                {formatStatNumber(BASE_STATS.cases)}의 치험례를 학습한 AI가<br />
                 <strong className="text-gray-900">3분 만에 최적의 처방</strong>을 추천합니다.
               </p>
 
@@ -275,7 +276,7 @@ export default function AdLandingPage() {
                     <BookOpen className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">6,000+</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatStatNumber(BASE_STATS.cases)}</p>
                     <p className="text-sm text-gray-500">치험례 데이터</p>
                   </div>
                 </div>
@@ -306,7 +307,7 @@ export default function AdLandingPage() {
               </div>
               <div className="text-center">
                 <p className="text-3xl md:text-4xl font-bold text-gray-900">
-                  <AnimatedCounter end={6000} suffix="+" />
+                  <AnimatedCounter end={BASE_STATS.cases} suffix="+" />
                 </p>
                 <p className="text-gray-500 mt-1">치험례 데이터</p>
               </div>
@@ -417,7 +418,7 @@ export default function AdLandingPage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">AI 처방 추천</h3>
               <p className="text-gray-600 mb-6">
-                증상을 입력하면 6,000건의 치험례를 분석해 <strong>3분 만에 최적의 처방</strong>을 추천합니다.
+                증상을 입력하면 {formatStatNumber(BASE_STATS.cases)}의 치험례를 분석해 <strong>3분 만에 최적의 처방</strong>을 추천합니다.
               </p>
               <ul className="space-y-3">
                 {['신뢰도 점수 표시', '군신좌사 구성 설명', '가감법 자동 추천'].map((item, i) => (
@@ -439,7 +440,7 @@ export default function AdLandingPage() {
                 유사한 증례를 <strong>즉시 검색</strong>하고 선배 한의사들의 처방 경험을 참고하세요.
               </p>
               <ul className="space-y-3">
-                {['6,000+ 실제 치험례', '증상별 자동 매칭', '처방 성공률 확인'].map((item, i) => (
+                {[`${formatStatNumber(BASE_STATS.cases)} 실제 치험례`, '증상별 자동 매칭', '처방 성공률 확인'].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-gray-700">
                     <CheckCircle className="h-5 w-5 text-blue-500" />
                     {item}
@@ -606,7 +607,7 @@ export default function AdLandingPage() {
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   {[
                     'AI 쿼리 월 300회',
-                    '6,000+ 치험례 검색',
+                    `${formatStatNumber(BASE_STATS.cases)} 치험례 검색`,
                     '한약-양약 상호작용 검사',
                     '처방 근거 문서화',
                     '환자 관리 시스템',
@@ -648,7 +649,7 @@ export default function AdLandingPage() {
             {[
               {
                 q: 'AI가 추천하는 처방을 신뢰할 수 있나요?',
-                a: 'AI는 40년 이상 임상 경험을 가진 한의사의 6,000건 이상 치험례를 학습했습니다. 92%의 처방 일치율을 보이며, 최종 처방 결정은 항상 의료인의 전문적 판단에 따릅니다.',
+                a: `AI는 40년 이상 임상 경험을 가진 한의사의 ${formatStatApprox(BASE_STATS.cases)} 치험례를 학습했습니다. 92%의 처방 일치율을 보이며, 최종 처방 결정은 항상 의료인의 전문적 판단에 따릅니다.`,
               },
               {
                 q: '무료 체험 기간 동안 모든 기능을 사용할 수 있나요?',

@@ -684,46 +684,86 @@ export class TossPaymentsService {
     }
   }
 
-  // 사용량 추적
+  // 사용량 추적 (트랜잭션 + 락으로 race condition 방지)
   async trackUsage(userId: string, usageType: UsageType): Promise<boolean> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) return false;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-    let usage = await this.usageRepository.findOne({
-      where: { userId, usageType, periodStart },
-    });
-
-    if (!usage) {
-      usage = this.usageRepository.create({
-        userId,
-        usageType,
-        count: 0,
-        periodStart,
-        periodEnd,
+    try {
+      // 1. 사용자 조회 (락 적용)
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id: userId },
+        lock: { mode: 'pessimistic_read' },
       });
-    }
+      if (!user) {
+        await queryRunner.rollbackTransaction();
+        return false;
+      }
 
-    // 무료 체험 중인지 확인
-    const trialSubscription = await this.subscriptionRepository.findOne({
-      where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
-    });
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // 체험 중이면 TRIAL_AI_LIMIT(30건) 적용, 아니면 플랜별 제한 적용
-    const limit = trialSubscription
-      ? TRIAL_CONFIG.TRIAL_AI_LIMIT
-      : PLAN_LIMITS[user.subscriptionTier];
+      // 2. 사용량 조회 (비관적 락 - FOR UPDATE)
+      let usage = await queryRunner.manager.findOne(UsageTracking, {
+        where: { userId, usageType, periodStart },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    if (usageType === UsageType.AI_QUERY && usage.count >= limit) {
+      if (!usage) {
+        // 새 레코드 생성 시에도 트랜잭션 내에서 처리
+        usage = queryRunner.manager.create(UsageTracking, {
+          userId,
+          usageType,
+          count: 0,
+          periodStart,
+          periodEnd,
+        });
+        await queryRunner.manager.save(UsageTracking, usage);
+
+        // 저장 후 다시 락을 걸어 조회
+        usage = await queryRunner.manager.findOne(UsageTracking, {
+          where: { userId, usageType, periodStart },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!usage) {
+          await queryRunner.rollbackTransaction();
+          return false;
+        }
+      }
+
+      // 3. 무료 체험 중인지 확인
+      const trialSubscription = await queryRunner.manager.findOne(Subscription, {
+        where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
+      });
+
+      // 4. 제한 계산 (체험 중이면 TRIAL_AI_LIMIT, 아니면 플랜별 제한)
+      const limit = trialSubscription
+        ? TRIAL_CONFIG.TRIAL_AI_LIMIT
+        : PLAN_LIMITS[user.subscriptionTier];
+
+      // 5. 제한 체크 (락이 걸린 상태에서 정확한 값 체크)
+      if (usageType === UsageType.AI_QUERY && usage.count >= limit) {
+        await queryRunner.rollbackTransaction();
+        return false;
+      }
+
+      // 6. 사용량 증가 및 저장
+      usage.count += 1;
+      await queryRunner.manager.save(UsageTracking, usage);
+
+      // 7. 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+      return true;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`사용량 추적 실패: userId=${userId}, usageType=${usageType}`, error);
       return false;
+    } finally {
+      await queryRunner.release();
     }
-
-    usage.count += 1;
-    await this.usageRepository.save(usage);
-    return true;
   }
 
   // 사용량 조회
@@ -1117,21 +1157,21 @@ export class TossPaymentsService {
   }
 
   /**
-   * 체험 종료 2일 전 알림 처리 (크론잡에서 호출)
+   * 체험 종료 3일 전 알림 처리 (크론잡에서 호출)
    */
   async sendTrialEndingNotifications(): Promise<void> {
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
     const twoDaysFromNow = new Date();
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // 2일 이내에 만료되는 체험 중 알림 미발송건
+    // 3일 이내에 만료되는 체험 중 알림 미발송건
     const expiringTrials = await this.subscriptionRepository.find({
       where: {
         status: SubscriptionStatus.TRIALING,
         isTrial: true,
-        trialEndsAt: LessThanOrEqual(twoDaysFromNow),
+        trialEndsAt: LessThanOrEqual(threeDaysFromNow),
         trialEndingNotified: false,
       },
     });
@@ -1150,7 +1190,7 @@ export class TossPaymentsService {
       trial.trialEndingNotified = true;
       await this.subscriptionRepository.save(trial);
 
-      // 체험 종료 임박 알림 이메일 발송
+      // 체험 종료 임박 알림 이메일 발송 (3일 전)
       await this.emailService.sendTrialEndingEmail(
         user.email,
         user.name,
@@ -1158,7 +1198,95 @@ export class TossPaymentsService {
         trial.trialEndsAt,
       );
 
-      this.logger.log(`체험 종료 임박 알림: userId=${trial.userId}, endsAt=${trial.trialEndsAt}`);
+      this.logger.log(`체험 종료 3일 전 알림: userId=${trial.userId}, endsAt=${trial.trialEndsAt}`);
+    }
+  }
+
+  /**
+   * 체험 종료 당일 알림 처리 (크론잡에서 호출)
+   */
+  async sendTrialEndingTodayNotifications(): Promise<void> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    // 오늘 만료되는 체험 (별도 플래그로 관리)
+    const expiringTodayTrials = await this.subscriptionRepository
+      .createQueryBuilder('subscription')
+      .where('subscription.status = :status', { status: SubscriptionStatus.TRIALING })
+      .andWhere('subscription.isTrial = :isTrial', { isTrial: true })
+      .andWhere('subscription.trialEndsAt BETWEEN :todayStart AND :todayEnd', { todayStart, todayEnd })
+      .andWhere('(subscription.metadata IS NULL OR JSON_EXTRACT(subscription.metadata, "$.todayNotified") IS NULL)')
+      .getMany();
+
+    for (const trial of expiringTodayTrials) {
+      const user = await this.userRepository.findOne({ where: { id: trial.userId } });
+      if (!user) continue;
+
+      // 당일 알림 발송 기록
+      trial.metadata = { ...trial.metadata, todayNotified: true };
+      await this.subscriptionRepository.save(trial);
+
+      // 체험 종료 당일 이메일 발송
+      await this.emailService.sendTrialEndingTodayEmail(user.email, user.name);
+
+      this.logger.log(`체험 종료 당일 알림: userId=${trial.userId}`);
+    }
+  }
+
+  /**
+   * 체험 종료 후 3일 팔로업 알림 처리 (크론잡에서 호출)
+   */
+  async sendTrialFollowUpNotifications(): Promise<void> {
+    const now = new Date();
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const fourDaysAgo = new Date(now);
+    fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+
+    // 3일 전에 만료된 체험 (아직 유료 전환 안 함)
+    const expiredTrials = await this.subscriptionRepository.find({
+      where: {
+        status: SubscriptionStatus.CANCELED,
+        isTrial: true,
+        trialConverted: false,
+        canceledAt: MoreThan(fourDaysAgo),
+      },
+    });
+
+    for (const trial of expiredTrials) {
+      // 이미 팔로업 발송했는지 확인
+      if (trial.metadata?.followUpSent) continue;
+
+      const user = await this.userRepository.findOne({ where: { id: trial.userId } });
+      if (!user) continue;
+
+      // 현재 유료 구독 중인지 확인 (이미 전환했으면 스킵)
+      const activeSubscription = await this.subscriptionRepository.findOne({
+        where: { userId: trial.userId, status: SubscriptionStatus.ACTIVE },
+      });
+      if (activeSubscription) continue;
+
+      // 체험 기간 AI 사용량 조회
+      const periodStart = new Date(trial.trialStartedAt || trial.createdAt);
+      const aiUsage = await this.usageRepository.findOne({
+        where: { userId: trial.userId, usageType: UsageType.AI_QUERY },
+        order: { createdAt: 'DESC' },
+      });
+
+      // 팔로업 발송 기록
+      trial.metadata = { ...trial.metadata, followUpSent: true };
+      await this.subscriptionRepository.save(trial);
+
+      // 팔로업 이메일 발송
+      await this.emailService.sendTrialFollowUpEmail(
+        user.email,
+        user.name,
+        aiUsage?.count || 0,
+      );
+
+      this.logger.log(`체험 종료 3일 후 팔로업 알림: userId=${trial.userId}`);
     }
   }
 

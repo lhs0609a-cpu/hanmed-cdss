@@ -4,8 +4,11 @@ import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { ThemeToggle, GlossaryButton, KeyboardHint } from '@/components/common'
+import { SessionWarningDialog } from '@/components/common/SessionWarningDialog'
 import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useAppStats } from '@/hooks/useAppStats'
+import { useSessionManager } from '@/hooks/useSessionManager'
 import {
   LayoutDashboard,
   Stethoscope,
@@ -177,6 +180,38 @@ export default function DashboardLayout() {
   const [searchQuery, setSearchQuery] = useState('')
   const { shouldShowOnboarding } = useOnboardingStatus()
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const appStats = useAppStats()
+  const {
+    isSessionWarningVisible,
+    warningSecondsLeft,
+    isRefreshing,
+    dismissWarning,
+    handleSessionExpired,
+  } = useSessionManager()
+
+  // 동적으로 메뉴 섹션 생성 (치험례 수 반영)
+  const dynamicMenuSections = useMemo(() => {
+    return menuSections.map(section => {
+      if (section.id === 'main') {
+        return {
+          ...section,
+          items: section.items.map(item => {
+            if (item.href === '/dashboard/cases') {
+              return { ...item, description: `${appStats.formatted.totalCases} 검색` }
+            }
+            return item
+          })
+        }
+      }
+      return section
+    })
+  }, [appStats.formatted.totalCases])
+
+  const allDynamicMenuItems = useMemo(() =>
+    dynamicMenuSections.flatMap((section) =>
+      section.items.map((item) => ({ ...item, sectionId: section.id }))
+    ), [dynamicMenuSections]
+  )
 
   // 온보딩 표시 여부 결정 (게스트 모드가 아닌 신규 사용자)
   useEffect(() => {
@@ -187,24 +222,24 @@ export default function DashboardLayout() {
 
   // 페이지 방문 기록
   useEffect(() => {
-    const currentItem = allMenuItems.find((item) => item.href === location.pathname)
+    const currentItem = allDynamicMenuItems.find((item) => item.href === location.pathname)
     if (currentItem) {
       addRecentPage(currentItem.href, currentItem.name)
     }
-  }, [location.pathname, addRecentPage])
+  }, [location.pathname, addRecentPage, allDynamicMenuItems])
 
   // 즐겨찾기 아이템
-  const favoriteItems = allMenuItems.filter((item) => favorites.includes(item.href))
+  const favoriteItems = allDynamicMenuItems.filter((item) => favorites.includes(item.href))
 
   // 최근 방문 아이템 (최대 5개)
   const recentItems = recentPages
     .slice(0, 5)
-    .map((recent) => allMenuItems.find((item) => item.href === recent.href))
+    .map((recent) => allDynamicMenuItems.find((item) => item.href === recent.href))
     .filter(Boolean) as (MenuItem & { sectionId: string })[]
 
   // 검색 필터링
   const filteredSections = searchQuery
-    ? menuSections
+    ? dynamicMenuSections
         .map((section) => ({
           ...section,
           items: section.items.filter(
@@ -214,7 +249,7 @@ export default function DashboardLayout() {
           ),
         }))
         .filter((section) => section.items.length > 0)
-    : menuSections
+    : dynamicMenuSections
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
@@ -225,6 +260,15 @@ export default function DashboardLayout() {
           onSkip={() => setShowOnboarding(false)}
         />
       )}
+
+      {/* 세션 만료 경고 다이얼로그 */}
+      <SessionWarningDialog
+        isVisible={isSessionWarningVisible}
+        secondsLeft={warningSecondsLeft}
+        isRefreshing={isRefreshing}
+        onExtend={dismissWarning}
+        onLogout={handleSessionExpired}
+      />
 
       {/* Skip to content link for keyboard users */}
       <a
@@ -426,7 +470,7 @@ export default function DashboardLayout() {
             {/* Menu Sections */}
             {filteredSections.map((section) => {
               const isCollapsed = collapsedSections.includes(section.id)
-              const sectionColor = section.id === 'core' ? 'purple' : section.id === 'theory' ? 'amber' : 'teal'
+              const sectionColor = section.id === 'core' ? 'slate' : section.id === 'theory' ? 'amber' : 'teal'
 
               return (
                 <div key={section.id} className="mb-2">
@@ -714,24 +758,24 @@ function MenuItemComponent({
   isFavorite: boolean
   onToggleFavorite: () => void
   onClick?: () => void
-  sectionColor?: 'teal' | 'purple' | 'amber'
+  sectionColor?: 'teal' | 'slate' | 'amber'
   isRecent?: boolean
 }) {
   const gradients = {
     teal: 'from-teal-500 to-emerald-500',
-    purple: 'from-purple-500 to-pink-500',
+    slate: 'from-slate-600 to-slate-700',
     amber: 'from-amber-500 to-orange-500',
   }
 
   const hoverBg = {
     teal: 'hover:bg-gray-100/80',
-    purple: 'hover:bg-purple-50',
+    slate: 'hover:bg-slate-50',
     amber: 'hover:bg-amber-50',
   }
 
   const iconColors = {
     teal: 'text-gray-400',
-    purple: 'text-purple-400',
+    slate: 'text-slate-400',
     amber: 'text-amber-500',
   }
 
@@ -763,7 +807,7 @@ function MenuItemComponent({
                   : item.badge === 'HOT'
                   ? 'bg-red-100 text-red-700'
                   : item.badge === 'AI'
-                  ? 'bg-purple-100 text-purple-700'
+                  ? 'bg-slate-100 text-slate-700'
                   : 'bg-teal-100 text-teal-700'
               )}>
                 {item.badge}

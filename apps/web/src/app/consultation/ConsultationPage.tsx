@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import {
   Plus,
   X,
@@ -207,6 +208,7 @@ const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
 
 export default function ConsultationPage() {
   useSEO(PAGE_SEO.consultation)
+  const location = useLocation()
 
   const { showHanja } = useHanjaSettings()
   const { toast } = useToast()
@@ -257,6 +259,42 @@ export default function ConsultationPage() {
   // 문서화 모달
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [documentFormula, setDocumentFormula] = useState<Recommendation | null>(null)
+
+  // 대시보드에서 자연어 검색으로 넘어온 경우 자동 채움 + 즉시 분석
+  const [autoSubmitDone, setAutoSubmitDone] = useState(false)
+
+  // 대시보드 자연어 검색에서 넘어온 데이터 자동 채움
+  useEffect(() => {
+    const state = location.state as {
+      naturalQuery?: string
+      parsedAge?: number
+      parsedGender?: 'male' | 'female'
+      parsedConstitution?: string
+      parsedSymptoms?: string[]
+      autoSubmit?: boolean
+    } | null
+
+    if (state?.naturalQuery && !autoSubmitDone) {
+      // 빠른 모드로 전환
+      setInputMode('quick')
+
+      // 증상을 주소증에 자동 입력
+      const complaintText = state.parsedSymptoms?.join(', ') || state.naturalQuery
+      setChiefComplaint(complaintText)
+
+      // 증상 태그 추가
+      if (state.parsedSymptoms) {
+        setSymptoms(state.parsedSymptoms.map(s => ({ name: s, severity: 5 })))
+      }
+
+      // 체질 설정
+      if (state.parsedConstitution) {
+        setConstitution(state.parsedConstitution)
+      }
+
+      setAutoSubmitDone(true)
+    }
+  }, [location.state, autoSubmitDone])
 
   // Fetch similar cases when recommendations are loaded
   useEffect(() => {
@@ -635,8 +673,8 @@ export default function ConsultationPage() {
                       onClick={() => setConstitution(c)}
                       className={`px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
                         constitution === c
-                          ? 'bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/20'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:bg-violet-50'
+                          ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       {c || '미상'}
@@ -825,12 +863,12 @@ export default function ConsultationPage() {
           {wizardStep === 3 && (
             <div className="space-y-6" data-tour="analyze-button">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg shadow-purple-500/20 animate-pulse">
+                <div className="p-3 bg-gradient-to-br from-slate-600 to-slate-500 rounded-2xl shadow-lg shadow-slate-600/20 animate-pulse">
                   <Stethoscope className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">AI 분석 중</h2>
-                  <p className="text-sm text-gray-500">6,000건의 치험례를 분석하고 있습니다</p>
+                  <p className="text-sm text-gray-500">{formatStatNumber(BASE_STATS.cases)}의 치험례를 분석하고 있습니다</p>
                 </div>
               </div>
 
@@ -878,7 +916,7 @@ export default function ConsultationPage() {
                   {constitution && (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">체질:</span>
-                      <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded">{constitution}</span>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded">{constitution}</span>
                     </div>
                   )}
                   <div className="flex items-start gap-2">
@@ -922,40 +960,117 @@ export default function ConsultationPage() {
                 </div>
               )}
 
-              {/* 처방 목록 (간략) */}
-              <div className="space-y-3">
-                {recommendations.slice(0, 3).map((rec, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
-                      index === 0
-                        ? 'border-teal-300 bg-teal-50/50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                    onClick={() => openDetailModal(rec)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {index === 0 && (
-                          <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">
-                            BEST
-                          </span>
-                        )}
-                        <span className="font-bold text-gray-900">{rec.formula_name}</span>
-                      </div>
-                      <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
-                        rec.confidence_score >= 0.9
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : rec.confidence_score >= 0.7
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-gray-100 text-gray-700'
+              {/* 처방 목록 (근거 포함) */}
+              <div className="space-y-4">
+                {recommendations.slice(0, 3).map((rec, index) => {
+                  const detail = formulaDetails[rec.formula_name]
+                  return (
+                    <div
+                      key={index}
+                      className={`rounded-xl border-2 transition-all overflow-hidden ${
+                        index === 0
+                          ? 'border-teal-300 bg-white shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      {/* 헤더: 처방명 + 신뢰도 */}
+                      <div className={`px-4 py-3 flex items-center justify-between ${
+                        index === 0 ? 'bg-teal-50/70' : 'bg-gray-50/50'
                       }`}>
-                        {(rec.confidence_score * 100).toFixed(0)}%
-                      </span>
+                        <div className="flex items-center gap-3">
+                          {index === 0 && (
+                            <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">
+                              BEST
+                            </span>
+                          )}
+                          <span className="font-bold text-gray-900 text-lg">{rec.formula_name}</span>
+                          {detail && (
+                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
+                              {detail.source}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-lg text-sm font-bold ${
+                          rec.confidence_score >= 0.9
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : rec.confidence_score >= 0.7
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {(rec.confidence_score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+
+                      {/* 근거 본문 */}
+                      <div className="px-4 py-3 space-y-3">
+                        {/* AI 추천 근거 */}
+                        <p className="text-sm text-gray-700 leading-relaxed">{rec.rationale}</p>
+
+                        {detail && (
+                          <>
+                            {/* 병기 설명 - 왜 이 처방이 필요한지 */}
+                            <div className="bg-slate-50 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Brain className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+                                <div>
+                                  <span className="text-xs font-semibold text-slate-600">병기(病機)</span>
+                                  <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{detail.pathogenesis}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 적응증 */}
+                            <div className="bg-blue-50/60 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <FileText className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                                <div>
+                                  <span className="text-xs font-semibold text-blue-600">적응증</span>
+                                  <p className="text-sm text-gray-600 mt-0.5">{detail.indication}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* 구성 약재 요약 */}
+                        {rec.herbs.length > 0 && (
+                          <div className="flex items-start gap-2">
+                            <Beaker className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {rec.herbs.slice(0, 6).map((herb, i) => {
+                                const herbInfo = HERB_INFO[herb.name]
+                                return (
+                                  <span
+                                    key={i}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                                      roleColors[herb.role] || 'bg-gray-100 text-gray-700 border-gray-200'
+                                    } border`}
+                                    title={herbInfo ? `${herbInfo.hanja} - ${herbInfo.meaning}` : herb.role}
+                                  >
+                                    {herb.name}
+                                    <span className="opacity-60">{herb.amount}</span>
+                                  </span>
+                                )
+                              })}
+                              {rec.herbs.length > 6 && (
+                                <span className="text-xs text-gray-400 self-center">+{rec.herbs.length - 6}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 상세보기 버튼 */}
+                        <button
+                          onClick={() => openDetailModal(rec)}
+                          className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 pt-1"
+                        >
+                          가감법·금기·현대응용 더보기
+                          <ChevronRight className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">{rec.rationale}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* 네비게이션 */}
@@ -1083,9 +1198,9 @@ export default function ConsultationPage() {
                       role="radio"
                       aria-checked={constitution === c}
                       aria-label={c || '체질 미상'}
-                      className={`px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-600/50 ${
                         constitution === c
-                          ? 'bg-violet-500 text-white'
+                          ? 'bg-slate-600 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -1296,8 +1411,8 @@ export default function ConsultationPage() {
               aria-controls="advanced-options-panel"
             >
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-purple-100 rounded-xl" aria-hidden="true">
-                  <Settings2 className="h-5 w-5 text-purple-600" />
+                <div className="p-2 bg-slate-100 rounded-xl" aria-hidden="true">
+                  <Settings2 className="h-5 w-5 text-slate-700" />
                 </div>
                 <div className="text-left">
                   <h2 className="font-bold text-gray-900">분석 옵션</h2>
@@ -1349,8 +1464,8 @@ export default function ConsultationPage() {
                       onClick={() => setPreferredSchool('sasang')}
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'sasang'
-                          ? 'bg-violet-600 text-white border-violet-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-violet-50'
+                          ? 'bg-slate-700 text-white border-slate-700'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-slate-50'
                       }`}
                     >
                       <Users className="h-4 w-4" />
@@ -1458,7 +1573,7 @@ export default function ConsultationPage() {
 
               {/* 유사 환자 통계 - 신뢰도 강화 */}
               <SimilarPatientStats
-                totalCases={similarCases.length > 0 ? Math.max(similarCases.length * 150, 450) : 4300}
+                totalCases={similarCases.length > 0 ? Math.max(similarCases.length * 150, 450) : 6000}
                 avgConfidence={Math.round(
                   recommendations.length > 0
                     ? (recommendations.reduce((sum, r) => sum + r.confidence_score, 0) / recommendations.length) * 100
@@ -1508,6 +1623,11 @@ export default function ConsultationPage() {
                               </span>
                             )}
                             <h3 className="font-bold text-lg text-gray-900">{rec.formula_name}</h3>
+                            {formulaDetails[rec.formula_name] && (
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                                {formulaDetails[rec.formula_name].source}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
@@ -1559,6 +1679,30 @@ export default function ConsultationPage() {
                       <div className="pt-3 border-t border-gray-100">
                         <p className="text-sm text-gray-600 leading-relaxed">{rec.rationale}</p>
                       </div>
+
+                      {/* 병기·적응증 근거 */}
+                      {formulaDetails[rec.formula_name] && (
+                        <div className="mt-3 space-y-2">
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <Brain className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+                              <div>
+                                <span className="text-xs font-semibold text-slate-600">병기(病機)</span>
+                                <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{formulaDetails[rec.formula_name].pathogenesis}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-blue-50/60 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                              <div>
+                                <span className="text-xs font-semibold text-blue-600">적응증</span>
+                                <p className="text-sm text-gray-600 mt-0.5">{formulaDetails[rec.formula_name].indication}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Similar Patient Stat Highlight */}
                       {index < 2 && (
@@ -1706,7 +1850,7 @@ export default function ConsultationPage() {
                 </h3>
                 <p className="text-gray-500 max-w-sm mx-auto">
                   환자의 주소증과 증상을 입력하면<br />
-                  6,000건의 치험례를 분석하여 최적의 처방을 추천합니다
+                  {formatStatNumber(BASE_STATS.cases)}의 치험례를 분석하여 최적의 처방을 추천합니다
                 </p>
               </div>
             </div>
@@ -1786,10 +1930,10 @@ export default function ConsultationPage() {
                   {/* 병기 */}
                   <div>
                     <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-purple-500" />
+                      <Brain className="h-5 w-5 text-slate-600" />
                       병기 설명
                     </h3>
-                    <p className="text-gray-700 bg-purple-50 p-4 rounded-xl leading-relaxed">
+                    <p className="text-gray-700 bg-slate-50 p-4 rounded-xl leading-relaxed">
                       {formulaDetails[selectedFormula.formula_name].pathogenesis}
                     </p>
                   </div>

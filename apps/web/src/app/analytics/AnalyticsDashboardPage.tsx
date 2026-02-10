@@ -44,21 +44,23 @@ export default function AnalyticsDashboardPage() {
     endDate: new Date().toISOString().split('T')[0],
   });
 
-  const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
+  const { data: metrics, isLoading: metricsLoading, isError: metricsError } = useDashboardMetrics();
   const { data: trends } = useTrends(dateRange.startDate, dateRange.endDate, 'day');
   const { data: benchmark } = useBenchmark();
   const { data: patterns } = usePrescriptionPatterns();
   const { data: topFormulas } = useTopItems('formulas', 10);
   const { data: todayActivity } = useTodayActivity();
 
-  const formatChange = (change: number) => {
-    const sign = change >= 0 ? '+' : '';
-    return `${sign}${change.toFixed(1)}%`;
+  const formatChange = (change: number | undefined | null) => {
+    const val = change ?? 0;
+    const sign = val >= 0 ? '+' : '';
+    return `${sign}${val.toFixed(1)}%`;
   };
 
-  const getChangeColor = (change: number) => {
-    if (change > 0) return 'text-green-600';
-    if (change < 0) return 'text-red-600';
+  const getChangeColor = (change: number | undefined | null) => {
+    const val = change ?? 0;
+    if (val > 0) return 'text-green-600';
+    if (val < 0) return 'text-red-600';
     return 'text-gray-500';
   };
 
@@ -69,6 +71,28 @@ export default function AnalyticsDashboardPage() {
       </div>
     );
   }
+
+  if (metricsError || !metrics) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 text-center">
+        <BarChart3 className="w-12 h-12 text-gray-300 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">데이터를 불러올 수 없습니다</h3>
+        <p className="text-gray-500 mb-4">진료 성과 데이터를 가져오는 중 문제가 발생했습니다.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+        >
+          <RefreshCw className="w-4 h-4" />
+          새로고침
+        </button>
+      </div>
+    );
+  }
+
+  // 안전한 데이터 접근을 위한 기본값
+  const overview = metrics.overview ?? {};
+  const returnRate = metrics.returnRate ?? {};
+  const aiUsage = metrics.aiUsage ?? {};
 
   return (
     <div className="space-y-6">
@@ -108,12 +132,12 @@ export default function AnalyticsDashboardPage() {
             <div className="p-3 bg-blue-100 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
             </div>
-            <span className={`text-sm font-medium ${getChangeColor(metrics?.overview.totalPatientsChange || 0)}`}>
-              {formatChange(metrics?.overview.totalPatientsChange || 0)}
+            <span className={`text-sm font-medium ${getChangeColor(overview.totalPatientsChange)}`}>
+              {formatChange(overview.totalPatientsChange)}
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-bold">{metrics?.overview.totalPatients.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{(overview.totalPatients ?? 0).toLocaleString()}</p>
             <p className="text-gray-500 text-sm">총 환자 수</p>
           </div>
         </div>
@@ -123,12 +147,12 @@ export default function AnalyticsDashboardPage() {
             <div className="p-3 bg-green-100 rounded-lg">
               <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
-            <span className={`text-sm font-medium ${getChangeColor((metrics?.returnRate.current || 0) - (metrics?.returnRate.previous || 0))}`}>
-              {metrics?.returnRate.trend === 'up' ? '↑' : metrics?.returnRate.trend === 'down' ? '↓' : '→'}
+            <span className={`text-sm font-medium ${getChangeColor((returnRate.current ?? 0) - (returnRate.previous ?? 0))}`}>
+              {returnRate.trend === 'up' ? '↑' : returnRate.trend === 'down' ? '↓' : '→'}
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-bold">{metrics?.returnRate.current.toFixed(1)}%</p>
+            <p className="text-2xl font-bold">{(returnRate.current ?? 0).toFixed(1)}%</p>
             <p className="text-gray-500 text-sm">재방문율</p>
           </div>
         </div>
@@ -139,11 +163,11 @@ export default function AnalyticsDashboardPage() {
               <Target className="w-6 h-6 text-purple-600" />
             </div>
             <span className="text-sm font-medium text-green-600">
-              {metrics?.aiUsage.acceptanceRate.toFixed(0)}%
+              {(aiUsage.acceptanceRate ?? 0).toFixed(0)}%
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-bold">{metrics?.aiUsage.totalRecommendations.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{(aiUsage.totalRecommendations ?? 0).toLocaleString()}</p>
             <p className="text-gray-500 text-sm">AI 추천 활용</p>
           </div>
         </div>
@@ -153,12 +177,12 @@ export default function AnalyticsDashboardPage() {
             <div className="p-3 bg-amber-100 rounded-lg">
               <Activity className="w-6 h-6 text-amber-600" />
             </div>
-            <span className={`text-sm font-medium ${getChangeColor(metrics?.overview.totalConsultationsChange || 0)}`}>
-              {formatChange(metrics?.overview.totalConsultationsChange || 0)}
+            <span className={`text-sm font-medium ${getChangeColor(overview.totalConsultationsChange)}`}>
+              {formatChange(overview.totalConsultationsChange)}
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-bold">{metrics?.overview.totalConsultations.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{(overview.totalConsultations ?? 0).toLocaleString()}</p>
             <p className="text-gray-500 text-sm">총 진료 건수</p>
           </div>
         </div>

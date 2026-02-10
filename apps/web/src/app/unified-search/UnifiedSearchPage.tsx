@@ -604,7 +604,7 @@ export default function UnifiedSearchPage() {
                   <Sparkles className="h-6 w-6 text-amber-600" />
                 </div>
                 <h3 className="font-bold text-gray-900">AI 치험례 검색</h3>
-                <p className="text-sm text-gray-500 mt-1">6,115건 AI 분석</p>
+                <p className="text-sm text-gray-500 mt-1">6,000건+ AI 분석</p>
               </Link>
 
               <Link

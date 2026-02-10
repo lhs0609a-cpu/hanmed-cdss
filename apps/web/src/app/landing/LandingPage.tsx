@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
+import { useAppStats } from '@/hooks/useAppStats'
 import {
   Brain,
   BookOpen,
@@ -161,11 +162,14 @@ export default function LandingPage() {
     navigate('/dashboard')
   }
 
+  // 중앙화된 통계 사용
+  const appStats = useAppStats()
+
   // 통계 카운트업
-  const stat1 = useCountUp(429, 2000)
-  const stat2 = useCountUp(4359, 2500)
-  const stat3 = useCountUp(500, 2000)
-  const stat4 = useCountUp(1000, 2000)
+  const stat1 = useCountUp(appStats.formulas, 2000)
+  const stat2 = useCountUp(appStats.totalCases, 2500)
+  const stat3 = useCountUp(appStats.herbs, 2000)
+  const stat4 = useCountUp(appStats.interactions, 2000)
 
   // 섹션별 스크롤 애니메이션
   const featuresAnim = useScrollAnimation()
@@ -175,7 +179,7 @@ export default function LandingPage() {
 
   const typingTexts = [
     'AI가 변증을 분석합니다',
-    '6,000건 치험례를 검색합니다',
+    `${appStats.formatted.totalCases} 치험례를 검색합니다`,
     '최적의 처방을 추천합니다',
     '삭감 위험을 예측합니다',
   ]
@@ -191,7 +195,7 @@ export default function LandingPage() {
     {
       icon: FileSearch,
       title: '치험례 검색',
-      description: '4,300건 이상의 실제 임상 치험례에서 유사 사례를 찾아 치료 참고자료로 활용하세요.',
+      description: `${appStats.formatted.totalCasesApprox}의 실제 임상 치험례에서 유사 사례를 찾아 치료 참고자료로 활용하세요.`,
       badge: 'HOT',
       color: 'from-orange-500 to-red-500',
     },
@@ -331,7 +335,7 @@ export default function LandingPage() {
     // 서비스 소개
     {
       question: '온고지신은 어떤 서비스인가요?',
-      answer: '온고지신은 AI 기반 한의학 임상 의사결정 지원 시스템(CDSS)입니다. 4,300건 이상의 치험례와 429건의 처방 데이터를 기반으로 변증 진단, 처방 추천, 삭감 예측 등 한의사의 임상 진료를 지원합니다.',
+      answer: `온고지신은 AI 기반 한의학 임상 의사결정 지원 시스템(CDSS)입니다. ${appStats.formatted.totalCasesApprox}의 치험례와 ${appStats.formulas}건의 처방 데이터를 기반으로 변증 진단, 처방 추천, 삭감 예측 등 한의사의 임상 진료를 지원합니다.`,
       category: '서비스 소개',
     },
     {
@@ -398,7 +402,7 @@ export default function LandingPage() {
     // 치험례 검색
     {
       question: '치험례는 총 몇 건이나 있나요?',
-      answer: '현재 4,300건 이상의 치험례가 등록되어 있으며, 지속적으로 업데이트되고 있습니다. 대한한방내과학회지 등 신뢰할 수 있는 학술자료를 기반으로 합니다.',
+      answer: `현재 ${appStats.formatted.totalCasesApprox}의 치험례가 등록되어 있으며, 지속적으로 업데이트되고 있습니다. 대한한방내과학회지 등 신뢰할 수 있는 학술자료를 기반으로 합니다. 사용자가 추가한 치험례도 함께 집계됩니다.`,
       category: '치험례 검색',
     },
     {
@@ -668,7 +672,7 @@ export default function LandingPage() {
       metric: '안전 상담 품질 향상',
     },
     {
-      content: '4,300건이 넘는 치험례 데이터베이스는 다른 곳에서 찾기 어렵습니다. 임상 참고자료로 최고예요.',
+      content: `${appStats.formatted.totalCases}이 넘는 치험례 데이터베이스는 다른 곳에서 찾기 어렵습니다. 임상 참고자료로 최고예요.`,
       author: '조○○ 원장',
       role: '대전 ○○한의원',
       rating: 5,
@@ -829,7 +833,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
-              4,300건 이상의 치험례와 AI 변증 진단으로
+              {appStats.formatted.totalCasesApprox}의 치험례와 AI 변증 진단으로
               <br className="hidden sm:block" />
               한의학 임상의 새로운 기준을 제시합니다
             </p>

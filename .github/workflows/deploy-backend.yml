@@ -1,4 +1,4 @@
-name: Deploy Backend to AWS Lightsail
+name: Deploy Backend to Fly.io
 
 on:
   push:
@@ -6,156 +6,37 @@ on:
       - master
     paths:
       - 'apps/api/**'
-      - 'apps/ai-engine/**'
-      - 'docker-compose.prod.yml'
-      - 'infra/nginx/**'
+      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to AWS Lightsail
+    name: Deploy to Fly.io
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Lightsail via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USER }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          command_timeout: 30m
-          script: |
-            set -e
-            echo "========== 배포 시작: $(date) =========="
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
-            # 프로젝트 디렉토리 이동 또는 클론
-            if [ -d ~/hanmed-cdss ]; then
-              cd ~/hanmed-cdss
-              git fetch origin
-              git reset --hard origin/master
-            else
-              git clone https://github.com/lhs0609a-cpu/hanmed-cdss.git ~/hanmed-cdss
-              cd ~/hanmed-cdss
-            fi
+      - name: Deploy to Fly.io
+        working-directory: apps/api
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-            # 환경 변수 파일 생성
-            cat > .env.prod << 'ENVEOF'
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRES_IN=7d
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            GPT_MODEL=gpt-4o-mini
-            TOSS_CLIENT_KEY=${{ secrets.TOSS_CLIENT_KEY }}
-            TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
-            ENVEOF
-
-            # 기존 서비스 강제 중지 및 정리
-            echo "========== 기존 컨테이너 정리 =========="
-
-            # 1. 현재 상태 확인
-            echo "현재 실행 중인 컨테이너:"
-            sudo docker ps || true
-            echo "포트 사용 현황:"
-            sudo ss -tlnp | grep -E ':(3001|8080|80|443) ' || echo "사용 중인 포트 없음"
-
-            # 2. 모든 실행 중인 컨테이너 중지
-            sudo docker stop $(sudo docker ps -q) 2>/dev/null || true
-
-            # 3. 모든 컨테이너 강제 제거 (실행 중 + 중지된 것 모두)
-            sudo docker rm -f $(sudo docker ps -a -q) 2>/dev/null || true
-
-            # 4. 모든 Docker 네트워크 정리 (기본 네트워크 제외)
-            sudo docker network prune -f 2>/dev/null || true
-
-            # 5. Docker 시스템 전체 정리
-            sudo docker system prune -af --volumes 2>/dev/null || true
-
-            # 6. Docker 데몬 재시작으로 포트 바인딩 완전 해제
-            echo "Docker 데몬 재시작..."
-            sudo systemctl restart docker
-            sleep 10
-
-            # 7. Docker 데몬 상태 확인
-            sudo systemctl status docker --no-pager || true
-
-            # 8. 호스트에서 직접 실행 중인 Node.js 프로세스 종료
-            echo "호스트 Node.js 프로세스 종료..."
-            sudo pkill -f "node.*3001" 2>/dev/null || true
-            sudo pkill -f "node.*dist/main" 2>/dev/null || true
-
-            # 9. 포트를 사용하는 모든 프로세스 강제 종료
-            echo "포트 점유 프로세스 강제 종료..."
-            sudo fuser -k 3001/tcp 2>/dev/null || true
-            sudo fuser -k 8080/tcp 2>/dev/null || true
-            sudo fuser -k 80/tcp 2>/dev/null || true
-            sudo fuser -k 443/tcp 2>/dev/null || true
-            sleep 3
-
-            # 10. 정리 후 포트 사용 현황 재확인
-            echo "========== 정리 후 포트 사용 현황 =========="
-            sudo ss -tlnp | grep -E ':(3001|8080|80|443) ' || echo "사용 중인 포트 없음"
-            echo "실행 중인 컨테이너:"
-            sudo docker ps || true
-
-            echo "========== 컨테이너 정리 완료 =========="
-
-            # SSL 인증서 확인 및 발급 (없는 경우에만)
-            if [ ! -f /etc/letsencrypt/live/api.ongojisin.co.kr/fullchain.pem ]; then
-              echo "========== SSL 인증서 발급 =========="
-              sudo apt-get update
-              sudo apt-get install -y certbot
-              sudo mkdir -p /var/www/certbot
-
-              # 80번 포트 해제 확인
-              sudo fuser -k 80/tcp || true
-
-              # 인증서 발급 (standalone 모드)
-              sudo certbot certonly --standalone \
-                -d api.ongojisin.co.kr \
-                --non-interactive \
-                --agree-tos \
-                --email lhs0609c@naver.com \
-                || echo "인증서 발급 실패"
-            else
-              echo "========== SSL 인증서 존재함 =========="
-            fi
-
-            # SSL 인증서 존재 여부에 따라 nginx 설정 선택
-            if [ -f /etc/letsencrypt/live/api.ongojisin.co.kr/fullchain.pem ]; then
-              echo "========== HTTPS 모드로 시작 =========="
-              cp infra/nginx/nginx.conf infra/nginx/nginx-active.conf
-            else
-              echo "========== HTTP 모드로 시작 (SSL 인증서 없음) =========="
-              cp infra/nginx/nginx-http.conf infra/nginx/nginx-active.conf
-            fi
-
-            # Docker Compose로 서비스 시작
-            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod pull || true
-            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod build --no-cache
-            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
-
-            # 헬스 체크
-            sleep 15
-            echo "========== 서비스 상태 =========="
-            sudo docker-compose -f docker-compose.prod.yml ps
-
-            # API 헬스 체크
-            curl -sf http://localhost:3001/api/v1/health || echo "API 헬스체크 실패 (정상 작동 중일 수 있음)"
-            curl -sf http://localhost:8080/health || echo "AI Engine 헬스체크 실패 (정상 작동 중일 수 있음)"
-            curl -sf https://api.ongojisin.co.kr/api/v1/health || echo "HTTPS 헬스체크 실패 (정상 작동 중일 수 있음)"
-
-            echo "========== 배포 완료: $(date) =========="
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -sf https://hanmed-api.fly.dev/api/v1/health || echo "Health check pending..."
 
       - name: Notify deployment result
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 배포 성공!"
+            echo "✅ Fly.io 배포 성공!"
           else
-            echo "❌ 배포 실패!"
+            echo "❌ Fly.io 배포 실패!"
           fi

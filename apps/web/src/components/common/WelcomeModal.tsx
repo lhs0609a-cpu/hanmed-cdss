@@ -3,6 +3,7 @@ import { X, Sparkles, Stethoscope, Search, AlertTriangle, ArrowRight, Check } fr
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 
 const STORAGE_KEY = 'hanmed-cdss-welcome-shown'
 
@@ -22,7 +23,7 @@ const features: Feature[] = [
   },
   {
     icon: Search,
-    title: '6,000+ 치험례 검색',
+    title: `${formatStatNumber(BASE_STATS.cases)} 치험례 검색`,
     description: '40년 임상 경험이 담긴 치험례 데이터베이스를 검색하세요.',
     color: 'from-teal-500 to-emerald-500',
   },
@@ -175,7 +176,7 @@ export function WelcomeModal() {
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                     <Check className="h-4 w-4 text-green-600" />
                   </div>
-                  <span className="text-gray-700">6,000+ 치험례 무제한 검색</span>
+                  <span className="text-gray-700">{formatStatNumber(BASE_STATS.cases)} 치험례 무제한 검색</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">

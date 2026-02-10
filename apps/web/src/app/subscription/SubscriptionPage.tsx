@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO';
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config';
 import {
   usePlans,
   useSubscriptionInfo,
@@ -34,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2 } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2, AlertTriangle, RefreshCw, Phone, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -62,6 +63,14 @@ export default function SubscriptionPage() {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showPaymentErrorDialog, setShowPaymentErrorDialog] = useState(false);
+  const [paymentError, setPaymentError] = useState<{
+    message: string;
+    action: string;
+    code: string;
+    retryable: boolean;
+    category?: string;
+  } | null>(null);
   const [selectedTier, setSelectedTier] = useState<'basic' | 'professional' | 'clinic' | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -99,6 +108,42 @@ export default function SubscriptionPage() {
   const currentTier = subscriptionInfo?.tier || user?.subscriptionTier || 'free';
   const hasBillingKey = subscriptionInfo?.hasBillingKey || false;
 
+  // 결제 에러 파싱 함수
+  const parsePaymentError = (error: Error | any) => {
+    // API에서 반환한 구조화된 에러인지 확인
+    if (error?.message) {
+      try {
+        // 에러 메시지가 JSON 형태일 수 있음
+        const parsed = typeof error.message === 'string' && error.message.startsWith('{')
+          ? JSON.parse(error.message)
+          : error;
+
+        return {
+          message: parsed.message || error.message || '결제 처리 중 오류가 발생했습니다.',
+          action: parsed.action || '잠시 후 다시 시도해 주세요.',
+          code: parsed.code || 'UNKNOWN_ERROR',
+          retryable: parsed.retryable ?? true,
+          category: parsed.category || 'unknown',
+        };
+      } catch {
+        return {
+          message: error.message || '결제 처리 중 오류가 발생했습니다.',
+          action: '잠시 후 다시 시도해 주세요.',
+          code: 'UNKNOWN_ERROR',
+          retryable: true,
+          category: 'unknown',
+        };
+      }
+    }
+    return {
+      message: '결제 처리 중 오류가 발생했습니다.',
+      action: '잠시 후 다시 시도해 주세요.',
+      code: 'UNKNOWN_ERROR',
+      retryable: true,
+      category: 'unknown',
+    };
+  };
+
   const handleSubscribe = (tier: string) => {
     if (tier === 'free') return;
 
@@ -114,7 +159,9 @@ export default function SubscriptionPage() {
             toast.success('구독이 시작되었습니다!');
           },
           onError: (error: Error) => {
-            toast.error(error.message || '구독 처리 중 오류가 발생했습니다.');
+            const parsedError = parsePaymentError(error);
+            setPaymentError(parsedError);
+            setShowPaymentErrorDialog(true);
           },
         }
       );
@@ -145,14 +192,19 @@ export default function SubscriptionPage() {
                 setSelectedTier(null);
               },
               onError: (error: Error) => {
-                toast.error(error.message || '구독 처리 중 오류가 발생했습니다.');
+                const parsedError = parsePaymentError(error);
+                setPaymentError(parsedError);
+                setShowPaymentErrorDialog(true);
+                setSelectedTier(null);
               },
             }
           );
         }
       },
       onError: (error: Error) => {
-        toast.error(error.message || '카드 등록에 실패했습니다.');
+        const parsedError = parsePaymentError(error);
+        setPaymentError(parsedError);
+        setShowPaymentErrorDialog(true);
       },
     });
   };
@@ -683,6 +735,121 @@ export default function SubscriptionPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Payment Error Dialog */}
+      <AlertDialog open={showPaymentErrorDialog} onOpenChange={setShowPaymentErrorDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-xl">결제에 실패했습니다</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                {/* 에러 메시지 */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 font-medium">{paymentError?.message}</p>
+                  {paymentError?.code && paymentError.code !== 'UNKNOWN_ERROR' && (
+                    <p className="text-red-600 text-xs mt-1">에러 코드: {paymentError.code}</p>
+                  )}
+                </div>
+
+                {/* 해결 방법 */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-800 mb-1">해결 방법</p>
+                  <p className="text-sm text-blue-700">{paymentError?.action}</p>
+                </div>
+
+                {/* 카테고리별 추가 안내 */}
+                {paymentError?.category === 'card_issue' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-amber-800 mb-2">카드 문제 해결 체크리스트</p>
+                    <ul className="text-sm text-amber-700 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        카드 유효기간 확인
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        결제 한도 확인
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        카드사 앱에서 온라인 결제 차단 여부 확인
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {paymentError?.category === 'user_input' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-amber-800 mb-2">입력 정보 확인</p>
+                    <ul className="text-sm text-amber-700 space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        카드번호 16자리 확인
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        유효기간 (월/년) 확인
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        비밀번호 앞 2자리 확인
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* 고객 지원 안내 */}
+                <div className="border-t pt-4">
+                  <p className="text-sm text-gray-600 mb-3">문제가 계속되면 고객센터로 문의해 주세요.</p>
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href="mailto:support@ongojisin.ai"
+                      className="inline-flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700"
+                    >
+                      <Mail className="h-4 w-4" />
+                      support@ongojisin.ai
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel className="sm:flex-1">닫기</AlertDialogCancel>
+            {paymentError?.retryable && (
+              <Button
+                className="sm:flex-1 bg-teal-600 hover:bg-teal-700"
+                onClick={() => {
+                  setShowPaymentErrorDialog(false);
+                  if (selectedTier) {
+                    handleSubscribe(selectedTier);
+                  }
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                다시 시도
+              </Button>
+            )}
+            {!paymentError?.retryable && paymentError?.category === 'card_issue' && (
+              <Button
+                className="sm:flex-1"
+                onClick={() => {
+                  setShowPaymentErrorDialog(false);
+                  setShowCardModal(true);
+                }}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                다른 카드 등록
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Cancel Subscription Dialog - Retention Screen */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent className="max-w-lg">
@@ -739,7 +906,7 @@ export default function SubscriptionPage() {
                     </li>
                     <li className="text-sm text-gray-600 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-                      6,000+ 치험례 고급 검색
+                      {formatStatNumber(BASE_STATS.cases)} 치험례 고급 검색
                     </li>
                     <li className="text-sm text-gray-600 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-red-400 rounded-full" />

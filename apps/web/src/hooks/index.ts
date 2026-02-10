@@ -21,6 +21,9 @@ export { useNetworkStatus } from './useNetworkStatus'
 export { useExport } from './useExport'
 export { useSEO } from './useSEO'
 
+// App-wide statistics hook
+export { useAppStats, notifyStatsUpdate } from './useAppStats'
+
 // Killer Feature hooks - Insurance
 export {
   useAutoCreateClaim,
@@ -134,3 +137,21 @@ export {
   useHealthScoreHistory,
   useJournalEntries,
 } from './usePatientInsights'
+
+// Cloud Data Sync hooks (Pro+ feature)
+export {
+  useCloudSync,
+  useSyncedData,
+  SYNC_KEYS,
+} from './useCloudSync'
+
+// Session Management hooks
+export {
+  useSessionManager,
+} from './useSessionManager'
+
+// Feature Tracking / Analytics hooks
+export {
+  useFeatureTracking,
+  setupGlobalErrorTracking,
+} from './useFeatureTracking'

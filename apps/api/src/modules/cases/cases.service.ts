@@ -15,17 +15,60 @@ export class CasesService {
     private cacheService: CacheService,
   ) {}
 
-  async findAll(page = 1, limit = 20) {
-    const cacheKey = `list:${page}:${limit}`;
+  async findAll(
+    page = 1,
+    limit = 20,
+    filters?: {
+      search?: string;
+      searchField?: string;
+      constitution?: string;
+      outcome?: string;
+    },
+  ) {
+    const cacheKey = `list:${page}:${limit}:${JSON.stringify(filters || {})}`;
 
     return this.cacheService.getOrSet(
       cacheKey,
       async () => {
-        const [cases, total] = await this.casesRepository.findAndCount({
-          order: { createdAt: 'DESC' },
-          skip: (page - 1) * limit,
-          take: limit,
-        });
+        const qb = this.casesRepository.createQueryBuilder('c');
+
+        // 텍스트 검색
+        if (filters?.search) {
+          const searchParam = `%${filters.search}%`;
+          if (filters.searchField === 'symptoms') {
+            qb.andWhere('c.chiefComplaint ILIKE :search OR c.symptoms::text ILIKE :search', { search: searchParam });
+          } else if (filters.searchField === 'formula') {
+            qb.andWhere('c.herbalFormulas::text ILIKE :search', { search: searchParam });
+          } else if (filters.searchField === 'diagnosis') {
+            qb.andWhere('c.patternDiagnosis ILIKE :search', { search: searchParam });
+          } else {
+            // 전체 검색
+            qb.andWhere(
+              '(c.chiefComplaint ILIKE :search OR c.patternDiagnosis ILIKE :search OR c.originalText ILIKE :search OR c.herbalFormulas::text ILIKE :search OR c.symptoms::text ILIKE :search)',
+              { search: searchParam },
+            );
+          }
+        }
+
+        // 체질 필터
+        if (filters?.constitution) {
+          qb.andWhere('c.patientConstitution = :constitution', {
+            constitution: filters.constitution,
+          });
+        }
+
+        // 치료 결과 필터
+        if (filters?.outcome) {
+          qb.andWhere('c.treatmentOutcome = :outcome', {
+            outcome: filters.outcome,
+          });
+        }
+
+        qb.orderBy('c.createdAt', 'DESC')
+          .skip((page - 1) * limit)
+          .take(limit);
+
+        const [cases, total] = await qb.getManyAndCount();
 
         return {
           data: cases,

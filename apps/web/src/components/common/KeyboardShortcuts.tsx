@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import {
   X,
   Keyboard,
@@ -86,7 +87,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, groupedShortcuts }: Key
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl">
+            <div className="p-2 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl">
               <Keyboard className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -141,7 +142,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, groupedShortcuts }: Key
           </div>
 
           {/* Tips */}
-          <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+          <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-indigo-100">
             <p className="text-sm text-indigo-700">
               <span className="font-medium">팁:</span> 언제든지 <kbd className="px-1.5 py-0.5 bg-white rounded border text-xs">?</kbd> 키를 눌러 이 도움말을 열 수 있습니다.
             </p>
@@ -255,7 +256,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     { id: 'pattern-diagnosis', label: 'AI 변증 분석', description: '팔강/장부변증', icon: <Brain className="h-4 w-4" />, action: () => navigate('/dashboard/pattern-diagnosis'), category: 'navigation', keywords: ['변증', '팔강', '장부'] },
     { id: 'case-search', label: 'AI 치험례 검색', description: '유사사례 찾기', icon: <Sparkles className="h-4 w-4" />, action: () => navigate('/dashboard/case-search'), category: 'navigation', keywords: ['치험례', 'case', '사례'] },
     { id: 'unified-search', label: '통합 검색', description: '처방/증상/병증', icon: <Search className="h-4 w-4" />, action: () => navigate('/dashboard/unified-search'), category: 'navigation', keywords: ['검색', 'search'] },
-    { id: 'cases', label: '치험례 목록', description: '6,000건 브라우징', icon: <BookOpen className="h-4 w-4" />, action: () => navigate('/dashboard/cases'), category: 'navigation', keywords: ['치험례', 'cases'] },
+    { id: 'cases', label: '치험례 목록', description: `${formatStatNumber(BASE_STATS.cases)} 브라우징`, icon: <BookOpen className="h-4 w-4" />, action: () => navigate('/dashboard/cases'), category: 'navigation', keywords: ['치험례', 'cases'] },
     { id: 'formulas', label: '처방 검색', description: '방제 정보', icon: <FlaskConical className="h-4 w-4" />, action: () => navigate('/dashboard/formulas'), category: 'navigation', keywords: ['처방', 'formula', '방제'] },
     { id: 'herbs', label: '약재 검색', description: '성분 정보', icon: <Leaf className="h-4 w-4" />, action: () => navigate('/dashboard/herbs'), category: 'navigation', keywords: ['약재', 'herb', '본초'] },
     { id: 'interactions', label: '상호작용 검사', description: '약물 안전성', icon: <Shield className="h-4 w-4" />, action: () => navigate('/dashboard/interactions'), category: 'navigation', keywords: ['상호작용', 'interaction', '안전'] },

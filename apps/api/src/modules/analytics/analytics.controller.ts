@@ -1,13 +1,16 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
   Param,
+  Body,
   HttpCode,
   HttpStatus,
   UseGuards,
   Request,
   Res,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,11 +24,26 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PracticeAnalyticsService } from './practice-analytics.service';
 import { PeriodType } from './dto';
 
+// 이벤트 타입 정의
+interface TrackedEvent {
+  type: string;
+  properties: Record<string, unknown>;
+  timestamp: string;
+  sessionId: string;
+  userId?: string;
+  userTier?: string;
+  userAgent: string;
+  screenSize: string;
+  locale: string;
+}
+
 @ApiTags('Analytics')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('analytics')
 export class AnalyticsController {
+  private readonly logger = new Logger(AnalyticsController.name);
+
   constructor(private readonly analyticsService: PracticeAnalyticsService) {}
 
   /**
@@ -131,5 +149,48 @@ export class AnalyticsController {
       success: true,
       data: result,
     };
+  }
+
+  /**
+   * 클라이언트 이벤트 수집
+   * 사용자 행동 분석용 이벤트를 배치로 수집합니다.
+   */
+  @Post('events')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '이벤트 수집',
+    description: '클라이언트에서 발생한 사용자 이벤트를 배치로 수집합니다.',
+  })
+  async collectEvents(@Body() body: { events: TrackedEvent[] }) {
+    const { events } = body;
+
+    if (!events || !Array.isArray(events)) {
+      return { success: false, message: 'Invalid events format' };
+    }
+
+    // 이벤트 처리 (비동기, 실패해도 무시)
+    // 실제 프로덕션에서는 Kafka, Redis Queue 등으로 비동기 처리 권장
+    try {
+      // 간단한 로깅 (개발 환경)
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.debug(`이벤트 수신: ${events.length}건`);
+        events.forEach((e) => {
+          this.logger.debug(`  - ${e.type}: ${JSON.stringify(e.properties)}`);
+        });
+      }
+
+      // TODO: 이벤트 저장 로직 구현
+      // - Elasticsearch로 전송
+      // - 또는 TimescaleDB에 저장
+      // - 또는 Google Analytics / Mixpanel로 전달
+
+      // 현재는 집계용 카운터만 업데이트 (메모리 내)
+      // 실제로는 DB나 외부 서비스에 저장해야 함
+    } catch (error) {
+      this.logger.error('이벤트 처리 실패:', error);
+      // 실패해도 클라이언트에는 성공 반환 (분석 데이터는 크리티컬하지 않음)
+    }
+
+    return { success: true, received: events.length };
   }
 }

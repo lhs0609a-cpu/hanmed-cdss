@@ -22,6 +22,7 @@ import {
   MousePointer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BASE_STATS, formatStatNumber, formatStatApprox } from '@/config/stats.config'
 
 interface OnboardingFlowProps {
   onComplete: () => void
@@ -47,27 +48,28 @@ interface OnboardingStep {
   tip?: string
 }
 
+// 3단계로 축소된 온보딩 (이전 5단계에서 핵심만 추출)
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'welcome',
     title: '온고지신 AI에 오신 것을 환영합니다!',
-    subtitle: '3분만에 핵심 기능 파악하기',
-    description: '6,000여 건의 검증된 치험례와 AI 기술로\n진료 시간을 30% 단축하세요.',
+    subtitle: '30초 안에 핵심 기능 파악하기',
+    description: `${formatStatApprox(BASE_STATS.cases)}의 검증된 치험례와 AI 기술로\n진료 시간을 30% 단축하세요.`,
     features: [
+      {
+        icon: Search,
+        title: 'AI 증상 검색',
+        description: '증상을 입력하면 유사 치험례와 추천 처방 제시',
+      },
+      {
+        icon: Shield,
+        title: '약물 상호작용 검사',
+        description: '한약-양약 배합금기 자동 검출',
+      },
       {
         icon: Clock,
         title: '진료 시간 단축',
         description: '유사 케이스 검색으로 평균 3분 절약',
-      },
-      {
-        icon: Target,
-        title: '처방 정확도 향상',
-        description: '6,000건 데이터 기반 추천',
-      },
-      {
-        icon: Shield,
-        title: '안전한 처방',
-        description: '약물 상호작용 자동 검사',
       },
     ],
     illustration: (
@@ -82,28 +84,28 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
         </div>
       </div>
     ),
-    tip: '이 가이드는 언제든 설정에서 다시 볼 수 있어요',
+    tip: '설정에서 언제든 이 가이드를 다시 볼 수 있어요',
   },
   {
-    id: 'quick-search',
-    title: '1단계: AI 검색 시작하기',
+    id: 'try-search',
+    title: '직접 체험해보세요!',
     subtitle: '가장 많이 쓰는 핵심 기능',
-    description: '환자의 증상을 입력하면 AI가 유사한 치험례를 찾아\n처방 추천까지 제공합니다.',
+    description: '"두통, 어지러움, 피로감"처럼 증상을 입력하면\nAI가 유사 치험례를 찾아 처방을 추천합니다.',
     features: [
       {
         icon: Search,
-        title: '증상 입력',
-        description: '"두통, 어지러움, 피로감" 처럼 자연어로 입력',
+        title: '1. 증상 입력',
+        description: '자연어로 환자 증상을 그대로 입력',
       },
       {
         icon: BookOpen,
-        title: '유사 케이스 확인',
-        description: '가장 비슷한 치험례 5건을 유사도와 함께 표시',
+        title: '2. 유사 케이스 확인',
+        description: '유사도 순으로 치험례 5건 표시',
       },
       {
         icon: FileText,
-        title: '추천 처방 확인',
-        description: '성공 케이스에서 공통적으로 사용된 처방 제시',
+        title: '3. 추천 처방 확인',
+        description: '성공 케이스의 공통 처방 제시',
       },
     ],
     illustration: (
@@ -111,109 +113,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
         <div className="w-full max-w-[240px] bg-white rounded-xl shadow-xl p-4 border border-gray-200">
           <div className="flex items-center gap-2 mb-3">
             <Search className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-500">증상을 입력하세요...</span>
-          </div>
-          <div className="space-y-2">
-            <div className="h-3 bg-teal-100 rounded w-3/4 animate-pulse" />
-            <div className="h-3 bg-teal-50 rounded w-1/2 animate-pulse delay-75" />
-          </div>
-          <div className="mt-4 p-2 bg-teal-50 rounded-lg border border-teal-200">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-teal-600" />
-              <span className="text-xs font-medium text-teal-700">유사 케이스 5건 발견</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    actionButton: {
-      label: 'AI 검색 바로가기',
-      href: '/dashboard/case-search',
-    },
-    tip: '대시보드 상단의 검색창에서 바로 시작할 수 있어요',
-  },
-  {
-    id: 'patient-management',
-    title: '2단계: 환자 등록하기',
-    subtitle: '체계적인 환자 관리의 시작',
-    description: '환자 정보를 등록하면 진료 기록이 누적되고\nAI가 개인 맞춤 추천을 제공합니다.',
-    features: [
-      {
-        icon: UserPlus,
-        title: '간편 등록',
-        description: '이름, 생년월일, 연락처만 입력하면 완료',
-      },
-      {
-        icon: Activity,
-        title: '진료 기록 누적',
-        description: '방문마다 기록이 쌓여 경과 추이 확인',
-      },
-      {
-        icon: TrendingUp,
-        title: 'AI 맞춤 추천',
-        description: '환자 히스토리 기반 개인화 처방 제안',
-      },
-    ],
-    illustration: (
-      <div className="relative w-64 h-64 flex items-center justify-center">
-        <div className="w-full max-w-[240px] bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
-          <div className="bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-3">
-            <span className="text-white font-medium text-sm">새 환자 등록</span>
-          </div>
-          <div className="p-4 space-y-3">
-            <div>
-              <div className="text-xs text-gray-500 mb-1">이름</div>
-              <div className="h-8 bg-gray-100 rounded flex items-center px-3">
-                <span className="text-sm text-gray-700">홍길동</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 mb-1">생년월일</div>
-              <div className="h-8 bg-gray-100 rounded flex items-center px-3">
-                <span className="text-sm text-gray-700">1985-03-15</span>
-              </div>
-            </div>
-            <button className="w-full h-9 bg-teal-500 text-white text-sm font-medium rounded-lg">
-              등록하기
-            </button>
-          </div>
-        </div>
-      </div>
-    ),
-    actionButton: {
-      label: '환자 등록 바로가기',
-      href: '/dashboard/patients',
-    },
-    tip: '샘플 환자 데이터로 먼저 연습해볼 수도 있어요',
-  },
-  {
-    id: 'result-guide',
-    title: '3단계: 결과 해석하기',
-    subtitle: '검색 결과 200% 활용법',
-    description: 'AI가 제공하는 정보를 어떻게 해석하고\n임상에 적용하는지 알려드립니다.',
-    features: [
-      {
-        icon: Target,
-        title: '유사도 점수',
-        description: '⭐⭐⭐⭐⭐ (90%↑) = 매우 유사, 참고 가치 높음',
-      },
-      {
-        icon: Lightbulb,
-        title: '처방 근거',
-        description: '왜 이 처방이 추천되었는지 상세 설명 제공',
-      },
-      {
-        icon: Shield,
-        title: '주의사항',
-        description: '부작용 보고 케이스나 금기 사항 자동 표시',
-      },
-    ],
-    illustration: (
-      <div className="relative w-64 h-64 flex items-center justify-center">
-        <div className="w-full max-w-[240px] bg-white rounded-xl shadow-xl p-4 border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-900">검색 결과</span>
-            <span className="text-xs text-teal-600 font-medium">5건</span>
+            <span className="text-sm text-gray-500">두통, 어지러움...</span>
           </div>
           <div className="space-y-2">
             <div className="p-2 bg-teal-50 rounded-lg border border-teal-200">
@@ -221,47 +121,51 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
                 <span className="text-xs font-medium">유사도 95%</span>
                 <span className="text-amber-500 text-xs">⭐⭐⭐⭐⭐</span>
               </div>
-              <p className="text-xs text-gray-600 mt-1">반하백출천마탕 처방</p>
+              <p className="text-xs text-gray-600 mt-1">반하백출천마탕</p>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium">유사도 82%</span>
                 <span className="text-amber-500 text-xs">⭐⭐⭐⭐</span>
               </div>
-              <p className="text-xs text-gray-600 mt-1">소시호탕 처방</p>
+              <p className="text-xs text-gray-600 mt-1">소시호탕</p>
             </div>
           </div>
           <div className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
             <div className="flex items-center gap-1">
-              <Lightbulb className="w-3 h-3 text-amber-600" />
-              <span className="text-xs text-amber-700">4건에서 공통 처방 발견</span>
+              <Sparkles className="w-3 h-3 text-amber-600" />
+              <span className="text-xs text-amber-700">유사 케이스 5건 발견</span>
             </div>
           </div>
         </div>
       </div>
     ),
-    tip: '결과 카드를 클릭하면 원문 치험례 전체를 볼 수 있어요',
+    actionButton: {
+      label: '지금 바로 검색해보기',
+      href: '/dashboard/case-search',
+    },
+    tip: '대시보드 상단 검색창에서 언제든 시작할 수 있어요',
   },
   {
     id: 'complete',
     title: '준비 완료! 🎉',
-    subtitle: '이제 온고지신 AI를 시작해보세요',
-    description: '7일 무료 체험으로 모든 프리미엄 기능을\n제한 없이 사용해보세요.',
+    subtitle: '14일 무료 체험 시작',
+    description: '카드 등록 없이 Professional 플랜을\n14일간 무료로 체험해보세요.',
     features: [
       {
         icon: Zap,
-        title: 'AI 쿼리 300회/월',
-        description: 'Professional 플랜 모든 기능 체험',
+        title: 'AI 쿼리 30회',
+        description: '체험 기간 동안 제공',
       },
       {
         icon: BookOpen,
-        title: '6,000건 치험례',
-        description: '전체 데이터베이스 무제한 접근',
+        title: `${formatStatNumber(BASE_STATS.cases)} 치험례`,
+        description: '전체 데이터베이스 무제한 검색',
       },
       {
-        icon: Users,
-        title: '커뮤니티 참여',
-        description: '전문가들과 케이스 토론 및 공유',
+        icon: Shield,
+        title: '자동 결제 없음',
+        description: '체험 종료 후 Free로 자동 전환',
       },
     ],
     illustration: (
@@ -271,7 +175,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
           <div className="text-center">
             <div className="text-6xl mb-2">🎊</div>
             <div className="text-2xl font-bold text-teal-600">시작하기</div>
-            <div className="text-sm text-teal-700 mt-1">7일 무료 체험</div>
+            <div className="text-sm text-teal-700 mt-1">14일 무료 체험</div>
           </div>
         </div>
         <div className="absolute -top-2 -right-2 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-sm font-bold rounded-full shadow-lg">

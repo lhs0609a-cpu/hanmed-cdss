@@ -12,6 +12,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 
 const demoSteps = [
   { text: '증상 입력', icon: Activity, delay: 0 },
@@ -30,7 +31,7 @@ const features = [
   },
   {
     icon: BookOpen,
-    title: '4,300+ 치험례 검색',
+    title: `${formatStatNumber(BASE_STATS.cases)} 치험례 검색`,
     description: '실제 임상 데이터에서 유사 성공 사례를 즉시 검색',
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
@@ -76,7 +77,7 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
 
           <h3 className="text-lg font-bold mb-2">AI 처방 어시스턴트</h3>
           <p className="text-sm text-white/80 mb-4">
-            증상만 입력하면 4,300건 치험례 분석 후 최적 처방 추천
+            증상만 입력하면 {formatStatNumber(BASE_STATS.cases)} 치험례 분석 후 최적 처방 추천
           </p>
 
           <Link
@@ -115,7 +116,7 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
               AI 처방 어시스턴트
             </h2>
             <p className="text-lg text-white/70 mb-8 leading-relaxed">
-              증상만 입력하면 <span className="text-emerald-400 font-semibold">4,300건의 실제 치험례</span>를
+              증상만 입력하면 <span className="text-emerald-400 font-semibold">{formatStatNumber(BASE_STATS.cases)}의 실제 치험례</span>를
               분석하여 <span className="text-purple-400 font-semibold">치료 성공률이 높은 처방</span>을 추천해드립니다.
             </p>
 
@@ -147,7 +148,7 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
               </div>
               <div className="w-px h-10 bg-white/20" />
               <div>
-                <div className="text-2xl font-bold text-white">4,300+</div>
+                <div className="text-2xl font-bold text-white">{formatStatNumber(BASE_STATS.cases)}</div>
                 <div className="text-xs text-white/50">학습된 치험례</div>
               </div>
             </div>

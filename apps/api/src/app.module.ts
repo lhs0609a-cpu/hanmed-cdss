@@ -40,6 +40,8 @@ import { InsuranceModule } from './modules/insurance/insurance.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { CaseSharingModule } from './modules/case-sharing/case-sharing.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { UserDataModule } from './modules/user-data/user-data.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
@@ -145,6 +147,8 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     CrmModule,              // 환자 CRM & 리텐션
     CaseSharingModule,      // 케이스 공유 네트워크
     InventoryModule,        // 약재 재고/가격 관리
+    UserDataModule,         // 클라우드 데이터 동기화
+    FeedbackModule,         // 사용자 피드백 수집
   ],
   controllers: [HealthController],
   providers: [
