@@ -158,11 +158,6 @@ const menuSections: MenuSection[] = [
   },
 ]
 
-// 모든 메뉴 아이템을 플랫하게
-const allMenuItems = menuSections.flatMap((section) =>
-  section.items.map((item) => ({ ...item, sectionId: section.id }))
-)
-
 export default function DashboardLayout() {
   const location = useLocation()
   const { user, logout, isGuest } = useAuthStore()

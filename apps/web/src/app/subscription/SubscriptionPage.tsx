@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2, AlertTriangle, RefreshCw, Phone, Mail } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2, AlertTriangle, RefreshCw, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';

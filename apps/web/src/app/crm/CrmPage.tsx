@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Zap,
   Filter,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   useCrmDashboard,
@@ -76,8 +77,21 @@ export default function CrmPage() {
     );
   }
 
+  const isDemoData = (dashboard as unknown as Record<string, unknown>)?._isDemo === true;
+
   return (
     <div className="space-y-6">
+      {/* Demo Data Banner */}
+      {isDemoData && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-800">현재 데모 데이터를 표시하고 있습니다</p>
+            <p className="text-xs text-amber-600">CRM 기능은 곧 출시됩니다. 아래 데이터는 인터페이스 미리보기용 예시입니다.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

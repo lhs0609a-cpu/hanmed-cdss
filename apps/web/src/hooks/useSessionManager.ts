@@ -75,7 +75,7 @@ export function useSessionManager() {
   })
 
   const warningIntervalRef = useRef<number | null>(null)
-  const refreshTimeoutRef = useRef<number | null>(null)
+  const _refreshTimeoutRef = useRef<number | null>(null)
   const activityTimeoutRef = useRef<number | null>(null)
 
   /**

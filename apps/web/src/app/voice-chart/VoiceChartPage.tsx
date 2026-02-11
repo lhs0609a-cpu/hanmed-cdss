@@ -21,7 +21,6 @@ import {
   Volume2,
   AlertCircle,
   Printer,
-  Download,
   FileOutput,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -529,7 +528,7 @@ ${soapNote.plan}
   }
 
   // 처방전 PDF 다운로드 (프린트와 동일하지만 저장용)
-  const downloadPrescription = () => {
+  const _downloadPrescription = () => {
     printPrescription() // 현재는 프린트와 동일, 추후 PDF 생성 라이브러리 추가 가능
   }
 

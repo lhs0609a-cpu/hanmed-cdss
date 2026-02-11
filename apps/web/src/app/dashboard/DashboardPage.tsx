@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
+import { useUsage } from '@/hooks/useSubscription'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
@@ -10,10 +11,8 @@ import { parseNaturalQuery, getGenderLabel } from '@/lib/parseNaturalQuery'
 import {
   Stethoscope,
   BookOpen,
-  AlertTriangle,
+  Brain,
   Clock,
-  Users,
-  TrendingUp,
   ArrowRight,
   Sparkles,
   ChevronRight,
@@ -22,6 +21,8 @@ import {
   User,
   Calendar,
   Tag,
+  Info,
+  AlertTriangle,
 } from 'lucide-react'
 
 const dashboardTourSteps = [
@@ -59,72 +60,42 @@ const dashboardTourSteps = [
   },
 ]
 
-const stats = [
-  {
-    name: '오늘 절약한 시간',
-    value: '2시간 15분',
-    icon: Clock,
-    change: '+15%',
-    changeType: 'positive',
-    description: '상담 45분 x 3건',
-  },
-  {
-    name: '이번 달 진료',
-    value: '47건',
-    icon: Users,
-    change: '+23%',
-    changeType: 'positive',
-    description: 'AI 추천 활용',
-  },
-  {
-    name: 'AI 정확도',
-    value: '94.2%',
-    icon: TrendingUp,
-    change: '+2.1%',
-    changeType: 'positive',
-    description: '처방 채택률 기준',
-  },
-]
-
 // quickActions는 컴포넌트 내에서 동적으로 생성됨 (아래 참조)
-
-const recentActivities = [
-  {
-    type: 'consultation',
-    title: 'AI 처방 추천 사용',
-    description: '소화불량, 복부 냉증 환자 - 이중탕 추천',
-    time: '30분 전',
-    icon: Stethoscope,
-    iconBg: 'bg-teal-100',
-    iconColor: 'text-teal-600',
-  },
-  {
-    type: 'search',
-    title: '치험례 검색',
-    description: '"두통 + 어지러움" 관련 치험례 12건 열람',
-    time: '2시간 전',
-    icon: BookOpen,
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-  },
-  {
-    type: 'warning',
-    title: '상호작용 경고 확인',
-    description: '와파린 복용 환자 - 당귀 금기 알림',
-    time: '어제',
-    icon: AlertTriangle,
-    iconBg: 'bg-amber-100',
-    iconColor: 'text-amber-600',
-  },
-]
 
 export default function DashboardPage() {
   useSEO(PAGE_SEO.dashboard)
   const appStats = useAppStats()
+  const { data: usage } = useUsage()
 
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
+
+  // 실제 사용량 기반 통계
+  const aiUsed = usage?.aiQuery?.used || 0
+  const minutesSaved = aiUsed * 5 // AI 분석 1건당 약 5분 절약 추정
+  const stats = useMemo(() => [
+    {
+      name: '이번 달 AI 분석',
+      value: `${aiUsed}건`,
+      icon: Brain,
+      description: 'AI 처방 추천 사용',
+    },
+    {
+      name: '절약한 시간 (추정)',
+      value: minutesSaved >= 60
+        ? `${Math.floor(minutesSaved / 60)}시간 ${minutesSaved % 60}분`
+        : `${minutesSaved}분`,
+      icon: Clock,
+      description: `분석 ${aiUsed}건 x 5분`,
+    },
+    {
+      name: '치험례 DB',
+      value: appStats.formatted.totalCases,
+      icon: BookOpen,
+      description: '검증된 임상 데이터',
+    },
+  ], [aiUsed, minutesSaved, appStats.formatted.totalCases])
 
   // 동적 quickActions (치험례 수 반영)
   const quickActions = useMemo(() => [
@@ -305,18 +276,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-500">{stat.name}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      stat.changeType === 'positive'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {stat.change}
-                  </span>
-                  <span className="text-xs text-gray-400">{stat.description}</span>
-                </div>
+                <span className="text-xs text-gray-400 mt-2 block">{stat.description}</span>
               </div>
               <div className="p-3 bg-gray-50 rounded-xl">
                 <stat.icon className="h-6 w-6 text-gray-400" />
@@ -388,21 +348,20 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <div className={`p-2.5 ${activity.iconBg} rounded-xl`}>
-                  <activity.icon className={`h-5 w-5 ${activity.iconColor}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5 truncate">{activity.description}</p>
-                </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="p-3 bg-gray-100 rounded-full mb-3">
+                <Info className="h-6 w-6 text-gray-400" />
               </div>
-            ))}
+              <p className="text-sm text-gray-500 mb-1">아직 활동 기록이 없습니다</p>
+              <p className="text-xs text-gray-400">AI 진료를 시작하면 여기에 활동 내역이 표시됩니다</p>
+              <Link
+                to="/dashboard/consultation"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-600 text-sm font-medium rounded-lg hover:bg-teal-100 transition-colors"
+              >
+                <Stethoscope className="h-4 w-4" />
+                첫 진료 시작하기
+              </Link>
+            </div>
           </div>
         </div>
 

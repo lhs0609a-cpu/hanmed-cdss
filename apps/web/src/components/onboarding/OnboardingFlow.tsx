@@ -2,18 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Sparkles,
-  Users,
   BookOpen,
   Shield,
   ChevronRight,
   ChevronLeft,
   X,
-  Activity,
-  TrendingUp,
   Stethoscope,
   Search,
-  UserPlus,
-  Target,
   Lightbulb,
   ArrowRight,
   Clock,

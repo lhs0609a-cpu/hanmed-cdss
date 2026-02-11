@@ -412,16 +412,16 @@ export async function searchTraditionalHerb(
       items.push({
         cntntsNo: node.querySelector('cntntsNo')?.textContent || '',
         hanbangNm: node.querySelector('hanbangNm')?.textContent || '',
-        hanbangNmHanja: node.querySelector('hanbangNmHanja')?.textContent,
-        hanbangNmLatin: node.querySelector('hanbangNmLatin')?.textContent,
-        source: node.querySelector('source')?.textContent,
-        medicalPart: node.querySelector('medicalPart')?.textContent,
-        efficacy: node.querySelector('efficacy')?.textContent,
-        symptoms: node.querySelector('symptoms')?.textContent,
-        nature: node.querySelector('nature')?.textContent,
-        taste: node.querySelector('taste')?.textContent,
-        meridian: node.querySelector('meridian')?.textContent,
-        contraindication: node.querySelector('contraindication')?.textContent,
+        hanbangNmHanja: node.querySelector('hanbangNmHanja')?.textContent ?? undefined,
+        hanbangNmLatin: node.querySelector('hanbangNmLatin')?.textContent ?? undefined,
+        source: node.querySelector('source')?.textContent ?? undefined,
+        medicalPart: node.querySelector('medicalPart')?.textContent ?? undefined,
+        efficacy: node.querySelector('efficacy')?.textContent ?? undefined,
+        symptoms: node.querySelector('symptoms')?.textContent ?? undefined,
+        nature: node.querySelector('nature')?.textContent ?? undefined,
+        taste: node.querySelector('taste')?.textContent ?? undefined,
+        meridian: node.querySelector('meridian')?.textContent ?? undefined,
+        contraindication: node.querySelector('contraindication')?.textContent ?? undefined,
       })
     })
 
@@ -463,18 +463,18 @@ export async function getTraditionalHerbDetail(
     return {
       cntntsNo: item.querySelector('cntntsNo')?.textContent || '',
       hanbangNm: item.querySelector('hanbangNm')?.textContent || '',
-      hanbangNmHanja: item.querySelector('hanbangNmHanja')?.textContent,
-      hanbangNmLatin: item.querySelector('hanbangNmLatin')?.textContent,
-      source: item.querySelector('source')?.textContent,
-      medicalPart: item.querySelector('medicalPart')?.textContent,
-      efficacy: item.querySelector('efficacy')?.textContent,
-      symptoms: item.querySelector('symptoms')?.textContent,
-      nature: item.querySelector('nature')?.textContent,
-      taste: item.querySelector('taste')?.textContent,
-      meridian: item.querySelector('meridian')?.textContent,
-      contraindication: item.querySelector('contraindication')?.textContent,
-      processingMethod: item.querySelector('processingMethod')?.textContent,
-      relatedPrescription: item.querySelector('relatedPrescription')?.textContent,
+      hanbangNmHanja: item.querySelector('hanbangNmHanja')?.textContent ?? undefined,
+      hanbangNmLatin: item.querySelector('hanbangNmLatin')?.textContent ?? undefined,
+      source: item.querySelector('source')?.textContent ?? undefined,
+      medicalPart: item.querySelector('medicalPart')?.textContent ?? undefined,
+      efficacy: item.querySelector('efficacy')?.textContent ?? undefined,
+      symptoms: item.querySelector('symptoms')?.textContent ?? undefined,
+      nature: item.querySelector('nature')?.textContent ?? undefined,
+      taste: item.querySelector('taste')?.textContent ?? undefined,
+      meridian: item.querySelector('meridian')?.textContent ?? undefined,
+      contraindication: item.querySelector('contraindication')?.textContent ?? undefined,
+      processingMethod: item.querySelector('processingMethod')?.textContent ?? undefined,
+      relatedPrescription: item.querySelector('relatedPrescription')?.textContent ?? undefined,
     }
   } catch (error) {
     console.error('한국전통 약재 상세 조회 API 오류:', error)
@@ -530,13 +530,13 @@ export async function searchTraditionalPrescription(
       items.push({
         cntntsNo: node.querySelector('cntntsNo')?.textContent || '',
         prescNm: node.querySelector('prescNm')?.textContent || '',
-        prescNmHanja: node.querySelector('prescNmHanja')?.textContent,
-        source: node.querySelector('source')?.textContent,
-        ingredients: node.querySelector('ingredients')?.textContent,
-        preparation: node.querySelector('preparation')?.textContent,
-        symptoms: node.querySelector('symptoms')?.textContent,
-        efficacy: node.querySelector('efficacy')?.textContent,
-        contraindication: node.querySelector('contraindication')?.textContent,
+        prescNmHanja: node.querySelector('prescNmHanja')?.textContent ?? undefined,
+        source: node.querySelector('source')?.textContent ?? undefined,
+        ingredients: node.querySelector('ingredients')?.textContent ?? undefined,
+        preparation: node.querySelector('preparation')?.textContent ?? undefined,
+        symptoms: node.querySelector('symptoms')?.textContent ?? undefined,
+        efficacy: node.querySelector('efficacy')?.textContent ?? undefined,
+        contraindication: node.querySelector('contraindication')?.textContent ?? undefined,
       })
     })
 
@@ -578,15 +578,15 @@ export async function getTraditionalPrescriptionDetail(
     return {
       cntntsNo: item.querySelector('cntntsNo')?.textContent || '',
       prescNm: item.querySelector('prescNm')?.textContent || '',
-      prescNmHanja: item.querySelector('prescNmHanja')?.textContent,
-      source: item.querySelector('source')?.textContent,
-      ingredients: item.querySelector('ingredients')?.textContent,
-      preparation: item.querySelector('preparation')?.textContent,
-      symptoms: item.querySelector('symptoms')?.textContent,
-      efficacy: item.querySelector('efficacy')?.textContent,
-      contraindication: item.querySelector('contraindication')?.textContent,
-      modification: item.querySelector('modification')?.textContent,
-      category: item.querySelector('category')?.textContent,
+      prescNmHanja: item.querySelector('prescNmHanja')?.textContent ?? undefined,
+      source: item.querySelector('source')?.textContent ?? undefined,
+      ingredients: item.querySelector('ingredients')?.textContent ?? undefined,
+      preparation: item.querySelector('preparation')?.textContent ?? undefined,
+      symptoms: item.querySelector('symptoms')?.textContent ?? undefined,
+      efficacy: item.querySelector('efficacy')?.textContent ?? undefined,
+      contraindication: item.querySelector('contraindication')?.textContent ?? undefined,
+      modification: item.querySelector('modification')?.textContent ?? undefined,
+      category: item.querySelector('category')?.textContent ?? undefined,
     }
   } catch (error) {
     console.error('한국전통 처방 상세 조회 API 오류:', error)

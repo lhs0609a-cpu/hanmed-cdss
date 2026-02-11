@@ -310,7 +310,7 @@ export default function CasesPage() {
   }, [updateSearchParams])
 
   // 사용자 친화적 에러 메시지 변환
-  const getUserFriendlyError = (err: Error | unknown): string => {
+  const _getUserFriendlyError = (err: Error | unknown): string => {
     const message = err instanceof Error ? err.message : String(err)
 
     // 네트워크 에러
