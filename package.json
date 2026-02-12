@@ -24,6 +24,7 @@
     "db:migrate": "cd apps/api && npm run migration:run",
     "db:seed": "cd apps/api && npm run seed"
   },
+  "packageManager": "pnpm@9.15.4",
   "engines": {
     "node": ">=20.0.0"
   },
