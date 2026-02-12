@@ -175,7 +175,6 @@ export function SpotlightProvider({ children }: { children: React.ReactNode }) {
     if (position === 'auto') {
       const spaceAbove = targetRect.top
       const spaceBelow = window.innerHeight - targetRect.bottom
-      const _spaceLeft = targetRect.left
       const spaceRight = window.innerWidth - targetRect.right
 
       if (spaceBelow >= tooltipHeight + padding) {
