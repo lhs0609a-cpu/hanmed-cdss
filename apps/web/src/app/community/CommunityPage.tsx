@@ -206,7 +206,7 @@ export default function CommunityPage() {
       try {
         const params: Record<string, string> = {}
         if (selectedType) params.type = selectedType
-        if (sortBy) params.sort = sortBy
+        if (sortBy) params.sortBy = sortBy
 
         const response = await api.get('/community/posts', { params })
         const apiPosts = response.data?.data || response.data || []

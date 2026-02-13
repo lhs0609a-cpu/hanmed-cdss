@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
+import { useSymptomTemplates } from '@/hooks/useSymptomTemplates'
 import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import {
   Plus,
@@ -32,6 +33,9 @@ import {
   ClipboardList,
   Stethoscope,
   FileCheck,
+  RefreshCw,
+  ClipboardCopy,
+  Save,
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
@@ -46,6 +50,7 @@ import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
 import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { SimilarPatientStats, RecommendationStatHighlight } from '@/components/consultation'
+import { ClinicalEvidencePanel } from '@/components/clinical-evidence'
 
 const consultationTourSteps = [
   {
@@ -212,6 +217,7 @@ export default function ConsultationPage() {
 
   const { showHanja } = useHanjaSettings()
   const { toast } = useToast()
+  const { templates, saveTemplate, deleteTemplate } = useSymptomTemplates()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
@@ -260,6 +266,18 @@ export default function ConsultationPage() {
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [documentFormula, setDocumentFormula] = useState<Recommendation | null>(null)
 
+  // 완료 상태 (처방 선택 후)
+  const [doneState, setDoneState] = useState<{
+    formula: Recommendation
+    chiefComplaint: string
+    constitution: string
+    symptoms: string[]
+  } | null>(null)
+
+  // 템플릿 저장 모달
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+
   // 대시보드에서 자연어 검색으로 넘어온 경우 자동 채움 + 즉시 분석
   const [autoSubmitDone, setAutoSubmitDone] = useState(false)
 
@@ -295,6 +313,15 @@ export default function ConsultationPage() {
       setAutoSubmitDone(true)
     }
   }, [location.state, autoSubmitDone])
+
+  // autoSubmit: 데이터 채움 후 자동으로 AI 분석 실행
+  useEffect(() => {
+    if (autoSubmitDone && location.state?.autoSubmit && chiefComplaint && !isLoading && recommendations.length === 0) {
+      handleSubmit()
+      // 뒤로가기 시 재실행 방지
+      window.history.replaceState({}, '')
+    }
+  }, [autoSubmitDone, chiefComplaint])
 
   // Fetch similar cases when recommendations are loaded
   useEffect(() => {
@@ -434,8 +461,17 @@ export default function ConsultationPage() {
       localStorage.setItem(PRESCRIPTIONS_STORAGE_KEY, JSON.stringify(existingRecords.slice(0, 100)))
 
       setShowSelectConfirm(false)
+
+      // 완료 상태 설정
+      setDoneState({
+        formula: selectedForSelect,
+        chiefComplaint,
+        constitution,
+        symptoms: symptoms.map(s => s.name),
+      })
+
       toast({
-        title: '처방이 선택되었습니다',
+        title: '처방이 저장되었습니다',
         description: `${selectedForSelect.formula_name}이(가) 진료 기록에 저장되었습니다.`,
       })
     } catch (err) {
@@ -446,6 +482,70 @@ export default function ConsultationPage() {
         variant: 'destructive',
       })
     }
+  }
+
+  // 재분석: 증상 수정으로 돌아가기 (환자정보 유지)
+  const handleReAnalyze = () => {
+    setDoneState(null)
+    setRecommendations([])
+    setAnalysis('')
+    setWizardStep(2)
+  }
+
+  // 새 환자 진료: 모든 상태 초기화
+  const handleNewConsultation = () => {
+    setDoneState(null)
+    setRecommendations([])
+    setAnalysis('')
+    setChiefComplaint('')
+    setSymptoms([])
+    setConstitution('')
+    setCurrentMedications([])
+    setSimilarCases([])
+    setWizardStep(1)
+    setAutoSubmitDone(false)
+  }
+
+  // 처방전 복사
+  const copyPrescriptionToClipboard = (rec: Recommendation) => {
+    const detail = formulaDetails[rec.formula_name]
+    const herbsText = rec.herbs.map(h => `  ${h.name} ${h.amount} (${h.role})`).join('\n')
+    const text = `【${rec.formula_name}】 신뢰도: ${(rec.confidence_score * 100).toFixed(0)}%
+출전: ${detail?.source || '미상'}
+주소증: ${chiefComplaint}
+${constitution ? `체질: ${constitution}\n` : ''}
+구성 약재:
+${herbsText}
+
+AI 분석:
+${rec.rationale}
+${analysis ? `\n변증 분석:\n${analysis}` : ''}`
+
+    navigator.clipboard.writeText(text)
+    toast({ title: '처방전이 클립보드에 복사되었습니다' })
+  }
+
+  // 템플릿 저장
+  const handleSaveTemplate = () => {
+    if (!templateName.trim()) return
+    saveTemplate(templateName.trim(), {
+      chiefComplaint,
+      symptoms: symptoms.map(s => s.name),
+      constitution: constitution || undefined,
+    })
+    setTemplateName('')
+    setShowTemplateModal(false)
+    toast({ title: '증상 템플릿이 저장되었습니다' })
+  }
+
+  // 템플릿 불러오기
+  const handleLoadTemplate = (id: string) => {
+    const tmpl = templates.find(t => t.id === id)
+    if (!tmpl) return
+    setChiefComplaint(tmpl.chiefComplaint)
+    setSymptoms(tmpl.symptoms.map(s => ({ name: s, severity: 5 })))
+    if (tmpl.constitution) setConstitution(tmpl.constitution)
+    toast({ title: `'${tmpl.name}' 템플릿을 불러왔습니다` })
   }
 
   const copyToClipboard = () => {
@@ -750,6 +850,42 @@ export default function ConsultationPage() {
                   <p className="text-sm text-gray-500">환자가 호소하는 증상을 입력해주세요</p>
                 </div>
               </div>
+
+              {/* 나의 템플릿 */}
+              {(templates.length > 0 || chiefComplaint.trim()) && (
+                <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-indigo-700">나의 증상 템플릿</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {templates.map((tmpl) => (
+                      <div key={tmpl.id} className="group flex items-center">
+                        <button
+                          onClick={() => handleLoadTemplate(tmpl.id)}
+                          className="px-3 py-1.5 text-sm bg-white rounded-l-lg border border-indigo-200 text-indigo-700 font-medium hover:bg-indigo-50 transition-colors"
+                        >
+                          {tmpl.name}
+                        </button>
+                        <button
+                          onClick={() => deleteTemplate(tmpl.id)}
+                          className="px-1.5 py-1.5 bg-white border border-l-0 border-indigo-200 rounded-r-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {chiefComplaint.trim() && (
+                      <button
+                        onClick={() => setShowTemplateModal(true)}
+                        className="px-3 py-1.5 text-sm bg-white rounded-lg border-2 border-dashed border-indigo-200 text-indigo-500 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center gap-1"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        현재 증상 저장
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* 주소증 입력 */}
               <div>
@@ -1067,6 +1203,17 @@ export default function ConsultationPage() {
                           가감법·금기·현대응용 더보기
                           <ChevronRight className="h-3 w-3" />
                         </button>
+
+                        {/* 임상 근거 패널 */}
+                        <ClinicalEvidencePanel
+                          formulaName={rec.formula_name}
+                          herbs={rec.herbs}
+                          rationale={rec.rationale}
+                          chiefComplaint={chiefComplaint}
+                          symptoms={symptoms}
+                          constitution={constitution}
+                          formulaDetail={detail}
+                        />
                       </div>
                     </div>
                   )
@@ -1074,21 +1221,30 @@ export default function ConsultationPage() {
               </div>
 
               {/* 네비게이션 */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
                 <button
-                  onClick={() => {
-                    setWizardStep(1)
-                    setRecommendations([])
-                    setAnalysis('')
-                    setChiefComplaint('')
-                    setSymptoms([])
-                    setConstitution('')
-                  }}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
+                  onClick={handleReAnalyze}
+                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all flex items-center gap-2 text-sm"
                 >
-                  <Plus className="h-5 w-5" />
-                  새 진료 시작
+                  <RefreshCw className="h-4 w-4" />
+                  증상 수정 후 재분석
                 </button>
+                <button
+                  onClick={() => recommendations[0] && copyPrescriptionToClipboard(recommendations[0])}
+                  disabled={recommendations.length === 0}
+                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 disabled:opacity-50 transition-all flex items-center gap-2 text-sm"
+                >
+                  <ClipboardCopy className="h-4 w-4" />
+                  처방전 복사
+                </button>
+                <button
+                  onClick={handleNewConsultation}
+                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all flex items-center gap-2 text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  새 환자 진료
+                </button>
+                <div className="flex-1" />
                 <button
                   onClick={() => recommendations[0] && handleSelectFormula(recommendations[0])}
                   disabled={recommendations.length === 0}
@@ -1096,6 +1252,72 @@ export default function ConsultationPage() {
                 >
                   <CheckCircle className="h-5 w-5" />
                   최우선 처방 선택
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 완료 상태 (처방 선택 후) */}
+          {doneState && (
+            <div className="mt-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-200 p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-emerald-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">처방이 저장되었습니다</h3>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 mb-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">선택 처방:</span>
+                  <span className="font-bold text-teal-600">{doneState.formula.formula_name}</span>
+                  <span className="text-sm text-gray-400">
+                    | 신뢰도 {(doneState.formula.confidence_score * 100).toFixed(0)}%
+                  </span>
+                </div>
+                {doneState.constitution && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">체질:</span>
+                    <span className="text-sm text-gray-700">{doneState.constitution}</span>
+                  </div>
+                )}
+                <div className="flex items-start gap-2">
+                  <span className="text-sm text-gray-500 shrink-0">주소증:</span>
+                  <span className="text-sm text-gray-700">{doneState.chiefComplaint}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button
+                  onClick={handleReAnalyze}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
+                >
+                  <RefreshCw className="h-5 w-5 text-blue-500" />
+                  증상 수정 후 재분석
+                </button>
+                <button
+                  onClick={() => copyPrescriptionToClipboard(doneState.formula)}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
+                >
+                  <ClipboardCopy className="h-5 w-5 text-teal-500" />
+                  처방전 복사
+                </button>
+                <button
+                  onClick={handleNewConsultation}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
+                >
+                  <Plus className="h-5 w-5 text-emerald-500" />
+                  새 환자 진료
+                </button>
+                <button
+                  onClick={() => {
+                    setDocumentFormula(doneState.formula)
+                    setShowDocumentModal(true)
+                  }}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
+                >
+                  <FileText className="h-5 w-5 text-amber-500" />
+                  문서 작성
                 </button>
               </div>
             </div>
@@ -2093,6 +2315,44 @@ export default function ConsultationPage() {
         constitution={constitution}
         enabled={!isLoading && recommendations.length === 0}
       />
+
+      {/* 증상 템플릿 저장 모달 */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">증상 템플릿 저장</h3>
+            <input
+              type="text"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="템플릿 이름 (예: 소화기 환자)"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 mb-3"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveTemplate()}
+            />
+            <div className="text-xs text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg">
+              <p>주소증: {chiefComplaint.slice(0, 50)}{chiefComplaint.length > 50 ? '...' : ''}</p>
+              {symptoms.length > 0 && <p>증상: {symptoms.map(s => s.name).join(', ')}</p>}
+              {constitution && <p>체질: {constitution}</p>}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowTemplateModal(false); setTemplateName('') }}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={!templateName.trim()}
+                className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 transition-all font-medium"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Prescription Document Modal */}
       {documentFormula && (

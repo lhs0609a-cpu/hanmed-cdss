@@ -16,9 +16,9 @@ import {
   AreaChart,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, Activity, PieChart as PieChartIcon, BarChart3 } from 'lucide-react'
+import { TrendingUp, Activity, PieChart as PieChartIcon, BarChart3, Info } from 'lucide-react'
 
-// 샘플 데이터 (실제로는 API에서 가져올 데이터)
+// 샘플 데이터 (실제 진료 기록이 쌓이면 API 데이터로 대체됩니다)
 const monthlyConsultations = [
   { month: '1월', consultations: 45, aiUsage: 38 },
   { month: '2월', consultations: 52, aiUsage: 45 },
@@ -274,11 +274,17 @@ export function SymptomTrendChart() {
  */
 export function DashboardCharts() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <MonthlyConsultationChart />
-      <PrescriptionDistributionChart />
-      <WeeklyActivityChart />
-      <SymptomTrendChart />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600">
+        <Info className="h-4 w-4 text-slate-400 flex-shrink-0" />
+        <span>아래 차트는 샘플 데이터입니다. 실제 진료 기록이 쌓이면 자동으로 반영됩니다.</span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyConsultationChart />
+        <PrescriptionDistributionChart />
+        <WeeklyActivityChart />
+        <SymptomTrendChart />
+      </div>
     </div>
   )
 }

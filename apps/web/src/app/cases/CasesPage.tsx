@@ -354,10 +354,17 @@ export default function CasesPage() {
         throw new Error(`서버 응답 오류 (${response.status})`)
       }
 
-      const data = await response.json()
-      // 백엔드 반환: { data: ClinicalCase[], meta: { total, page, limit, totalPages } }
-      const rawCases = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []
-      const meta = data.meta || {}
+      const rawJson = await response.json()
+      // TransformInterceptor 래핑 해제: { success, data: { data: [...], meta }, timestamp }
+      const payload = rawJson.success !== undefined ? rawJson.data : rawJson
+      // payload = { data: ClinicalCase[], meta: { total, page, limit, totalPages } }
+      const rawCases = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : []
+      const meta = payload?.meta || {}
+
+      // DB가 비어있으면 Mock 폴백
+      if (rawCases.length === 0 && (!meta.total || meta.total === 0)) {
+        throw new Error('DB에 치험례 데이터가 없습니다')
+      }
 
       const transformedCases = rawCases.map(transformCase)
       setCases(transformedCases)

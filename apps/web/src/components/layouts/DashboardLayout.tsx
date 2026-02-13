@@ -4,6 +4,7 @@ import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { ThemeToggle, GlossaryButton, KeyboardHint } from '@/components/common'
+import { FloatingConsultButton } from '@/components/common/FloatingConsultButton'
 import { SessionWarningDialog } from '@/components/common/SessionWarningDialog'
 import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
 import { useState, useEffect, useMemo } from 'react'
@@ -666,6 +667,9 @@ export default function DashboardLayout() {
       <div className="hidden lg:block">
         <KeyboardHint />
       </div>
+
+      {/* Floating Consult Button (FAB) */}
+      <FloatingConsultButton />
 
       {/* Mobile Bottom Navigation */}
       <nav

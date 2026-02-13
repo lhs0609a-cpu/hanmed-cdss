@@ -25,10 +25,10 @@ export function SimilarPatientStats({
   treatmentOutcomes,
   className,
 }: SimilarPatientStatsProps) {
-  // Calculate improvement rate
+  // Calculate improvement rate from real data only
   const improvementRate = treatmentOutcomes
     ? Math.round((treatmentOutcomes.improved / (treatmentOutcomes.improved + treatmentOutcomes.maintained + treatmentOutcomes.noChange)) * 100)
-    : 85 // default value
+    : null
 
   return (
     <div className={cn('bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-100 p-5', className)}>
@@ -53,8 +53,8 @@ export function SimilarPatientStats({
             <TrendingUp className="h-4 w-4 text-emerald-500" />
             <span className="text-xs text-gray-500">호전율</span>
           </div>
-          <div className="text-2xl font-bold text-emerald-600">{improvementRate}%</div>
-          <div className="text-[10px] text-gray-400">치료 후 개선</div>
+          <div className="text-2xl font-bold text-emerald-600">{improvementRate !== null ? `${improvementRate}%` : '-'}</div>
+          <div className="text-[10px] text-gray-400">{improvementRate !== null ? '치료 후 개선' : '데이터 수집중'}</div>
         </div>
 
         {/* Match Confidence */}

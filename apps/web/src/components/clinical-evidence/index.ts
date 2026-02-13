@@ -1,0 +1,1 @@
+export { ClinicalEvidencePanel } from './ClinicalEvidencePanel'

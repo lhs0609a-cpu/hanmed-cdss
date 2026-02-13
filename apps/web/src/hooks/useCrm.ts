@@ -196,13 +196,12 @@ export interface CampaignAnalytics {
 export function useCrmDashboard() {
   return useQuery({
     queryKey: ['crm-dashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<CrmDashboard & { _isDemo?: boolean }> => {
       try {
         const { data } = await api.get('/crm/dashboard');
-        return data.data as CrmDashboard;
+        return { ...(data.data as CrmDashboard), _isDemo: false };
       } catch {
-        // Return mock data for demo mode
-        return MOCK_DASHBOARD;
+        return { ...MOCK_DASHBOARD, _isDemo: true };
       }
     },
   });

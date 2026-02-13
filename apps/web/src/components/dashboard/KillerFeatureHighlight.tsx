@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Sparkles,
@@ -53,12 +53,12 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
   const [activeStep, setActiveStep] = useState(0)
 
   // Auto-animate steps
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % demoSteps.length)
     }, 2000)
     return () => clearInterval(interval)
-  })
+  }, [])
 
   if (compact) {
     return (
@@ -138,18 +138,18 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
             {/* Stats */}
             <div className="flex items-center gap-6 mb-8">
               <div>
-                <div className="text-2xl font-bold text-white">94.2%</div>
-                <div className="text-xs text-white/50">처방 채택률</div>
-              </div>
-              <div className="w-px h-10 bg-white/20" />
-              <div>
-                <div className="text-2xl font-bold text-white">3분</div>
-                <div className="text-xs text-white/50">평균 분석 시간</div>
-              </div>
-              <div className="w-px h-10 bg-white/20" />
-              <div>
                 <div className="text-2xl font-bold text-white">{formatStatNumber(BASE_STATS.cases)}</div>
                 <div className="text-xs text-white/50">학습된 치험례</div>
+              </div>
+              <div className="w-px h-10 bg-white/20" />
+              <div>
+                <div className="text-2xl font-bold text-white">{formatStatNumber(BASE_STATS.formulas)}</div>
+                <div className="text-xs text-white/50">처방 데이터</div>
+              </div>
+              <div className="w-px h-10 bg-white/20" />
+              <div>
+                <div className="text-2xl font-bold text-white">~3분</div>
+                <div className="text-xs text-white/50">평균 분석 시간</div>
               </div>
             </div>
 
@@ -241,7 +241,7 @@ export function KillerFeatureHighlight({ compact = false }: KillerFeatureHighlig
                     <span className="text-sm font-medium">추천 처방</span>
                   </div>
                   <div className="text-white font-semibold">이중탕가미</div>
-                  <div className="text-sm text-white/60 mt-1">유사 환자 치료 성공률 87.3%</div>
+                  <div className="text-sm text-white/60 mt-1">치험례 기반 AI 추천 결과</div>
                 </div>
               )}
             </div>

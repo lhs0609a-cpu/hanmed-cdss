@@ -239,16 +239,15 @@ export interface TrendData {
 export function useDashboardMetrics() {
   return useQuery({
     queryKey: ['analytics-dashboard'],
-    queryFn: async (): Promise<DashboardMetrics> => {
+    queryFn: async (): Promise<DashboardMetrics & { _isDemo?: boolean }> => {
       try {
         const { data } = await api.get('/analytics/dashboard');
-        // interceptor가 이미 response.data.data를 unwrap하므로 data가 최종 값
         if (data && data.overview) {
-          return data as DashboardMetrics;
+          return { ...(data as DashboardMetrics), _isDemo: false };
         }
-        return MOCK_DASHBOARD_METRICS;
+        return { ...MOCK_DASHBOARD_METRICS, _isDemo: true };
       } catch {
-        return MOCK_DASHBOARD_METRICS;
+        return { ...MOCK_DASHBOARD_METRICS, _isDemo: true };
       }
     },
   });

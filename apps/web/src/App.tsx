@@ -85,6 +85,11 @@ import InventoryPage from '@/app/inventory/InventoryPage'
 import LandingPage from '@/app/landing/LandingPage'
 import AdLandingPage from '@/app/landing/AdLandingPage'
 
+// B2C Health Platform
+import HealthLayout from '@/components/layouts/HealthLayout'
+import HealthHomePage from '@/app/health/HealthHomePage'
+import HealthCheckPage from '@/app/health/HealthCheckPage'
+
 // Legal Pages
 import {
   TermsPage,
@@ -130,6 +135,12 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* B2C Health Platform (Public) */}
+        <Route path="/health" element={<HealthLayout />}>
+          <Route index element={<HealthHomePage />} />
+          <Route path="check/:slug" element={<HealthCheckPage />} />
+        </Route>
 
         {/* Legal Pages (Public) */}
         <Route path="/terms" element={<TermsPage />} />

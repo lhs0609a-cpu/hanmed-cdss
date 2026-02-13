@@ -1,0 +1,91 @@
+{
+  "name": "ongojishin-desktop",
+  "version": "1.0.0",
+  "description": "온고지신 AI - 한의학 CDSS 데스크톱 앱",
+  "main": "dist/main/index.js",
+  "author": {
+    "name": "온고지신",
+    "email": "support@ongojisin.co.kr"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-builder",
+    "package:win": "electron-builder --win",
+    "package:mac": "electron-builder --mac",
+    "package:all": "electron-builder --win --mac"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^3.0.0",
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.0",
+    "@types/node": "^20.11.0",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^2.0.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11"
+  },
+  "build": {
+    "appId": "kr.co.ongojisin.desktop",
+    "productName": "온고지신 AI",
+    "copyright": "Copyright © 2024 온고지신",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "app",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "artifactName": "${productName}-${version}-Windows-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "온고지신 AI"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Windows-Portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "resources/icon.icns",
+      "category": "public.app-category.medical",
+      "artifactName": "${productName}-${version}-Mac.${ext}"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "icon": "resources/icon.icns"
+    }
+  }
+}

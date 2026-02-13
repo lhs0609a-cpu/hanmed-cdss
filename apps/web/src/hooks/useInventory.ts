@@ -217,12 +217,12 @@ export function useInventory(options?: {
 export function useInventorySummary() {
   return useQuery({
     queryKey: ['inventory-summary'],
-    queryFn: async () => {
+    queryFn: async (): Promise<InventorySummary & { _isDemo?: boolean }> => {
       try {
         const { data } = await api.get('/inventory/summary');
-        return data.data as InventorySummary;
+        return { ...(data.data as InventorySummary), _isDemo: false };
       } catch {
-        return MOCK_SUMMARY;
+        return { ...MOCK_SUMMARY, _isDemo: true };
       }
     },
   });

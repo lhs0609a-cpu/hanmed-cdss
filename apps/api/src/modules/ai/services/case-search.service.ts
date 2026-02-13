@@ -116,8 +116,17 @@ export class CaseSearchService {
       .filter(Boolean)
       .join(' ');
 
+    // 처방명 필터 적용
+    let candidateCases = this.cases;
+    if (request.formula) {
+      const formulaLower = request.formula.toLowerCase();
+      candidateCases = candidateCases.filter(c =>
+        (c.formula_name || '').toLowerCase().includes(formulaLower),
+      );
+    }
+
     // 각 케이스에 대해 점수 계산
-    const scoredCases = this.cases.map(caseData => {
+    const scoredCases = candidateCases.map(caseData => {
       const score = this.calculateMatchScore(request, caseData);
       return { caseData, score };
     });

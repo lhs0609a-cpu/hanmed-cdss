@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
 import { useUsage } from '@/hooks/useSubscription'
+import { useConsultationHistory, formatRelativeTime } from '@/hooks/useConsultationHistory'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
@@ -23,6 +24,10 @@ import {
   Tag,
   Info,
   AlertTriangle,
+  X,
+  RefreshCw,
+  ClipboardList,
+  Shield,
 } from 'lucide-react'
 
 const dashboardTourSteps = [
@@ -68,8 +73,20 @@ export default function DashboardPage() {
   const { data: usage } = useUsage()
 
   const user = useAuthStore((state) => state.user)
+  const isGuest = useAuthStore((state) => state.isGuest)
+  const { recent: recentRecords, totalCount: recordCount } = useConsultationHistory()
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
+
+  // 게스트 가이드 배너 닫기
+  const [guestGuideDismissed, setGuestGuideDismissed] = useState(() =>
+    localStorage.getItem('guest_guide_dismissed') === 'true'
+  )
+  const showGuestGuide = isGuest && !guestGuideDismissed
+  const dismissGuestGuide = () => {
+    localStorage.setItem('guest_guide_dismissed', 'true')
+    setGuestGuideDismissed(true)
+  }
 
   // 실제 사용량 기반 통계
   const aiUsed = usage?.aiQuery?.used || 0
@@ -156,6 +173,68 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* 게스트 가이드 배너 */}
+      {showGuestGuide && (
+        <div className="relative bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 p-6">
+          <button
+            onClick={dismissGuestGuide}
+            className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/50 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="text-center mb-4">
+            <h2 className="text-lg font-bold text-gray-900">
+              온고지신 AI 핵심 기능 3가지를 체험해보세요!
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              onClick={() => navigate('/dashboard/consultation')}
+              className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-md transition-all text-left"
+            >
+              <div className="p-2 bg-teal-100 rounded-lg shrink-0">
+                <Stethoscope className="h-5 w-5 text-teal-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">AI 진료 시작하기</p>
+                <p className="text-xs text-gray-500">증상 입력 → AI 처방 추천</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/cases')}
+              className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all text-left"
+            >
+              <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+                <BookOpen className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">치험례 검색</p>
+                <p className="text-xs text-gray-500">6,000+ 실제 임상 사례</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/interactions')}
+              className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all text-left"
+            >
+              <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+                <Shield className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">상호작용 검사</p>
+                <p className="text-xs text-gray-500">양약-한약 안전성 확인</p>
+              </div>
+            </button>
+          </div>
+          <p className="text-center text-xs text-gray-500 mt-4">
+            마음에 드시면{' '}
+            <Link to="/register" className="text-indigo-600 font-medium hover:underline">
+              회원가입
+            </Link>
+            하고 매일 무료로 사용하세요
+          </p>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div
         data-tour="welcome-header"
@@ -338,22 +417,65 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div data-tour="recent-activity" className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900">최근 활동</h2>
-            <Link
-              to="/dashboard/statistics"
-              className="text-sm font-medium text-teal-600 hover:text-teal-700"
-            >
-              전체 보기
-            </Link>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-teal-500" />
+              최근 진료 기록
+            </h2>
+            {recordCount > 0 && (
+              <span className="text-xs text-gray-400">총 {recordCount}건</span>
+            )}
           </div>
 
-          <div className="space-y-4">
+          {recentRecords.length > 0 ? (
+            <div className="space-y-3">
+              {recentRecords.map((record) => (
+                <div
+                  key={record.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-gray-900 truncate">
+                        {record.chiefComplaint.length > 20
+                          ? record.chiefComplaint.slice(0, 20) + '...'
+                          : record.chiefComplaint}
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-gray-400 shrink-0" />
+                      <span className="text-sm font-medium text-teal-600 truncate">
+                        {record.formulaName}
+                      </span>
+                      <span className="text-xs text-gray-400 shrink-0">
+                        ({(record.confidenceScore * 100).toFixed(0)}%)
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {formatRelativeTime(record.date)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => navigate('/dashboard/consultation', {
+                      state: {
+                        naturalQuery: record.chiefComplaint,
+                        parsedSymptoms: record.symptoms,
+                        parsedConstitution: record.constitution,
+                        autoSubmit: true,
+                      },
+                    })}
+                    className="ml-3 px-3 py-1.5 text-xs font-medium text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    재분석
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="p-3 bg-gray-100 rounded-full mb-3">
                 <Info className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="text-sm text-gray-500 mb-1">아직 활동 기록이 없습니다</p>
-              <p className="text-xs text-gray-400">AI 진료를 시작하면 여기에 활동 내역이 표시됩니다</p>
+              <p className="text-sm text-gray-500 mb-1">아직 진료 기록이 없습니다</p>
+              <p className="text-xs text-gray-400">AI 진료를 시작하면 여기에 기록이 표시됩니다</p>
               <Link
                 to="/dashboard/consultation"
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-600 text-sm font-medium rounded-lg hover:bg-teal-100 transition-colors"
@@ -362,7 +484,7 @@ export default function DashboardPage() {
                 첫 진료 시작하기
               </Link>
             </div>
-          </div>
+          )}
         </div>
 
         {/* AI Insight Card */}

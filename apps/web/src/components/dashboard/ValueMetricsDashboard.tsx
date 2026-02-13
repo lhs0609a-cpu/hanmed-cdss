@@ -125,20 +125,15 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
   const { data: _subscriptionInfo } = useSubscriptionInfo()
   const [metrics, setMetrics] = useState<ValueMetric[]>([])
 
-  // Weekly usage data (simulated - could be replaced with real API data)
+  // Weekly usage data - 실제 사용량이 없으면 0으로 표시
   const weeklyData = useMemo(() => {
-    const today = new Date().getDay()
-    const todayIdx = today === 0 ? 6 : today - 1
-    // Generate sample weekly data
-    return Array.from({ length: 7 }, (_, i) =>
-      i <= todayIdx ? Math.floor(Math.random() * 10 + 1) : 0
-    )
+    // 실제 API 연동 전까지 0으로 표시
+    return Array.from({ length: 7 }, () => 0)
   }, [])
 
-  // Usage streak calculation
+  // Usage streak - 실제 사용 기록 기반
   const streak = useMemo(() => {
-    // Simulated streak - in production, get from API
-    return Math.min(weeklyData.filter(d => d > 0).length, 7)
+    return weeklyData.filter(d => d > 0).length
   }, [weeklyData])
 
   // Usage goal progress
@@ -152,25 +147,26 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
     const storedStats = localStorage.getItem('user_value_stats')
     const stats = storedStats ? JSON.parse(storedStats) : getDefaultStats()
 
+    const aiUsed = usage?.aiQuery.used || stats.aiQueries
+    const minutesSaved = Math.round(aiUsed * 5) // 분석당 5분 절약 추정
+
     const calculatedMetrics: ValueMetric[] = [
       {
         id: 'ai_queries',
         label: 'AI 분석 횟수',
-        value: usage?.aiQuery.used || stats.aiQueries,
+        value: aiUsed,
         unit: '회',
         icon: Brain,
         description: '이번 달 AI 처방 분석',
-        trend: { value: 23, isPositive: true },
         color: 'from-purple-500 to-indigo-500',
       },
       {
         id: 'time_saved',
-        label: '절약한 시간',
-        value: Math.round((usage?.aiQuery.used || stats.aiQueries) * 5), // 분석당 5분 절약 추정
+        label: '절약한 시간 (추정)',
+        value: minutesSaved,
         unit: '분',
         icon: Clock,
-        description: '수동 검색 대비 절약',
-        trend: { value: 15, isPositive: true },
+        description: `분석 ${aiUsed}건 x 5분 절약`,
         color: 'from-emerald-500 to-teal-500',
       },
       {
@@ -183,13 +179,12 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
         color: 'from-amber-500 to-orange-500',
       },
       {
-        id: 'accuracy_improvement',
-        label: '변증 정확도',
-        value: 85 + Math.min(stats.aiQueries, 10), // 사용량에 따른 정확도 향상
-        unit: '%',
+        id: 'usage_limit',
+        label: '이용 한도',
+        value: usage?.aiQuery.used || 0,
+        unit: `/ ${usage?.aiQuery.limit || 50}`,
         icon: Target,
-        description: 'AI 기반 변증 일치율',
-        trend: { value: 5, isPositive: true },
+        description: '이번 달 AI 분석 사용량',
         color: 'from-blue-500 to-cyan-500',
       },
     ]
@@ -388,12 +383,12 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
             </div>
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">최장 기록</span>
-                <span className="font-medium text-gray-900">{Math.max(streak, 14)}일</span>
+                <span className="text-gray-600">이번 주 사용일</span>
+                <span className="font-medium text-gray-900">{streak}일</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">이번 달 활성일</span>
-                <span className="font-medium text-gray-900">{Math.min(streak + 5, 20)}일</span>
+                <span className="text-gray-600">월간 AI 분석</span>
+                <span className="font-medium text-gray-900">{usage?.aiQuery.used || 0}회</span>
               </div>
               {streak >= 7 && (
                 <div className="flex items-center gap-2 mt-2 p-2 bg-white/60 rounded-lg">
