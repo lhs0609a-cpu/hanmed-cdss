@@ -1627,7 +1627,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-900 text-gray-400">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-5 gap-8 mb-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center">
@@ -1660,20 +1660,11 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-white mb-4">일반 건강</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link to="/health" className="hover:text-white transition-colors">몸이알려줌</Link></li>
-                <li><Link to="/health#checks" className="hover:text-white transition-colors">건강체크</Link></li>
-                <li><Link to="/health/community" className="hover:text-white transition-colors">건강 커뮤니티</Link></li>
-                <li><Link to="/health/qna" className="hover:text-white transition-colors">한의사 QnA</Link></li>
-              </ul>
-            </div>
-
-            <div>
               <h4 className="font-semibold text-white mb-4">고객지원</h4>
               <ul className="space-y-2 text-sm">
                 <li>이메일: support@hanmed.kr</li>
                 <li>운영시간: 평일 09:00 - 18:00</li>
+                <li><Link to="/health" className="hover:text-white transition-colors">몸이알려줌 (일반 건강)</Link></li>
               </ul>
             </div>
           </div>
