@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
@@ -441,7 +441,7 @@ const schoolIcons: Record<MedicineSchool, React.ReactNode> = {
 const schoolColors: Record<MedicineSchool, string> = {
   classical: 'bg-amber-100 text-amber-700 border-amber-200',
   later: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  sasang: 'bg-slate-100 text-slate-700 border-slate-200',
+  sasang: 'bg-violet-100 text-violet-700 border-violet-200',
   hyungsang: 'bg-sky-100 text-sky-700 border-sky-200',
 }
 
@@ -521,11 +521,17 @@ export default function IntegratedDiagnosisPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Demo Data Warning */}
+      <div className="mx-4 mt-4 mb-0 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
+      </div>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg">
               <Stethoscope className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -750,7 +756,7 @@ export default function IntegratedDiagnosisPage() {
         </div>
 
         {/* Info Banner */}
-        <div className="mt-8 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-blue-200 p-6">
+        <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-blue-100 rounded-xl">
               <Info className="h-6 w-6 text-blue-600" />

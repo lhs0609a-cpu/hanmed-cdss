@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import {
   Activity,
   Save,
@@ -528,49 +528,20 @@ export default function PulseDiagnosisPage() {
     setAnalysis(result)
   }
 
-  // 복수 맥상 선택: 토글 방식으로 여러 맥 선택 가능
   const handlePulseSelect = (positionId: string, pulseName: string) => {
     const position = positions.find((p) => p.id === positionId)
     if (!position) return
 
-    setRecords((prev) => {
-      const existing = prev[positionId]
-      if (existing) {
-        // 이미 선택된 맥상 목록을 쉼표로 관리
-        const currentPulses = existing.pulseType.split(', ').filter(Boolean)
-        const idx = currentPulses.indexOf(pulseName)
-        if (idx >= 0) {
-          // 이미 있으면 제거
-          currentPulses.splice(idx, 1)
-          if (currentPulses.length === 0) {
-            // 전부 제거되면 레코드 삭제
-            const { [positionId]: _, ...rest } = prev
-            return rest
-          }
-          return {
-            ...prev,
-            [positionId]: { ...existing, pulseType: currentPulses.join(', ') },
-          }
-        } else {
-          // 없으면 추가 (최대 3개)
-          if (currentPulses.length >= 3) return prev
-          return {
-            ...prev,
-            [positionId]: { ...existing, pulseType: [...currentPulses, pulseName].join(', ') },
-          }
-        }
-      }
-      return {
-        ...prev,
-        [positionId]: {
-          position: position.position,
-          level: position.level,
-          pulseType: pulseName,
-          strength: 3,
-          notes: '',
-        },
-      }
-    })
+    setRecords((prev) => ({
+      ...prev,
+      [positionId]: {
+        position: position.position,
+        level: position.level,
+        pulseType: pulseName,
+        strength: prev[positionId]?.strength || 3,
+        notes: prev[positionId]?.notes || '',
+      },
+    }))
   }
 
   const handleStrengthChange = (positionId: string, strength: number) => {
@@ -633,8 +604,14 @@ export default function PulseDiagnosisPage() {
           맥진 기록
         </h1>
         <p className="mt-1 text-gray-500">
-          육부위 맥진 결과를 기록하세요. 확실하지 않은 부위는 건너뛸 수 있습니다.
+          육부위 맥진 결과를 기록하세요
         </p>
+      </div>
+
+      {/* Demo Data Warning */}
+      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -745,7 +722,6 @@ export default function PulseDiagnosisPage() {
                 {positions.find((p) => p.id === selectedPosition)?.name} 맥상 선택
               </h2>
 
-              <p className="text-xs text-gray-400 mb-3">복수 선택 가능 (최대 3개) - 확실하지 않으면 여러 맥을 선택하세요</p>
               <div className="space-y-4">
                 {pulseCategories.map((category) => (
                   <div key={category.name}>
@@ -753,8 +729,6 @@ export default function PulseDiagnosisPage() {
                     <div className="flex flex-wrap gap-2">
                       {category.pulses.map((pulse) => {
                         const pulseInfo = pulseTypes.find((p) => p.name.startsWith(pulse))
-                        const currentPulses = records[selectedPosition]?.pulseType?.split(', ') || []
-                        const isSelected = currentPulses.includes(pulse + '맥')
                         return (
                           <button
                             key={pulse}
@@ -764,7 +738,7 @@ export default function PulseDiagnosisPage() {
                             }}
                             className={cn(
                               'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                              isSelected
+                              records[selectedPosition]?.pulseType === pulse + '맥'
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
                             )}
@@ -823,11 +797,11 @@ export default function PulseDiagnosisPage() {
             />
           </div>
 
-          {/* Analyze Button - 1개만 입력해도 분석 가능 */}
-          {Object.keys(records).length >= 1 && (
+          {/* Analyze Button */}
+          {Object.keys(records).length >= 2 && (
             <button
               onClick={handleAnalyze}
-              className="w-full py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-slate-600/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
             >
               <Activity className="h-5 w-5" />
               AI 맥진 분석
@@ -836,8 +810,8 @@ export default function PulseDiagnosisPage() {
 
           {/* Analysis Result */}
           {analysis && (
-            <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-slate-200 p-6">
-              <h2 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
+              <h2 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 맥진 분석 결과
               </h2>
@@ -857,8 +831,8 @@ export default function PulseDiagnosisPage() {
                     {analysis.severity === 'severe' && '주의 필요'}
                   </span>
                 </div>
-                <p className="text-xl font-bold text-slate-900">{analysis.overallPattern}</p>
-                <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-full">
+                <p className="text-xl font-bold text-purple-900">{analysis.overallPattern}</p>
+                <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
                   {analysis.patternType}
                 </span>
               </div>
@@ -866,10 +840,10 @@ export default function PulseDiagnosisPage() {
               {/* Affected Organs */}
               {analysis.affectedOrgans.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-slate-800 mb-2">관련 장부</p>
+                  <p className="text-sm font-medium text-purple-800 mb-2">관련 장부</p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.affectedOrgans.map((organ, i) => (
-                      <span key={i} className="px-2 py-1 bg-white text-slate-700 text-sm rounded-lg border border-slate-200">
+                      <span key={i} className="px-2 py-1 bg-white text-purple-700 text-sm rounded-lg border border-purple-200">
                         {organ}
                       </span>
                     ))}
@@ -880,11 +854,11 @@ export default function PulseDiagnosisPage() {
               {/* Recommendations */}
               {analysis.recommendations.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-slate-800 mb-2">치료 방향</p>
+                  <p className="text-sm font-medium text-purple-800 mb-2">치료 방향</p>
                   <ul className="space-y-1">
                     {analysis.recommendations.map((rec, i) => (
-                      <li key={i} className="text-sm text-slate-700 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-slate-600" />
+                      <li key={i} className="text-sm text-purple-700 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-purple-500" />
                         {rec}
                       </li>
                     ))}
@@ -895,7 +869,7 @@ export default function PulseDiagnosisPage() {
               {/* Related Formulas */}
               {analysis.relatedFormulas.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-slate-800 mb-2">추천 처방</p>
+                  <p className="text-sm font-medium text-purple-800 mb-2">추천 처방</p>
                   <div className="flex flex-wrap gap-2">
                     {analysis.relatedFormulas.map((formula, i) => (
                       <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-lg">

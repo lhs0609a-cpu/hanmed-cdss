@@ -86,7 +86,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: true, // TODO: 프로덕션에서는 마이그레이션 사용 권장
+        synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
       }),
     }),

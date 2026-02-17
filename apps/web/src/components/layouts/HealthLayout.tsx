@@ -4,14 +4,15 @@ import {
   Home,
   ClipboardCheck,
   MessageCircle,
-  HelpCircle,
   User,
+  Sparkles,
   Menu,
   X,
 } from 'lucide-react'
 
 const navLinks = [
   { label: '건강체크', href: '/health#checks' },
+  { label: '체질TMI', href: '/health/tmi' },
   { label: '커뮤니티', href: '/health/community' },
   { label: 'QnA', href: '/health/qna' },
 ]
@@ -19,8 +20,8 @@ const navLinks = [
 const mobileTabItems = [
   { label: '홈', href: '/health', icon: Home },
   { label: '체크', href: '/health#checks', icon: ClipboardCheck },
+  { label: 'TMI', href: '/health/tmi', icon: Sparkles },
   { label: '커뮤니티', href: '/health/community', icon: MessageCircle },
-  { label: 'QnA', href: '/health/qna', icon: HelpCircle },
   { label: 'MY', href: '/health/my', icon: User },
 ]
 
@@ -30,6 +31,7 @@ export default function HealthLayout() {
 
   const isActive = (href: string) => {
     if (href.includes('#')) return location.pathname === '/health'
+    if (href === '/health/tmi') return location.pathname.startsWith('/health/tmi')
     return location.pathname === href
   }
 
@@ -143,6 +145,7 @@ export default function HealthLayout() {
               <h4 className="font-semibold text-gray-800 mb-3 text-sm">서비스</h4>
               <div className="space-y-2">
                 <Link to="/health#checks" className="block text-sm text-gray-500 hover:text-orange-500">건강체크</Link>
+                <Link to="/health/tmi" className="block text-sm text-gray-500 hover:text-orange-500">체질TMI</Link>
                 <Link to="/health/community" className="block text-sm text-gray-500 hover:text-orange-500">커뮤니티</Link>
                 <Link to="/health/qna" className="block text-sm text-gray-500 hover:text-orange-500">한의사 QnA</Link>
               </div>

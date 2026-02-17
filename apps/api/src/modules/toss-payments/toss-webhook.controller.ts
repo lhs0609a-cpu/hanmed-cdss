@@ -67,18 +67,21 @@ export class TossWebhookController {
     this.logger.log(`Received Toss webhook: ${payload.eventType}`);
     this.logger.log(`Transmission ID: ${transmissionId}`);
 
-    // 시그니처가 있는 경우 검증 (payout.changed, seller.changed 등)
-    if (signature && transmissionTime) {
-      const isValid = this.verifyWebhookSignature(
-        JSON.stringify(payload),
-        transmissionTime,
-        signature,
-      );
+    // 시그니처 검증 (필수)
+    if (!signature || !transmissionTime) {
+      this.logger.warn('Missing webhook signature or transmission time');
+      throw new BadRequestException('Missing webhook signature');
+    }
 
-      if (!isValid) {
-        this.logger.warn('Invalid webhook signature');
-        throw new BadRequestException('Invalid webhook signature');
-      }
+    const isValid = this.verifyWebhookSignature(
+      JSON.stringify(payload),
+      transmissionTime,
+      signature,
+    );
+
+    if (!isValid) {
+      this.logger.warn('Invalid webhook signature');
+      throw new BadRequestException('Invalid webhook signature');
     }
 
     try {

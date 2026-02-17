@@ -85,16 +85,28 @@ interface TrackedEvent {
 // 로컬 버퍼 (배치 전송용)
 const EVENT_BUFFER_KEY = 'feature_tracking_buffer'
 const BUFFER_FLUSH_SIZE = 10
+const BUFFER_MAX_SIZE = 100 // 무제한 증가 방지
 const BUFFER_FLUSH_INTERVAL_MS = 30000 // 30초
 
-// 세션 ID 생성
+// 세션 ID 생성 (crypto API 사용)
 function generateSessionId(): string {
   const stored = sessionStorage.getItem('tracking_session_id')
   if (stored) return stored
 
-  const newId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  const newId = Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('')
   sessionStorage.setItem('tracking_session_id', newId)
   return newId
+}
+
+// 사용자 ID를 해시하여 PII 제거
+async function hashUserId(userId: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(userId)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 16)
 }
 
 // 화면 크기 가져오기
@@ -116,10 +128,18 @@ export function useFeatureTracking() {
     try {
       const bufferStr = localStorage.getItem(EVENT_BUFFER_KEY)
       const buffer: TrackedEvent[] = bufferStr ? JSON.parse(bufferStr) : []
+
+      // 버퍼 최대 크기 초과 시 오래된 이벤트 제거
+      if (buffer.length >= BUFFER_MAX_SIZE) {
+        buffer.splice(0, buffer.length - BUFFER_MAX_SIZE + 1)
+      }
+
       buffer.push(event)
       localStorage.setItem(EVENT_BUFFER_KEY, JSON.stringify(buffer))
       return buffer.length
     } catch {
+      // localStorage 용량 초과 등 에러 시 버퍼 초기화
+      localStorage.removeItem(EVENT_BUFFER_KEY)
       return 0
     }
   }, [])
@@ -153,33 +173,37 @@ export function useFeatureTracking() {
    */
   const trackEvent = useCallback(
     (type: EventType, properties: EventProperties = {}) => {
-      const event: TrackedEvent = {
-        type,
-        properties: {
-          ...properties,
-          page: location.pathname,
-        },
-        timestamp: new Date().toISOString(),
-        sessionId: sessionIdRef.current,
-        userId: user?.id,
-        userTier: user?.subscriptionTier,
-        userAgent: navigator.userAgent,
-        screenSize: getScreenSize(),
-        locale: navigator.language,
-      }
+      // userId를 해시하여 PII 보호
+      const userIdPromise = user?.id ? hashUserId(user.id) : Promise.resolve(undefined)
+      userIdPromise.then((hashedId) => {
+        const event: TrackedEvent = {
+          type,
+          properties: {
+            ...properties,
+            page: location.pathname,
+          },
+          timestamp: new Date().toISOString(),
+          sessionId: sessionIdRef.current,
+          userId: hashedId,
+          userTier: user?.subscriptionTier,
+          userAgent: navigator.userAgent,
+          screenSize: getScreenSize(),
+          locale: navigator.language,
+        }
 
       // 개발 환경에서는 콘솔 로그
       if (import.meta.env.DEV) {
         console.debug('[Analytics]', type, properties)
       }
 
-      // 버퍼에 추가
-      const bufferSize = addToBuffer(event)
+        // 버퍼에 추가
+        const bufferSize = addToBuffer(event)
 
-      // 버퍼가 가득 차면 플러시
-      if (bufferSize >= BUFFER_FLUSH_SIZE) {
-        flushBuffer()
-      }
+        // 버퍼가 가득 차면 플러시
+        if (bufferSize >= BUFFER_FLUSH_SIZE) {
+          flushBuffer()
+        }
+      })
     },
     [location.pathname, user, addToBuffer, flushBuffer]
   )

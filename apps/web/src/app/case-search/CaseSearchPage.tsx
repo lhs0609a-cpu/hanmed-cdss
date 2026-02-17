@@ -64,88 +64,112 @@ const MOCK_SEARCH_RESPONSE: CaseSearchResponse = {
   results: [
     {
       caseId: 'mock-1',
-      title: '중풍 후유증 - 보양환오탕',
-      formulaName: '보양환오탕',
-      formulaHanja: '補陽還五湯',
-      chiefComplaint: '중풍 후유증',
-      symptoms: ['반신마비', '언어장애', '두통'],
-      diagnosis: '기허혈어',
-      patientAge: 65,
-      patientGender: 'M',
-      patientConstitution: '태음인',
-      treatmentFormula: '보양환오탕(황기30g, 당귀12g, 천궁8g, 적작약8g, 도인8g, 홍화6g)',
-      dataSource: 'mock',
       matchScore: {
         total: 92,
+        vector: 95,
+        keyword: 88,
+        metadata: 93,
         grade: 'S',
-        gradeLabel: '최상',
-        vectorSimilarity: 95,
-        keywordMatch: 88,
-        metadataMatch: 93,
+        confidence: 0.92,
       },
-      matchReasons: [
-        { type: 'symptom', description: '반신마비, 언어장애 증상 일치', contribution: 40 },
-        { type: 'constitution', description: '태음인 체질 일치', contribution: 30 },
-      ],
+      originalCase: {
+        id: 'mock-1',
+        patientInfo: { age: 65, gender: 'M', constitution: '태음인' },
+        chiefComplaint: '중풍 후유증',
+        symptoms: ['반신마비', '언어장애', '두통'],
+        prescription: {
+          name: '보양환오탕',
+          herbs: [
+            { name: '황기', amount: 30, unit: 'g' },
+            { name: '당귀', amount: 12, unit: 'g' },
+            { name: '천궁', amount: 8, unit: 'g' },
+            { name: '적작약', amount: 8, unit: 'g' },
+            { name: '도인', amount: 8, unit: 'g' },
+            { name: '홍화', amount: 6, unit: 'g' },
+            { name: '지렁이', amount: 6, unit: 'g' },
+          ],
+        },
+        outcome: '호전',
+        treatmentDuration: 90,
+        notes: '황기 대량 투여로 기허혈어 치료',
+      },
+      matchedSymptoms: ['반신마비', '언어장애'],
+      differentialPoints: ['태음인 체질', '기허혈어 병기'],
     },
     {
       caseId: 'mock-2',
-      title: '만성 두통 - 반하백출천마탕',
-      formulaName: '반하백출천마탕',
-      formulaHanja: '半夏白朮天麻湯',
-      chiefComplaint: '만성 두통',
-      symptoms: ['두통', '현훈', '불면', '피로'],
-      diagnosis: '담음',
-      patientAge: 58,
-      patientGender: 'F',
-      patientConstitution: '소음인',
-      treatmentFormula: '반하백출천마탕(반하12g, 백출10g, 천마10g, 복령10g, 진피6g, 감초3g)',
-      dataSource: 'mock',
       matchScore: {
         total: 87,
+        vector: 85,
+        keyword: 90,
+        metadata: 86,
         grade: 'A',
-        gradeLabel: '우수',
-        vectorSimilarity: 85,
-        keywordMatch: 90,
-        metadataMatch: 86,
+        confidence: 0.87,
       },
-      matchReasons: [
-        { type: 'symptom', description: '두통, 현훈 증상 일치', contribution: 45 },
-        { type: 'constitution', description: '소음인 체질 일치', contribution: 25 },
-      ],
+      originalCase: {
+        id: 'mock-2',
+        patientInfo: { age: 58, gender: 'F', constitution: '소음인' },
+        chiefComplaint: '만성 두통',
+        symptoms: ['두통', '현훈', '불면', '피로'],
+        prescription: {
+          name: '반하백출천마탕',
+          herbs: [
+            { name: '반하', amount: 12, unit: 'g' },
+            { name: '백출', amount: 10, unit: 'g' },
+            { name: '천마', amount: 10, unit: 'g' },
+            { name: '복령', amount: 10, unit: 'g' },
+            { name: '진피', amount: 6, unit: 'g' },
+            { name: '감초', amount: 3, unit: 'g' },
+          ],
+        },
+        outcome: '완치',
+        treatmentDuration: 60,
+        notes: '담음으로 인한 두통, 현훈 치료',
+      },
+      matchedSymptoms: ['두통', '현훈'],
+      differentialPoints: ['소음인 체질', '담음 병기'],
     },
     {
       caseId: 'mock-3',
-      title: '요통 - 독활기생탕',
-      formulaName: '독활기생탕',
-      formulaHanja: '獨活寄生湯',
-      chiefComplaint: '요통',
-      symptoms: ['요통', '하지무력', '야간뇨'],
-      diagnosis: '간신허',
-      patientAge: 72,
-      patientGender: 'M',
-      patientConstitution: '소양인',
-      treatmentFormula: '독활기생탕(독활10g, 상기생10g, 두충10g, 우슬8g, 진교8g, 방풍6g)',
-      dataSource: 'mock',
       matchScore: {
         total: 82,
+        vector: 80,
+        keyword: 85,
+        metadata: 81,
         grade: 'A',
-        gradeLabel: '우수',
-        vectorSimilarity: 80,
-        keywordMatch: 85,
-        metadataMatch: 81,
+        confidence: 0.82,
       },
-      matchReasons: [
-        { type: 'symptom', description: '요통 증상 일치', contribution: 50 },
-        { type: 'age', description: '고령 환자 유사', contribution: 20 },
-      ],
+      originalCase: {
+        id: 'mock-3',
+        patientInfo: { age: 72, gender: 'M', constitution: '소양인' },
+        chiefComplaint: '요통',
+        symptoms: ['요통', '하지무력', '야간뇨'],
+        prescription: {
+          name: '독활기생탕',
+          herbs: [
+            { name: '독활', amount: 10, unit: 'g' },
+            { name: '상기생', amount: 10, unit: 'g' },
+            { name: '두충', amount: 10, unit: 'g' },
+            { name: '우슬', amount: 8, unit: 'g' },
+            { name: '진교', amount: 8, unit: 'g' },
+            { name: '방풍', amount: 6, unit: 'g' },
+          ],
+        },
+        outcome: '호전',
+        treatmentDuration: 45,
+        notes: '간신허로 인한 요통 치료',
+      },
+      matchedSymptoms: ['요통'],
+      differentialPoints: ['고령', '간신허 병기'],
     },
   ],
   totalFound: BASE_STATS.cases,
   searchMetadata: {
     processingTimeMs: 245,
-    queryText: '',
     vectorSearchUsed: true,
+    keywordSearchUsed: true,
+    metadataFiltersApplied: ['age', 'constitution'],
+    averageConfidence: 0.87,
   },
 }
 
@@ -252,8 +276,8 @@ export default function CaseSearchPage() {
       const mockResults = MOCK_SEARCH_RESPONSE.results.filter(result => {
         const complaint = chiefComplaint.toLowerCase()
         return (
-          result.chiefComplaint.toLowerCase().includes(complaint) ||
-          result.symptoms.some((s: string) => s.toLowerCase().includes(complaint)) ||
+          result.originalCase.chiefComplaint.toLowerCase().includes(complaint) ||
+          result.originalCase.symptoms.some(s => s.toLowerCase().includes(complaint)) ||
           complaint.includes('중풍') || complaint.includes('두통') || complaint.includes('요통')
         )
       })
@@ -285,6 +309,12 @@ export default function CaseSearchPage() {
 
   return (
     <div className="space-y-6">
+      {/* Demo Data Warning */}
+      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
+      </div>
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

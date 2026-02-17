@@ -10,14 +10,31 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log('서버 초기화 중... (v1.1.0 - Admin Seeder 포함)');
 
+  // 프로덕션 필수 환경변수 검증
+  if (process.env.NODE_ENV === 'production') {
+    const requiredVars = [
+      'DATABASE_URL',
+      'JWT_SECRET',
+      'REFRESH_TOKEN_SECRET',
+      'ENCRYPTION_KEY',
+      'TOSS_SECRET_KEY',
+    ];
+    const missing = requiredVars.filter((v) => !process.env[v]);
+    if (missing.length > 0) {
+      logger.error(`필수 환경변수 누락: ${missing.join(', ')}`);
+      process.exit(1);
+    }
+  }
+
   const app = await NestFactory.create(AppModule, {
-    rawBody: true, // Stripe 웹훅을 위한 raw body 파싱 활성화
+    rawBody: true, // 웹훅을 위한 raw body 파싱 활성화
   });
 
   // CORS 설정
+  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
+    // localhost는 개발 환경에서만 허용
+    ...(isProduction ? [] : ['http://localhost:3000', 'http://localhost:5173']),
     'https://hanmed-cdss.vercel.app',
     'https://ongojisin.co.kr',
     'https://www.ongojisin.co.kr',

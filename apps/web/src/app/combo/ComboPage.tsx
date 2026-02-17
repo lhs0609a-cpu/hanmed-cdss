@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus,
@@ -74,6 +74,7 @@ export default function ComboPage() {
   const [result, setResult] = useState<ComboResult | null>(null)
   const [showSearch, setShowSearch] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [isDemoData, setIsDemoData] = useState(false)
   const [history, setHistory] = useState<SavedComboHistory[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('combo_calculator_history')
@@ -110,6 +111,7 @@ export default function ComboPage() {
       const demoFormula = getDemoFormulas().find((f) => f.id === id)
       if (demoFormula) {
         addFormula(demoFormula)
+        setIsDemoData(true)
       }
     }
   }
@@ -130,6 +132,7 @@ export default function ComboPage() {
           f.hanja.includes(searchQuery)
       )
       setSearchResults(filtered)
+      setIsDemoData(true)
     } finally {
       setIsSearching(false)
     }
@@ -193,6 +196,7 @@ export default function ComboPage() {
       const demoResult = getDemoResult(selectedFormulas)
       setResult(demoResult)
       saveToHistory(selectedFormulas, demoResult)
+      setIsDemoData(true)
     } finally {
       setIsCalculating(false)
     }
@@ -203,13 +207,21 @@ export default function ComboPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Calculator className="h-7 w-7 text-slate-600" />
+          <Calculator className="h-7 w-7 text-purple-500" />
           합방 계산기
         </h1>
         <p className="mt-1 text-gray-500">
           여러 처방을 합쳐서 총 약재 구성을 계산합니다
         </p>
       </div>
+
+      {/* Demo Data Warning */}
+      {isDemoData && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+          <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+          <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Section */}
@@ -228,10 +240,10 @@ export default function ComboPage() {
                 selectedFormulas.map((formula) => (
                   <div
                     key={formula.id}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100"
+                    className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-100"
                   >
                     <div className="flex items-center gap-3">
-                      <BookOpen className="h-5 w-5 text-slate-600" />
+                      <BookOpen className="h-5 w-5 text-purple-500" />
                       <div>
                         <p className="font-medium text-gray-900">{formula.name}</p>
                         <p className="text-sm text-gray-500">{formula.hanja}</p>
@@ -239,9 +251,9 @@ export default function ComboPage() {
                     </div>
                     <button
                       onClick={() => removeFormula(formula.id)}
-                      className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="p-1.5 hover:bg-purple-100 rounded-lg transition-colors"
                     >
-                      <X className="h-5 w-5 text-slate-600" />
+                      <X className="h-5 w-5 text-purple-500" />
                     </button>
                   </div>
                 ))
@@ -252,7 +264,7 @@ export default function ComboPage() {
             {!showSearch ? (
               <button
                 onClick={() => setShowSearch(true)}
-                className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-slate-300 hover:text-slate-600 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-purple-300 hover:text-purple-500 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="h-5 w-5" />
                 처방 추가
@@ -268,14 +280,14 @@ export default function ComboPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && searchFormulas()}
                       placeholder="처방명 검색..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-600/20 focus:border-slate-600"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                       autoFocus
                     />
                   </div>
                   <button
                     onClick={searchFormulas}
                     disabled={isSearching}
-                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
                   >
                     {isSearching ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -318,7 +330,7 @@ export default function ComboPage() {
           <button
             onClick={calculateCombo}
             disabled={selectedFormulas.length < 2 || isCalculating}
-            className="w-full py-4 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-2xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-2xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
           >
             {isCalculating ? (
               <>
@@ -417,36 +429,36 @@ export default function ComboPage() {
           </div>
 
           {/* 유명 합방 안내 */}
-          <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-              <Info className="h-5 w-5 text-slate-600" />
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-4">
+            <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+              <Info className="h-5 w-5 text-purple-500" />
               유명 합방 예시
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-slate-700">소시호탕 + 반하후박탕</span>
-                <span className="text-slate-600">=</span>
-                <span className="font-medium text-slate-900">시박탕</span>
+                <span className="text-purple-700">소시호탕 + 반하후박탕</span>
+                <span className="text-purple-500">=</span>
+                <span className="font-medium text-purple-900">시박탕</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-slate-700">사군자탕 + 사물탕</span>
-                <span className="text-slate-600">=</span>
-                <span className="font-medium text-slate-900">팔진탕</span>
+                <span className="text-purple-700">사군자탕 + 사물탕</span>
+                <span className="text-purple-500">=</span>
+                <span className="font-medium text-purple-900">팔진탕</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-slate-700">팔진탕 + 황기 + 육계</span>
-                <span className="text-slate-600">=</span>
-                <span className="font-medium text-slate-900">십전대보탕</span>
+                <span className="text-purple-700">팔진탕 + 황기 + 육계</span>
+                <span className="text-purple-500">=</span>
+                <span className="font-medium text-purple-900">십전대보탕</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-slate-700">보중익기탕 + 이진탕</span>
-                <span className="text-slate-600">=</span>
-                <span className="font-medium text-slate-900">육군자탕</span>
+                <span className="text-purple-700">보중익기탕 + 이진탕</span>
+                <span className="text-purple-500">=</span>
+                <span className="font-medium text-purple-900">육군자탕</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-slate-700">이진탕 + 향부자 + 창출</span>
-                <span className="text-slate-600">=</span>
-                <span className="font-medium text-slate-900">향사평위산</span>
+                <span className="text-purple-700">이진탕 + 향부자 + 창출</span>
+                <span className="text-purple-500">=</span>
+                <span className="font-medium text-purple-900">향사평위산</span>
               </div>
             </div>
           </div>

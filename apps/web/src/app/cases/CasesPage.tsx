@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search,
@@ -45,34 +45,6 @@ interface CaseRecord extends CaseFromAPI {
 
 // AI Engine API URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
-
-// 백엔드 ClinicalCase 엔티티 → 프론트 CaseFromAPI 변환
-function transformCase(raw: Record<string, unknown>): CaseFromAPI {
-  const symptoms = Array.isArray(raw.symptoms)
-    ? raw.symptoms.map((s: { name?: string } | string) => typeof s === 'string' ? s : s.name || '')
-    : []
-  const formulas = Array.isArray(raw.herbalFormulas) ? raw.herbalFormulas : []
-  const firstFormula = formulas[0] as { formulaName?: string } | undefined
-
-  return {
-    id: String(raw.id || ''),
-    title: String(raw.patternDiagnosis || raw.chiefComplaint || '치험례'),
-    chiefComplaint: String(raw.chiefComplaint || ''),
-    symptoms,
-    formulaName: firstFormula?.formulaName || '처방 미상',
-    formulaHanja: '',
-    constitution: String(raw.patientConstitution || ''),
-    diagnosis: String(raw.patternDiagnosis || ''),
-    patientAge: raw.patientAgeRange ? parseInt(String(raw.patientAgeRange)) || null : null,
-    patientGender: raw.patientGender === 'male' ? 'M' : raw.patientGender === 'female' ? 'F' : null,
-    outcome: (['완치', '호전', '무효'].includes(String(raw.treatmentOutcome))
-      ? String(raw.treatmentOutcome) as '완치' | '호전' | '무효'
-      : null),
-    result: String(raw.clinicalNotes || ''),
-    originalText: String(raw.originalText || ''),
-    dataSource: raw.recorderName ? `${raw.recorderName} (${raw.recordedYear || ''})` : '',
-  }
-}
 
 // Mock 치험례 데이터 (API 실패 시 사용)
 const MOCK_CASES: CaseFromAPI[] = [
@@ -309,6 +281,29 @@ export default function CasesPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [updateSearchParams])
 
+  // 사용자 친화적 에러 메시지 변환
+  const getUserFriendlyError = (err: Error | unknown): string => {
+    const message = err instanceof Error ? err.message : String(err)
+
+    // 네트워크 에러
+    if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
+      return '서버와의 연결이 일시적으로 불안정합니다'
+    }
+    // 타임아웃
+    if (message.includes('timeout') || message.includes('시간')) {
+      return '요청 처리 시간이 초과되었습니다'
+    }
+    // 서버 에러
+    if (message.includes('500') || message.includes('502') || message.includes('503')) {
+      return '서버가 일시적으로 응답하지 않습니다'
+    }
+    // 인증 에러
+    if (message.includes('401') || message.includes('인증')) {
+      return '로그인이 필요하거나 세션이 만료되었습니다'
+    }
+
+    return '데이터를 불러오는 중 문제가 발생했습니다'
+  }
 
   // API에서 데이터 가져오기
   const fetchCases = useCallback(async (isManualRetry = false) => {
@@ -343,7 +338,7 @@ export default function CasesPage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
 
-      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases?${params}`, {
+      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
         headers,
         signal: controller.signal,
       })
@@ -354,29 +349,19 @@ export default function CasesPage() {
         throw new Error(`서버 응답 오류 (${response.status})`)
       }
 
-      const rawJson = await response.json()
-      // TransformInterceptor 래핑 해제: { success, data: { data: [...], meta }, timestamp }
-      const payload = rawJson.success !== undefined ? rawJson.data : rawJson
-      // payload = { data: ClinicalCase[], meta: { total, page, limit, totalPages } }
-      const rawCases = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : []
-      const meta = payload?.meta || {}
+      const data = await response.json()
+      const result = data.data || data // NestJS 래퍼 형식 대응
 
-      // DB가 비어있으면 Mock 폴백
-      if (rawCases.length === 0 && (!meta.total || meta.total === 0)) {
-        throw new Error('DB에 치험례 데이터가 없습니다')
-      }
-
-      const transformedCases = rawCases.map(transformCase)
-      setCases(transformedCases)
-      setTotalCases(meta.total || rawCases.length)
-      setTotalPages(meta.totalPages || Math.ceil((meta.total || rawCases.length) / ITEMS_PER_PAGE))
+      setCases(result.cases || [])
+      setTotalCases(result.total || 0)
+      setTotalPages(result.total_pages || 0)
       setRetryCount(0) // 성공 시 재시도 카운트 리셋
       setIsUsingMockData(false) // API 성공
 
       // 통계 계산
-      const cured = transformedCases.filter((c: CaseRecord) => c.outcome === '완치').length
-      const improved = transformedCases.filter((c: CaseRecord) => c.outcome === '호전').length
-      setStats({ cured, improved, total: meta.total || rawCases.length })
+      const cured = (result.cases || []).filter((c: CaseRecord) => c.outcome === '완치').length
+      const improved = (result.cases || []).filter((c: CaseRecord) => c.outcome === '호전').length
+      setStats({ cured, improved, total: result.total || 0 })
     } catch (err) {
       // API 실패 시 Mock 데이터 사용
       setIsUsingMockData(true)
@@ -448,6 +433,12 @@ export default function CasesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Demo Data Warning */}
+      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <BookOpen className="h-7 w-7 text-amber-500" />
@@ -757,7 +748,7 @@ export default function CasesPage() {
                         </span>
                       )}
                       {selectedCase.constitution && (
-                        <span className="text-sm px-3 py-1 bg-slate-400 text-slate-900 rounded-full font-medium">
+                        <span className="text-sm px-3 py-1 bg-purple-400 text-purple-900 rounded-full font-medium">
                           {selectedCase.constitution}
                         </span>
                       )}
@@ -803,7 +794,7 @@ export default function CasesPage() {
                       {selectedCase.constitution && (
                         <div className="flex justify-between items-center py-3">
                           <span className="text-gray-600 text-base">체질</span>
-                          <span className="font-semibold text-slate-700 text-lg">{selectedCase.constitution}</span>
+                          <span className="font-semibold text-purple-600 text-lg">{selectedCase.constitution}</span>
                         </div>
                       )}
                     </div>
@@ -821,8 +812,8 @@ export default function CasesPage() {
                     {selectedCase.diagnosis && (
                       <div className="mt-4 pt-4 border-t border-teal-200">
                         <span className="text-base text-gray-600 flex items-center gap-2">
-                          <Brain className="h-5 w-5 text-slate-600" />
-                          변증: <span className="font-semibold text-slate-700 text-lg">{selectedCase.diagnosis}</span>
+                          <Brain className="h-5 w-5 text-purple-500" />
+                          변증: <span className="font-semibold text-purple-700 text-lg">{selectedCase.diagnosis}</span>
                         </span>
                       </div>
                     )}

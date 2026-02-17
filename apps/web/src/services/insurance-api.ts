@@ -89,12 +89,12 @@ export async function searchKoreanMedicineFee(
         name: node.querySelector('korNm')?.textContent || '',
         classificationNo: node.querySelector('diagClsfNo')?.textContent || '',
         classificationName: node.querySelector('diagClsfNm')?.textContent || '',
-        price: parseFloat(node.querySelector('insrPrc')?.textContent || '0') || undefined,
+        price: (() => { const v = node.querySelector('insrPrc')?.textContent; return v ? parseFloat(v) : undefined })(),
         payType: payTpCd === '1' ? 'covered' : payTpCd === '2' ? 'uncovered' : 'unknown',
-        payTypeName: node.querySelector('payTpNm')?.textContent ?? undefined,
+        payTypeName: node.querySelector('payTpNm')?.textContent,
         applyDate: node.querySelector('applyDt')?.textContent || '',
-        endDate: node.querySelector('endDt')?.textContent ?? undefined,
-        remark: node.querySelector('rmk')?.textContent ?? undefined,
+        endDate: node.querySelector('endDt')?.textContent,
+        remark: node.querySelector('rmk')?.textContent,
         feeType: 'korean',
       })
     })
@@ -152,12 +152,12 @@ export async function searchMedicalFee(
         name: node.querySelector('korNm')?.textContent || '',
         classificationNo: node.querySelector('diagClsfNo')?.textContent || '',
         classificationName: node.querySelector('diagClsfNm')?.textContent || '',
-        price: parseFloat(node.querySelector('insrPrc')?.textContent || '0') || undefined,
+        price: (() => { const v = node.querySelector('insrPrc')?.textContent; return v ? parseFloat(v) : undefined })(),
         payType: payTpCd === '1' ? 'covered' : payTpCd === '2' ? 'uncovered' : 'unknown',
-        payTypeName: node.querySelector('payTpNm')?.textContent ?? undefined,
+        payTypeName: node.querySelector('payTpNm')?.textContent,
         applyDate: node.querySelector('applyDt')?.textContent || '',
-        endDate: node.querySelector('endDt')?.textContent ?? undefined,
-        remark: node.querySelector('rmk')?.textContent ?? undefined,
+        endDate: node.querySelector('endDt')?.textContent,
+        remark: node.querySelector('rmk')?.textContent,
         feeType: 'medical',
       })
     })
@@ -250,11 +250,11 @@ export async function searchDiseaseCode(
       items.push({
         dissCd: node.querySelector('dissCd')?.textContent || '',
         dissNm: node.querySelector('dissNm')?.textContent || '',
-        dissEngNm: node.querySelector('dissEngNm')?.textContent ?? undefined,
-        dissClsfCd: node.querySelector('dissClsfCd')?.textContent ?? undefined,
-        dissClsfNm: node.querySelector('dissClsfNm')?.textContent ?? undefined,
-        mdTpCd: node.querySelector('mdTpCd')?.textContent ?? undefined,
-        mdTpNm: node.querySelector('mdTpNm')?.textContent ?? undefined,
+        dissEngNm: node.querySelector('dissEngNm')?.textContent,
+        dissClsfCd: node.querySelector('dissClsfCd')?.textContent,
+        dissClsfNm: node.querySelector('dissClsfNm')?.textContent,
+        mdTpCd: node.querySelector('mdTpCd')?.textContent,
+        mdTpNm: node.querySelector('mdTpNm')?.textContent,
       })
     })
 

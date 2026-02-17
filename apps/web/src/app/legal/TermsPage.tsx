@@ -137,7 +137,7 @@ export default function TermsPage() {
                 대표: 홍길동<br />
                 사업자등록번호: 123-45-67890<br />
                 고객센터: 02-1234-5678<br />
-                이메일: support@ongojisin.kr
+                이메일: support@ongojisin.ai
               </p>
             </div>
           </CardContent>

@@ -26,13 +26,17 @@ export class EncryptionService implements OnModuleInit {
     const keyHex = this.configService.get<string>('ENCRYPTION_KEY');
 
     if (!keyHex || keyHex === 'CHANGE_ME_USE_CRYPTO_RANDOM_BYTES_32_HEX') {
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
+      if (isProduction) {
+        throw new Error(
+          'ENCRYPTION_KEY는 프로덕션 환경에서 반드시 설정해야 합니다. ' +
+          '생성 명령어: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+        );
+      }
       this.logger.warn(
         '⚠️  ENCRYPTION_KEY가 설정되지 않았습니다! ' +
-        '환자 데이터 암호화가 비활성화됩니다. ' +
-        '프로덕션 환경에서는 반드시 설정하세요: ' +
-        'node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+        '개발 환경용 임시 키를 사용합니다. 프로덕션에서는 반드시 설정하세요.'
       );
-      // 개발 환경용 임시 키 (프로덕션에서는 사용 금지)
       this.encryptionKey = crypto.randomBytes(32);
     } else {
       if (keyHex.length !== 64) {

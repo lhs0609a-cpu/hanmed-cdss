@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
@@ -85,10 +86,14 @@ import InventoryPage from '@/app/inventory/InventoryPage'
 import LandingPage from '@/app/landing/LandingPage'
 import AdLandingPage from '@/app/landing/AdLandingPage'
 
-// B2C Health Platform
+// B2C Health Platform (lazy-loaded — celeb data stays out of main bundle)
 import HealthLayout from '@/components/layouts/HealthLayout'
-import HealthHomePage from '@/app/health/HealthHomePage'
-import HealthCheckPage from '@/app/health/HealthCheckPage'
+const HealthHomePage = lazy(() => import('@/app/health/HealthHomePage'))
+const HealthCheckPage = lazy(() => import('@/app/health/HealthCheckPage'))
+const CelebTmiPage = lazy(() => import('@/app/health/CelebTmiPage'))
+const CelebDetailPage = lazy(() => import('@/app/health/CelebDetailPage'))
+const MyConstitutionPage = lazy(() => import('@/app/health/MyConstitutionPage'))
+const ComparePage = lazy(() => import('@/app/health/ComparePage'))
 
 // Legal Pages
 import {
@@ -136,10 +141,18 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* B2C Health Platform (Public) */}
-        <Route path="/health" element={<HealthLayout />}>
+        {/* B2C Health Platform (Public) - lazy loaded */}
+        <Route path="/health" element={
+          <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" /></div>}>
+            <HealthLayout />
+          </Suspense>
+        }>
           <Route index element={<HealthHomePage />} />
           <Route path="check/:slug" element={<HealthCheckPage />} />
+          <Route path="tmi" element={<CelebTmiPage />} />
+          <Route path="tmi/my-type" element={<MyConstitutionPage />} />
+          <Route path="tmi/compare" element={<ComparePage />} />
+          <Route path="tmi/:id" element={<CelebDetailPage />} />
         </Route>
 
         {/* Legal Pages (Public) */}

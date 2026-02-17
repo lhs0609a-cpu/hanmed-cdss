@@ -13,13 +13,12 @@ const DEMO_CONFIG = {
   user: {
     id: import.meta.env.VITE_DEMO_USER_ID || 'demo-user',
     email: import.meta.env.VITE_DEMO_EMAIL || 'demo@hanmed.com',
-    name: import.meta.env.VITE_DEMO_NAME || '데모 한의사',
-    subscriptionTier: 'pro' as const,
+    name: import.meta.env.VITE_DEMO_NAME || '체험 사용자',
+    subscriptionTier: 'free' as const,
     isVerified: true,
   },
-  // 실제 운영에서는 서버에서 발급받아야 함
-  token: import.meta.env.VITE_DEMO_TOKEN || 'demo-token',
-  refreshToken: import.meta.env.VITE_DEMO_REFRESH_TOKEN || 'demo-refresh-token',
+  token: import.meta.env.VITE_DEMO_TOKEN || '',
+  refreshToken: import.meta.env.VITE_DEMO_REFRESH_TOKEN || '',
 }
 
 export default function LoginPage() {
@@ -51,9 +50,24 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = () => {
-    login(DEMO_CONFIG.user, DEMO_CONFIG.token, DEMO_CONFIG.refreshToken)
-    navigate('/dashboard')
+  const handleDemoLogin = async () => {
+    if (DEMO_CONFIG.token) {
+      login(DEMO_CONFIG.user, DEMO_CONFIG.token, DEMO_CONFIG.refreshToken)
+      navigate('/dashboard')
+    } else {
+      // 데모 토큰이 설정되지 않은 경우 서버 데모 로그인 API 호출
+      setIsLoading(true)
+      try {
+        const response = await api.post<LoginResponse>('/auth/demo-login')
+        const { user, accessToken, refreshToken } = response.data
+        login(user, accessToken, refreshToken)
+        navigate('/dashboard')
+      } catch (err: unknown) {
+        setError('데모 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
   }
 
   return (
@@ -86,7 +100,7 @@ export default function LoginPage() {
             <span className="text-white/90">처방을 추천받으세요</span>
           </h1>
           <p className="text-lg text-white/80 max-w-md">
-            이종대 선생님의 임상 경험을 AI로 학습하여,
+            한의학 임상 경험을 AI로 학습하여,
             환자 증상에 최적화된 처방을 추천해 드립니다.
           </p>
 
@@ -104,7 +118,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 text-sm text-white/60">
-          이종대 한의학 연구소 × AI Technology
+          온고지신 AI × Korean Medicine Technology
         </div>
       </div>
 

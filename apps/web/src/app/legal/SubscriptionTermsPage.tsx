@@ -178,7 +178,7 @@ export default function SubscriptionTermsPage() {
               <li>해지 방법:
                 <ul className="list-disc list-inside ml-6 mt-2">
                   <li>서비스 내 [설정 → 구독 관리 → 구독 해지]</li>
-                  <li>고객센터 이메일: support@ongojisin.kr</li>
+                  <li>고객센터 이메일: support@ongojisin.ai</li>
                   <li>고객센터 전화: 02-1234-5678</li>
                 </ul>
               </li>
@@ -230,7 +230,7 @@ export default function SubscriptionTermsPage() {
                 사업자등록번호: 123-45-67890<br />
                 통신판매업신고: 제2024-서울강남-0000호<br />
                 고객센터: 02-1234-5678<br />
-                이메일: support@ongojisin.kr
+                이메일: support@ongojisin.ai
               </p>
             </div>
           </CardContent>

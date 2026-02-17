@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -87,7 +87,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, groupedShortcuts }: Key
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl">
+            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl">
               <Keyboard className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -142,7 +142,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose, groupedShortcuts }: Key
           </div>
 
           {/* Tips */}
-          <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-indigo-100">
+          <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
             <p className="text-sm text-indigo-700">
               <span className="font-medium">팁:</span> 언제든지 <kbd className="px-1.5 py-0.5 bg-white rounded border text-xs">?</kbd> 키를 눌러 이 도움말을 열 수 있습니다.
             </p>
@@ -527,9 +527,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             </span>
           </div>
           <div className="flex items-center gap-1 text-gray-400">
-            <Command className="h-3 w-3" />
-            <span>+</span>
-            <span>K</span>
+            <span className="text-[10px] font-mono">
+              {navigator.platform?.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl'}+K
+            </span>
           </div>
         </div>
       </div>
@@ -625,7 +625,9 @@ export function KeyboardHint({ className }: KeyboardHintProps) {
         <div className="space-y-1.5 text-[11px]">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">빠른 검색</span>
-            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-mono">⌘K</kbd>
+            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-mono">
+              {navigator.platform?.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl+'}K
+            </kbd>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600">모든 단축키</span>

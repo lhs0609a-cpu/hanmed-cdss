@@ -239,13 +239,10 @@ export interface TrendData {
 export function useDashboardMetrics() {
   return useQuery({
     queryKey: ['analytics-dashboard'],
-    queryFn: async (): Promise<DashboardMetrics & { _isDemo?: boolean }> => {
+    queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/dashboard');
-        if (data && data.overview) {
-          return { ...(data as DashboardMetrics), _isDemo: false };
-        }
-        return { ...MOCK_DASHBOARD_METRICS, _isDemo: true };
+        return { ...data.data as DashboardMetrics, _isDemo: false };
       } catch {
         return { ...MOCK_DASHBOARD_METRICS, _isDemo: true };
       }
@@ -269,16 +266,14 @@ export function useStatistics(
         params.append('endDate', endDate);
 
         const { data } = await api.get(`/analytics/statistics?${params.toString()}`);
-        if (Array.isArray(data)) {
-          return data as PracticeStatistics[];
-        }
-        return data ? [data] as PracticeStatistics[] : [];
+        return data.data as PracticeStatistics[];
       } catch {
-        // 데모 데이터 반환
+        // 데모 데이터 반환 (플래그 포함)
         return [{
           periodStart: startDate,
           periodEnd: endDate,
           periodType: period,
+          _isDemo: true,
           metrics: {
             totalPatients: 85,
             newPatients: 28,
@@ -305,15 +300,12 @@ export function useStatistics(
 export function useBenchmark() {
   return useQuery({
     queryKey: ['analytics-benchmark'],
-    queryFn: async (): Promise<BenchmarkData> => {
+    queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/benchmark');
-        if (data && data.myMetrics) {
-          return data as BenchmarkData;
-        }
-        return MOCK_BENCHMARK;
+        return data.data as BenchmarkData;
       } catch {
-        return MOCK_BENCHMARK;
+        return { ...MOCK_BENCHMARK, _isDemo: true };
       }
     },
   });
@@ -323,15 +315,12 @@ export function useBenchmark() {
 export function usePrescriptionPatterns() {
   return useQuery({
     queryKey: ['analytics-patterns'],
-    queryFn: async (): Promise<PatternAnalysis> => {
+    queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/patterns');
-        if (data && data.prescriptionPatterns) {
-          return data as PatternAnalysis;
-        }
-        return MOCK_PATTERNS;
+        return data.data as PatternAnalysis;
       } catch {
-        return MOCK_PATTERNS;
+        return { ...MOCK_PATTERNS, _isDemo: true };
       }
     },
   });
@@ -341,7 +330,7 @@ export function usePrescriptionPatterns() {
 export function useTrends(startDate: string, endDate: string, granularity: 'day' | 'week' | 'month' = 'day') {
   return useQuery({
     queryKey: ['analytics-trends', startDate, endDate, granularity],
-    queryFn: async (): Promise<TrendData> => {
+    queryFn: async () => {
       try {
         const params = new URLSearchParams();
         params.append('startDate', startDate);
@@ -349,12 +338,9 @@ export function useTrends(startDate: string, endDate: string, granularity: 'day'
         params.append('granularity', granularity);
 
         const { data } = await api.get(`/analytics/trends?${params.toString()}`);
-        if (data && data.consultations) {
-          return data as TrendData;
-        }
-        return MOCK_TRENDS;
+        return data.data as TrendData;
       } catch {
-        return MOCK_TRENDS;
+        return { ...MOCK_TRENDS, _isDemo: true };
       }
     },
     enabled: !!startDate && !!endDate,
@@ -365,13 +351,10 @@ export function useTrends(startDate: string, endDate: string, granularity: 'day'
 export function useTopItems(category: 'formulas' | 'symptoms' | 'herbs', limit: number = 10) {
   return useQuery({
     queryKey: ['analytics-top', category, limit],
-    queryFn: async (): Promise<Array<{ name: string; count: number; percentage: number }>> => {
+    queryFn: async () => {
       try {
         const { data } = await api.get(`/analytics/top/${category}?limit=${limit}`);
-        if (Array.isArray(data)) {
-          return data as Array<{ name: string; count: number; percentage: number }>;
-        }
-        return MOCK_TOP_FORMULAS.slice(0, limit);
+        return data.data as Array<{ name: string; count: number; percentage: number }>;
       } catch {
         return MOCK_TOP_FORMULAS.slice(0, limit);
       }
@@ -386,36 +369,21 @@ export function usePatientAnalytics() {
     queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/patients');
-        if (data && data.totalActive !== undefined) {
-          return data as {
-            totalActive: number;
-            newThisMonth: number;
-            churned: number;
-            churnRate: number;
-            avgVisitsPerPatient: number;
-            avgTreatmentDuration: number;
-            retentionCohorts: Array<{
-              cohortMonth: string;
-              totalPatients: number;
-              retained: { [month: string]: number };
-            }>;
-          };
-        }
-        // API 응답이 예상과 다른 경우 데모 데이터
-        return {
-          totalActive: 342,
-          newThisMonth: 28,
-          churned: 12,
-          churnRate: 3.5,
-          avgVisitsPerPatient: 4.2,
-          avgTreatmentDuration: 45,
-          retentionCohorts: [
-            { cohortMonth: '2024-01', totalPatients: 45, retained: { '2024-02': 38, '2024-03': 32 } },
-            { cohortMonth: '2024-02', totalPatients: 52, retained: { '2024-03': 44 } },
-            { cohortMonth: '2024-03', totalPatients: 48, retained: {} },
-          ],
+        return data.data as {
+          totalActive: number;
+          newThisMonth: number;
+          churned: number;
+          churnRate: number;
+          avgVisitsPerPatient: number;
+          avgTreatmentDuration: number;
+          retentionCohorts: Array<{
+            cohortMonth: string;
+            totalPatients: number;
+            retained: { [month: string]: number };
+          }>;
         };
       } catch {
+        // 데모 데이터 반환
         return {
           totalActive: 342,
           newThisMonth: 28,
@@ -441,50 +409,21 @@ export function useAIAnalytics() {
     queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/ai-usage');
-        if (data && data.totalRecommendations !== undefined) {
-          return data as {
-            totalRecommendations: number;
-            acceptedRecommendations: number;
-            acceptanceRate: number;
-            byType: Array<{ type: string; total: number; accepted: number }>;
-            trend: Array<{ date: string; total: number; accepted: number }>;
-            topAcceptedFormulas: Array<{ name: string; acceptCount: number }>;
-            feedback: {
-              helpful: number;
-              notHelpful: number;
-              noFeedback: number;
-            };
-          };
-        }
-        // API 응답이 예상과 다른 경우 데모 데이터
-        return {
-          totalRecommendations: 234,
-          acceptedRecommendations: 189,
-          acceptanceRate: 80.8,
-          byType: [
-            { type: '처방 추천', total: 156, accepted: 128 },
-            { type: '변증 분석', total: 45, accepted: 38 },
-            { type: '약물 상호작용', total: 33, accepted: 23 },
-          ],
-          trend: Array.from({ length: 14 }, (_, i) => ({
-            date: new Date(Date.now() - (13 - i) * 86400000).toISOString().split('T')[0],
-            total: Math.floor(Math.random() * 10) + 10,
-            accepted: Math.floor(Math.random() * 8) + 7,
-          })),
-          topAcceptedFormulas: [
-            { name: '보중익기탕', acceptCount: 45 },
-            { name: '소시호탕', acceptCount: 38 },
-            { name: '귀비탕', acceptCount: 32 },
-            { name: '반하사심탕', acceptCount: 28 },
-            { name: '사물탕', acceptCount: 25 },
-          ],
+        return data.data as {
+          totalRecommendations: number;
+          acceptedRecommendations: number;
+          acceptanceRate: number;
+          byType: Array<{ type: string; total: number; accepted: number }>;
+          trend: Array<{ date: string; total: number; accepted: number }>;
+          topAcceptedFormulas: Array<{ name: string; acceptCount: number }>;
           feedback: {
-            helpful: 156,
-            notHelpful: 12,
-            noFeedback: 66,
-          },
+            helpful: number;
+            notHelpful: number;
+            noFeedback: number;
+          };
         };
       } catch {
+        // 데모 데이터 반환
         return {
           totalRecommendations: 234,
           acceptedRecommendations: 189,
@@ -538,20 +477,19 @@ export function useMonthlyReport(year: number, month: number) {
     queryFn: async () => {
       try {
         const { data } = await api.get(`/analytics/reports/monthly?year=${year}&month=${month}`);
-        if (data && data.summary) {
-          return data as {
-            summary: PracticeStatistics;
-            highlights: string[];
-            recommendations: string[];
-            comparisonWithPrevious: {
-              metric: string;
-              current: number;
-              previous: number;
-              change: number;
-            }[];
-          };
-        }
-        // API 응답이 예상과 다른 경우 데모 데이터
+        return data.data as {
+          summary: PracticeStatistics;
+          highlights: string[];
+          recommendations: string[];
+          comparisonWithPrevious: {
+            metric: string;
+            current: number;
+            previous: number;
+            change: number;
+          }[];
+        };
+      } catch {
+        // 데모 데이터 반환
         return {
           summary: {
             periodStart: `${year}-${String(month).padStart(2, '0')}-01`,
@@ -590,8 +528,6 @@ export function useMonthlyReport(year: number, month: number) {
             { metric: '평균 만족도', current: 4.6, previous: 4.5, change: 2.2 },
           ],
         };
-      } catch {
-        return undefined;
       }
     },
     enabled: !!year && !!month,
@@ -605,16 +541,13 @@ export function useTodayActivity() {
     queryFn: async () => {
       try {
         const { data } = await api.get('/analytics/today');
-        if (data && data.consultationsToday !== undefined) {
-          return data as {
-            consultationsToday: number;
-            patientsToday: number;
-            prescriptionsToday: number;
-            hourlyBreakdown: Array<{ hour: number; consultations: number }>;
-            recentPatients: Array<{ id: string; name: string; time: string; status: string }>;
-          };
-        }
-        return MOCK_TODAY_ACTIVITY;
+        return data.data as {
+          consultationsToday: number;
+          patientsToday: number;
+          prescriptionsToday: number;
+          hourlyBreakdown: Array<{ hour: number; consultations: number }>;
+          recentPatients: Array<{ id: string; name: string; time: string; status: string }>;
+        };
       } catch {
         return MOCK_TODAY_ACTIVITY;
       }

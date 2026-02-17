@@ -1,4 +1,4 @@
-﻿import { Component, ReactNode, useState } from 'react'
+import { Component, ReactNode, useState } from 'react'
 import {
   AlertTriangle,
   RefreshCw,
@@ -66,7 +66,7 @@ const CATEGORY_INFO: Record<
     icon: ShieldAlert,
     title: '인증 오류',
     description: '로그인 세션이 만료되었거나 접근 권한이 없습니다. 다시 로그인해주세요.',
-    color: 'text-slate-600 bg-slate-100',
+    color: 'text-purple-600 bg-purple-100',
   },
   timeout: {
     icon: Clock,
@@ -238,7 +238,7 @@ Stack: ${error?.stack || 'N/A'}
           {category === 'auth' && (
             <a
               href="/login"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               로그인
             </a>
@@ -335,7 +335,7 @@ Stack: ${error?.stack || 'N/A'}
               {/* 도움말 링크 */}
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
                 <a
-                  href="mailto:support@ongojisin.co.kr"
+                  href="mailto:support@ongojisin.ai"
                   className="flex items-center gap-1 hover:text-teal-600"
                 >
                   <ExternalLink className="w-3 h-3" />

@@ -22,6 +22,9 @@ interface AnalysisProgressProps {
   steps?: AnalysisStep[]
   className?: string
   compact?: boolean
+  timeoutMs?: number
+  onTimeout?: () => void
+  onCancel?: () => void
 }
 
 export function AnalysisProgress({
@@ -29,10 +32,14 @@ export function AnalysisProgress({
   steps = DEFAULT_STEPS,
   className,
   compact = false,
+  timeoutMs = 60000,
+  onTimeout,
+  onCancel,
 }: AnalysisProgressProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [startTime] = useState(Date.now())
+  const [isTimedOut, setIsTimedOut] = useState(false)
 
   // Update elapsed time
   useEffect(() => {
@@ -48,6 +55,18 @@ export function AnalysisProgress({
 
     return () => clearInterval(timer)
   }, [isLoading, startTime])
+
+  // Timeout handling
+  useEffect(() => {
+    if (!isLoading || isTimedOut) return
+
+    const timeout = setTimeout(() => {
+      setIsTimedOut(true)
+      onTimeout?.()
+    }, timeoutMs)
+
+    return () => clearTimeout(timeout)
+  }, [isLoading, timeoutMs, onTimeout, isTimedOut])
 
   // Progress through steps
   useEffect(() => {
@@ -209,12 +228,31 @@ export function AnalysisProgress({
         })}
       </ol>
 
-      {/* Tip */}
-      <div className="mt-6 p-3 bg-amber-50 rounded-xl border border-amber-100">
-        <p className="text-xs text-amber-700">
-          💡 <strong>팁:</strong> AI 분석은 입력된 증상과 {formatStatNumber(BASE_STATS.cases)}개의 치험례를 비교하여
-          가장 적합한 처방을 찾습니다. 정확한 분석을 위해 잠시만 기다려 주세요.
-        </p>
+      {/* Timeout Warning */}
+      {isTimedOut && (
+        <div className="mt-6 p-3 bg-red-50 rounded-xl border border-red-100">
+          <p className="text-xs text-red-700">
+            분석이 예상보다 오래 걸리고 있습니다. 네트워크 상태를 확인하거나 다시 시도해 주세요.
+          </p>
+        </div>
+      )}
+
+      {/* Tip + Cancel */}
+      <div className="mt-6 flex items-center justify-between">
+        <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 flex-1">
+          <p className="text-xs text-amber-700">
+            AI 분석은 입력된 증상과 {formatStatNumber(BASE_STATS.cases)}개의 치험례를 비교하여
+            가장 적합한 처방을 찾습니다.
+          </p>
+        </div>
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="ml-3 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            취소
+          </button>
+        )}
       </div>
     </div>
   )

@@ -218,6 +218,14 @@ export class TossPaymentsService {
     const orderId = `order_${userId}_${Date.now()}`;
     const orderName = `온고지신 AI ${price.name} 플랜 (${interval === BillingInterval.YEARLY ? '연간' : '월간'})`;
 
+    // 중복 결제 방지: 동일 사용자의 PENDING 상태 결제가 있으면 거부
+    const existingPending = await this.paymentRepository.findOne({
+      where: { userId, status: PaymentStatus.PENDING },
+    });
+    if (existingPending) {
+      throw new BadRequestException('이전 결제가 처리 중입니다. 잠시 후 다시 시도해 주세요.');
+    }
+
     // QueryRunner를 사용하여 트랜잭션 시작
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();

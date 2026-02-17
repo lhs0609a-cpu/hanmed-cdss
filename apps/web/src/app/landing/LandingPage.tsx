@@ -22,11 +22,13 @@ import {
   Menu,
   X,
   Play,
+  Zap,
   Clock,
   TrendingUp,
   Award,
   HeartPulse,
   Search,
+  Send,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -148,12 +150,11 @@ export default function LandingPage() {
   const [isAnnual, setIsAnnual] = useState(false) // 기본값: 월결제
   const [demoSymptom, setDemoSymptom] = useState('')
   const [demoResult, setDemoResult] = useState<{
-    top: { formula: string; confidence: number; herbs: string[]; rationale: string; source: string }
-    others: Array<{ formula: string; confidence: number }>
-    presetLabel?: string
+    formula: string
+    confidence: number
+    herbs: string[]
   } | null>(null)
   const [isDemoLoading, setIsDemoLoading] = useState(false)
-  const [activePreset, setActivePreset] = useState<number | null>(null)
 
   // 게스트 모드로 프로그램 체험
   const handleTryProgram = () => {
@@ -572,7 +573,7 @@ export default function LandingPage() {
     },
     {
       question: '계정이 해킹당하면 어떻게 하나요?',
-      answer: '즉시 support@hanmed.kr로 연락해 주세요. 계정을 일시 정지하고 비밀번호 재설정 절차를 안내해 드립니다. 이중 인증 설정을 권장드립니다.',
+      answer: '즉시 support@ongojisin.ai로 연락해 주세요. 계정을 일시 정지하고 비밀번호 재설정 절차를 안내해 드립니다. 이중 인증 설정을 권장드립니다.',
       category: '계정/보안',
     },
     {
@@ -593,7 +594,7 @@ export default function LandingPage() {
     // 기술 지원
     {
       question: '오류가 발생하면 어떻게 하나요?',
-      answer: '화면을 새로고침해 보시고, 문제가 지속되면 support@hanmed.kr로 오류 화면 스크린샷과 함께 문의해 주세요. 빠르게 도움드리겠습니다.',
+      answer: '화면을 새로고침해 보시고, 문제가 지속되면 support@ongojisin.ai로 오류 화면 스크린샷과 함께 문의해 주세요. 빠르게 도움드리겠습니다.',
       category: '기술 지원',
     },
     {
@@ -603,7 +604,7 @@ export default function LandingPage() {
     },
     {
       question: '기능 추가 요청은 어떻게 하나요?',
-      answer: 'support@hanmed.kr로 원하시는 기능에 대해 설명해 주시면 검토 후 개발 일정에 반영합니다. 많은 분들이 요청하시는 기능은 우선 개발됩니다.',
+      answer: 'support@ongojisin.ai로 원하시는 기능에 대해 설명해 주시면 검토 후 개발 일정에 반영합니다. 많은 분들이 요청하시는 기능은 우선 개발됩니다.',
       category: '기술 지원',
     },
     {
@@ -722,71 +723,21 @@ export default function LandingPage() {
     },
   ]
 
-  // 데모 프리셋 데이터
-  const DEMO_PRESETS = [
-    {
-      label: '두통+어지러움 65세 여',
-      icon: '🤒',
-      chiefComplaint: '두통이 지속되고 어지러움이 심합니다',
-      result: {
-        top: { formula: '반하백출천마탕(半夏白朮天麻湯)', confidence: 92, herbs: ['반하', '백출', '천마', '복령', '진피', '감초'], rationale: '담음이 중초에 정체되어 청양이 상승하지 못해 발생한 두통과 어지러움입니다. 화담식풍(化痰熄風)의 치법이 적합합니다.', source: '의학심오(醫學心悟)' },
-        others: [{ formula: '천궁다조산', confidence: 85 }, { formula: '영계출감탕', confidence: 78 }],
-      },
-    },
-    {
-      label: '소화불량+복통 45세 남',
-      icon: '🫄',
-      chiefComplaint: '소화가 안되고 배가 아프며 설사가 잦습니다',
-      result: {
-        top: { formula: '이중탕(理中湯)', confidence: 94, herbs: ['인삼', '백출', '건강', '감초'], rationale: '중초허한(中焦虛寒)으로 비위의 운화기능이 약화되어 소화불량과 복통이 발생합니다. 온중건비(溫中健脾) 치법으로 비위를 따뜻하게 보합니다.', source: '상한론(傷寒論)' },
-        others: [{ formula: '육군자탕', confidence: 85 }, { formula: '보중익기탕', confidence: 78 }],
-      },
-    },
-    {
-      label: '불면+피로 35세 여',
-      icon: '😴',
-      chiefComplaint: '잠이 잘 안오고 늘 피곤합니다. 가슴이 두근거립니다',
-      result: {
-        top: { formula: '귀비탕(歸脾湯)', confidence: 90, herbs: ['황기', '인삼', '백출', '당귀', '용안육', '산조인', '복신', '원지'], rationale: '심비양허(心脾兩虛)로 기혈이 부족하여 심신을 자양하지 못해 불면과 피로가 발생합니다. 보양심비(補養心脾) 치법이 적합합니다.', source: '제생방(濟生方)' },
-        others: [{ formula: '천왕보심단', confidence: 83 }, { formula: '산조인탕', confidence: 76 }],
-      },
-    },
-  ]
-
   // 데모 시뮬레이션
-  const handleDemoSubmit = (presetIndex?: number) => {
-    if (presetIndex !== undefined) {
-      const preset = DEMO_PRESETS[presetIndex]
-      setDemoSymptom(preset.chiefComplaint)
-      setActivePreset(presetIndex)
-      setIsDemoLoading(true)
-      setTimeout(() => {
-        setDemoResult({ ...preset.result, presetLabel: preset.label })
-        setIsDemoLoading(false)
-      }, 1500)
-    } else {
-      if (!demoSymptom.trim()) return
-      setActivePreset(null)
-      setIsDemoLoading(true)
-      // 직접 입력시 랜덤 결과
-      setTimeout(() => {
-        const randomPreset = DEMO_PRESETS[Math.floor(Math.random() * DEMO_PRESETS.length)]
-        setDemoResult(randomPreset.result)
-        setIsDemoLoading(false)
-      }, 1500)
-    }
-  }
+  const handleDemoSubmit = () => {
+    if (!demoSymptom.trim()) return
+    setIsDemoLoading(true)
 
-  // 전체 결과 보기 → 게스트 모드 + consultation 이동
-  const handleViewFullResult = () => {
-    enterAsGuest()
-    navigate('/dashboard/consultation', {
-      state: {
-        naturalQuery: demoSymptom,
-        parsedSymptoms: demoSymptom.split(/[,\s]+/).filter(Boolean),
-        autoSubmit: true,
-      },
-    })
+    // 실제로는 API 호출하지만, 여기서는 시뮬레이션
+    setTimeout(() => {
+      const demoResults = [
+        { formula: '이중탕(理中湯)', confidence: 92, herbs: ['인삼', '백출', '건강', '감초'] },
+        { formula: '보중익기탕(補中益氣湯)', confidence: 87, herbs: ['황기', '인삼', '백출', '당귀'] },
+        { formula: '사군자탕(四君子湯)', confidence: 84, herbs: ['인삼', '백출', '복령', '감초'] },
+      ]
+      setDemoResult(demoResults[Math.floor(Math.random() * demoResults.length)])
+      setIsDemoLoading(false)
+    }, 1500)
   }
 
   return (
@@ -1008,12 +959,12 @@ export default function LandingPage() {
       <section id="demo" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
         <div ref={demoAnim.ref} className={`max-w-4xl mx-auto ${demoAnim.isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-teal-100 text-teal-700 hover:bg-teal-100">지금 바로 체험</Badge>
+            <Badge className="mb-4 bg-teal-100 text-teal-700 hover:bg-teal-100">라이브 데모</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              증상을 입력하면 AI가 최적 처방을 추천합니다
+              지금 바로 체험해보세요
             </h2>
             <p className="text-lg text-gray-600">
-              회원가입 없이, 30초 만에 AI 한의학의 가치를 경험해보세요
+              증상을 입력하면 AI가 실시간으로 처방을 추천합니다
             </p>
           </div>
 
@@ -1029,125 +980,71 @@ export default function LandingPage() {
               </div>
             </div>
             <CardContent className="p-6 sm:p-8 bg-gray-50">
-              {/* 원클릭 프리셋 */}
-              <div className="mb-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">원클릭 체험 (실제 한의학 케이스)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {DEMO_PRESETS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleDemoSubmit(idx)}
-                      disabled={isDemoLoading}
-                      className={`px-4 py-3 text-sm rounded-xl border-2 font-medium transition-all text-left ${
-                        activePreset === idx
-                          ? 'border-teal-500 bg-teal-50 text-teal-700'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:bg-teal-50/50'
-                      } disabled:opacity-50`}
-                    >
-                      <span className="mr-1.5">{preset.icon}</span>
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 구분선 */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400 font-medium">또는 직접 입력</span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-
-              {/* 직접 입력 */}
               <div className="flex gap-3 mb-6">
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     value={demoSymptom}
-                    onChange={(e) => { setDemoSymptom(e.target.value); setActivePreset(null) }}
+                    onChange={(e) => setDemoSymptom(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleDemoSubmit()}
-                    placeholder="증상을 자유롭게 입력하세요..."
+                    placeholder="환자 증상을 입력하세요 (예: 소화불량, 피로감, 식욕부진)"
                     className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all bg-white"
                   />
                 </div>
                 <Button
-                  onClick={() => handleDemoSubmit()}
+                  onClick={handleDemoSubmit}
                   disabled={isDemoLoading || !demoSymptom.trim()}
                   className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 px-6 btn-press"
                 >
                   {isDemoLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <Brain className="w-4 h-4 mr-1.5" />
-                      AI 분석
-                    </>
+                    <Send className="w-5 h-5" />
                   )}
                 </Button>
               </div>
 
-              {/* 결과 표시 */}
-              {demoResult && !isDemoLoading && (
-                <div className="space-y-4 animate-scale-in">
-                  {/* 1위 처방 */}
-                  <div className="bg-white rounded-xl p-5 border-2 border-teal-200 shadow-sm">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">BEST</span>
-                          <span className="font-semibold text-gray-500 text-sm">AI 추천 1위</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900">{demoResult.top.formula}</h3>
-                        <span className="text-xs text-gray-500">출전: {demoResult.top.source}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700">
-                        <TrendingUp className="w-4 h-4" />
-                        <span className="text-sm font-bold">{demoResult.top.confidence}%</span>
-                      </div>
-                    </div>
+              {/* Quick symptom tags */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {['소화불량', '피로감', '두통', '불면증', '요통'].map((symptom) => (
+                  <button
+                    key={symptom}
+                    onClick={() => setDemoSymptom(symptom)}
+                    className="px-3 py-1.5 text-sm rounded-full bg-white border border-gray-200 text-gray-600 hover:border-teal-500 hover:text-teal-600 transition-colors"
+                  >
+                    {symptom}
+                  </button>
+                ))}
+              </div>
 
-                    {/* 구성 약재 */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {demoResult.top.herbs.map((herb, idx) => (
-                        <span key={idx} className="px-2.5 py-1 text-sm rounded-lg bg-teal-50 text-teal-700 border border-teal-200 font-medium">
-                          {herb}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* AI 근거 */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                      <div className="flex items-start gap-2">
-                        <Brain className="w-4 h-4 text-teal-500 mt-0.5 shrink-0" />
-                        <p className="text-sm text-gray-600 leading-relaxed">{demoResult.top.rationale}</p>
+              {/* Demo Result */}
+              {demoResult && (
+                <div className="bg-white rounded-xl p-5 border border-gray-100 animate-scale-in">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap className="w-5 h-5 text-amber-500" />
+                        <span className="font-semibold text-gray-900">AI 추천 처방</span>
                       </div>
+                      <h3 className="text-xl font-bold text-teal-600">{demoResult.formula}</h3>
                     </div>
-
-                    {/* 2, 3위 */}
-                    <div className="flex items-center gap-3 text-sm text-gray-500">
-                      <Pill className="w-4 h-4" />
-                      {demoResult.others.map((other, idx) => (
-                        <span key={idx}>
-                          {idx + 2}위: {other.formula} {other.confidence}%
-                          {idx < demoResult.others.length - 1 && <span className="mx-1">|</span>}
-                        </span>
-                      ))}
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-sm font-semibold">{demoResult.confidence}% 일치</span>
                     </div>
                   </div>
-
-                  {/* CTA 버튼 */}
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleViewFullResult}
-                      className="flex-1 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 btn-press py-3"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      전체 결과 보기 (무료)
-                    </Button>
-                    <Link to="/register" className="flex-1">
-                      <Button variant="outline" className="w-full border-2 border-teal-500 text-teal-600 hover:bg-teal-50 py-3">
-                        회원가입
+                  <div className="flex flex-wrap gap-2">
+                    {demoResult.herbs.map((herb, idx) => (
+                      <span key={idx} className="px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-700">
+                        {herb}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Link to="/register">
+                      <Button className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 btn-press">
+                        전체 분석 결과 보기
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </Link>
@@ -1158,19 +1055,14 @@ export default function LandingPage() {
               {!demoResult && !isDemoLoading && (
                 <div className="text-center py-8 text-gray-400">
                   <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>위 버튼을 클릭하거나 증상을 입력하면 AI가 분석을 시작합니다</p>
+                  <p>증상을 입력하면 AI가 분석을 시작합니다</p>
                 </div>
               )}
 
               {isDemoLoading && (
                 <div className="text-center py-8">
-                  <div className="relative w-16 h-16 mx-auto mb-4">
-                    <div className="absolute inset-0 border-4 border-teal-200 rounded-full" />
-                    <div className="absolute inset-0 border-4 border-teal-500 rounded-full border-t-transparent animate-spin" />
-                    <Brain className="absolute inset-0 m-auto w-7 h-7 text-teal-500" />
-                  </div>
-                  <p className="text-gray-600 font-medium">AI가 {appStats.formatted.totalCases} 치험례를 분석 중...</p>
-                  <p className="text-gray-400 text-sm mt-1">최적의 처방을 찾고 있습니다</p>
+                  <div className="w-12 h-12 mx-auto mb-3 border-3 border-teal-200 border-t-teal-500 rounded-full animate-spin" />
+                  <p className="text-gray-500">AI가 분석 중입니다...</p>
                 </div>
               )}
             </CardContent>
@@ -1401,7 +1293,7 @@ export default function LandingPage() {
               </span>
               {isAnnual && (
                 <Badge className="bg-emerald-100 text-emerald-700 animate-bounce-in">
-                  10% 할인
+                  17% 할인
                 </Badge>
               )}
             </div>
@@ -1455,7 +1347,7 @@ export default function LandingPage() {
                           </div>
                         </div>
                         <div className="text-xs text-gray-400 mt-2">
-                          연결제 시 10% 할인 적용
+                          연결제 시 17% 할인 적용 (2개월 무료)
                         </div>
                       </>
                     )}
@@ -1662,9 +1554,8 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold text-white mb-4">고객지원</h4>
               <ul className="space-y-2 text-sm">
-                <li>이메일: support@hanmed.kr</li>
+                <li>이메일: support@ongojisin.ai</li>
                 <li>운영시간: 평일 09:00 - 18:00</li>
-                <li><Link to="/health" className="hover:text-white transition-colors">몸이알려줌 (일반 건강)</Link></li>
               </ul>
             </div>
           </div>

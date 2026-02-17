@@ -112,7 +112,7 @@ export default function RefundPolicyPage() {
                 <strong>환불 신청</strong>
                 <ul className="list-disc list-inside ml-6 mt-2">
                   <li>서비스 내 [설정 → 구독 관리 → 환불 신청]</li>
-                  <li>고객센터 이메일: support@ongojisin.kr</li>
+                  <li>고객센터 이메일: support@ongojisin.ai</li>
                   <li>고객센터 전화: 02-1234-5678 (평일 09:00~18:00)</li>
                 </ul>
               </li>
@@ -213,7 +213,7 @@ export default function RefundPolicyPage() {
                 대표: 홍길동<br />
                 사업자등록번호: 123-45-67890<br />
                 고객센터: 02-1234-5678<br />
-                이메일: support@ongojisin.kr
+                이메일: support@ongojisin.ai
               </p>
             </div>
           </CardContent>

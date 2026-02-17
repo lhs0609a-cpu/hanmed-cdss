@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, UseGuards, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -50,6 +51,7 @@ export class TossPaymentsController {
   @Post('register-card')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ short: { ttl: 60000, limit: 3 } })
   @ApiOperation({ summary: '결제 카드 등록 (빌링키 발급)' })
   async registerCard(
     @CurrentUser() user: User,
@@ -74,6 +76,7 @@ export class TossPaymentsController {
   @Post('subscribe')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ short: { ttl: 60000, limit: 3 } })
   @ApiOperation({ summary: '구독 결제 요청' })
   async subscribe(
     @CurrentUser() user: User,
@@ -134,6 +137,7 @@ export class TossPaymentsController {
   @Post('refund')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ short: { ttl: 60000, limit: 3 } })
   @ApiOperation({ summary: '환불 요청' })
   async requestRefund(
     @CurrentUser() user: User,
@@ -160,6 +164,7 @@ export class TossPaymentsController {
   @Post('trial/start')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ short: { ttl: 60000, limit: 2 } })
   @ApiOperation({
     summary: '14일 무료 체험 시작',
     description: '카드 등록 없이 Professional 플랜을 14일간(AI 쿼리 30건) 무료로 체험할 수 있습니다. 1회만 사용 가능합니다.',

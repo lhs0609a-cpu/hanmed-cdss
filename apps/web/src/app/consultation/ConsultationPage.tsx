@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { useSymptomTemplates } from '@/hooks/useSymptomTemplates'
 import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import {
   Plus,
@@ -33,9 +32,6 @@ import {
   ClipboardList,
   Stethoscope,
   FileCheck,
-  RefreshCw,
-  ClipboardCopy,
-  Save,
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
@@ -50,7 +46,6 @@ import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
 import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { SimilarPatientStats, RecommendationStatHighlight } from '@/components/consultation'
-import { ClinicalEvidencePanel } from '@/components/clinical-evidence'
 
 const consultationTourSteps = [
   {
@@ -213,11 +208,9 @@ const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
 
 export default function ConsultationPage() {
   useSEO(PAGE_SEO.consultation)
-  const location = useLocation()
 
   const { showHanja } = useHanjaSettings()
   const { toast } = useToast()
-  const { templates, saveTemplate, deleteTemplate } = useSymptomTemplates()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
@@ -265,63 +258,6 @@ export default function ConsultationPage() {
   // 문서화 모달
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [documentFormula, setDocumentFormula] = useState<Recommendation | null>(null)
-
-  // 완료 상태 (처방 선택 후)
-  const [doneState, setDoneState] = useState<{
-    formula: Recommendation
-    chiefComplaint: string
-    constitution: string
-    symptoms: string[]
-  } | null>(null)
-
-  // 템플릿 저장 모달
-  const [showTemplateModal, setShowTemplateModal] = useState(false)
-  const [templateName, setTemplateName] = useState('')
-
-  // 대시보드에서 자연어 검색으로 넘어온 경우 자동 채움 + 즉시 분석
-  const [autoSubmitDone, setAutoSubmitDone] = useState(false)
-
-  // 대시보드 자연어 검색에서 넘어온 데이터 자동 채움
-  useEffect(() => {
-    const state = location.state as {
-      naturalQuery?: string
-      parsedAge?: number
-      parsedGender?: 'male' | 'female'
-      parsedConstitution?: string
-      parsedSymptoms?: string[]
-      autoSubmit?: boolean
-    } | null
-
-    if (state?.naturalQuery && !autoSubmitDone) {
-      // 빠른 모드로 전환
-      setInputMode('quick')
-
-      // 증상을 주소증에 자동 입력
-      const complaintText = state.parsedSymptoms?.join(', ') || state.naturalQuery
-      setChiefComplaint(complaintText)
-
-      // 증상 태그 추가
-      if (state.parsedSymptoms) {
-        setSymptoms(state.parsedSymptoms.map(s => ({ name: s, severity: 5 })))
-      }
-
-      // 체질 설정
-      if (state.parsedConstitution) {
-        setConstitution(state.parsedConstitution)
-      }
-
-      setAutoSubmitDone(true)
-    }
-  }, [location.state, autoSubmitDone])
-
-  // autoSubmit: 데이터 채움 후 자동으로 AI 분석 실행
-  useEffect(() => {
-    if (autoSubmitDone && location.state?.autoSubmit && chiefComplaint && !isLoading && recommendations.length === 0) {
-      handleSubmit()
-      // 뒤로가기 시 재실행 방지
-      window.history.replaceState({}, '')
-    }
-  }, [autoSubmitDone, chiefComplaint])
 
   // Fetch similar cases when recommendations are loaded
   useEffect(() => {
@@ -461,17 +397,8 @@ export default function ConsultationPage() {
       localStorage.setItem(PRESCRIPTIONS_STORAGE_KEY, JSON.stringify(existingRecords.slice(0, 100)))
 
       setShowSelectConfirm(false)
-
-      // 완료 상태 설정
-      setDoneState({
-        formula: selectedForSelect,
-        chiefComplaint,
-        constitution,
-        symptoms: symptoms.map(s => s.name),
-      })
-
       toast({
-        title: '처방이 저장되었습니다',
+        title: '처방이 선택되었습니다',
         description: `${selectedForSelect.formula_name}이(가) 진료 기록에 저장되었습니다.`,
       })
     } catch (err) {
@@ -482,70 +409,6 @@ export default function ConsultationPage() {
         variant: 'destructive',
       })
     }
-  }
-
-  // 재분석: 증상 수정으로 돌아가기 (환자정보 유지)
-  const handleReAnalyze = () => {
-    setDoneState(null)
-    setRecommendations([])
-    setAnalysis('')
-    setWizardStep(2)
-  }
-
-  // 새 환자 진료: 모든 상태 초기화
-  const handleNewConsultation = () => {
-    setDoneState(null)
-    setRecommendations([])
-    setAnalysis('')
-    setChiefComplaint('')
-    setSymptoms([])
-    setConstitution('')
-    setCurrentMedications([])
-    setSimilarCases([])
-    setWizardStep(1)
-    setAutoSubmitDone(false)
-  }
-
-  // 처방전 복사
-  const copyPrescriptionToClipboard = (rec: Recommendation) => {
-    const detail = formulaDetails[rec.formula_name]
-    const herbsText = rec.herbs.map(h => `  ${h.name} ${h.amount} (${h.role})`).join('\n')
-    const text = `【${rec.formula_name}】 신뢰도: ${(rec.confidence_score * 100).toFixed(0)}%
-출전: ${detail?.source || '미상'}
-주소증: ${chiefComplaint}
-${constitution ? `체질: ${constitution}\n` : ''}
-구성 약재:
-${herbsText}
-
-AI 분석:
-${rec.rationale}
-${analysis ? `\n변증 분석:\n${analysis}` : ''}`
-
-    navigator.clipboard.writeText(text)
-    toast({ title: '처방전이 클립보드에 복사되었습니다' })
-  }
-
-  // 템플릿 저장
-  const handleSaveTemplate = () => {
-    if (!templateName.trim()) return
-    saveTemplate(templateName.trim(), {
-      chiefComplaint,
-      symptoms: symptoms.map(s => s.name),
-      constitution: constitution || undefined,
-    })
-    setTemplateName('')
-    setShowTemplateModal(false)
-    toast({ title: '증상 템플릿이 저장되었습니다' })
-  }
-
-  // 템플릿 불러오기
-  const handleLoadTemplate = (id: string) => {
-    const tmpl = templates.find(t => t.id === id)
-    if (!tmpl) return
-    setChiefComplaint(tmpl.chiefComplaint)
-    setSymptoms(tmpl.symptoms.map(s => ({ name: s, severity: 5 })))
-    if (tmpl.constitution) setConstitution(tmpl.constitution)
-    toast({ title: `'${tmpl.name}' 템플릿을 불러왔습니다` })
   }
 
   const copyToClipboard = () => {
@@ -600,6 +463,12 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
 
   return (
     <div className="space-y-6">
+      {/* Demo Data Warning */}
+      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
+        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
+      </div>
+
       {/* Header with Mode Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -773,8 +642,8 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                       onClick={() => setConstitution(c)}
                       className={`px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
                         constitution === c
-                          ? 'bg-slate-600 text-white border-slate-600 shadow-lg shadow-slate-600/20'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/20'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:bg-violet-50'
                       }`}
                     >
                       {c || '미상'}
@@ -850,42 +719,6 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                   <p className="text-sm text-gray-500">환자가 호소하는 증상을 입력해주세요</p>
                 </div>
               </div>
-
-              {/* 나의 템플릿 */}
-              {(templates.length > 0 || chiefComplaint.trim()) && (
-                <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-indigo-700">나의 증상 템플릿</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {templates.map((tmpl) => (
-                      <div key={tmpl.id} className="group flex items-center">
-                        <button
-                          onClick={() => handleLoadTemplate(tmpl.id)}
-                          className="px-3 py-1.5 text-sm bg-white rounded-l-lg border border-indigo-200 text-indigo-700 font-medium hover:bg-indigo-50 transition-colors"
-                        >
-                          {tmpl.name}
-                        </button>
-                        <button
-                          onClick={() => deleteTemplate(tmpl.id)}
-                          className="px-1.5 py-1.5 bg-white border border-l-0 border-indigo-200 rounded-r-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                    {chiefComplaint.trim() && (
-                      <button
-                        onClick={() => setShowTemplateModal(true)}
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border-2 border-dashed border-indigo-200 text-indigo-500 font-medium hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center gap-1"
-                      >
-                        <Save className="h-3.5 w-3.5" />
-                        현재 증상 저장
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* 주소증 입력 */}
               <div>
@@ -999,7 +832,7 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
           {wizardStep === 3 && (
             <div className="space-y-6" data-tour="analyze-button">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-slate-600 to-slate-500 rounded-2xl shadow-lg shadow-slate-600/20 animate-pulse">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg shadow-purple-500/20 animate-pulse">
                   <Stethoscope className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -1052,7 +885,7 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                   {constitution && (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">체질:</span>
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded">{constitution}</span>
+                      <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded">{constitution}</span>
                     </div>
                   )}
                   <div className="flex items-start gap-2">
@@ -1096,155 +929,58 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                 </div>
               )}
 
-              {/* 처방 목록 (근거 포함) */}
-              <div className="space-y-4">
-                {recommendations.slice(0, 3).map((rec, index) => {
-                  const detail = formulaDetails[rec.formula_name]
-                  return (
-                    <div
-                      key={index}
-                      className={`rounded-xl border-2 transition-all overflow-hidden ${
-                        index === 0
-                          ? 'border-teal-300 bg-white shadow-sm'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      {/* 헤더: 처방명 + 신뢰도 */}
-                      <div className={`px-4 py-3 flex items-center justify-between ${
-                        index === 0 ? 'bg-teal-50/70' : 'bg-gray-50/50'
+              {/* 처방 목록 (간략) */}
+              <div className="space-y-3">
+                {recommendations.slice(0, 3).map((rec, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
+                      index === 0
+                        ? 'border-teal-300 bg-teal-50/50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                    onClick={() => openDetailModal(rec)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {index === 0 && (
+                          <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">
+                            BEST
+                          </span>
+                        )}
+                        <span className="font-bold text-gray-900">{rec.formula_name}</span>
+                      </div>
+                      <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
+                        rec.confidence_score >= 0.9
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : rec.confidence_score >= 0.7
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-gray-100 text-gray-700'
                       }`}>
-                        <div className="flex items-center gap-3">
-                          {index === 0 && (
-                            <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">
-                              BEST
-                            </span>
-                          )}
-                          <span className="font-bold text-gray-900 text-lg">{rec.formula_name}</span>
-                          {detail && (
-                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
-                              {detail.source}
-                            </span>
-                          )}
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-lg text-sm font-bold ${
-                          rec.confidence_score >= 0.9
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : rec.confidence_score >= 0.7
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {(rec.confidence_score * 100).toFixed(0)}%
-                        </span>
-                      </div>
-
-                      {/* 근거 본문 */}
-                      <div className="px-4 py-3 space-y-3">
-                        {/* AI 추천 근거 */}
-                        <p className="text-sm text-gray-700 leading-relaxed">{rec.rationale}</p>
-
-                        {detail && (
-                          <>
-                            {/* 병기 설명 - 왜 이 처방이 필요한지 */}
-                            <div className="bg-slate-50 rounded-lg p-3">
-                              <div className="flex items-start gap-2">
-                                <Brain className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
-                                <div>
-                                  <span className="text-xs font-semibold text-slate-600">병기(病機)</span>
-                                  <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{detail.pathogenesis}</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* 적응증 */}
-                            <div className="bg-blue-50/60 rounded-lg p-3">
-                              <div className="flex items-start gap-2">
-                                <FileText className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                                <div>
-                                  <span className="text-xs font-semibold text-blue-600">적응증</span>
-                                  <p className="text-sm text-gray-600 mt-0.5">{detail.indication}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {/* 구성 약재 요약 */}
-                        {rec.herbs.length > 0 && (
-                          <div className="flex items-start gap-2">
-                            <Beaker className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
-                            <div className="flex flex-wrap gap-1.5">
-                              {rec.herbs.slice(0, 6).map((herb, i) => {
-                                const herbInfo = HERB_INFO[herb.name]
-                                return (
-                                  <span
-                                    key={i}
-                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                                      roleColors[herb.role] || 'bg-gray-100 text-gray-700 border-gray-200'
-                                    } border`}
-                                    title={herbInfo ? `${herbInfo.hanja} - ${herbInfo.meaning}` : herb.role}
-                                  >
-                                    {herb.name}
-                                    <span className="opacity-60">{herb.amount}</span>
-                                  </span>
-                                )
-                              })}
-                              {rec.herbs.length > 6 && (
-                                <span className="text-xs text-gray-400 self-center">+{rec.herbs.length - 6}</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 상세보기 버튼 */}
-                        <button
-                          onClick={() => openDetailModal(rec)}
-                          className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 pt-1"
-                        >
-                          가감법·금기·현대응용 더보기
-                          <ChevronRight className="h-3 w-3" />
-                        </button>
-
-                        {/* 임상 근거 패널 */}
-                        <ClinicalEvidencePanel
-                          formulaName={rec.formula_name}
-                          herbs={rec.herbs}
-                          rationale={rec.rationale}
-                          chiefComplaint={chiefComplaint}
-                          symptoms={symptoms}
-                          constitution={constitution}
-                          formulaDetail={detail}
-                        />
-                      </div>
+                        {(rec.confidence_score * 100).toFixed(0)}%
+                      </span>
                     </div>
-                  )
-                })}
+                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">{rec.rationale}</p>
+                  </div>
+                ))}
               </div>
 
               {/* 네비게이션 */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-between pt-4 border-t border-gray-100">
                 <button
-                  onClick={handleReAnalyze}
-                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all flex items-center gap-2 text-sm"
+                  onClick={() => {
+                    setWizardStep(1)
+                    setRecommendations([])
+                    setAnalysis('')
+                    setChiefComplaint('')
+                    setSymptoms([])
+                    setConstitution('')
+                  }}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  증상 수정 후 재분석
+                  <Plus className="h-5 w-5" />
+                  새 진료 시작
                 </button>
-                <button
-                  onClick={() => recommendations[0] && copyPrescriptionToClipboard(recommendations[0])}
-                  disabled={recommendations.length === 0}
-                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 disabled:opacity-50 transition-all flex items-center gap-2 text-sm"
-                >
-                  <ClipboardCopy className="h-4 w-4" />
-                  처방전 복사
-                </button>
-                <button
-                  onClick={handleNewConsultation}
-                  className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all flex items-center gap-2 text-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  새 환자 진료
-                </button>
-                <div className="flex-1" />
                 <button
                   onClick={() => recommendations[0] && handleSelectFormula(recommendations[0])}
                   disabled={recommendations.length === 0}
@@ -1252,72 +988,6 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                 >
                   <CheckCircle className="h-5 w-5" />
                   최우선 처방 선택
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 완료 상태 (처방 선택 후) */}
-          {doneState && (
-            <div className="mt-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-200 p-6">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-emerald-500" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">처방이 저장되었습니다</h3>
-              </div>
-
-              <div className="bg-white rounded-xl p-4 mb-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">선택 처방:</span>
-                  <span className="font-bold text-teal-600">{doneState.formula.formula_name}</span>
-                  <span className="text-sm text-gray-400">
-                    | 신뢰도 {(doneState.formula.confidence_score * 100).toFixed(0)}%
-                  </span>
-                </div>
-                {doneState.constitution && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">체질:</span>
-                    <span className="text-sm text-gray-700">{doneState.constitution}</span>
-                  </div>
-                )}
-                <div className="flex items-start gap-2">
-                  <span className="text-sm text-gray-500 shrink-0">주소증:</span>
-                  <span className="text-sm text-gray-700">{doneState.chiefComplaint}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  onClick={handleReAnalyze}
-                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
-                >
-                  <RefreshCw className="h-5 w-5 text-blue-500" />
-                  증상 수정 후 재분석
-                </button>
-                <button
-                  onClick={() => copyPrescriptionToClipboard(doneState.formula)}
-                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
-                >
-                  <ClipboardCopy className="h-5 w-5 text-teal-500" />
-                  처방전 복사
-                </button>
-                <button
-                  onClick={handleNewConsultation}
-                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
-                >
-                  <Plus className="h-5 w-5 text-emerald-500" />
-                  새 환자 진료
-                </button>
-                <button
-                  onClick={() => {
-                    setDocumentFormula(doneState.formula)
-                    setShowDocumentModal(true)
-                  }}
-                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all flex flex-col items-center gap-1.5 text-sm"
-                >
-                  <FileText className="h-5 w-5 text-amber-500" />
-                  문서 작성
                 </button>
               </div>
             </div>
@@ -1420,9 +1090,9 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                       role="radio"
                       aria-checked={constitution === c}
                       aria-label={c || '체질 미상'}
-                      className={`px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-600/50 ${
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${
                         constitution === c
-                          ? 'bg-slate-600 text-white'
+                          ? 'bg-violet-500 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -1633,8 +1303,8 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
               aria-controls="advanced-options-panel"
             >
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-slate-100 rounded-xl" aria-hidden="true">
-                  <Settings2 className="h-5 w-5 text-slate-700" />
+                <div className="p-2 bg-purple-100 rounded-xl" aria-hidden="true">
+                  <Settings2 className="h-5 w-5 text-purple-600" />
                 </div>
                 <div className="text-left">
                   <h2 className="font-bold text-gray-900">분석 옵션</h2>
@@ -1686,8 +1356,8 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                       onClick={() => setPreferredSchool('sasang')}
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'sasang'
-                          ? 'bg-slate-700 text-white border-slate-700'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-slate-50'
+                          ? 'bg-violet-600 text-white border-violet-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-violet-50'
                       }`}
                     >
                       <Users className="h-4 w-4" />
@@ -1845,11 +1515,6 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                               </span>
                             )}
                             <h3 className="font-bold text-lg text-gray-900">{rec.formula_name}</h3>
-                            {formulaDetails[rec.formula_name] && (
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                                {formulaDetails[rec.formula_name].source}
-                              </span>
-                            )}
                           </div>
                         </div>
                         <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
@@ -1901,30 +1566,6 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                       <div className="pt-3 border-t border-gray-100">
                         <p className="text-sm text-gray-600 leading-relaxed">{rec.rationale}</p>
                       </div>
-
-                      {/* 병기·적응증 근거 */}
-                      {formulaDetails[rec.formula_name] && (
-                        <div className="mt-3 space-y-2">
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                              <Brain className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
-                              <div>
-                                <span className="text-xs font-semibold text-slate-600">병기(病機)</span>
-                                <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{formulaDetails[rec.formula_name].pathogenesis}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="bg-blue-50/60 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                              <FileText className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                              <div>
-                                <span className="text-xs font-semibold text-blue-600">적응증</span>
-                                <p className="text-sm text-gray-600 mt-0.5">{formulaDetails[rec.formula_name].indication}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
 
                       {/* Similar Patient Stat Highlight */}
                       {index < 2 && (
@@ -2152,10 +1793,10 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
                   {/* 병기 */}
                   <div>
                     <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-slate-600" />
+                      <Brain className="h-5 w-5 text-purple-500" />
                       병기 설명
                     </h3>
-                    <p className="text-gray-700 bg-slate-50 p-4 rounded-xl leading-relaxed">
+                    <p className="text-gray-700 bg-purple-50 p-4 rounded-xl leading-relaxed">
                       {formulaDetails[selectedFormula.formula_name].pathogenesis}
                     </p>
                   </div>
@@ -2315,44 +1956,6 @@ ${analysis ? `\n변증 분석:\n${analysis}` : ''}`
         constitution={constitution}
         enabled={!isLoading && recommendations.length === 0}
       />
-
-      {/* 증상 템플릿 저장 모달 */}
-      {showTemplateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">증상 템플릿 저장</h3>
-            <input
-              type="text"
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-              placeholder="템플릿 이름 (예: 소화기 환자)"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 mb-3"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveTemplate()}
-            />
-            <div className="text-xs text-gray-500 mb-4 bg-gray-50 p-3 rounded-lg">
-              <p>주소증: {chiefComplaint.slice(0, 50)}{chiefComplaint.length > 50 ? '...' : ''}</p>
-              {symptoms.length > 0 && <p>증상: {symptoms.map(s => s.name).join(', ')}</p>}
-              {constitution && <p>체질: {constitution}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowTemplateModal(false); setTemplateName('') }}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleSaveTemplate}
-                disabled={!templateName.trim()}
-                className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 transition-all font-medium"
-              >
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Prescription Document Modal */}
       {documentFormula && (

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { healthChecks } from '@/data/healthChecks'
 import {
@@ -9,7 +10,13 @@ import {
   MessageSquare,
   ThumbsUp,
   Eye,
+  Sparkles,
+  Heart,
+  Search,
 } from 'lucide-react'
+import { getAllCelebrities } from '@/data/celebrities'
+import { CONSTITUTIONS } from '@/data/constitutions'
+import { CODE_TO_TYPE } from '@/data/celebs/types'
 
 const symptomCategories = [
   { label: '잠', emoji: '🌙' },
@@ -50,14 +57,31 @@ const dummyQnA = [
 ]
 
 const dummyCommunityPosts = [
-  { id: 1, title: '눈떨림 체크 해봤는데 혈허래요... 대추차 효과 있으신 분?', comments: 34, views: 892, tag: '경험공유' },
-  { id: 2, title: '새벽기상 고민, 태충혈 지압 2주 후기', comments: 67, views: 1543, tag: '후기' },
-  { id: 3, title: '식후졸림이 비위기허라니... 직장인 분들 어떻게 관리하세요?', comments: 89, views: 2341, tag: '질문' },
-  { id: 4, title: '손발냉증 체크 결과 공유 + 생강차 루틴', comments: 45, views: 1204, tag: '경험공유' },
-  { id: 5, title: '탈모고민 체크하고 검은깨 먹기 시작했어요', comments: 23, views: 678, tag: '후기' },
+  { id: 1, title: '나 태음인인데 정국이랑 같은 체질이래!! 🎉', comments: 127, views: 4892, tag: '체질TMI' },
+  { id: 2, title: '소양인끼리 모여라~ 같은 체질 셀럽 누가 있어?', comments: 89, views: 3241, tag: '체질TMI' },
+  { id: 3, title: '눈떨림 체크 해봤는데 혈허래요... 대추차 효과 있으신 분?', comments: 34, views: 892, tag: '경험공유' },
+  { id: 4, title: '소음인 음식 추천받고 2주 실천 후기', comments: 67, views: 1543, tag: '후기' },
+  { id: 5, title: '식후졸림이 비위기허라니... 직장인 분들 어떻게 관리하세요?', comments: 89, views: 2341, tag: '질문' },
 ]
 
+/** 셀럽 마키 티커용 데이터 (랜덤 셔플) */
+function useTickerCelebs() {
+  return useMemo(() => {
+    const all = getAllCelebrities()
+    // Fisher-Yates shuffle with seed for consistency
+    const shuffled = [...all].sort(() => 0.5 - Math.random())
+    return shuffled.slice(0, 40).map(c => {
+      const con = CONSTITUTIONS[CODE_TO_TYPE[c.constitution]]
+      return { ...c, constitution: con }
+    })
+  }, [])
+}
+
 export default function HealthHomePage() {
+  const tickerCelebs = useTickerCelebs()
+  const row1 = tickerCelebs.slice(0, 20)
+  const row2 = tickerCelebs.slice(20, 40)
+
   return (
     <div>
       {/* Hero Section */}
@@ -96,6 +120,128 @@ export default function HealthHomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ═══ 체질TMI - 셀럽 마키 티커 (NEW) ═══ */}
+      <section className="py-12 md:py-16 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-orange-500" />
+                <h2 className="text-2xl font-bold text-gray-900">체질 TMI</h2>
+                <span className="px-2 py-0.5 bg-rose-100 text-rose-600 text-xs font-bold rounded-full">HOT</span>
+              </div>
+              <p className="text-gray-500">내 최애는 무슨 체질? 셀럽 사주 분석</p>
+            </div>
+            <Link
+              to="/health/tmi"
+              className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600"
+            >
+              전체보기 <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Auto-scrolling Row 1 (left) */}
+        <div className="relative mb-3">
+          <div className="flex animate-scroll-left" style={{ width: 'max-content' }}>
+            {[...row1, ...row1].map((c, i) => (
+              <Link
+                key={`r1-${i}`}
+                to={`/health/tmi/${c.id}`}
+                className="flex-shrink-0 w-44 mx-1.5 bg-white rounded-xl p-3 border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                    style={{ backgroundColor: c.constitution.bgColor }}
+                  >
+                    {c.emoji}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-800 truncate">{c.name}</p>
+                    <span
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${c.constitution.gradientFrom}, ${c.constitution.gradientTo})` }}
+                    >
+                      {c.constitution.emoji} {c.constitution.name}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Auto-scrolling Row 2 (right - reverse) */}
+        <div className="relative mb-8">
+          <div
+            className="flex"
+            style={{
+              width: 'max-content',
+              animation: 'scroll-left 45s linear infinite reverse',
+            }}
+          >
+            {[...row2, ...row2].map((c, i) => (
+              <Link
+                key={`r2-${i}`}
+                to={`/health/tmi/${c.id}`}
+                className="flex-shrink-0 w-44 mx-1.5 bg-white rounded-xl p-3 border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                    style={{ backgroundColor: c.constitution.bgColor }}
+                  >
+                    {c.emoji}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-800 truncate">{c.name}</p>
+                    <span
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${c.constitution.gradientFrom}, ${c.constitution.gradientTo})` }}
+                    >
+                      {c.constitution.emoji} {c.constitution.name}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* TMI CTA Buttons */}
+        <div className="flex flex-wrap justify-center gap-3 px-4">
+          <Link
+            to="/health/tmi"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-200 transition-all"
+          >
+            <Search className="w-4 h-4" />
+            셀럽 검색하기
+          </Link>
+          <Link
+            to="/health/tmi/my-type"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-400 text-white rounded-full text-sm font-bold shadow-lg shadow-orange-200 hover:shadow-xl transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            내 체질 진단하기
+          </Link>
+          <Link
+            to="/health/tmi/compare"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-pink-50 hover:border-pink-200 transition-all"
+          >
+            <Heart className="w-4 h-4" />
+            궁합 보기
+          </Link>
+        </div>
+
+        <Link
+          to="/health/tmi"
+          className="md:hidden flex items-center justify-center gap-1 max-w-6xl mx-auto mt-6 mx-4 py-3 text-sm font-medium text-orange-500 bg-orange-50 rounded-xl"
+        >
+          체질TMI 전체보기 <ChevronRight className="w-4 h-4" />
+        </Link>
       </section>
 
       {/* Health Check Grid */}
@@ -203,12 +349,12 @@ export default function HealthHomePage() {
         </div>
       </section>
 
-      {/* Community Preview */}
+      {/* Community Preview - 체질TMI 토론 연동 */}
       <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">건강 이야기</h2>
-            <p className="text-gray-500 mt-1">비슷한 고민을 가진 사람들의 이야기</p>
+            <p className="text-gray-500 mt-1">체질TMI 결과로 대화하고, 건강 경험을 나눠요</p>
           </div>
           <Link
             to="/health/community"
@@ -224,7 +370,11 @@ export default function HealthHomePage() {
               key={post.id}
               className="flex items-center gap-4 bg-white rounded-xl px-5 py-4 shadow-sm border border-orange-100/30 hover:shadow-md transition-shadow cursor-pointer"
             >
-              <span className="shrink-0 px-2 py-0.5 bg-orange-50 text-orange-600 text-xs font-medium rounded">
+              <span className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded ${
+                post.tag === '체질TMI'
+                  ? 'bg-rose-50 text-rose-600'
+                  : 'bg-orange-50 text-orange-600'
+              }`}>
                 {post.tag}
               </span>
               <p className="flex-1 text-sm font-medium text-gray-800 truncate">{post.title}</p>
