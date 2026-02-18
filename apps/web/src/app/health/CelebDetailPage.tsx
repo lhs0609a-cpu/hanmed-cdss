@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { getCelebrityById, CATEGORY_INFO, getCelebsByConstitution } from '@/data/celebrities'
 import { CONSTITUTIONS } from '@/data/constitutions'
-import { CODE_TO_TYPE } from '@/data/celebs/types'
 import {
   analyzeProfile,
   formatPillar,

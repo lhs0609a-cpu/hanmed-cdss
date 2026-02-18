@@ -458,7 +458,7 @@ const data: CelebTuple[] = [
   ["gl-greta-thunberg","그레타 툰베리","Greta Thunberg","2003-01-03",null,null,"🌍","U","환경활동가","스웨덴"],
   ["gl-yuval-noah-harari","유발 하라리","Yuval Noah Harari","1976-02-24",null,null,"🌍","T","역사학자","작가","이스라엘"],
   ["gl-jordan-peterson","조던 피터슨","Jordan Peterson","1962-06-12",null,null,"🌍","S","심리학자","작가","캐나다"],
-  ["gl-elon-musk-sci",null,null,"1971-06-28",null,null,"🌍","S","사업가","CEO","남아프리카"],
+  ["gl-elon-musk-sci","일론 머스크","Elon Musk","1971-06-28",null,null,"🌍","S","사업가","CEO","남아프리카"],
   ["gl-gigi-hadid","지지 하디드","Gigi Hadid","1995-04-23",null,null,"🌍","E","모델","미국"],
   ["gl-bella-hadid","벨라 하디드","Bella Hadid","1996-10-09",null,null,"🌍","E","모델","미국"],
   ["gl-kendall-jenner","켄달 제너","Kendall Jenner","1995-11-03",null,null,"🌍","S","모델","미국"],
