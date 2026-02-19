@@ -91,10 +91,10 @@ export async function searchKoreanMedicineFee(
         classificationName: node.querySelector('diagClsfNm')?.textContent || '',
         price: (() => { const v = node.querySelector('insrPrc')?.textContent; return v ? parseFloat(v) : undefined })(),
         payType: payTpCd === '1' ? 'covered' : payTpCd === '2' ? 'uncovered' : 'unknown',
-        payTypeName: node.querySelector('payTpNm')?.textContent,
+        payTypeName: node.querySelector('payTpNm')?.textContent ?? undefined,
         applyDate: node.querySelector('applyDt')?.textContent || '',
-        endDate: node.querySelector('endDt')?.textContent,
-        remark: node.querySelector('rmk')?.textContent,
+        endDate: node.querySelector('endDt')?.textContent ?? undefined,
+        remark: node.querySelector('rmk')?.textContent ?? undefined,
         feeType: 'korean',
       })
     })
@@ -154,10 +154,10 @@ export async function searchMedicalFee(
         classificationName: node.querySelector('diagClsfNm')?.textContent || '',
         price: (() => { const v = node.querySelector('insrPrc')?.textContent; return v ? parseFloat(v) : undefined })(),
         payType: payTpCd === '1' ? 'covered' : payTpCd === '2' ? 'uncovered' : 'unknown',
-        payTypeName: node.querySelector('payTpNm')?.textContent,
+        payTypeName: node.querySelector('payTpNm')?.textContent ?? undefined,
         applyDate: node.querySelector('applyDt')?.textContent || '',
-        endDate: node.querySelector('endDt')?.textContent,
-        remark: node.querySelector('rmk')?.textContent,
+        endDate: node.querySelector('endDt')?.textContent ?? undefined,
+        remark: node.querySelector('rmk')?.textContent ?? undefined,
         feeType: 'medical',
       })
     })
@@ -250,11 +250,11 @@ export async function searchDiseaseCode(
       items.push({
         dissCd: node.querySelector('dissCd')?.textContent || '',
         dissNm: node.querySelector('dissNm')?.textContent || '',
-        dissEngNm: node.querySelector('dissEngNm')?.textContent,
-        dissClsfCd: node.querySelector('dissClsfCd')?.textContent,
-        dissClsfNm: node.querySelector('dissClsfNm')?.textContent,
-        mdTpCd: node.querySelector('mdTpCd')?.textContent,
-        mdTpNm: node.querySelector('mdTpNm')?.textContent,
+        dissEngNm: node.querySelector('dissEngNm')?.textContent ?? undefined,
+        dissClsfCd: node.querySelector('dissClsfCd')?.textContent ?? undefined,
+        dissClsfNm: node.querySelector('dissClsfNm')?.textContent ?? undefined,
+        mdTpCd: node.querySelector('mdTpCd')?.textContent ?? undefined,
+        mdTpNm: node.querySelector('mdTpNm')?.textContent ?? undefined,
       })
     })
 
