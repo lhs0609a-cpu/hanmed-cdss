@@ -44,6 +44,7 @@ export interface CelebrityRaw {
 /** Extended with precomputed constitution */
 export interface Celebrity extends CelebrityRaw {
   constitution: ConstitutionCode
+  imageUrl?: string
 }
 
 export const CATEGORY_INFO: Record<CelebCategory, { label: string; emoji: string; color: string }> = {

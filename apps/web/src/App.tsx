@@ -94,6 +94,7 @@ const CelebTmiPage = lazy(() => import('@/app/health/CelebTmiPage'))
 const CelebDetailPage = lazy(() => import('@/app/health/CelebDetailPage'))
 const MyConstitutionPage = lazy(() => import('@/app/health/MyConstitutionPage'))
 const ComparePage = lazy(() => import('@/app/health/ComparePage'))
+const HealthCommunityPage = lazy(() => import('@/app/health/HealthCommunityPage'))
 
 // Legal Pages
 import {
@@ -149,6 +150,8 @@ function App() {
         }>
           <Route index element={<HealthHomePage />} />
           <Route path="check/:slug" element={<HealthCheckPage />} />
+          <Route path="community" element={<HealthCommunityPage />} />
+          <Route path="qna" element={<HealthCommunityPage />} />
           <Route path="tmi" element={<CelebTmiPage />} />
           <Route path="tmi/my-type" element={<MyConstitutionPage />} />
           <Route path="tmi/compare" element={<ComparePage />} />

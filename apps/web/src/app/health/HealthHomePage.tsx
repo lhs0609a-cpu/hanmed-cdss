@@ -153,8 +153,16 @@ export default function HealthHomePage() {
                 className="flex-shrink-0 w-44 mx-1.5 bg-white rounded-xl p-3 border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all"
               >
                 <div className="flex items-center gap-2.5">
+                  {c.imageUrl ? (
+                    <img
+                      src={c.imageUrl}
+                      alt={c.name}
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+                    />
+                  ) : null}
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0${c.imageUrl ? ' hidden' : ''}`}
                     style={{ backgroundColor: c.constitution.bgColor }}
                   >
                     {c.emoji}
@@ -190,8 +198,16 @@ export default function HealthHomePage() {
                 className="flex-shrink-0 w-44 mx-1.5 bg-white rounded-xl p-3 border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all"
               >
                 <div className="flex items-center gap-2.5">
+                  {c.imageUrl ? (
+                    <img
+                      src={c.imageUrl}
+                      alt={c.name}
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+                    />
+                  ) : null}
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0${c.imageUrl ? ' hidden' : ''}`}
                     style={{ backgroundColor: c.constitution.bgColor }}
                   >
                     {c.emoji}
@@ -299,7 +315,7 @@ export default function HealthHomePage() {
               <p className="text-gray-500 mt-1">한의사 인증 답변을 확인하세요</p>
             </div>
             <Link
-              to="/health/qna"
+              to="/health/community"
               className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600"
             >
               전체보기 <ChevronRight className="w-4 h-4" />
@@ -341,7 +357,7 @@ export default function HealthHomePage() {
           </div>
 
           <Link
-            to="/health/qna"
+            to="/health/community"
             className="md:hidden flex items-center justify-center gap-1 mt-6 py-3 text-sm font-medium text-orange-500 bg-orange-50 rounded-xl"
           >
             QnA 전체보기 <ChevronRight className="w-4 h-4" />

@@ -281,30 +281,6 @@ export default function CasesPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [updateSearchParams])
 
-  // 사용자 친화적 에러 메시지 변환
-  const getUserFriendlyError = (err: Error | unknown): string => {
-    const message = err instanceof Error ? err.message : String(err)
-
-    // 네트워크 에러
-    if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
-      return '서버와의 연결이 일시적으로 불안정합니다'
-    }
-    // 타임아웃
-    if (message.includes('timeout') || message.includes('시간')) {
-      return '요청 처리 시간이 초과되었습니다'
-    }
-    // 서버 에러
-    if (message.includes('500') || message.includes('502') || message.includes('503')) {
-      return '서버가 일시적으로 응답하지 않습니다'
-    }
-    // 인증 에러
-    if (message.includes('401') || message.includes('인증')) {
-      return '로그인이 필요하거나 세션이 만료되었습니다'
-    }
-
-    return '데이터를 불러오는 중 문제가 발생했습니다'
-  }
-
   // API에서 데이터 가져오기
   const fetchCases = useCallback(async (isManualRetry = false) => {
     if (isManualRetry) {

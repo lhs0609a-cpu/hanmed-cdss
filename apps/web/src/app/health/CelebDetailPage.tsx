@@ -97,8 +97,16 @@ export default function CelebDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
+        {celeb.imageUrl ? (
+          <img
+            src={celeb.imageUrl}
+            alt={celeb.name}
+            className="w-24 h-24 mx-auto rounded-full object-cover mb-3"
+            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+          />
+        ) : null}
         <div
-          className="w-24 h-24 mx-auto rounded-full flex items-center justify-center text-5xl mb-3"
+          className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center text-5xl mb-3${celeb.imageUrl ? ' hidden' : ''}`}
           style={{ backgroundColor: constitution.bgColor }}
         >
           {celeb.emoji}
@@ -324,8 +332,16 @@ export default function CelebDetailPage() {
                 to={`/health/tmi/${c.id}`}
                 className="flex-shrink-0 w-20 text-center"
               >
+                {c.imageUrl ? (
+                  <img
+                    src={c.imageUrl}
+                    alt={c.name}
+                    className="w-14 h-14 mx-auto rounded-full object-cover"
+                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+                  />
+                ) : null}
                 <div
-                  className="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl"
+                  className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl${c.imageUrl ? ' hidden' : ''}`}
                   style={{ backgroundColor: constitution.bgColor }}
                 >
                   {c.emoji}

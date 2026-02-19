@@ -226,8 +226,16 @@ export default function CelebTmiPage() {
                 to={`/health/tmi/${celeb.id}`}
                 className="flex-shrink-0 w-28 bg-white rounded-2xl p-3 border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all text-center"
               >
+                {celeb.imageUrl ? (
+                  <img
+                    src={celeb.imageUrl}
+                    alt={celeb.name}
+                    className="w-10 h-10 mx-auto rounded-full object-cover mb-1"
+                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+                  />
+                ) : null}
                 <div
-                  className="w-10 h-10 mx-auto rounded-full flex items-center justify-center text-lg mb-1"
+                  className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center text-lg mb-1${celeb.imageUrl ? ' hidden' : ''}`}
                   style={{ backgroundColor: constitution.bgColor }}
                 >
                   {celeb.emoji}
@@ -459,8 +467,16 @@ function CelebCard({ celeb }: { celeb: Celebrity }) {
       to={`/health/tmi/${celeb.id}`}
       className="block bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-lg hover:border-orange-200 hover:-translate-y-1 transition-all group"
     >
+      {celeb.imageUrl ? (
+        <img
+          src={celeb.imageUrl}
+          alt={celeb.name}
+          className="w-14 h-14 mx-auto rounded-full object-cover mb-2"
+          onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+        />
+      ) : null}
       <div
-        className="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl mb-2"
+        className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl mb-2${celeb.imageUrl ? ' hidden' : ''}`}
         style={{ backgroundColor: constitution.bgColor }}
       >
         {celeb.emoji}

@@ -17,6 +17,7 @@ import animeData from './anime'
 import dramaData from './drama'
 import gameData from './game'
 import youtubeData from './youtube'
+import { CELEB_IMAGES } from './images'
 
 // ─── Lazy initialization ────────────────────────────
 
@@ -40,6 +41,12 @@ function ensureLoaded(): Celebrity[] {
     ...decodeTuples(gameData, 'game'),
     ...decodeTuples(youtubeData, 'youtube'),
   ]
+
+  // Merge image URLs from registry
+  for (const c of _all) {
+    const url = CELEB_IMAGES[c.id]
+    if (url) c.imageUrl = url
+  }
 
   // Build id index
   _byId = new Map()
