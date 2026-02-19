@@ -1539,6 +1539,7 @@ export default function LandingPage() {
                 <li><a href="#pricing" className="hover:text-white transition-colors">가격 안내</a></li>
                 <li><a href="#faq" className="hover:text-white transition-colors">자주 묻는 질문</a></li>
                 <li><Link to="/go" className="hover:text-white transition-colors">무료 체험</Link></li>
+                <li><Link to="/health" className="hover:text-white transition-colors">몸이 알려줌</Link></li>
               </ul>
             </div>
 
