@@ -59,3 +59,8 @@ export * from './shared-case.entity';
 
 // Inventory Management entities
 export * from './herb-inventory.entity';
+
+// Saju (사주) Premium entities
+export * from './saju-report.entity';
+export * from './saju-report-section.entity';
+export * from './saju-purchase.entity';

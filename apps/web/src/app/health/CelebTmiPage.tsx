@@ -6,7 +6,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, Sparkles, Heart, ArrowRight, X, TrendingUp, MessageCircle, Users, Flame } from 'lucide-react'
+import { Search, Sparkles, Heart, ArrowRight, X, TrendingUp, MessageCircle, Users, Flame, AlertTriangle } from 'lucide-react'
 import {
   getAllCelebrities,
   searchCelebrities,
@@ -19,6 +19,7 @@ import {
 } from '@/data/celebrities'
 import { CONSTITUTIONS } from '@/data/constitutions'
 import { CODE_TO_TYPE } from '@/data/celebs/types'
+import { analyzeProfile } from '@/lib/saju'
 
 /** 경량 가상 스크롤 훅 - @tanstack/react-virtual 대체 */
 interface VirtualItem {
@@ -125,8 +126,22 @@ function useColumns(): number {
   return cols
 }
 
+/** 위험도 높은 셀럽 (캐시, 한 번만 계산) */
+function useRiskSortedCelebs() {
+  return useMemo(() => {
+    const all = getAllCelebrities()
+    const withRisk = all.map(c => {
+      const { risk } = analyzeProfile(c.birthDate, c.birthHour)
+      return { celeb: c, risk }
+    })
+    return withRisk
+      .filter(item => item.risk.level !== 'safe')
+      .sort((a, b) => b.risk.score - a.risk.score)
+  }, [])
+}
+
 export default function CelebTmiPage() {
-  const [selectedCategory, setSelectedCategory] = useState<CelebCategory | 'all'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<CelebCategory | 'all' | 'risk2026'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebouncedValue(searchQuery, 300)
   const parentRef = useRef<HTMLDivElement>(null)
@@ -135,8 +150,19 @@ export default function CelebTmiPage() {
   const allCelebs = useMemo(() => getAllCelebrities(), [])
   const categoryCounts = useMemo(() => getCategoryCounts(), [])
   const trendingCelebs = useTrendingCelebs(30)
+  const riskSortedCelebs = useRiskSortedCelebs()
 
   const filteredCelebs = useMemo(() => {
+    // 2026 주의보 탭은 별도 로직
+    if (selectedCategory === 'risk2026') {
+      let result = riskSortedCelebs.map(item => item.celeb)
+      if (debouncedQuery.trim()) {
+        const searchResult = new Set(searchCelebrities(debouncedQuery).map(c => c.id))
+        result = result.filter(c => searchResult.has(c.id))
+      }
+      return result
+    }
+
     let result: Celebrity[]
     if (debouncedQuery.trim()) {
       result = searchCelebrities(debouncedQuery)
@@ -147,7 +173,7 @@ export default function CelebTmiPage() {
       result = result.filter(c => c.category === selectedCategory)
     }
     return result
-  }, [allCelebs, selectedCategory, debouncedQuery])
+  }, [allCelebs, selectedCategory, debouncedQuery, riskSortedCelebs])
 
   // Virtual grid: rows = ceil(items / cols)
   const rowCount = Math.ceil(filteredCelebs.length / cols)
@@ -164,7 +190,7 @@ export default function CelebTmiPage() {
     [trendingCelebs]
   )
 
-  const handleCategoryChange = useCallback((cat: CelebCategory | 'all') => {
+  const handleCategoryChange = useCallback((cat: CelebCategory | 'all' | 'risk2026') => {
     setSelectedCategory(cat)
     parentRef.current?.scrollTo({ top: 0 })
   }, [])
@@ -285,6 +311,17 @@ export default function CelebTmiPage() {
         >
           전체 ({allCelebs.length.toLocaleString()})
         </button>
+        <button
+          onClick={() => handleCategoryChange('risk2026')}
+          className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            selectedCategory === 'risk2026'
+              ? 'bg-red-500 text-white'
+              : 'bg-white text-red-500 border border-red-200 hover:bg-red-50'
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+          2026 주의보 ({riskSortedCelebs.length.toLocaleString()})
+        </button>
         {getCategories().map(cat => {
           const info = CATEGORY_INFO[cat]
           const count = categoryCounts[cat] || 0
@@ -342,9 +379,18 @@ export default function CelebTmiPage() {
                   gap: '0.75rem',
                 }}
               >
-                {rowItems.map(celeb => (
-                  <CelebCard key={celeb.id} celeb={celeb} />
-                ))}
+                {rowItems.map(celeb => {
+                  const riskItem = selectedCategory === 'risk2026'
+                    ? riskSortedCelebs.find(r => r.celeb.id === celeb.id)
+                    : undefined
+                  return (
+                    <CelebCard
+                      key={celeb.id}
+                      celeb={celeb}
+                      riskScore={riskItem?.risk.score}
+                    />
+                  )
+                })}
               </div>
             )
           })}
@@ -459,7 +505,7 @@ export default function CelebTmiPage() {
 }
 
 /** 셀럽 카드 - constitution from precomputed index */
-function CelebCard({ celeb }: { celeb: Celebrity }) {
+function CelebCard({ celeb, riskScore }: { celeb: Celebrity; riskScore?: number }) {
   const constitution = CONSTITUTIONS[CODE_TO_TYPE[celeb.constitution]]
 
   return (
@@ -485,13 +531,25 @@ function CelebCard({ celeb }: { celeb: Celebrity }) {
       {celeb.group && (
         <p className="text-[10px] text-gray-400 text-center truncate">{celeb.group}</p>
       )}
-      <div className="mt-2 flex justify-center">
+      <div className="mt-2 flex justify-center gap-1">
         <span
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
           style={{ background: `linear-gradient(135deg, ${constitution.gradientFrom}, ${constitution.gradientTo})` }}
         >
           {constitution.emoji} {constitution.name}
         </span>
+        {riskScore != null && (
+          <span
+            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+            style={{
+              backgroundColor:
+                riskScore >= 66 ? '#ef4444' :
+                riskScore >= 46 ? '#f97316' : '#eab308',
+            }}
+          >
+            {riskScore}점
+          </span>
+        )}
       </div>
       <div className="flex justify-center mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <ArrowRight className="w-3 h-3 text-orange-400" />

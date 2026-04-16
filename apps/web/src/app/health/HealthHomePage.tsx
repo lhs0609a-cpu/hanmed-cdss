@@ -13,10 +13,13 @@ import {
   Sparkles,
   Heart,
   Search,
+  Star,
+  AlertTriangle,
 } from 'lucide-react'
 import { getAllCelebrities } from '@/data/celebrities'
 import { CONSTITUTIONS } from '@/data/constitutions'
 import { CODE_TO_TYPE } from '@/data/celebs/types'
+import { analyzeProfile } from '@/lib/saju'
 
 const symptomCategories = [
   { label: '잠', emoji: '🌙' },
@@ -64,10 +67,10 @@ const dummyCommunityPosts = [
   { id: 5, title: '식후졸림이 비위기허라니... 직장인 분들 어떻게 관리하세요?', comments: 89, views: 2341, tag: '질문' },
 ]
 
-/** 셀럽 마키 티커용 데이터 (랜덤 셔플) */
+/** 셀럽 마키 티커용 데이터 (이미지 있는 셀럽만, 랜덤 셔플) */
 function useTickerCelebs() {
   return useMemo(() => {
-    const all = getAllCelebrities()
+    const all = getAllCelebrities().filter(c => c.imageUrl)
     // Fisher-Yates shuffle with seed for consistency
     const shuffled = [...all].sort(() => 0.5 - Math.random())
     return shuffled.slice(0, 40).map(c => {
@@ -77,8 +80,31 @@ function useTickerCelebs() {
   }, [])
 }
 
+/** 2026 건강 주의보 TOP 12 셀럽 (이미지 있는 셀럽 우선, 위험도 순 정렬) */
+function useRiskCelebs() {
+  return useMemo(() => {
+    const all = getAllCelebrities()
+    const withRisk = all.map(c => {
+      const { risk } = analyzeProfile(c.birthDate, c.birthHour)
+      const con = CONSTITUTIONS[CODE_TO_TYPE[c.constitution]]
+      return { ...c, risk, constitution: con }
+    })
+    // 이미지 있는 셀럽 우선, 그 다음 위험도 순
+    return withRisk
+      .filter(c => c.risk.level !== 'safe')
+      .sort((a, b) => {
+        const imgA = a.imageUrl ? 1 : 0
+        const imgB = b.imageUrl ? 1 : 0
+        if (imgA !== imgB) return imgB - imgA
+        return b.risk.score - a.risk.score
+      })
+      .slice(0, 12)
+  }, [])
+}
+
 export default function HealthHomePage() {
   const tickerCelebs = useTickerCelebs()
+  const riskCelebs = useRiskCelebs()
   const row1 = tickerCelebs.slice(0, 20)
   const row2 = tickerCelebs.slice(20, 40)
 
@@ -260,6 +286,79 @@ export default function HealthHomePage() {
         </Link>
       </section>
 
+      {/* ═══ 2026 건강 주의보 셀럽 ═══ */}
+      {riskCelebs.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+                <h2 className="text-2xl font-bold text-gray-900">2026 건강 주의보</h2>
+                <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">주의</span>
+              </div>
+              <p className="text-gray-500">병인(丙寅)년, 사주 충돌 위험도가 높은 셀럽</p>
+            </div>
+            <Link
+              to="/health/tmi"
+              className="hidden md:inline-flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600"
+            >
+              전체 보기 <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
+            {riskCelebs.map(c => {
+              const riskColor =
+                c.risk.level === 'danger' ? '#ef4444' :
+                c.risk.level === 'warning' ? '#f97316' : '#eab308'
+              return (
+                <Link
+                  key={c.id}
+                  to={`/health/tmi/${c.id}`}
+                  className="flex-shrink-0 w-36 bg-white rounded-2xl p-3 border border-gray-100 hover:shadow-lg hover:border-red-200 hover:-translate-y-1 transition-all text-center"
+                >
+                  {c.imageUrl ? (
+                    <img
+                      src={c.imageUrl}
+                      alt={c.name}
+                      className="w-14 h-14 mx-auto rounded-full object-cover mb-2"
+                      onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
+                    />
+                  ) : null}
+                  <div
+                    className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl mb-2${c.imageUrl ? ' hidden' : ''}`}
+                    style={{ backgroundColor: c.constitution.bgColor }}
+                  >
+                    {c.emoji}
+                  </div>
+                  <p className="text-sm font-bold text-gray-800 truncate">{c.name}</p>
+                  <div className="flex justify-center gap-1 mt-1.5">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                      style={{ backgroundColor: riskColor }}
+                    >
+                      {c.risk.score}점
+                    </span>
+                  </div>
+                  {c.risk.conflicts[0] && (
+                    <p className="text-[10px] text-gray-500 mt-1 truncate">
+                      {c.risk.conflicts[0].type} {c.risk.conflicts[0].pillarLabel}
+                    </p>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+
+          <Link
+            to="/health/tmi"
+            className="md:hidden flex items-center justify-center gap-1 mt-4 py-3 text-sm font-medium text-red-500 bg-red-50 rounded-xl"
+          >
+            2026 주의보 셀럽 전체보기 <ChevronRight className="w-4 h-4" />
+          </Link>
+        </section>
+      )}
+
       {/* Health Check Grid */}
       <section id="checks" className="max-w-6xl mx-auto px-4 py-12 md:py-16">
         <div className="flex items-center justify-between mb-8">
@@ -413,6 +512,46 @@ export default function HealthHomePage() {
           className="md:hidden flex items-center justify-center gap-1 mt-6 py-3 text-sm font-medium text-orange-500 bg-orange-50 rounded-xl"
         >
           커뮤니티 전체보기 <ChevronRight className="w-4 h-4" />
+        </Link>
+      </section>
+
+      {/* 건강사주 프로모션 배너 */}
+      <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
+        <Link
+          to="/health/saju"
+          className="block rounded-2xl overflow-hidden relative"
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed, #9333ea, #c026d3)',
+          }}
+        >
+          <div className="absolute inset-0">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/3" />
+          </div>
+          <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-medium text-white mb-4">
+                <Sparkles className="w-3.5 h-3.5" />
+                NEW - AI 건강사주
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                사주 속에 숨은 건강 비밀
+              </h3>
+              <p className="text-white/80 leading-relaxed mb-4">
+                생년월일에 담긴 오행의 기운을 한의학으로 풀어드립니다.
+                <br className="hidden md:block" />
+                체질, 건강, 운세를 AI가 심층 분석해요.
+              </p>
+              <span className="inline-flex items-center gap-2 px-6 py-3 bg-white text-purple-700 font-bold rounded-full text-sm hover:shadow-lg transition-all">
+                <Star className="w-4 h-4" />
+                내 건강사주 보기
+                <ChevronRight className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="text-6xl md:text-8xl opacity-80">
+              🔮
+            </div>
+          </div>
         </Link>
       </section>
 

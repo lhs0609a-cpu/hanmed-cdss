@@ -95,6 +95,10 @@ const CelebDetailPage = lazy(() => import('@/app/health/CelebDetailPage'))
 const MyConstitutionPage = lazy(() => import('@/app/health/MyConstitutionPage'))
 const ComparePage = lazy(() => import('@/app/health/ComparePage'))
 const HealthCommunityPage = lazy(() => import('@/app/health/HealthCommunityPage'))
+const SajuLandingPage = lazy(() => import('@/app/health/SajuLandingPage'))
+const SajuInputPage = lazy(() => import('@/app/health/SajuInputPage'))
+const SajuPaymentPage = lazy(() => import('@/app/health/SajuPaymentPage'))
+const SajuReportViewer = lazy(() => import('@/app/health/SajuReportViewer'))
 
 // Legal Pages
 import {
@@ -156,6 +160,11 @@ function App() {
           <Route path="tmi/my-type" element={<MyConstitutionPage />} />
           <Route path="tmi/compare" element={<ComparePage />} />
           <Route path="tmi/:id" element={<CelebDetailPage />} />
+          <Route path="saju" element={<SajuLandingPage />} />
+          <Route path="saju/input" element={<SajuInputPage />} />
+          <Route path="saju/payment" element={<SajuPaymentPage />} />
+          <Route path="saju/report/:id" element={<SajuReportViewer />} />
+          <Route path="saju/report/view/:token" element={<SajuReportViewer />} />
         </Route>
 
         {/* Legal Pages (Public) */}

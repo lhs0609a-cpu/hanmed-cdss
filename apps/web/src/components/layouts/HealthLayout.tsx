@@ -4,8 +4,8 @@ import {
   Home,
   ClipboardCheck,
   MessageCircle,
-  User,
   Sparkles,
+  Star,
   Menu,
   X,
 } from 'lucide-react'
@@ -13,6 +13,7 @@ import {
 const navLinks = [
   { label: '건강체크', href: '/health#checks' },
   { label: '체질TMI', href: '/health/tmi' },
+  { label: '건강사주', href: '/health/saju' },
   { label: '커뮤니티', href: '/health/community' },
   { label: 'QnA', href: '/health/qna' },
 ]
@@ -21,8 +22,8 @@ const mobileTabItems = [
   { label: '홈', href: '/health', icon: Home },
   { label: '체크', href: '/health#checks', icon: ClipboardCheck },
   { label: 'TMI', href: '/health/tmi', icon: Sparkles },
+  { label: '사주', href: '/health/saju', icon: Star },
   { label: '커뮤니티', href: '/health/community', icon: MessageCircle },
-  { label: 'MY', href: '/health/my', icon: User },
 ]
 
 export default function HealthLayout() {
@@ -32,6 +33,7 @@ export default function HealthLayout() {
   const isActive = (href: string) => {
     if (href.includes('#')) return location.pathname === '/health'
     if (href === '/health/tmi') return location.pathname.startsWith('/health/tmi')
+    if (href === '/health/saju') return location.pathname.startsWith('/health/saju')
     return location.pathname === href
   }
 
@@ -146,6 +148,7 @@ export default function HealthLayout() {
               <div className="space-y-2">
                 <Link to="/health#checks" className="block text-sm text-gray-500 hover:text-orange-500">건강체크</Link>
                 <Link to="/health/tmi" className="block text-sm text-gray-500 hover:text-orange-500">체질TMI</Link>
+                <Link to="/health/saju" className="block text-sm text-gray-500 hover:text-orange-500">건강사주</Link>
                 <Link to="/health/community" className="block text-sm text-gray-500 hover:text-orange-500">커뮤니티</Link>
                 <Link to="/health/qna" className="block text-sm text-gray-500 hover:text-orange-500">한의사 QnA</Link>
               </div>
@@ -169,6 +172,13 @@ export default function HealthLayout() {
             <p className="text-xs text-gray-400 leading-relaxed">
               본 서비스의 건강체크 결과는 의학적 진단이 아니며, 참고용 건강 정보입니다.
               정확한 진단과 치료는 반드시 한의사 또는 의료 전문가와 상담하시기 바랍니다.
+            </p>
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+              셀럽 프로필 이미지는{' '}
+              <a href="https://commons.wikimedia.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-orange-400">
+                Wikimedia Commons
+              </a>
+              에서 제공되며, CC BY-SA 또는 퍼블릭 도메인 라이선스에 따라 사용됩니다.
             </p>
             <p className="text-xs text-gray-400 mt-2">
               &copy; {new Date().getFullYear()} 온고지신 AI &middot; 몸이알려줌. All rights reserved.

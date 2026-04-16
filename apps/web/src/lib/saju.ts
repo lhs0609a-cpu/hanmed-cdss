@@ -314,6 +314,262 @@ export function getHealthProfile(balance: ElementBalance): HealthProfile {
   }
 }
 
+// ─── 충/형/파/해 관계 데이터 ──────────────────────
+
+/** 충(冲) - 정반대 지지 충돌 (가장 강력) */
+const CHUNG_PAIRS: [number, number][] = [
+  [0, 6],   // 자↔오
+  [1, 7],   // 축↔미
+  [2, 8],   // 인↔신
+  [3, 9],   // 묘↔유
+  [4, 10],  // 진↔술
+  [5, 11],  // 사↔해
+]
+
+/** 형(刑) - 벌하는 관계 (방향성 있음) */
+const HYUNG_PAIRS: [number, number][] = [
+  [2, 5],   // 인→사 (삼형살)
+  [5, 8],   // 사→신
+  [8, 2],   // 신→인
+  [1, 10],  // 축→술 (무은지형)
+  [10, 7],  // 술→미
+  [7, 1],   // 미→축
+  [0, 3],   // 자↔묘 (무례지형)
+  [3, 0],
+  [4, 4],   // 진↔진 (자형)
+  [6, 6],   // 오↔오
+  [9, 9],   // 유↔유
+  [11, 11], // 해↔해
+]
+
+/** 파(破) - 깨뜨리는 관계 */
+const PA_PAIRS: [number, number][] = [
+  [0, 9],   // 자↔유
+  [1, 4],   // 축↔진
+  [2, 11],  // 인↔해
+  [3, 6],   // 묘↔오
+  [5, 8],   // 사↔신
+  [7, 10],  // 미↔술
+]
+
+/** 해(害) - 해치는 관계 */
+const HAE_PAIRS: [number, number][] = [
+  [0, 7],   // 자↔미
+  [1, 6],   // 축↔오
+  [2, 5],   // 인↔사
+  [3, 4],   // 묘↔진
+  [8, 11],  // 신↔해
+  [9, 10],  // 유↔술
+]
+
+/** 오행 상극 관계: 목→토→수→화→금→목 */
+const OVERCOMING_MAP: Record<Element, Element> = {
+  목: '토', 토: '수', 수: '화', 화: '금', 금: '목',
+}
+
+/** 충/형/파/해 설명 매핑 */
+const CONFLICT_DESCRIPTIONS: Record<string, string> = {
+  '충_0_6': '자(子)↔오(午) 충: 심장/신장 계통 주의',
+  '충_1_7': '축(丑)↔미(未) 충: 소화기/비뇨기 주의',
+  '충_2_8': '인(寅)↔신(申) 충: 사고수·과로 주의',
+  '충_3_9': '묘(卯)↔유(酉) 충: 간/폐 기능 주의',
+  '충_4_10': '진(辰)↔술(戌) 충: 소화기/피부 주의',
+  '충_5_11': '사(巳)↔해(亥) 충: 순환기/신경계 주의',
+  '형_2_5': '인(寅)→사(巳) 형: 삼형살, 건강사고 주의',
+  '형_5_8': '사(巳)→신(申) 형: 삼형살, 급성질환 주의',
+  '형_8_2': '신(申)→인(寅) 형: 삼형살, 수술수 주의',
+  '형_1_10': '축(丑)→술(戌) 형: 무은지형, 소화기 주의',
+  '형_10_7': '술(戌)→미(未) 형: 무은지형, 피부질환 주의',
+  '형_7_1': '미(未)→축(丑) 형: 무은지형, 비위 허약 주의',
+  '형_0_3': '자(子)↔묘(卯) 형: 무례지형, 신장/간 주의',
+  '형_3_0': '묘(卯)↔자(子) 형: 무례지형, 간/신장 주의',
+  '파_0_9': '자(子)↔유(酉) 파: 신장/폐 기능 저하 주의',
+  '파_1_4': '축(丑)↔진(辰) 파: 비위 약화 주의',
+  '파_2_11': '인(寅)↔해(亥) 파: 간/신장 기능 주의',
+  '파_3_6': '묘(卯)↔오(午) 파: 간/심장 과부하 주의',
+  '파_5_8': '사(巳)↔신(申) 파: 심혈관/폐 주의',
+  '파_7_10': '미(未)↔술(戌) 파: 소화기/피부 주의',
+  '해_0_7': '자(子)↔미(未) 해: 신장/소화기 주의',
+  '해_1_6': '축(丑)↔오(午) 해: 비위/심장 주의',
+  '해_2_5': '인(寅)↔사(巳) 해: 간/심장 과로 주의',
+  '해_3_4': '묘(卯)↔진(辰) 해: 간/비위 기능 주의',
+  '해_8_11': '신(申)↔해(亥) 해: 폐/신장 기능 주의',
+  '해_9_10': '유(酉)↔술(戌) 해: 폐/소화기 주의',
+}
+
+// ─── 위험도 분석 타입 & 함수 ──────────────────────
+
+export interface FortuneConflict {
+  type: '충' | '형' | '파' | '해'
+  pillarLabel: string
+  description: string
+}
+
+export interface HealthRisk {
+  organ: string
+  reason: string
+  advice: string
+}
+
+export interface FortuneRisk {
+  score: number           // 0(안전)~100(위험)
+  level: 'safe' | 'caution' | 'warning' | 'danger'
+  conflicts: FortuneConflict[]
+  healthRisks: HealthRisk[]
+  overallAdvice: string
+}
+
+function checkPairs(
+  pairs: [number, number][],
+  yearBranch: number,
+  targetBranch: number,
+): boolean {
+  return pairs.some(
+    ([a, b]) =>
+      (a === yearBranch && b === targetBranch) ||
+      (a === targetBranch && b === yearBranch),
+  )
+}
+
+/** 오행 → 장부 매핑 (위험도 분석용) */
+const ORGAN_MAP: Record<Element, string> = {
+  목: '간(肝)', 화: '심장(心)', 토: '비장(脾)', 금: '폐(肺)', 수: '신장(腎)',
+}
+
+/**
+ * 2026년 사주 위험도 분석
+ * 사주의 지지와 2026 병인(丙寅)년의 충/형/파/해 및 오행 상극을 분석
+ */
+export function analyzeYearRisk(
+  saju: SajuResult,
+  _balance: ElementBalance,
+  health: HealthProfile,
+): FortuneRisk {
+  // 2026년 = 병오(丙午) → stem=2(병/火), branch=6(오/火)
+  const YEAR_STEM = 2   // 병(丙)
+  const YEAR_BRANCH = 6 // 오(午)
+  const yearElement = STEM_TO_ELEMENT[YEAR_STEM]      // 화
+  const yearBranchElement = BRANCH_TO_ELEMENT[YEAR_BRANCH] // 화
+
+  let score = 0
+  const conflicts: FortuneConflict[] = []
+  const healthRisks: HealthRisk[] = []
+
+  // 사주 4주의 지지 모음
+  const pillarList: { label: string; pillar: Pillar }[] = [
+    { label: '년주', pillar: saju.year },
+    { label: '월주', pillar: saju.month },
+    { label: '일주', pillar: saju.day },
+  ]
+  if (saju.hour) pillarList.push({ label: '시주', pillar: saju.hour })
+
+  for (const { label, pillar } of pillarList) {
+    const b = pillar.branch
+    const isDayPillar = label === '일주'
+
+    // 충(冲) 체크
+    if (checkPairs(CHUNG_PAIRS, YEAR_BRANCH, b)) {
+      const pts = isDayPillar ? 40 : 30
+      score += pts
+      const key = `충_${Math.min(YEAR_BRANCH, b)}_${Math.max(YEAR_BRANCH, b)}`
+      conflicts.push({
+        type: '충',
+        pillarLabel: label,
+        description: CONFLICT_DESCRIPTIONS[key] || `${BRANCHES[YEAR_BRANCH]}↔${BRANCHES[b]} 충`,
+      })
+    }
+
+    // 형(刑) 체크
+    if (checkPairs(HYUNG_PAIRS, YEAR_BRANCH, b)) {
+      score += 20
+      const key = `형_${YEAR_BRANCH}_${b}`
+      const keyReverse = `형_${b}_${YEAR_BRANCH}`
+      conflicts.push({
+        type: '형',
+        pillarLabel: label,
+        description: CONFLICT_DESCRIPTIONS[key] || CONFLICT_DESCRIPTIONS[keyReverse] || `${BRANCHES[YEAR_BRANCH]}↔${BRANCHES[b]} 형`,
+      })
+    }
+
+    // 파(破) 체크
+    if (checkPairs(PA_PAIRS, YEAR_BRANCH, b)) {
+      score += 15
+      const key = `파_${Math.min(YEAR_BRANCH, b)}_${Math.max(YEAR_BRANCH, b)}`
+      conflicts.push({
+        type: '파',
+        pillarLabel: label,
+        description: CONFLICT_DESCRIPTIONS[key] || `${BRANCHES[YEAR_BRANCH]}↔${BRANCHES[b]} 파`,
+      })
+    }
+
+    // 해(害) 체크
+    if (checkPairs(HAE_PAIRS, YEAR_BRANCH, b)) {
+      score += 10
+      const key = `해_${Math.min(YEAR_BRANCH, b)}_${Math.max(YEAR_BRANCH, b)}`
+      conflicts.push({
+        type: '해',
+        pillarLabel: label,
+        description: CONFLICT_DESCRIPTIONS[key] || `${BRANCHES[YEAR_BRANCH]}↔${BRANCHES[b]} 해`,
+      })
+    }
+  }
+
+  // 오행 상극 분석: 약한 오행이 2026년 기운에 극(剋)되는지
+  const weakEl = health.weakElement
+  // 2026년 기운(화+목)이 약한 오행을 극하는지
+  if (OVERCOMING_MAP[yearElement] === weakEl) {
+    score += 15
+    healthRisks.push({
+      organ: ORGAN_MAP[weakEl],
+      reason: `${yearElement}(${ELEMENT_EMOJI[yearElement]})의 기운이 약한 ${weakEl}(${ELEMENT_EMOJI[weakEl]})을 극함`,
+      advice: `${ORGAN_MAP[weakEl]} 정기 검진과 보양 추천`,
+    })
+  }
+  if (OVERCOMING_MAP[yearBranchElement] === weakEl && yearBranchElement !== yearElement) {
+    score += 15
+    healthRisks.push({
+      organ: ORGAN_MAP[weakEl],
+      reason: `${yearBranchElement}(${ELEMENT_EMOJI[yearBranchElement]})의 기운이 약한 ${weakEl}(${ELEMENT_EMOJI[weakEl]})을 극함`,
+      advice: `${ORGAN_MAP[weakEl]} 관리에 더 신경쓰세요`,
+    })
+  }
+
+  // 과다 오행 충돌: 이미 강한 오행이 2026년에 더 강해지는 경우
+  const dominantEl = health.dominantElement
+  if (yearElement === dominantEl || yearBranchElement === dominantEl) {
+    score += 10
+    healthRisks.push({
+      organ: ORGAN_MAP[dominantEl],
+      reason: `${dominantEl}(${ELEMENT_EMOJI[dominantEl]}) 과다로 과로/번아웃 위험`,
+      advice: `충분한 휴식, ${ORGAN_MAP[dominantEl]} 검진 추천`,
+    })
+  }
+
+  // 점수 범위 제한 (0~100)
+  score = Math.min(100, Math.max(0, score))
+
+  // 레벨 결정
+  let level: FortuneRisk['level']
+  if (score <= 25) level = 'safe'
+  else if (score <= 45) level = 'caution'
+  else if (score <= 65) level = 'warning'
+  else level = 'danger'
+
+  // 종합 조언
+  let overallAdvice: string
+  if (level === 'safe') {
+    overallAdvice = '올해는 건강운이 안정적이에요. 기본 건강관리를 꾸준히 유지하세요.'
+  } else if (level === 'caution') {
+    overallAdvice = '올해는 건강에 소소한 변동이 있을 수 있어요. 컨디션 관리에 신경쓰세요.'
+  } else if (level === 'warning') {
+    overallAdvice = '올해는 건강과 안전에 각별히 유의하세요. 무리한 일정은 피하는 것이 좋습니다.'
+  } else {
+    overallAdvice = '올해는 건강에 특별한 주의가 필요합니다. 정기검진과 충분한 휴식을 최우선으로 하세요.'
+  }
+
+  return { score, level, conflicts, healthRisks, overallAdvice }
+}
+
 // ─── 포맷팅 헬퍼 ─────────────────────────────────
 
 /** 주(柱) 한글 표시 */
@@ -526,5 +782,6 @@ export function analyzeProfile(birthDate: string, birthHour?: number) {
   const saju = calculateSaju(birthDate, birthHour)
   const balance = getElementBalance(saju)
   const health = getHealthProfile(balance)
-  return { saju, balance, health }
+  const risk = analyzeYearRisk(saju, balance, health)
+  return { saju, balance, health, risk }
 }

@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+node_modules.tar
+node_modules_nolink.tar
+*.tar
 
 # Build outputs
 dist/

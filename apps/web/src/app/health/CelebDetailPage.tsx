@@ -52,7 +52,7 @@ export default function CelebDetailPage() {
     [celeb.birthDate, celeb.birthHour]
   )
 
-  const { saju, balance, health } = analysis
+  const { saju, balance, health, risk } = analysis
   const constitution = CONSTITUTIONS[health.constitution]
   const funFacts = useMemo(
     () => generateFunFacts(health.constitution, balance, celeb.name),
@@ -101,16 +101,21 @@ export default function CelebDetailPage() {
           <img
             src={celeb.imageUrl}
             alt={celeb.name}
-            className="w-24 h-24 mx-auto rounded-full object-cover mb-3"
+            className="w-24 h-24 mx-auto rounded-full object-cover mb-1"
             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }}
           />
         ) : null}
         <div
-          className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center text-5xl mb-3${celeb.imageUrl ? ' hidden' : ''}`}
+          className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center text-5xl mb-1${celeb.imageUrl ? ' hidden' : ''}`}
           style={{ backgroundColor: constitution.bgColor }}
         >
           {celeb.emoji}
         </div>
+        {celeb.imageUrl && (
+          <p className="text-[10px] text-gray-300 mb-2">
+            Photo: Wikimedia Commons (CC BY-SA)
+          </p>
+        )}
         <h1 className="text-2xl font-black text-gray-900">{celeb.name}</h1>
         {celeb.nameEn && (
           <p className="text-sm text-gray-400">{celeb.nameEn}</p>
@@ -314,6 +319,92 @@ export default function CelebDetailPage() {
         </div>
       </motion.section>
 
+      {/* 2026년 건강 위험도 분석 */}
+      {risk.level !== 'safe' && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.37 }}
+          className="rounded-2xl p-5 mb-4 border"
+          style={{
+            backgroundColor:
+              risk.level === 'danger' ? '#fef2f2' :
+              risk.level === 'warning' ? '#fff7ed' : '#fefce8',
+            borderColor:
+              risk.level === 'danger' ? '#fecaca' :
+              risk.level === 'warning' ? '#fed7aa' : '#fef08a',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle
+              className="w-5 h-5"
+              style={{
+                color:
+                  risk.level === 'danger' ? '#ef4444' :
+                  risk.level === 'warning' ? '#f97316' : '#eab308',
+              }}
+            />
+            <h2 className="text-lg font-bold text-gray-800">2026년 건강 주의보</h2>
+            <span
+              className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold text-white"
+              style={{
+                backgroundColor:
+                  risk.level === 'danger' ? '#ef4444' :
+                  risk.level === 'warning' ? '#f97316' : '#eab308',
+              }}
+            >
+              위험도 {risk.score}점
+            </span>
+          </div>
+
+          {/* 충/형/파/해 뱃지 */}
+          {risk.conflicts.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {risk.conflicts.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 p-2.5 bg-white/70 rounded-xl text-sm"
+                >
+                  <span
+                    className="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-bold text-white"
+                    style={{
+                      backgroundColor:
+                        c.type === '충' ? '#ef4444' :
+                        c.type === '형' ? '#f97316' :
+                        c.type === '파' ? '#eab308' : '#a855f7',
+                    }}
+                  >
+                    {c.type}
+                  </span>
+                  <div>
+                    <span className="text-gray-400 text-xs">{c.pillarLabel}</span>
+                    <p className="text-gray-700">{c.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 건강 주의사항 카드 */}
+          {risk.healthRisks.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {risk.healthRisks.map((hr, i) => (
+                <div key={i} className="p-3 bg-white/70 rounded-xl">
+                  <p className="text-sm font-bold text-gray-800 mb-1">{hr.organ}</p>
+                  <p className="text-xs text-gray-600 mb-1">{hr.reason}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-green-500" />
+                    {hr.advice}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-sm text-gray-600 leading-relaxed">{risk.overallAdvice}</p>
+        </motion.section>
+      )}
+
       {/* 같은 체질 셀럽 */}
       {sameCelebs.length > 0 && (
         <motion.section
@@ -369,6 +460,43 @@ export default function CelebDetailPage() {
           balance={balance}
           subtitle={`${celeb.name}은(는) ${constitution.name}! ${constitution.nickname} 타입`}
         />
+      </motion.section>
+
+      {/* 건강사주 프리미엄 CTA */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mb-6"
+      >
+        <Link
+          to="/health/saju/input"
+          className="block rounded-2xl p-5 md:p-6 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #7c3aed15, #f9731615, #f43f5e15)',
+            border: '1px solid #7c3aed20',
+          }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-200/30 to-transparent rounded-full -translate-y-8 translate-x-8" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                AI 프리미엄
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              나만의 건강사주 리포트
+            </h3>
+            <p className="text-sm text-gray-500 mb-3 leading-relaxed">
+              한의학 x 사주 융합 분석으로 체질, 건강, 운세를 AI가 심층 분석해드려요
+            </p>
+            <span className="inline-flex items-center gap-1 text-sm font-bold text-purple-600">
+              리포트 받기
+              <ChevronRight className="w-4 h-4" />
+            </span>
+          </div>
+        </Link>
       </motion.section>
 
       {/* CTA */}

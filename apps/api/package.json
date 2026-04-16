@@ -24,6 +24,7 @@
     "create-admin": "ts-node -r tsconfig-paths/register src/database/seeds/create-super-admin.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@nestjs/axios": "^3.0.1",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
@@ -46,6 +47,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.3",
+    "puppeteer": "^23.11.1",
     "redis": "^4.6.12",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
