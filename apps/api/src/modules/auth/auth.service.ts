@@ -381,18 +381,15 @@ export class AuthService {
     const refreshJti = crypto.randomUUID();
     const basePayload = { sub: userId, email };
 
-    const accessToken = this.jwtService.sign(
-      { ...basePayload, jti: accessJti },
-      { jwtid: accessJti },
-    );
-    const refreshToken = this.jwtService.sign(
-      { ...basePayload, jti: refreshJti },
-      {
-        secret: process.env.REFRESH_TOKEN_SECRET,
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '30d',
-        jwtid: refreshJti,
-      },
-    );
+    // jsonwebtoken은 options.jwtid를 주면 페이로드에 jti를 자동 추가한다.
+    // 페이로드에 직접 jti를 넣으면 "payload already has jti" 에러가 발생하므로
+    // options.jwtid 쪽만 사용한다.
+    const accessToken = this.jwtService.sign(basePayload, { jwtid: accessJti });
+    const refreshToken = this.jwtService.sign(basePayload, {
+      secret: process.env.REFRESH_TOKEN_SECRET,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '30d',
+      jwtid: refreshJti,
+    });
 
     return { accessToken, refreshToken };
   }
