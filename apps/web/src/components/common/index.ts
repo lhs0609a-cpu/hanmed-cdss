@@ -52,6 +52,7 @@ export { KeyboardShortcutsProvider, KeyboardHint, KeyboardShortcutsHelp, Command
 
 // Error Handling
 export { ErrorBoundary, PageErrorBoundary } from './ErrorBoundary'
+export { RouteBoundary } from './RouteErrorBoundary'
 
 // Empty States
 export {

@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { performLogout } from '@/services/auth-api'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
@@ -161,7 +162,8 @@ const menuSections: MenuSection[] = [
 
 export default function DashboardLayout() {
   const location = useLocation()
-  const { user, logout, isGuest } = useAuthStore()
+  const { user, isGuest } = useAuthStore()
+  const handleLogout = () => { void performLogout() }
   const {
     isMinimized,
     toggleMinimized,
@@ -577,7 +579,7 @@ export default function DashboardLayout() {
                   설정
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
@@ -596,7 +598,7 @@ export default function DashboardLayout() {
                   <Settings className="h-4 w-4" />
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="p-2 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                   title="로그아웃"
                 >

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- 배경 한자 워터마크 -->
+  <text x="1180" y="600" font-family="'Noto Serif KR', serif" font-weight="700" font-size="520"
+        text-anchor="end" fill="#ffffff" opacity="0.06">溫故知新</text>
+
+  <!-- 브랜드 마크 -->
+  <g transform="translate(80, 90)">
+    <rect width="96" height="96" rx="22" fill="#ffffff" opacity="0.95"/>
+    <text x="48" y="68" font-family="'Noto Serif KR', serif" font-weight="700" font-size="56"
+          text-anchor="middle" fill="#0f766e">溫</text>
+  </g>
+
+  <!-- 제품명 -->
+  <text x="80" y="320" font-family="'Noto Sans KR', sans-serif" font-weight="800" font-size="92"
+        fill="#ffffff">온고지신 AI</text>
+
+  <!-- 설명 -->
+  <text x="80" y="395" font-family="'Noto Sans KR', sans-serif" font-weight="500" font-size="36"
+        fill="#ffffff" opacity="0.92">한의학 임상 의사결정 지원 시스템</text>
+
+  <!-- 카드형 핵심 기능 영역 -->
+  <g transform="translate(80, 460)" font-family="'Noto Sans KR', sans-serif">
+    <rect width="1040" height="100" rx="20" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"/>
+    <text x="40" y="50" font-size="26" font-weight="600" fill="#ffffff">AI 변증</text>
+    <text x="40" y="82" font-size="20" fill="#ffffff" opacity="0.85">증상 → 처방 추천</text>
+
+    <text x="280" y="50" font-size="26" font-weight="600" fill="#ffffff">치험례 6,000건</text>
+    <text x="280" y="82" font-size="20" fill="#ffffff" opacity="0.85">유사 사례 검색</text>
+
+    <text x="580" y="50" font-size="26" font-weight="600" fill="#ffffff">약물 상호작용</text>
+    <text x="580" y="82" font-size="20" fill="#ffffff" opacity="0.85">안전성 검사</text>
+
+    <text x="860" y="50" font-size="26" font-weight="600" fill="#ffffff">음성 차트</text>
+    <text x="860" y="82" font-size="20" fill="#ffffff" opacity="0.85">STT → SOAP</text>
+  </g>
+</svg>

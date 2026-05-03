@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom'
 import { useAuthStore, isAdminRole } from '@/stores/authStore'
+import { performLogout } from '@/services/auth-api'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -35,8 +36,9 @@ const menuItems: MenuItem[] = [
 
 export default function AdminLayout() {
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const handleLogout = () => { void performLogout() }
 
   // 관리자가 아니면 접근 불가
   if (!user || !isAdminRole(user.role)) {
@@ -170,7 +172,7 @@ export default function AdminLayout() {
                 설정
               </Link>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-lg transition-colors"
               >
                 <LogOut className="h-4 w-4" />

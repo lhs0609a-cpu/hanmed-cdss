@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
@@ -6,88 +6,70 @@ import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
 import { WelcomeModal } from '@/components/common/WelcomeModal'
+import { RouteBoundary } from '@/components/common/RouteErrorBoundary'
 
-// Layouts
+// Layouts (eager — used on every authenticated request)
 import DashboardLayout from '@/components/layouts/DashboardLayout'
+import AdminLayout from '@/components/layouts/AdminLayout'
+import HealthLayout from '@/components/layouts/HealthLayout'
 
-// Pages
+// Auth & Landing (eager — first paint, SEO critical)
 import LoginPage from '@/app/auth/LoginPage'
 import RegisterPage from '@/app/auth/RegisterPage'
 import ForgotPasswordPage from '@/app/auth/ForgotPasswordPage'
 import ResetPasswordPage from '@/app/auth/ResetPasswordPage'
-import DashboardPage from '@/app/dashboard/DashboardPage'
-import ConsultationPage from '@/app/consultation/ConsultationPage'
-import CasesPage from '@/app/cases/CasesPage'
-import InteractionsPage from '@/app/interactions/InteractionsPage'
-import FormulasPage from '@/app/formulas/FormulasPage'
-import FormulaDetailPage from '@/app/formulas/FormulaDetailPage'
-import HerbsPage from '@/app/herbs/HerbsPage'
-import HerbDetailPage from '@/app/herbs/HerbDetailPage'
-import PublicHerbsPage from '@/app/herbs/PublicHerbsPage'
-import ComboPage from '@/app/combo/ComboPage'
-
-// New Pages
-import ConstitutionPage from '@/app/constitution/ConstitutionPage'
-import AcupointsPage from '@/app/acupoints/AcupointsPage'
-import SymptomSearchPage from '@/app/symptom-search/SymptomSearchPage'
-import PulseDiagnosisPage from '@/app/pulse/PulseDiagnosisPage'
-import DosageCalculatorPage from '@/app/dosage/DosageCalculatorPage'
-import PatientsPage from '@/app/patients/PatientsPage'
-import PatientDetailPage from '@/app/patients/PatientDetailPage'
-import ClassicsPage from '@/app/classics/ClassicsPage'
-import InsuranceCodePage from '@/app/insurance/InsuranceCodePage'
-import InsuranceFeeSearchPage from '@/app/insurance/InsuranceFeeSearchPage'
-import DocumentsPage from '@/app/documents/DocumentsPage'
-
-// Core Features - New
-import PatternDiagnosisPage from '@/app/diagnosis/PatternDiagnosisPage'
-import ClaimCheckPage from '@/app/claim-check/ClaimCheckPage'
-import FormulaComparePage from '@/app/formula-compare/FormulaComparePage'
-import RedFlagPage from '@/app/red-flag/RedFlagPage'
-import VoiceChartPage from '@/app/voice-chart/VoiceChartPage'
-
-// Traditional Medicine Features
-import ByeongYangTablePage from '@/app/byeongyang/ByeongYangTablePage'
-import SchoolComparisonPage from '@/app/school-compare/SchoolComparisonPage'
-import IntegratedDiagnosisPage from '@/app/integrated-diagnosis/IntegratedDiagnosisPage'
-import UnifiedSearchPage from '@/app/unified-search/UnifiedSearchPage'
-import CaseSearchPage from '@/app/case-search/CaseSearchPage'
-
-// Personal Case Management
-import MyCasesPage from '@/app/my-cases/MyCasesPage'
-import StatisticsDashboardPage from '@/app/statistics/StatisticsDashboardPage'
-
-// Community
-import CommunityPage from '@/app/community/CommunityPage'
-import PostDetailPage from '@/app/community/PostDetailPage'
-import WritePostPage from '@/app/community/WritePostPage'
-
-// Subscription
-import SubscriptionPage from '@/app/subscription/SubscriptionPage'
-import SubscriptionSuccessPage from '@/app/subscription/SubscriptionSuccessPage'
-
-// Settings
-import SettingsPage from '@/app/settings/SettingsPage'
-
-// Activity Log
-import ActivityLogPage from '@/app/activity/ActivityLogPage'
-
-// Profile
-import ProfilePage from '@/app/profile/ProfilePage'
-
-// Killer Features - Analytics, Insurance, CRM, Case Sharing, Inventory
-import AnalyticsDashboardPage from '@/app/analytics/AnalyticsDashboardPage'
-import InsurancePage from '@/app/insurance/InsurancePage'
-import CrmPage from '@/app/crm/CrmPage'
-import CaseSharingPage from '@/app/case-sharing/CaseSharingPage'
-import InventoryPage from '@/app/inventory/InventoryPage'
-
-// Landing Page
 import LandingPage from '@/app/landing/LandingPage'
 import AdLandingPage from '@/app/landing/AdLandingPage'
 
-// B2C Health Platform (lazy-loaded — celeb data stays out of main bundle)
-import HealthLayout from '@/components/layouts/HealthLayout'
+// Dashboard pages (lazy — code-split per route)
+const DashboardPage = lazy(() => import('@/app/dashboard/DashboardPage'))
+const ConsultationPage = lazy(() => import('@/app/consultation/ConsultationPage'))
+const CasesPage = lazy(() => import('@/app/cases/CasesPage'))
+const InteractionsPage = lazy(() => import('@/app/interactions/InteractionsPage'))
+const FormulasPage = lazy(() => import('@/app/formulas/FormulasPage'))
+const FormulaDetailPage = lazy(() => import('@/app/formulas/FormulaDetailPage'))
+const HerbsPage = lazy(() => import('@/app/herbs/HerbsPage'))
+const HerbDetailPage = lazy(() => import('@/app/herbs/HerbDetailPage'))
+const PublicHerbsPage = lazy(() => import('@/app/herbs/PublicHerbsPage'))
+const ComboPage = lazy(() => import('@/app/combo/ComboPage'))
+const ConstitutionPage = lazy(() => import('@/app/constitution/ConstitutionPage'))
+const AcupointsPage = lazy(() => import('@/app/acupoints/AcupointsPage'))
+const SymptomSearchPage = lazy(() => import('@/app/symptom-search/SymptomSearchPage'))
+const PulseDiagnosisPage = lazy(() => import('@/app/pulse/PulseDiagnosisPage'))
+const DosageCalculatorPage = lazy(() => import('@/app/dosage/DosageCalculatorPage'))
+const PatientsPage = lazy(() => import('@/app/patients/PatientsPage'))
+const PatientDetailPage = lazy(() => import('@/app/patients/PatientDetailPage'))
+const ClassicsPage = lazy(() => import('@/app/classics/ClassicsPage'))
+const InsuranceCodePage = lazy(() => import('@/app/insurance/InsuranceCodePage'))
+const InsuranceFeeSearchPage = lazy(() => import('@/app/insurance/InsuranceFeeSearchPage'))
+const DocumentsPage = lazy(() => import('@/app/documents/DocumentsPage'))
+const PatternDiagnosisPage = lazy(() => import('@/app/diagnosis/PatternDiagnosisPage'))
+const ClaimCheckPage = lazy(() => import('@/app/claim-check/ClaimCheckPage'))
+const FormulaComparePage = lazy(() => import('@/app/formula-compare/FormulaComparePage'))
+const RedFlagPage = lazy(() => import('@/app/red-flag/RedFlagPage'))
+const VoiceChartPage = lazy(() => import('@/app/voice-chart/VoiceChartPage'))
+const ByeongYangTablePage = lazy(() => import('@/app/byeongyang/ByeongYangTablePage'))
+const SchoolComparisonPage = lazy(() => import('@/app/school-compare/SchoolComparisonPage'))
+const IntegratedDiagnosisPage = lazy(() => import('@/app/integrated-diagnosis/IntegratedDiagnosisPage'))
+const UnifiedSearchPage = lazy(() => import('@/app/unified-search/UnifiedSearchPage'))
+const CaseSearchPage = lazy(() => import('@/app/case-search/CaseSearchPage'))
+const MyCasesPage = lazy(() => import('@/app/my-cases/MyCasesPage'))
+const StatisticsDashboardPage = lazy(() => import('@/app/statistics/StatisticsDashboardPage'))
+const CommunityPage = lazy(() => import('@/app/community/CommunityPage'))
+const PostDetailPage = lazy(() => import('@/app/community/PostDetailPage'))
+const WritePostPage = lazy(() => import('@/app/community/WritePostPage'))
+const SubscriptionPage = lazy(() => import('@/app/subscription/SubscriptionPage'))
+const SubscriptionSuccessPage = lazy(() => import('@/app/subscription/SubscriptionSuccessPage'))
+const SettingsPage = lazy(() => import('@/app/settings/SettingsPage'))
+const ActivityLogPage = lazy(() => import('@/app/activity/ActivityLogPage'))
+const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'))
+const AnalyticsDashboardPage = lazy(() => import('@/app/analytics/AnalyticsDashboardPage'))
+const InsurancePage = lazy(() => import('@/app/insurance/InsurancePage'))
+const CrmPage = lazy(() => import('@/app/crm/CrmPage'))
+const CaseSharingPage = lazy(() => import('@/app/case-sharing/CaseSharingPage'))
+const InventoryPage = lazy(() => import('@/app/inventory/InventoryPage'))
+
+// B2C Health Platform (lazy)
 const HealthHomePage = lazy(() => import('@/app/health/HealthHomePage'))
 const HealthCheckPage = lazy(() => import('@/app/health/HealthCheckPage'))
 const CelebTmiPage = lazy(() => import('@/app/health/CelebTmiPage'))
@@ -100,37 +82,32 @@ const SajuInputPage = lazy(() => import('@/app/health/SajuInputPage'))
 const SajuPaymentPage = lazy(() => import('@/app/health/SajuPaymentPage'))
 const SajuReportViewer = lazy(() => import('@/app/health/SajuReportViewer'))
 
-// Legal Pages
-import {
-  TermsPage,
-  PrivacyPage,
-  RefundPolicyPage,
-  SubscriptionTermsPage,
-} from '@/app/legal'
+// Legal (lazy)
+const TermsPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.TermsPage })))
+const PrivacyPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.PrivacyPage })))
+const RefundPolicyPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.RefundPolicyPage })))
+const SubscriptionTermsPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.SubscriptionTermsPage })))
 
-// Admin Pages
-import AdminLayout from '@/components/layouts/AdminLayout'
-import {
-  AdminDashboardPage,
-  AdminUsersPage,
-  AdminSubscriptionsPage,
-  AdminAuditLogsPage,
-  AdminClinicsPage,
-  AdminContentPage,
-} from '@/app/admin'
+// Admin (lazy)
+const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
+const AdminUsersPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminUsersPage })))
+const AdminSubscriptionsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminSubscriptionsPage })))
+const AdminAuditLogsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminAuditLogsPage })))
+const AdminClinicsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminClinicsPage })))
+const AdminContentPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminContentPage })))
 
-// Protected Route wrapper - 게스트도 허용
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isGuest = useAuthStore((state) => state.isGuest)
 
-  // 로그인 또는 게스트 모드면 접근 허용
   if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace />
   }
 
   return <>{children}</>
 }
+
+const route = (element: React.ReactNode) => <RouteBoundary>{element}</RouteBoundary>
 
 function App() {
   return (
@@ -146,32 +123,28 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* B2C Health Platform (Public) - lazy loaded */}
-        <Route path="/health" element={
-          <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" /></div>}>
-            <HealthLayout />
-          </Suspense>
-        }>
-          <Route index element={<HealthHomePage />} />
-          <Route path="check/:slug" element={<HealthCheckPage />} />
-          <Route path="community" element={<HealthCommunityPage />} />
-          <Route path="qna" element={<HealthCommunityPage />} />
-          <Route path="tmi" element={<CelebTmiPage />} />
-          <Route path="tmi/my-type" element={<MyConstitutionPage />} />
-          <Route path="tmi/compare" element={<ComparePage />} />
-          <Route path="tmi/:id" element={<CelebDetailPage />} />
-          <Route path="saju" element={<SajuLandingPage />} />
-          <Route path="saju/input" element={<SajuInputPage />} />
-          <Route path="saju/payment" element={<SajuPaymentPage />} />
-          <Route path="saju/report/:id" element={<SajuReportViewer />} />
-          <Route path="saju/report/view/:token" element={<SajuReportViewer />} />
+        {/* B2C Health Platform (Public) */}
+        <Route path="/health" element={<RouteBoundary><HealthLayout /></RouteBoundary>}>
+          <Route index element={route(<HealthHomePage />)} />
+          <Route path="check/:slug" element={route(<HealthCheckPage />)} />
+          <Route path="community" element={route(<HealthCommunityPage />)} />
+          <Route path="qna" element={route(<HealthCommunityPage />)} />
+          <Route path="tmi" element={route(<CelebTmiPage />)} />
+          <Route path="tmi/my-type" element={route(<MyConstitutionPage />)} />
+          <Route path="tmi/compare" element={route(<ComparePage />)} />
+          <Route path="tmi/:id" element={route(<CelebDetailPage />)} />
+          <Route path="saju" element={route(<SajuLandingPage />)} />
+          <Route path="saju/input" element={route(<SajuInputPage />)} />
+          <Route path="saju/payment" element={route(<SajuPaymentPage />)} />
+          <Route path="saju/report/:id" element={route(<SajuReportViewer />)} />
+          <Route path="saju/report/view/:token" element={route(<SajuReportViewer />)} />
         </Route>
 
-        {/* Legal Pages (Public) */}
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/refund-policy" element={<RefundPolicyPage />} />
-        <Route path="/subscription-terms" element={<SubscriptionTermsPage />} />
+        {/* Legal Pages */}
+        <Route path="/terms" element={route(<TermsPage />)} />
+        <Route path="/privacy" element={route(<PrivacyPage />)} />
+        <Route path="/refund-policy" element={route(<RefundPolicyPage />)} />
+        <Route path="/subscription-terms" element={route(<SubscriptionTermsPage />)} />
 
         {/* Protected Routes */}
         <Route
@@ -184,79 +157,67 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
-          <Route path="consultation" element={<ConsultationPage />} />
-          <Route path="cases" element={<CasesPage />} />
-          <Route path="interactions" element={<InteractionsPage />} />
-          <Route path="formulas" element={<FormulasPage />} />
-          <Route path="formulas/:id" element={<FormulaDetailPage />} />
-          <Route path="herbs" element={<HerbsPage />} />
-          <Route path="herbs/:id" element={<HerbDetailPage />} />
-          <Route path="herbs-db" element={<PublicHerbsPage />} />
-          <Route path="combo" element={<ComboPage />} />
+          <Route index element={route(<DashboardPage />)} />
+          <Route path="consultation" element={route(<ConsultationPage />)} />
+          <Route path="cases" element={route(<CasesPage />)} />
+          <Route path="interactions" element={route(<InteractionsPage />)} />
+          <Route path="formulas" element={route(<FormulasPage />)} />
+          <Route path="formulas/:id" element={route(<FormulaDetailPage />)} />
+          <Route path="herbs" element={route(<HerbsPage />)} />
+          <Route path="herbs/:id" element={route(<HerbDetailPage />)} />
+          <Route path="herbs-db" element={route(<PublicHerbsPage />)} />
+          <Route path="combo" element={route(<ComboPage />)} />
 
-          {/* New Routes */}
-          <Route path="constitution" element={<ConstitutionPage />} />
-          <Route path="acupoints" element={<AcupointsPage />} />
-          <Route path="symptom-search" element={<SymptomSearchPage />} />
-          <Route path="pulse" element={<PulseDiagnosisPage />} />
-          <Route path="dosage" element={<DosageCalculatorPage />} />
-          <Route path="patients" element={<PatientsPage />} />
-          <Route path="patients/:id" element={<PatientDetailPage />} />
-          <Route path="classics" element={<ClassicsPage />} />
-          <Route path="insurance" element={<InsuranceCodePage />} />
-          <Route path="insurance-fee" element={<InsuranceFeeSearchPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="constitution" element={route(<ConstitutionPage />)} />
+          <Route path="acupoints" element={route(<AcupointsPage />)} />
+          <Route path="symptom-search" element={route(<SymptomSearchPage />)} />
+          <Route path="pulse" element={route(<PulseDiagnosisPage />)} />
+          <Route path="dosage" element={route(<DosageCalculatorPage />)} />
+          <Route path="patients" element={route(<PatientsPage />)} />
+          <Route path="patients/:id" element={route(<PatientDetailPage />)} />
+          <Route path="classics" element={route(<ClassicsPage />)} />
+          <Route path="insurance" element={route(<InsuranceCodePage />)} />
+          <Route path="insurance-fee" element={route(<InsuranceFeeSearchPage />)} />
+          <Route path="documents" element={route(<DocumentsPage />)} />
 
-          {/* Core Features - New */}
-          <Route path="pattern-diagnosis" element={<PatternDiagnosisPage />} />
-          <Route path="claim-check" element={<ClaimCheckPage />} />
-          <Route path="formula-compare" element={<FormulaComparePage />} />
-          <Route path="red-flag" element={<RedFlagPage />} />
-          <Route path="voice-chart" element={<VoiceChartPage />} />
+          <Route path="pattern-diagnosis" element={route(<PatternDiagnosisPage />)} />
+          <Route path="claim-check" element={route(<ClaimCheckPage />)} />
+          <Route path="formula-compare" element={route(<FormulaComparePage />)} />
+          <Route path="red-flag" element={route(<RedFlagPage />)} />
+          <Route path="voice-chart" element={route(<VoiceChartPage />)} />
 
-          {/* Traditional Medicine Features */}
-          <Route path="byeongyang" element={<ByeongYangTablePage />} />
-          <Route path="school-compare" element={<SchoolComparisonPage />} />
-          <Route path="integrated-diagnosis" element={<IntegratedDiagnosisPage />} />
-          <Route path="unified-search" element={<UnifiedSearchPage />} />
-          <Route path="case-search" element={<CaseSearchPage />} />
+          <Route path="byeongyang" element={route(<ByeongYangTablePage />)} />
+          <Route path="school-compare" element={route(<SchoolComparisonPage />)} />
+          <Route path="integrated-diagnosis" element={route(<IntegratedDiagnosisPage />)} />
+          <Route path="unified-search" element={route(<UnifiedSearchPage />)} />
+          <Route path="case-search" element={route(<CaseSearchPage />)} />
 
-          {/* Personal Case Management */}
-          <Route path="my-cases" element={<MyCasesPage />} />
-          <Route path="statistics" element={<StatisticsDashboardPage />} />
+          <Route path="my-cases" element={route(<MyCasesPage />)} />
+          <Route path="statistics" element={route(<StatisticsDashboardPage />)} />
 
-          {/* Killer Features */}
-          <Route path="analytics" element={<AnalyticsDashboardPage />} />
-          <Route path="smart-insurance" element={<InsurancePage />} />
-          <Route path="crm" element={<CrmPage />} />
-          <Route path="case-network" element={<CaseSharingPage />} />
-          <Route path="inventory" element={<InventoryPage />} />
+          <Route path="analytics" element={route(<AnalyticsDashboardPage />)} />
+          <Route path="smart-insurance" element={route(<InsurancePage />)} />
+          <Route path="crm" element={route(<CrmPage />)} />
+          <Route path="case-network" element={route(<CaseSharingPage />)} />
+          <Route path="inventory" element={route(<InventoryPage />)} />
 
-          {/* Community */}
-          <Route path="community" element={<CommunityPage />} />
-          <Route path="community/cases" element={<CommunityPage />} />
-          <Route path="community/qna" element={<CommunityPage />} />
-          <Route path="community/general" element={<CommunityPage />} />
-          <Route path="community/forum" element={<CommunityPage />} />
-          <Route path="community/forum/:slug" element={<CommunityPage />} />
-          <Route path="community/post/:id" element={<PostDetailPage />} />
-          <Route path="community/write" element={<WritePostPage />} />
-          <Route path="community/my/posts" element={<CommunityPage />} />
-          <Route path="community/my/bookmarks" element={<CommunityPage />} />
+          <Route path="community" element={route(<CommunityPage />)} />
+          <Route path="community/cases" element={route(<CommunityPage />)} />
+          <Route path="community/qna" element={route(<CommunityPage />)} />
+          <Route path="community/general" element={route(<CommunityPage />)} />
+          <Route path="community/forum" element={route(<CommunityPage />)} />
+          <Route path="community/forum/:slug" element={route(<CommunityPage />)} />
+          <Route path="community/post/:id" element={route(<PostDetailPage />)} />
+          <Route path="community/write" element={route(<WritePostPage />)} />
+          <Route path="community/my/posts" element={route(<CommunityPage />)} />
+          <Route path="community/my/bookmarks" element={route(<CommunityPage />)} />
 
-          {/* Subscription */}
-          <Route path="subscription" element={<SubscriptionPage />} />
-          <Route path="subscription/success" element={<SubscriptionSuccessPage />} />
+          <Route path="subscription" element={route(<SubscriptionPage />)} />
+          <Route path="subscription/success" element={route(<SubscriptionSuccessPage />)} />
 
-          {/* Settings */}
-          <Route path="settings" element={<SettingsPage />} />
-
-          {/* Activity Log */}
-          <Route path="activity" element={<ActivityLogPage />} />
-
-          {/* Profile */}
-          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={route(<SettingsPage />)} />
+          <Route path="activity" element={route(<ActivityLogPage />)} />
+          <Route path="profile" element={route(<ProfilePage />)} />
         </Route>
 
         {/* Admin Routes */}
@@ -268,15 +229,14 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboardPage />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
-          <Route path="audit-logs" element={<AdminAuditLogsPage />} />
-          <Route path="clinics" element={<AdminClinicsPage />} />
-          <Route path="content" element={<AdminContentPage />} />
+          <Route index element={route(<AdminDashboardPage />)} />
+          <Route path="users" element={route(<AdminUsersPage />)} />
+          <Route path="subscriptions" element={route(<AdminSubscriptionsPage />)} />
+          <Route path="audit-logs" element={route(<AdminAuditLogsPage />)} />
+          <Route path="clinics" element={route(<AdminClinicsPage />)} />
+          <Route path="content" element={route(<AdminContentPage />)} />
         </Route>
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
 

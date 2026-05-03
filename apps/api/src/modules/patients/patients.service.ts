@@ -1,35 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
+import { CacheService } from '../cache/cache.service';
 
-// 현재는 환자 정보를 세션에서만 관리 (DB 저장 X)
-// 추후 환자 관리 기능 확장 시 엔티티 추가
+const PATIENT_SESSION_PREFIX = 'patients:session';
+const PATIENT_SESSION_TTL_SECONDS = 60 * 60 * 8; // 진료 1세션 한도: 8시간
 
 @Injectable()
 export class PatientsService {
-  // 임시 메모리 저장소 (개발용)
-  private patients: Map<string, any> = new Map();
+  private readonly logger = new Logger(PatientsService.name);
+  private readonly memoryFallback = new Map<string, any>();
 
-  createSession(patientData: any) {
-    const sessionId = `session_${Date.now()}`;
-    this.patients.set(sessionId, {
+  constructor(private readonly cacheService: CacheService) {}
+
+  private isCacheReady() {
+    return this.cacheService.isAvailable();
+  }
+
+  async createSession(patientData: any) {
+    const sessionId = `sess_${crypto.randomUUID()}`;
+    const payload = {
       ...patientData,
-      createdAt: new Date(),
-    });
-    return { sessionId, ...patientData };
-  }
+      sessionId,
+      createdAt: new Date().toISOString(),
+    };
 
-  getSession(sessionId: string) {
-    return this.patients.get(sessionId);
-  }
-
-  updateSession(sessionId: string, data: any) {
-    const existing = this.patients.get(sessionId);
-    if (existing) {
-      this.patients.set(sessionId, { ...existing, ...data });
+    if (this.isCacheReady()) {
+      await this.cacheService.set(sessionId, payload, {
+        prefix: PATIENT_SESSION_PREFIX,
+        ttl: PATIENT_SESSION_TTL_SECONDS,
+      });
+    } else {
+      this.logger.warn('Redis unavailable; falling back to in-memory patient session.');
+      this.memoryFallback.set(sessionId, payload);
     }
-    return this.patients.get(sessionId);
+
+    return payload;
   }
 
-  deleteSession(sessionId: string) {
-    return this.patients.delete(sessionId);
+  async getSession(sessionId: string) {
+    if (this.isCacheReady()) {
+      return this.cacheService.get<any>(sessionId, { prefix: PATIENT_SESSION_PREFIX });
+    }
+    return this.memoryFallback.get(sessionId) ?? null;
+  }
+
+  async updateSession(sessionId: string, data: any) {
+    const existing = await this.getSession(sessionId);
+    if (!existing) return null;
+    const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
+
+    if (this.isCacheReady()) {
+      await this.cacheService.set(sessionId, merged, {
+        prefix: PATIENT_SESSION_PREFIX,
+        ttl: PATIENT_SESSION_TTL_SECONDS,
+      });
+    } else {
+      this.memoryFallback.set(sessionId, merged);
+    }
+
+    return merged;
+  }
+
+  async deleteSession(sessionId: string) {
+    if (this.isCacheReady()) {
+      return this.cacheService.delete(sessionId, { prefix: PATIENT_SESSION_PREFIX });
+    }
+    return this.memoryFallback.delete(sessionId);
   }
 }

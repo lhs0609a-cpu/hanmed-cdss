@@ -57,7 +57,7 @@ export class PatientsController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: '진료 세션 삭제' })
-  deleteSession(@Param('sessionId') sessionId: string) {
-    return { deleted: this.patientsService.deleteSession(sessionId) };
+  async deleteSession(@Param('sessionId') sessionId: string) {
+    return { deleted: await this.patientsService.deleteSession(sessionId) };
   }
 }

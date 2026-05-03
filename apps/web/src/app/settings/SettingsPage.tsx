@@ -56,6 +56,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TwoFactorSection } from '@/components/settings/TwoFactorSection';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -956,6 +957,8 @@ export default function SettingsPage() {
 
         {/* Security Tab */}
         <TabsContent value="security" className="space-y-4 mt-6">
+          <TwoFactorSection />
+
           <Card>
             <CardHeader>
               <CardTitle>비밀번호 변경</CardTitle>

@@ -1,5 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { useAuthStore } from '@/stores/authStore';
+
+/**
+ * 인증된 임상의는 API 에러를 mock 데이터로 가리지 않고 그대로 throw 하여
+ * UI(쿼리 에러 상태)에서 정상적인 에러 경로를 타게 한다. 게스트/데모 모드일 때만
+ * mock 폴백을 허용한다.
+ */
+function shouldUseMockFallback() {
+  const state = useAuthStore.getState();
+  return state.isGuest || !state.isAuthenticated;
+}
 
 // Mock Data for Demo Mode
 const MOCK_DASHBOARD_METRICS: DashboardMetrics = {
@@ -243,7 +254,8 @@ export function useDashboardMetrics() {
       try {
         const { data } = await api.get('/analytics/dashboard');
         return { ...data.data as DashboardMetrics, _isDemo: false };
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_DASHBOARD_METRICS, _isDemo: true };
       }
     },
@@ -267,7 +279,8 @@ export function useStatistics(
 
         const { data } = await api.get(`/analytics/statistics?${params.toString()}`);
         return data.data as PracticeStatistics[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         // 데모 데이터 반환 (플래그 포함)
         return [{
           periodStart: startDate,
@@ -304,7 +317,8 @@ export function useBenchmark() {
       try {
         const { data } = await api.get('/analytics/benchmark');
         return data.data as BenchmarkData;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_BENCHMARK, _isDemo: true };
       }
     },
@@ -319,7 +333,8 @@ export function usePrescriptionPatterns() {
       try {
         const { data } = await api.get('/analytics/patterns');
         return data.data as PatternAnalysis;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_PATTERNS, _isDemo: true };
       }
     },
@@ -339,7 +354,8 @@ export function useTrends(startDate: string, endDate: string, granularity: 'day'
 
         const { data } = await api.get(`/analytics/trends?${params.toString()}`);
         return data.data as TrendData;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_TRENDS, _isDemo: true };
       }
     },
@@ -355,7 +371,8 @@ export function useTopItems(category: 'formulas' | 'symptoms' | 'herbs', limit: 
       try {
         const { data } = await api.get(`/analytics/top/${category}?limit=${limit}`);
         return data.data as Array<{ name: string; count: number; percentage: number }>;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_TOP_FORMULAS.slice(0, limit);
       }
     },

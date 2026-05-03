@@ -149,11 +149,11 @@ function createMenu(): void {
       submenu: [
         {
           label: '온고지신 웹사이트',
-          click: () => shell.openExternal('https://ongojisin.co.kr'),
+          click: () => shell.openExternal('https://ongojisin.ai'),
         },
         {
           label: '고객 지원',
-          click: () => shell.openExternal('mailto:support@ongojisin.co.kr'),
+          click: () => shell.openExternal('mailto:support@ongojisin.ai'),
         },
         { type: 'separator' },
         {

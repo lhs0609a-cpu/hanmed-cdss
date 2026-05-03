@@ -1,0 +1,19 @@
+{
+  "name": "온고지신 AI",
+  "short_name": "온고지신",
+  "description": "한의학 임상 의사결정 지원 시스템 (CDSS)",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14b8a6",
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

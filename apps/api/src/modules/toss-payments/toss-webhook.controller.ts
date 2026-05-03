@@ -217,7 +217,7 @@ export class TossWebhookController {
 
         // 사용자의 빌링키 삭제
         await this.userRepository.update(userId, {
-          stripeCustomerId: null,
+          tossBillingKey: null,
         });
 
         this.logger.log(`Billing key removed for user: ${userId}`);

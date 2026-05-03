@@ -36,6 +36,8 @@ async function bootstrap() {
     // localhost는 개발 환경에서만 허용
     ...(isProduction ? [] : ['http://localhost:3000', 'http://localhost:5173']),
     'https://hanmed-cdss.vercel.app',
+    'https://ongojisin.ai',
+    'https://www.ongojisin.ai',
     'https://ongojisin.co.kr',
     'https://www.ongojisin.co.kr',
     process.env.CORS_ORIGIN,
@@ -46,6 +48,25 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
+
+  // 보안 헤더 (helmet 의존 없이 직접 설정).
+  // 의료 SaaS 기본 컴플라이언스 — 프레임 임베딩 차단, 클릭재킹 방어, MIME 스니핑 차단,
+  // HSTS(프로덕션만), 참조자 정보 최소화, 권한 정책으로 위치/카메라/마이크 등 차단.
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader(
+      'Permissions-Policy',
+      'geolocation=(), microphone=(self), camera=(self), payment=(self)',
+    );
+    res.setHeader('X-DNS-Prefetch-Control', 'off');
+    if (isProduction) {
+      // includeSubDomains + preload 가능 (도메인 등록 후 활성화)
+      res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+    }
+    next();
   });
 
   // 전역 prefix

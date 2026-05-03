@@ -60,8 +60,24 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
-  @Column({ nullable: true })
-  stripeCustomerId: string | null;
+  @Column({ name: 'tossBillingKey', nullable: true })
+  tossBillingKey: string | null;
+
+  // 2FA (TOTP, RFC 6238)
+  @Column({ default: false })
+  is2faEnabled: boolean;
+
+  // 암호화된 base32 시크릿 (CommonModule의 EncryptionService로 암복호화)
+  @Column('text', { nullable: true })
+  totpSecretEncrypted: string | null;
+
+  /**
+   * 인증 앱 분실 대비 백업 코드 (1회용).
+   * bcrypt 해시 배열의 JSON 직렬화 → 다시 EncryptionService로 암호화하여 보관한다.
+   * 평문은 활성화/재발급 시점에만 사용자에게 1회 노출되고, 이후 검증은 해시 비교로만 가능.
+   */
+  @Column('text', { nullable: true })
+  twoFaBackupCodesEncrypted: string | null;
 
   // 관리자 시스템 관련 필드
   @Column({

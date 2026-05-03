@@ -167,9 +167,9 @@ export class TossPaymentsService {
 
       const { billingKey, card } = response.data;
 
-      // 빌링키를 사용자 정보에 저장 (stripeCustomerId 필드 재사용)
+      // 빌링키를 사용자 정보에 저장
       await this.userRepository.update(userId, {
-        stripeCustomerId: billingKey,
+        tossBillingKey: billingKey,
       });
 
       return {
@@ -207,11 +207,11 @@ export class TossPaymentsService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    if (!user.stripeCustomerId) {
+    if (!user.tossBillingKey) {
       throw new BadRequestException('등록된 결제 수단이 없습니다. 먼저 카드를 등록해주세요.');
     }
 
-    const billingKey = user.stripeCustomerId;
+    const billingKey = user.tossBillingKey;
     const customerKey = `customer_${userId}`;
     const price = PLAN_PRICES[tier];
     const amount = interval === BillingInterval.YEARLY ? price.yearly : price.monthly;
@@ -611,7 +611,7 @@ export class TossPaymentsService {
     for (const sub of subscriptionsToRenew) {
       try {
         const user = await this.userRepository.findOne({ where: { id: sub.userId } });
-        if (!user || !user.stripeCustomerId) continue;
+        if (!user || !user.tossBillingKey) continue;
 
         // 다음 결제 실행
         await this.payWithBillingKey(
@@ -667,7 +667,7 @@ export class TossPaymentsService {
 
       try {
         const user = await this.userRepository.findOne({ where: { id: sub.userId } });
-        if (!user || !user.stripeCustomerId) continue;
+        if (!user || !user.tossBillingKey) continue;
 
         await this.payWithBillingKey(
           sub.userId,
@@ -827,7 +827,7 @@ export class TossPaymentsService {
     return {
       tier: user.subscriptionTier,
       expiresAt: user.subscriptionExpiresAt,
-      hasBillingKey: !!user.stripeCustomerId,
+      hasBillingKey: !!user.tossBillingKey,
       subscription: subscription
         ? {
             id: subscription.id,
@@ -1100,7 +1100,7 @@ export class TossPaymentsService {
       throw new BadRequestException('활성화된 체험 구독이 없습니다.');
     }
 
-    if (!user.stripeCustomerId) {
+    if (!user.tossBillingKey) {
       throw new BadRequestException('결제 수단이 등록되지 않았습니다. 먼저 카드를 등록해 주세요.');
     }
 

@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { useAuthStore } from '@/stores/authStore';
+
+function shouldUseMockFallback() {
+  const state = useAuthStore.getState();
+  return state.isGuest || !state.isAuthenticated;
+}
 
 // Mock Data for Demo Mode
 const MOCK_SUPPLIERS: HerbSupplier[] = [
@@ -145,7 +151,8 @@ export function useSuppliers() {
       try {
         const { data } = await api.get('/inventory/suppliers');
         return data.data as HerbSupplier[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_SUPPLIERS;
       }
     },
@@ -160,7 +167,8 @@ export function useSupplier(supplierId: string) {
       try {
         const { data } = await api.get(`/inventory/suppliers/${supplierId}`);
         return data.data as HerbSupplier;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_SUPPLIERS.find(s => s.id === supplierId) || MOCK_SUPPLIERS[0];
       }
     },
@@ -202,7 +210,8 @@ export function useInventory(options?: {
 
         const { data } = await api.get(`/inventory/items?${params.toString()}`);
         return data.data as HerbInventory[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         let filtered = [...MOCK_INVENTORY];
         if (options?.keyword) filtered = filtered.filter(i => i.herb?.koreanName.includes(options.keyword!));
         if (options?.lowStockOnly) filtered = filtered.filter(i => i.currentStock <= i.minimumStock);
@@ -221,7 +230,8 @@ export function useInventorySummary() {
       try {
         const { data } = await api.get('/inventory/summary');
         return { ...(data.data as InventorySummary), _isDemo: false };
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_SUMMARY, _isDemo: true };
       }
     },
@@ -274,7 +284,8 @@ export function useTransactions(options?: {
 
         const { data } = await api.get(`/inventory/transactions?${params.toString()}`);
         return data.data as InventoryTransaction[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         // 데모 데이터 반환
         return [
           { id: 't1', inventoryId: 'i1', transactionType: 'purchase' as const, quantity: 500, unitPrice: 15000, totalAmount: 75000, referenceNumber: 'PO-2024-001', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), createdBy: { name: '홍길동' } },
@@ -326,7 +337,8 @@ export function usePriceComparison(herbId: string) {
           maxPrice: number;
           lastUpdated: string;
         }>;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         // 데모 데이터 반환
         return MOCK_SUPPLIERS.map((supplier, i) => ({
           supplierId: supplier.id,
@@ -355,7 +367,8 @@ export function usePriceHistory(herbId: string, supplierId?: string, days?: numb
 
         const { data } = await api.get(`/inventory/prices/history/${herbId}?${params.toString()}`);
         return data.data as HerbPriceHistory[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_PRICE_HISTORY.filter(p => p.herbId === herbId);
       }
     },
@@ -392,7 +405,8 @@ export function useInventoryAlerts(unresolvedOnly: boolean = true) {
       try {
         const { data } = await api.get(`/inventory/alerts?unresolvedOnly=${unresolvedOnly}`);
         return data.data as InventoryAlert[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         if (unresolvedOnly) return MOCK_ALERTS.filter(a => !a.isResolved);
         return MOCK_ALERTS;
       }
@@ -425,7 +439,8 @@ export function usePurchaseOrders(status?: string) {
         const params = status ? `?status=${status}` : '';
         const { data } = await api.get(`/inventory/orders${params}`);
         return data.data as PurchaseOrder[];
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         if (status) return MOCK_ORDERS.filter(o => o.status === status);
         return MOCK_ORDERS;
       }
@@ -497,7 +512,8 @@ export function useUsageAnalysis(startDate: string, endDate: string) {
           usageTrend: Array<{ date: string; totalUsage: number }>;
           costAnalysis: { totalCost: number; avgCostPerDay: number };
         };
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         // 데모 데이터 반환
         return {
           topUsedHerbs: [

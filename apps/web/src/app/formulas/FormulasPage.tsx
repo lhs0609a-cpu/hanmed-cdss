@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Search,
   BookOpen,
@@ -11,8 +12,6 @@ import {
 import { MedicineSchool } from '@/types'
 import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
-// JSON 데이터 직접 import
-import allFormulasData from '@/data/formulas/all-formulas.json'
 
 interface FormulaHerb {
   id: string
@@ -85,8 +84,14 @@ function transformJsonToFormula(json: JsonFormulaData): Formula {
   }
 }
 
-// 모든 JSON 데이터를 변환
-const allFormulas: Formula[] = (allFormulasData as JsonFormulaData[]).map(transformJsonToFormula)
+async function fetchAllFormulas(): Promise<Formula[]> {
+  const res = await fetch('/data/formulas/all-formulas.json')
+  if (!res.ok) {
+    throw new Error(`처방 데이터를 불러오지 못했습니다 (${res.status})`)
+  }
+  const data = (await res.json()) as JsonFormulaData[]
+  return data.map(transformJsonToFormula)
+}
 
 const categories = [
   '전체',
@@ -105,17 +110,21 @@ const categories = [
 const ITEMS_PER_PAGE = 12
 
 export default function FormulasPage() {
-  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('전체')
   const [selectedSchool, setSelectedSchool] = useState<MedicineSchool | 'all'>('all')
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
-    // 짧은 로딩 효과
-    const timer = setTimeout(() => setIsLoading(false), 300)
-    return () => clearTimeout(timer)
-  }, [])
+  const {
+    data: allFormulas = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['formulas-static-bundle'],
+    queryFn: fetchAllFormulas,
+    staleTime: 24 * 60 * 60 * 1000, // 정적 자산 — 24시간 캐시
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+  })
 
   // 필터링된 데이터
   const filteredFormulas = useMemo(() => {
@@ -239,6 +248,11 @@ export default function FormulasPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        </div>
+      ) : isError ? (
+        <div className="text-center py-20">
+          <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">처방 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>
         </div>
       ) : paginatedFormulas.length === 0 ? (
         <div className="text-center py-20">

@@ -62,4 +62,15 @@ export class UsersService {
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
     await this.usersRepository.update(userId, { passwordHash });
   }
+
+  async updateTwoFactor(
+    userId: string,
+    payload: {
+      is2faEnabled?: boolean;
+      totpSecretEncrypted?: string | null;
+      twoFaBackupCodesEncrypted?: string | null;
+    },
+  ): Promise<void> {
+    await this.usersRepository.update(userId, payload);
+  }
 }

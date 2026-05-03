@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { useAuthStore } from '@/stores/authStore';
+
+function shouldUseMockFallback() {
+  const state = useAuthStore.getState();
+  return state.isGuest || !state.isAuthenticated;
+}
 
 // Mock Data for Demo Mode
 const MOCK_DASHBOARD: CrmDashboard = {
@@ -200,7 +206,8 @@ export function useCrmDashboard() {
       try {
         const { data } = await api.get('/crm/dashboard');
         return { ...(data.data as CrmDashboard), _isDemo: false };
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return { ...MOCK_DASHBOARD, _isDemo: true };
       }
     },
@@ -216,8 +223,8 @@ export function useCampaigns(status?: string) {
         const params = status ? `?status=${status}` : '';
         const { data } = await api.get(`/crm/campaigns${params}`);
         return data.data as Campaign[];
-      } catch {
-        // Return mock data for demo mode
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         if (status) {
           return MOCK_CAMPAIGNS.filter(c => c.status === status);
         }
@@ -235,7 +242,8 @@ export function useCampaign(campaignId: string) {
       try {
         const { data } = await api.get(`/crm/campaigns/${campaignId}`);
         return data.data as Campaign;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_CAMPAIGNS.find(c => c.id === campaignId) || MOCK_CAMPAIGNS[0];
       }
     },
@@ -251,7 +259,8 @@ export function useCampaignAnalytics(campaignId: string) {
       try {
         const { data } = await api.get(`/crm/campaigns/${campaignId}/analytics`);
         return data.data as CampaignAnalytics;
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         const campaign = MOCK_CAMPAIGNS.find(c => c.id === campaignId) || MOCK_CAMPAIGNS[0];
         return {
           campaign,
@@ -330,8 +339,8 @@ export function useAutoMessages() {
       try {
         const { data } = await api.get('/crm/auto-messages');
         return data.data as AutoMessage[];
-      } catch {
-        // Return mock data for demo mode
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_AUTO_MESSAGES;
       }
     },
@@ -376,8 +385,8 @@ export function useSegments() {
       try {
         const { data } = await api.get('/crm/segments');
         return data.data as PatientSegment[];
-      } catch {
-        // Return mock data for demo mode
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err;
         return MOCK_SEGMENTS;
       }
     },

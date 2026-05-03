@@ -342,7 +342,7 @@ Stack: ${error?.stack || 'N/A'}
                   고객센터 문의
                 </a>
                 <a
-                  href="https://ongojisin.co.kr/help"
+                  href="https://ongojisin.ai/help"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 hover:text-teal-600"

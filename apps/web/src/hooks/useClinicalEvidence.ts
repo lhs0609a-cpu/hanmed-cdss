@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { useAuthStore } from '@/stores/authStore'
+
+function shouldUseMockFallback() {
+  const state = useAuthStore.getState()
+  return state.isGuest || !state.isAuthenticated
+}
 import type {
   ClinicalEvidenceParams,
   AIReasoningData,
@@ -44,7 +50,8 @@ function useAIReasoning(params: ClinicalEvidenceParams, enabled: boolean) {
           return { ...data, _isDemo: false }
         }
         return MOCK_REASONING
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err
         return MOCK_REASONING
       }
     },
@@ -74,7 +81,8 @@ function useSimilarCases(params: ClinicalEvidenceParams, enabled: boolean) {
           }
         }
         return MOCK_SIMILAR_CASES
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err
         return MOCK_SIMILAR_CASES
       }
     },
@@ -97,7 +105,8 @@ function useScientificEvidence(params: ClinicalEvidenceParams, enabled: boolean)
           return { ...data, _isDemo: false }
         }
         return MOCK_SCIENTIFIC
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err
         return MOCK_SCIENTIFIC
       }
     },
@@ -121,7 +130,8 @@ function useTreatmentStatistics(params: ClinicalEvidenceParams, enabled: boolean
           return { ...data, _isDemo: false }
         }
         return MOCK_STATISTICS
-      } catch {
+      } catch (err) {
+        if (!shouldUseMockFallback()) throw err
         return MOCK_STATISTICS
       }
     },

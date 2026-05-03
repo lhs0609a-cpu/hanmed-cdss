@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,9 +14,11 @@ import {
   CLOUD_STORAGE_LIMITS,
 } from '../../database/entities/user-data.entity';
 import { User, SubscriptionTier } from '../../database/entities/user.entity';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 @Injectable()
 export class UserDataService {
+  private readonly logger = new Logger(UserDataService.name);
   // 클라우드 동기화 가능 플랜
   private readonly SYNC_ENABLED_TIERS: SubscriptionTier[] = [
     SubscriptionTier.PROFESSIONAL,
@@ -27,7 +30,24 @@ export class UserDataService {
     private readonly userDataRepository: Repository<UserData>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly encryptionService: EncryptionService,
   ) {}
+
+  /** 저장된 row를 평문 객체로 풀어서 반환. 복호화 실패 시 null. */
+  private deserialize(record: UserData): unknown | null {
+    try {
+      const raw = record.isEncrypted
+        ? this.encryptionService.decrypt(record.data)
+        : record.data;
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      this.logger.error(
+        `사용자 데이터 복호화/파싱 실패: userId=${record.userId} key=${record.dataKey}`,
+        err,
+      );
+      return null;
+    }
+  }
 
   /**
    * 사용자가 클라우드 동기화 가능한 플랜인지 확인
@@ -72,15 +92,19 @@ export class UserDataService {
   }
 
   /**
-   * 클라우드에서 데이터 조회
+   * 클라우드에서 데이터 조회 (복호화된 평문 반환).
+   * 기존 코드 호환을 위해 UserData row 형태로 반환하되 data 필드는 평문 객체로 대체한다.
    */
-  async getData(userId: string, dataKey: string): Promise<UserData | null> {
+  async getData(userId: string, dataKey: string): Promise<(UserData & { data: unknown }) | null> {
     await this.checkSyncPermission(userId);
     this.validateDataKey(dataKey);
 
-    return this.userDataRepository.findOne({
+    const record = await this.userDataRepository.findOne({
       where: { userId, dataKey },
     });
+    if (!record) return null;
+
+    return Object.assign(record, { data: this.deserialize(record) });
   }
 
   /**
@@ -94,9 +118,10 @@ export class UserDataService {
     const user = await this.checkSyncPermission(userId);
     this.validateDataKey(dataKey);
 
-    // 데이터 크기 계산
+    // 데이터 크기는 평문 기준으로 측정 (암호화 후 길이가 일정하지 않아 한도 계산이 일관되도록).
     const dataString = JSON.stringify(data);
     const dataSize = Buffer.byteLength(dataString, 'utf8');
+    const ciphertext = this.encryptionService.encrypt(dataString);
 
     // 용량 제한 체크
     const currentUsage = await this.getTotalUsage(userId);
@@ -122,17 +147,18 @@ export class UserDataService {
     }
 
     if (existing) {
-      // 기존 데이터 업데이트
-      existing.data = data;
+      // 기존 데이터 업데이트 — 항상 암호화 상태로 저장
+      existing.data = ciphertext;
+      existing.isEncrypted = true;
       existing.dataSize = dataSize;
       return this.userDataRepository.save(existing);
     }
 
-    // 새 데이터 생성
     const newData = this.userDataRepository.create({
       userId,
       dataKey,
-      data,
+      data: ciphertext,
+      isEncrypted: true,
       dataSize,
     });
 
@@ -150,15 +176,17 @@ export class UserDataService {
   }
 
   /**
-   * 사용자의 모든 클라우드 데이터 조회
+   * 사용자의 모든 클라우드 데이터 조회 (복호화된 평문 반환).
    */
-  async getAllData(userId: string): Promise<UserData[]> {
+  async getAllData(userId: string): Promise<Array<Omit<UserData, 'data'> & { data: unknown }>> {
     await this.checkSyncPermission(userId);
 
-    return this.userDataRepository.find({
+    const records = await this.userDataRepository.find({
       where: { userId },
-      select: ['dataKey', 'data', 'updatedAt', 'dataSize'],
+      select: ['dataKey', 'data', 'isEncrypted', 'updatedAt', 'dataSize'],
     });
+
+    return records.map((r) => Object.assign(r, { data: this.deserialize(r) }));
   }
 
   /**
