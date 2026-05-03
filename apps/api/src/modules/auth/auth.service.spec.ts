@@ -7,6 +7,9 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { EmailService } from '../email/email.service';
+import { CacheService } from '../cache/cache.service';
+import { EncryptionService } from '../../common/services/encryption.service';
+import { TotpService } from './services/totp.service';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
 
 // Mock bcrypt
@@ -52,12 +55,33 @@ describe('AuthService', () => {
       update: jest.fn(),
     };
 
+    const mockCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(true),
+      delete: jest.fn().mockResolvedValue(true),
+      isAvailable: jest.fn().mockReturnValue(false),
+    };
+
+    const mockEncryptionService = {
+      encrypt: jest.fn((s: string) => `enc:${s}`),
+      decrypt: jest.fn((s: string) => s.replace(/^enc:/, '')),
+    };
+
+    const mockTotpService = {
+      generateSecret: jest.fn().mockReturnValue('SECRET'),
+      buildOtpAuthUrl: jest.fn().mockReturnValue('otpauth://...'),
+      verify: jest.fn().mockReturnValue(true),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: CacheService, useValue: mockCacheService },
+        { provide: EncryptionService, useValue: mockEncryptionService },
+        { provide: TotpService, useValue: mockTotpService },
         { provide: getRepositoryToken(PasswordResetToken), useValue: mockRepository },
       ],
     }).compile();
@@ -140,7 +164,10 @@ describe('AuthService', () => {
 
       const result = await service.login(loginDto);
 
-      expect(result).toHaveProperty('user');
+      // 2FA 비활성 사용자(mockUser)는 토큰 페이로드를 반환해야 한다
+      if ('twoFactorRequired' in result) {
+        throw new Error('2FA 챌린지가 의도치 않게 트리거되었습니다.');
+      }
       expect(result.user.email).toBe(mockUser.email);
       expect(result).toHaveProperty('accessToken', 'access-token');
       expect(result).toHaveProperty('refreshToken', 'refresh-token');

@@ -37,13 +37,22 @@ export class UserData {
   dataKey: string;
 
   /**
-   * 저장된 데이터 (JSON)
+   * 저장된 데이터.
+   * isEncrypted=true일 때: AES-256-GCM 암호문 (base64). EncryptionService로 복호화.
+   * isEncrypted=false일 때: 호환을 위한 평문 JSON 문자열 (구 데이터).
+   * 신규 saveData() 호출은 항상 isEncrypted=true로 저장한다.
    */
-  @Column({ type: 'json' })
-  data: unknown;
+  @Column({ type: 'text' })
+  data: string;
 
   /**
-   * 데이터 크기 (bytes) - 용량 제한 체크용
+   * 환자/임상 데이터 보호를 위해 at-rest 암호화 적용 여부.
+   */
+  @Column({ default: false })
+  isEncrypted: boolean;
+
+  /**
+   * 데이터 크기 (bytes) - 용량 제한 체크용. 평문 기준 사이즈를 기록한다.
    */
   @Column({ type: 'int', default: 0 })
   dataSize: number;
