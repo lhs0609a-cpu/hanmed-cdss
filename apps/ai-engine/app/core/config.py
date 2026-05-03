@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:5173",
         "https://hanmed-cdss.vercel.app",
         "https://*.vercel.app",
+        "https://ongojisin.ai",
+        "https://www.ongojisin.ai",
     ]
 
     # OpenAI GPT
