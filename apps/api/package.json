@@ -19,6 +19,7 @@
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
+    "seed:master": "ts-node -r tsconfig-paths/register src/seed/seed.ts",
     "seed:formulas": "ts-node -r tsconfig-paths/register src/database/seeds/seed-formulas.ts",
     "seed:formula-properties": "ts-node -r tsconfig-paths/register src/database/seeds/seed-formula-properties.ts",
     "create-admin": "ts-node -r tsconfig-paths/register src/database/seeds/create-super-admin.ts"
