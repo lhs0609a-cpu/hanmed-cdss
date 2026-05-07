@@ -198,145 +198,83 @@ async def list_cases(
     outcome: Optional[str] = Query(None, description="결과 필터 (완치/호전/무효)"),
 ):
     """
-    치험례 목록 조회
-
-    Supabase에서 페이지네이션과 필터링을 지원하는 치험례 목록을 반환합니다.
+    치험례 목록 조회 — 로컬 JSON 데이터 (all_cases_combined.json) 기반 페이지네이션/필터링.
+    외부 데이터베이스 의존 없음.
     """
-    import httpx
-    from ...core.config import settings
-
-    SUPABASE_URL = settings.SUPABASE_URL
-    SUPABASE_KEY = settings.SUPABASE_KEY
-
-    if not SUPABASE_KEY:
-        # Fallback: 환경변수에서 직접 가져오기
-        import os
-        SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
-
-    if not SUPABASE_KEY:
-        raise HTTPException(status_code=500, detail="Supabase key not configured")
-
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
     try:
-        async with httpx.AsyncClient() as client:
-            # 총 개수 조회
-            count_headers = {**headers, "Prefer": "count=exact"}
-            count_params = {"select": "id", "limit": "1"}
+        rows = case_search_service._load_local_cases()
 
-            # 필터 조건 구성
-            if search:
-                count_params["or"] = f"(chiefComplaint.ilike.%{search}%,originalText.ilike.%{search}%)"
-            if constitution:
-                count_params["patientConstitution"] = f"eq.{constitution}"
+        # 필터링
+        filtered = rows
+        if search:
+            q = search.lower()
+            filtered = [
+                r for r in filtered
+                if q in (r.get("chief_complaint") or "").lower()
+                or q in (r.get("formula_name") or "").lower()
+                or q in (r.get("diagnosis") or "").lower()
+                or q in (r.get("differentiation") or "").lower()
+                or q in (r.get("title") or "").lower()
+                or q in (r.get("full_text") or "").lower()
+            ]
+        if constitution:
+            filtered = [
+                r for r in filtered
+                if (r.get("patient_constitution") or "") == constitution
+            ]
+        if outcome:
+            filtered = [
+                r for r in filtered
+                if outcome in (r.get("result") or "")
+            ]
 
-            count_response = await client.get(
-                f"{SUPABASE_URL}/rest/v1/clinical_cases",
-                headers=count_headers,
-                params=count_params
-            )
+        total = len(filtered)
+        total_pages = (total + limit - 1) // limit if total > 0 else 0
 
-            total = 0
-            content_range = count_response.headers.get("content-range", "")
-            if "/" in content_range:
-                total_str = content_range.split("/")[-1]
-                if total_str != "*":
-                    total = int(total_str)
+        offset = (page - 1) * limit
+        page_rows = filtered[offset: offset + limit]
 
-            total_pages = (total + limit - 1) // limit if total > 0 else 0
+        # 응답 포맷 변환
+        cases = []
+        for row in page_rows:
+            # 성별 변환
+            gender_raw = (row.get("patient_gender") or "").lower()
+            if gender_raw == "male":
+                gender = "M"
+            elif gender_raw == "female":
+                gender = "F"
+            else:
+                gender = ""
 
-            # 데이터 조회
-            offset = (page - 1) * limit
-            data_params = {
-                "select": "id,sourceId,chiefComplaint,originalText,patientGender,patientAgeRange,patientConstitution,herbalFormulas,symptoms,patternDiagnosis,clinicalNotes,recordedYear,recorderName",
-                "order": "createdAt.desc",
-                "offset": str(offset),
-                "limit": str(limit)
-            }
-
-            if search:
-                data_params["or"] = f"(chiefComplaint.ilike.%{search}%,originalText.ilike.%{search}%)"
-            if constitution:
-                data_params["patientConstitution"] = f"eq.{constitution}"
-
-            data_response = await client.get(
-                f"{SUPABASE_URL}/rest/v1/clinical_cases",
-                headers=headers,
-                params=data_params
-            )
-
-            if data_response.status_code != 200:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Supabase error: {data_response.text}"
-                )
-
-            rows = data_response.json()
-
-            # 응답 형식 변환
-            cases = []
-            for row in rows:
-                # 처방명 추출
-                formulas = row.get("herbalFormulas") or []
-                formula_name = formulas[0].get("name", "") if formulas else ""
-
-                # 증상 추출
-                symptoms_data = row.get("symptoms") or []
+            symptoms = row.get("symptoms") or []
+            if not isinstance(symptoms, list):
                 symptoms = []
-                if isinstance(symptoms_data, list):
-                    for s in symptoms_data:
-                        if isinstance(s, dict):
-                            symptoms.append(s.get("description", s.get("type", "")))
-                        elif isinstance(s, str):
-                            symptoms.append(s)
 
-                # 성별 변환
-                gender = row.get("patientGender", "")
-                if gender == "male":
-                    gender = "M"
-                elif gender == "female":
-                    gender = "F"
+            cases.append({
+                "id": str(row.get("id", "")),
+                "title": (row.get("title") or row.get("chief_complaint") or "")[:100],
+                "chiefComplaint": row.get("chief_complaint") or "",
+                "symptoms": [s for s in symptoms if isinstance(s, str)][:10],
+                "formulaName": row.get("formula_name") or "",
+                "formulaHanja": row.get("formula_hanja") or "",
+                "constitution": row.get("patient_constitution") or "",
+                "diagnosis": row.get("diagnosis") or row.get("differentiation") or "",
+                "patientAge": row.get("patient_age"),
+                "patientGender": gender,
+                "outcome": None,
+                "result": row.get("result") or "",
+                "originalText": row.get("full_text") or "",
+                "dataSource": row.get("data_source") or row.get("source_file") or "local",
+            })
 
-                # 나이 추출 (연령대에서)
-                age_range = row.get("patientAgeRange", "")
-                patient_age = None
-                if age_range:
-                    import re
-                    match = re.search(r'(\d+)', age_range)
-                    if match:
-                        patient_age = int(match.group(1))
+        return {
+            "cases": cases,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages
+        }
 
-                cases.append({
-                    "id": str(row.get("id", "")),
-                    "title": row.get("chiefComplaint", "")[:100] if row.get("chiefComplaint") else "",
-                    "chiefComplaint": row.get("chiefComplaint", "") or "",
-                    "symptoms": symptoms[:10] if symptoms else [],
-                    "formulaName": formula_name,
-                    "formulaHanja": "",
-                    "constitution": row.get("patientConstitution", "") or "",
-                    "diagnosis": row.get("patternDiagnosis", "") or "",
-                    "patientAge": patient_age,
-                    "patientGender": gender,
-                    "outcome": None,
-                    "result": row.get("clinicalNotes", "") or "",
-                    "originalText": row.get("originalText", "") or "",
-                    "dataSource": row.get("sourceId", "supabase"),
-                })
-
-            return {
-                "cases": cases,
-                "total": total,
-                "page": page,
-                "limit": limit,
-                "total_pages": total_pages
-            }
-
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"HTTP error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching cases: {str(e)}")
 
@@ -369,76 +307,46 @@ async def get_grade_info():
 @router.get("/stats")
 async def get_case_stats():
     """
-    치험례 통계 조회
-
-    Supabase에서 치험례의 통계 정보를 반환합니다.
+    치험례 통계 조회 — 로컬 JSON 데이터 기반 (외부 DB 의존 없음)
     """
-    import httpx
-    import os
-    from ...core.config import settings
-
-    SUPABASE_URL = settings.SUPABASE_URL
-    SUPABASE_KEY = settings.SUPABASE_KEY or os.environ.get('SUPABASE_KEY', '')
-
-    if not SUPABASE_KEY:
-        return {
-            "total_cases": 0,
-            "indexed": False,
-            "message": "Supabase key not configured"
-        }
-
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "count=exact"
-    }
-
     try:
-        async with httpx.AsyncClient() as client:
-            # 총 개수
-            response = await client.get(
-                f"{SUPABASE_URL}/rest/v1/clinical_cases",
-                headers=headers,
-                params={"select": "id", "limit": "1"}
-            )
+        rows = case_search_service._load_local_cases()
+        total = len(rows)
 
-            total = 0
-            content_range = response.headers.get("content-range", "")
-            if "/" in content_range:
-                total_str = content_range.split("/")[-1]
-                if total_str != "*":
-                    total = int(total_str)
+        with_constitution = sum(1 for r in rows if r.get("patient_constitution"))
+        with_age = sum(1 for r in rows if r.get("patient_age") is not None)
+        with_gender = sum(1 for r in rows if r.get("patient_gender"))
+        with_result = sum(1 for r in rows if r.get("result"))
+        real_count = sum(1 for r in rows if r.get("is_real_case"))
 
-            # 체질별 통계
-            const_response = await client.get(
-                f"{SUPABASE_URL}/rest/v1/clinical_cases",
-                headers=headers,
-                params={"select": "patientConstitution", "patientConstitution": "not.is.null", "limit": "1"}
-            )
-            with_constitution = 0
-            cr = const_response.headers.get("content-range", "")
-            if "/" in cr:
-                cs = cr.split("/")[-1]
-                if cs != "*":
-                    with_constitution = int(cs)
+        # 처방명 빈도 상위
+        formula_counts: Dict[str, int] = {}
+        for r in rows:
+            name = r.get("formula_name") or ""
+            if name:
+                formula_counts[name] = formula_counts.get(name, 0) + 1
+        top_formulas = sorted(
+            [{"name": k, "count": v} for k, v in formula_counts.items()],
+            key=lambda x: x["count"],
+            reverse=True,
+        )[:10]
 
-            return {
-                "total_cases": total,
-                "real_clinical_cases": total,
-                "indication_based_cases": 0,
-                "indexed": True,
-                "with_constitution": with_constitution,
-                "with_age": 0,
-                "with_gender": 0,
-                "with_result": 0,
-                "top_formulas": [],
-                "data_source": "supabase"
-            }
+        return {
+            "total_cases": total,
+            "real_clinical_cases": real_count,
+            "indication_based_cases": total - real_count,
+            "indexed": True,
+            "with_constitution": with_constitution,
+            "with_age": with_age,
+            "with_gender": with_gender,
+            "with_result": with_result,
+            "top_formulas": top_formulas,
+            "data_source": "local",
+        }
 
     except Exception as e:
         return {
             "total_cases": 0,
             "indexed": False,
-            "message": f"Error: {str(e)}"
+            "message": f"Error: {str(e)}",
         }
