@@ -4,10 +4,20 @@
 """
 
 import re
+import json
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 import hashlib
+
+try:
+    from openai import OpenAI
+    from ....core.config import settings
+    _OPENAI_AVAILABLE = True
+except Exception:
+    OpenAI = None  # type: ignore
+    settings = None  # type: ignore
+    _OPENAI_AVAILABLE = False
 
 
 @dataclass
@@ -89,8 +99,14 @@ class CaseExtractor:
     # 유효한 "~고" 처방명
     VALID_GO_FORMULAS = ['경옥고', '자옥고', '응약고', '황련고', '자운고', '옥용고']
 
-    def __init__(self):
-        pass
+    def __init__(self, use_llm_fallback: bool = True):
+        self.use_llm_fallback = use_llm_fallback
+        self._llm_client: Optional[Any] = None
+        if use_llm_fallback and _OPENAI_AVAILABLE and settings and settings.OPENAI_API_KEY:
+            try:
+                self._llm_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            except Exception:
+                self._llm_client = None
 
     def extract_cases(self, article_text: str, article_info: Dict) -> List[ExtractedCase]:
         """
@@ -103,29 +119,159 @@ class CaseExtractor:
         Returns:
             추출된 치험례 리스트
         """
-        cases = []
+        cases: List[ExtractedCase] = []
 
-        # 치험례 관련 키워드가 있는지 확인
-        if not self._has_case_keywords(article_text):
-            return cases
+        # 1차: 규칙 기반 추출 (한국어 케이스 보고서 형식)
+        if self._has_case_keywords(article_text):
+            case_blocks = self._split_into_case_blocks(article_text) or [article_text]
 
-        # 케이스 블록 분리 시도
-        case_blocks = self._split_into_case_blocks(article_text)
+            for i, block in enumerate(case_blocks):
+                if len(block.strip()) < 50 and len(case_blocks) > 1:
+                    continue
+                case = self._extract_single_case(block, article_info, i + 1)
+                if case and self._is_valid_case(case):
+                    cases.append(case)
 
-        if not case_blocks:
-            # 분리 실패시 전체를 하나의 케이스로 처리
-            case_blocks = [article_text]
-
-        for i, block in enumerate(case_blocks):
-            # 너무 짧은 블록은 스킵 (단, 하나뿐이면 처리)
-            if len(block.strip()) < 50 and len(case_blocks) > 1:
-                continue
-
-            case = self._extract_single_case(block, article_info, i + 1)
-            if case and self._is_valid_case(case):
-                cases.append(case)
+        # 2차: LLM 폴백 (규칙으로 못 잡은 경우)
+        if not cases and self._llm_client and len(article_text.strip()) >= 200:
+            llm_cases = self._extract_with_llm(article_text, article_info)
+            for case in llm_cases:
+                if self._is_valid_case(case):
+                    cases.append(case)
 
         return cases
+
+    def _extract_with_llm(
+        self,
+        article_text: str,
+        article_info: Dict,
+    ) -> List[ExtractedCase]:
+        """LLM (GPT-4o-mini)으로 임의 형식 텍스트에서 케이스 추출"""
+        if not self._llm_client:
+            return []
+
+        # 길이 제한 (토큰 절약)
+        text_excerpt = article_text[:6000]
+
+        system_prompt = (
+            "당신은 한의학/전통의학 학술 논문에서 임상 치험례(case report)를 "
+            "추출하는 전문 어시스턴트입니다. 사용자가 주는 논문 본문에서 "
+            "환자별 치험례를 식별해 구조화된 JSON으로 반환하세요. "
+            "케이스가 명확히 식별되지 않으면 빈 배열을 반환합니다. "
+            "반드시 JSON만 출력하세요."
+        )
+
+        user_prompt = f"""다음 논문 본문에서 임상 치험례를 추출하세요.
+
+[논문 제목] {article_info.get('title', '')}
+[저널] {article_info.get('journal', '')}
+[연도] {article_info.get('year', '')}
+
+[본문]
+{text_excerpt}
+
+추출 규칙:
+- 임상 케이스(특정 환자 1명에 대한 치료 보고)만 추출. review/RCT 통계 결과는 제외.
+- 케이스가 여러 명이면 각각 하나의 객체로.
+- 영문 논문이면 모든 텍스트 필드는 한국어로 번역.
+- 처방명은 한국식 표기 (예: 보중익기탕). 한자는 별도 필드.
+- 알 수 없는 필드는 빈 문자열 또는 null.
+
+출력 JSON 스키마:
+{{
+  "cases": [
+    {{
+      "chief_complaint": "주소증 (한 줄 요약)",
+      "symptoms": ["증상1", "증상2"],
+      "diagnosis": "진단명/병명",
+      "differentiation": "변증 (한의학적)",
+      "formula_name": "처방명 (한글)",
+      "formula_hanja": "處方名 (한자, 있으면)",
+      "patient_age": 45,
+      "patient_gender": "M",
+      "patient_constitution": "소양인",
+      "treatment_principle": "치법",
+      "result": "치료 결과 요약",
+      "confidence": 0.85
+    }}
+  ]
+}}
+
+JSON만 출력:"""
+
+        try:
+            response = self._llm_client.chat.completions.create(
+                model=getattr(settings, "GPT_MODEL", "gpt-4o-mini") if settings else "gpt-4o-mini",
+                max_tokens=2048,
+                temperature=0.1,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content or "{}"
+            parsed = json.loads(content)
+        except Exception as e:
+            print(f"[CaseExtractor] LLM 추출 실패: {e}")
+            return []
+
+        raw_cases = parsed.get("cases", []) if isinstance(parsed, dict) else []
+        results: List[ExtractedCase] = []
+
+        for idx, raw in enumerate(raw_cases):
+            if not isinstance(raw, dict):
+                continue
+
+            case = ExtractedCase(
+                id=self._generate_case_id(
+                    f"{idx}-{raw.get('chief_complaint', '')}", article_info
+                ),
+                source_url=article_info.get("url", ""),
+                source_name=article_info.get("source", "online"),
+                article_title=article_info.get("title", ""),
+                article_authors=article_info.get("authors", []),
+                article_journal=article_info.get("journal", ""),
+                article_year=article_info.get("year"),
+                article_doi=article_info.get("doi"),
+                collection_date=datetime.now().isoformat(),
+                chief_complaint=str(raw.get("chief_complaint") or "")[:300],
+                symptoms=[str(s) for s in (raw.get("symptoms") or []) if s][:10],
+                diagnosis=str(raw.get("diagnosis") or "")[:200],
+                differentiation=str(raw.get("differentiation") or "")[:300],
+                formula_name=str(raw.get("formula_name") or "")[:50],
+                formula_hanja=str(raw.get("formula_hanja") or "")[:50],
+                treatment_principle=str(raw.get("treatment_principle") or "")[:200],
+                result=str(raw.get("result") or "")[:500],
+                full_text=text_excerpt[:2000],
+                data_source="online_collection_llm",
+                is_real_case=True,
+            )
+
+            # 환자 정보
+            age = raw.get("patient_age")
+            if isinstance(age, int) and 0 < age < 120:
+                case.patient_age = age
+            gender = (raw.get("patient_gender") or "").upper()
+            if gender in ("M", "F"):
+                case.patient_gender = gender
+            constitution = raw.get("patient_constitution") or ""
+            if constitution in self.CONSTITUTIONS:
+                case.patient_constitution = constitution
+
+            # 신뢰도 (LLM이 자체 평가한 값 + 필드 충실도 가중)
+            llm_conf = raw.get("confidence")
+            if isinstance(llm_conf, (int, float)) and 0 <= llm_conf <= 1:
+                case.confidence_score = float(llm_conf) * 0.7 + self._calculate_confidence(case) * 0.3
+            else:
+                case.confidence_score = self._calculate_confidence(case) * 0.85  # LLM 추출은 약간 디스카운트
+
+            case.title = self._generate_title(case, idx + 1)
+            case.search_text = self._generate_search_text(case)
+
+            results.append(case)
+
+        return results
 
     def _has_case_keywords(self, text: str) -> bool:
         """치험례 관련 키워드 존재 확인"""
