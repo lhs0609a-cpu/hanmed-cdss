@@ -1,9 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { join } from 'path';
-import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -29,18 +26,9 @@ async function bootstrap() {
     }
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create(AppModule, {
     rawBody: true, // 웹훅을 위한 raw body 파싱 활성화
   });
-
-  // 정적 파일 서빙 (업로드된 PDF/이미지 등)
-  const uploadsRoot = process.env.UPLOADS_DIR || join(process.cwd(), 'uploads');
-  try {
-    mkdirSync(uploadsRoot, { recursive: true });
-  } catch {
-    // ignore
-  }
-  app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
 
   // CORS 설정
   const isProduction = process.env.NODE_ENV === 'production';

@@ -365,18 +365,10 @@ export class TossPaymentsService {
 
       this.logger.log(`자동 환불 완료: paymentKey=${paymentKey}`);
     } catch (refundError) {
-      // 환불도 실패한 경우 관리자 알림 필요
+      // 환불도 실패한 경우 — 로그로만 기록 (외부 알림 채널 사용 안 함)
       this.logger.error(
-        `자동 환불 실패 - 수동 확인 필요: paymentKey=${paymentKey}, orderId=${orderId}`,
+        `자동 환불 실패 - 수동 확인 필요: paymentKey=${paymentKey}, orderId=${orderId}, amount=${amount}`,
         refundError,
-      );
-      const errorBody =
-        refundError instanceof Error
-          ? `${refundError.message}\n${refundError.stack || ''}`
-          : JSON.stringify(refundError);
-      await this.emailService.sendAdminAlert(
-        '결제 자동 환불 실패 - 수동 확인 필요',
-        `paymentKey=${paymentKey}\norderId=${orderId}\namount=${amount}\n\n${errorBody}`,
       );
     }
   }

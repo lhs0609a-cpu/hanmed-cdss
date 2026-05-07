@@ -22,8 +22,6 @@ import {
   PatientLoginDto,
   UpdateProfileDto,
 } from './dto';
-import { SmsService } from '../messaging/services/sms.service';
-
 @Injectable()
 export class PatientAuthService {
   constructor(
@@ -33,7 +31,6 @@ export class PatientAuthService {
     private phoneVerificationRepository: Repository<PhoneVerification>,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private smsService: SmsService,
   ) {}
 
   // SMS 인증번호 발송
@@ -76,21 +73,11 @@ export class PatientAuthService {
 
     await this.phoneVerificationRepository.save(verification);
 
-    // SMS 발송 (NHN Cloud)
-    const smsResult = await this.smsService.send({
-      to: phone,
-      message: `[온고지신] 인증번호는 ${code}입니다. (3분 유효)`,
-    });
-
-    if (!smsResult.success) {
-      throw new BadRequestException(`SMS 발송 실패: ${smsResult.error || '알 수 없는 오류'}`);
-    }
-
-    // 개발 환경에서만 코드 응답 (테스트용)
+    // SMS 발송 비활성화 — 개발/테스트 환경에서만 코드를 응답으로 노출
     const isDevelopment = this.configService.get('NODE_ENV') === 'development';
 
     return {
-      message: '인증번호가 발송되었습니다.',
+      message: '인증번호가 생성되었습니다.',
       expiresIn: 180,
       ...(isDevelopment && { code }),
     };

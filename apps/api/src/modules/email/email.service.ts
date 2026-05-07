@@ -549,28 +549,4 @@ export class EmailService {
       return false;
     }
   }
-
-  /**
-   * 운영자 알림 발송 (결제 실패 등 긴급 상황)
-   */
-  async sendAdminAlert(subject: string, body: string): Promise<boolean> {
-    const adminEmail = this.configService.get<string>('ADMIN_ALERT_EMAIL');
-    if (!adminEmail) {
-      this.logger.warn(`[ADMIN ALERT] ${subject}: ${body}`);
-      return false;
-    }
-    const from =
-      this.configService.get<string>('SMTP_FROM') ||
-      '"온고지신 AI" <noreply@hanmed.com>';
-    return this.sendMail({
-      from,
-      to: adminEmail,
-      subject: `[온고지신 운영 알림] ${subject}`,
-      html: `<div style="font-family:Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.6;color:#1f2937;">
-<h2 style="color:#ef4444;margin:0 0 12px;">${subject}</h2>
-<pre style="background:#f9fafb;padding:16px;border-radius:8px;white-space:pre-wrap;font-size:13px;">${body}</pre>
-<p style="color:#6b7280;font-size:12px;margin-top:16px;">발송시각: ${new Date().toISOString()}</p>
-</div>`,
-    });
-  }
 }

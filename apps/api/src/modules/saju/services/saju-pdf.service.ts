@@ -1,9 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { promises as fs } from 'fs';
-import { join } from 'path';
 import { SajuReport, SajuReportStatus } from '../../../database/entities/saju-report.entity';
 import { SajuReportSection } from '../../../database/entities/saju-report-section.entity';
 
@@ -16,7 +13,6 @@ export class SajuPdfService {
     private reportRepository: Repository<SajuReport>,
     @InjectRepository(SajuReportSection)
     private sectionRepository: Repository<SajuReportSection>,
-    private configService: ConfigService,
   ) {}
 
   /** PDF 생성 */
@@ -68,7 +64,8 @@ export class SajuPdfService {
 
       await browser.close();
 
-      const pdfUrl = await this.persistPdf(reportId, pdfBuffer);
+      // 외부 스토리지 미사용 — base64 data URL 로 응답
+      const pdfUrl = `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
       await this.reportRepository.update(reportId, { pdfUrl });
 
       return { url: pdfUrl };
@@ -76,51 +73,6 @@ export class SajuPdfService {
       this.logger.error(`PDF 생성 실패 [${reportId}]`, error);
       throw error;
     }
-  }
-
-  /**
-   * PDF 영구 저장: Supabase Storage 사용 가능시 업로드, 아니면 로컬 디스크 + 정적 서빙.
-   */
-  private async persistPdf(reportId: string, pdfBuffer: Buffer): Promise<string> {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseBucket = this.configService.get<string>('SUPABASE_BUCKET', 'saju-reports');
-
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const path = `saju/${reportId}.pdf`;
-        const uploadUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/${supabaseBucket}/${path}`;
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/pdf',
-            'x-upsert': 'true',
-          },
-          body: pdfBuffer as unknown as BodyInit,
-        });
-        if (!res.ok) {
-          throw new Error(`Supabase upload failed: ${res.status} ${await res.text()}`);
-        }
-        return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${supabaseBucket}/${path}`;
-      } catch (err) {
-        this.logger.warn(`Supabase 업로드 실패, 로컬 저장으로 대체: ${(err as Error).message}`);
-      }
-    }
-
-    // 로컬 디스크 저장
-    const uploadsRoot =
-      this.configService.get<string>('UPLOADS_DIR') || join(process.cwd(), 'uploads');
-    const dir = join(uploadsRoot, 'saju');
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(join(dir, `${reportId}.pdf`), pdfBuffer);
-
-    const publicBase =
-      this.configService.get<string>('PUBLIC_BASE_URL') ||
-      this.configService.get<string>('BACKEND_URL') ||
-      '';
-    const path = `/uploads/saju/${reportId}.pdf`;
-    return publicBase ? `${publicBase.replace(/\/$/, '')}${path}` : path;
   }
 
   private buildHtml(report: SajuReport, sections: SajuReportSection[]): string {
