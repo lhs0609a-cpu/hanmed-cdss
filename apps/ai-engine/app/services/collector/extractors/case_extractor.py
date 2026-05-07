@@ -99,6 +99,24 @@ class CaseExtractor:
     # 유효한 "~고" 처방명
     VALID_GO_FORMULAS = ['경옥고', '자옥고', '응약고', '황련고', '자운고', '옥용고']
 
+    # 한약 처방명 어미 (이게 없으면 양방 치료로 간주)
+    KOREAN_FORMULA_SUFFIXES = ('탕', '산', '환', '단', '음', '원', '전', '방', '제', '고')
+
+    # 침구/약침 등 한의학 치료법 (formula_name 자리에 올 수 있는 것)
+    KOREAN_TREATMENT_KEYWORDS = (
+        '침치료', '침구', '약침', '부항', '뜸', '봉약침', '한방',
+        '아시혈', '체침', '전침', '이침', '두침',
+    )
+
+    # 양방/수의학/수술 키워드 (있으면 reject)
+    EXCLUSION_KEYWORDS = (
+        '혈액투석', '혈관 중재', '동맥 색전', '복강경', '개복',
+        '수술적 절제', '내시경', '카테터', '스텐트',
+        '강아지', '고양이', '개', '소', '말', '돼지', '동물', '수의', '수의학',
+        'dog', 'cat', 'canine', 'feline', 'veterinary', 'animal',
+        'surgery', 'surgical', 'hemodialysis', 'embolization',
+    )
+
     def __init__(self, use_llm_fallback: bool = True):
         self.use_llm_fallback = use_llm_fallback
         self._llm_client: Optional[Any] = None
@@ -154,14 +172,14 @@ class CaseExtractor:
         text_excerpt = article_text[:6000]
 
         system_prompt = (
-            "당신은 한의학/전통의학 학술 논문에서 임상 치험례(case report)를 "
-            "추출하는 전문 어시스턴트입니다. 사용자가 주는 논문 본문에서 "
-            "환자별 치험례를 식별해 구조화된 JSON으로 반환하세요. "
-            "케이스가 명확히 식별되지 않으면 빈 배열을 반환합니다. "
-            "반드시 JSON만 출력하세요."
+            "당신은 한의학/전통의학(traditional Korean/Chinese medicine, herbal medicine, "
+            "acupuncture) 학술 논문에서 임상 치험례(case report)를 추출하는 전문 어시스턴트입니다. "
+            "**중요: 양방(서양의학)·수의학·외과수술·중재술 케이스는 절대 추출하지 말고 빈 배열을 "
+            "반환하세요.** 한약(○○탕/산/환/단/음/원/전), 침구, 약침, 전통의학 외용제 등 "
+            "한의학 치료가 명확히 사용된 케이스만 추출합니다. 반드시 JSON만 출력하세요."
         )
 
-        user_prompt = f"""다음 논문 본문에서 임상 치험례를 추출하세요.
+        user_prompt = f"""다음 논문 본문에서 한의학 임상 치험례를 추출하세요.
 
 [논문 제목] {article_info.get('title', '')}
 [저널] {article_info.get('journal', '')}
@@ -170,12 +188,18 @@ class CaseExtractor:
 [본문]
 {text_excerpt}
 
-추출 규칙:
-- 임상 케이스(특정 환자 1명에 대한 치료 보고)만 추출. review/RCT 통계 결과는 제외.
-- 케이스가 여러 명이면 각각 하나의 객체로.
-- 영문 논문이면 모든 텍스트 필드는 한국어로 번역.
-- 처방명은 한국식 표기 (예: 보중익기탕). 한자는 별도 필드.
-- 알 수 없는 필드는 빈 문자열 또는 null.
+엄격한 추출 규칙:
+1. 다음 중 하나 이상이 명확한 경우만 케이스로 인정:
+   - 한약 처방 (○○탕/산/환/단/음/원/전/방/제 형식)
+   - 침구 치료, 약침 치료, 부항, 뜸
+   - 전통의학 외용제, 한방 외치법
+2. 다음은 **반드시 제외** (빈 cases 배열 반환):
+   - 양약/수술/혈액투석/혈관중재/장기이식 등 서양의학 치료
+   - 동물(개/고양이/소 등) 수의학 케이스
+   - review article, RCT, meta-analysis (개별 환자 보고 아님)
+3. 한의학 치료가 한 줄도 안 나오면 즉시 cases: [] 반환.
+4. 영문 논문이면 한국어로 번역. 처방명은 한국식 표기.
+5. 처방명(formula_name)이 없거나 양방 치료면 그 케이스는 제외.
 
 출력 JSON 스키마:
 {{
@@ -185,12 +209,12 @@ class CaseExtractor:
       "symptoms": ["증상1", "증상2"],
       "diagnosis": "진단명/병명",
       "differentiation": "변증 (한의학적)",
-      "formula_name": "처방명 (한글)",
+      "formula_name": "처방명 (한글, ○○탕/산/환 등)",
       "formula_hanja": "處方名 (한자, 있으면)",
       "patient_age": 45,
       "patient_gender": "M",
       "patient_constitution": "소양인",
-      "treatment_principle": "치법",
+      "treatment_principle": "치법 (한의학적)",
       "result": "치료 결과 요약",
       "confidence": 0.85
     }}
@@ -221,6 +245,10 @@ JSON만 출력:"""
 
         for idx, raw in enumerate(raw_cases):
             if not isinstance(raw, dict):
+                continue
+
+            # 후처리 필터: 한의학 케이스만 통과
+            if not self._is_korean_medicine_case(raw, article_info):
                 continue
 
             case = ExtractedCase(
@@ -578,6 +606,32 @@ JSON만 출력:"""
 
         # 너무 짧으면 제외 (50자 이상)
         if len(case.full_text) < 50:
+            return False
+
+        return True
+
+    def _is_korean_medicine_case(self, raw: Dict, article_info: Dict) -> bool:
+        """LLM이 추출한 raw 케이스가 한의학 케이스인지 후처리 검증"""
+        formula = (raw.get("formula_name") or "").strip()
+        treatment = (raw.get("treatment_principle") or "").strip()
+        diagnosis = (raw.get("diagnosis") or "").strip()
+        result = (raw.get("result") or "").strip()
+        title = article_info.get("title", "") or ""
+
+        haystack = " ".join([formula, treatment, diagnosis, result, title]).lower()
+
+        # 1) 양방/수의학 키워드 있으면 즉시 reject
+        for ex in self.EXCLUSION_KEYWORDS:
+            if ex.lower() in haystack:
+                return False
+
+        # 2) 한약 처방 어미 또는 한의학 치료 키워드 중 하나는 있어야 함
+        has_formula_suffix = bool(formula) and formula.endswith(self.KOREAN_FORMULA_SUFFIXES)
+        has_treatment_keyword = any(
+            kw in haystack for kw in self.KOREAN_TREATMENT_KEYWORDS
+        )
+
+        if not (has_formula_suffix or has_treatment_keyword):
             return False
 
         return True

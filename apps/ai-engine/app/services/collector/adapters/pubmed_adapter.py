@@ -21,12 +21,23 @@ class PubMedAdapter(BaseSourceAdapter):
     source_name = "pubmed"
     base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
-    # 한의학 관련 검색 쿼리
+    # 한의학/전통의학 한정 검색 쿼리
+    # MeSH 텀과 traditional medicine 키워드를 AND 결합하여 양방 케이스 배제
+    TRADITIONAL_MEDICINE_FILTER = (
+        '("Medicine, Korean Traditional"[MeSH] OR '
+        '"Medicine, Chinese Traditional"[MeSH] OR '
+        '"Medicine, East Asian Traditional"[MeSH] OR '
+        '"Herbal Medicine"[MeSH] OR '
+        '"Acupuncture"[MeSH] OR '
+        '"Drugs, Chinese Herbal"[MeSH] OR '
+        '"traditional korean medicine"[Title/Abstract] OR '
+        '"korean herbal medicine"[Title/Abstract] OR '
+        '"oriental medicine"[Title/Abstract])'
+    )
+
     DEFAULT_SEARCH_TERMS = [
-        "(korean medicine OR traditional korean medicine) AND case report",
-        "(herbal medicine korea) AND case report",
-        "(acupuncture korea) AND case study",
-        "(oriental medicine) AND clinical case",
+        f'{TRADITIONAL_MEDICINE_FILTER} AND ("case reports"[Publication Type] OR "case report"[Title])',
+        f'{TRADITIONAL_MEDICINE_FILTER} AND "clinical case"[Title/Abstract]',
     ]
 
     def __init__(self, api_key: Optional[str] = None):
@@ -96,7 +107,7 @@ class PubMedAdapter(BaseSourceAdapter):
                 continue
 
     def _build_search_queries(self, keywords: List[str]) -> List[str]:
-        """검색 쿼리 구성"""
+        """검색 쿼리 구성: 항상 전통의학 필터와 AND 결합 (양방 케이스 배제)"""
         queries = []
 
         # 한국어 키워드를 영어로 매핑
@@ -104,24 +115,22 @@ class PubMedAdapter(BaseSourceAdapter):
             "치험례": "case report",
             "증례": "case report",
             "임상례": "clinical case",
-            "한방치료": "korean medicine treatment",
+            "한방치료": "korean medicine",
             "한약치료": "herbal medicine",
-            "침치료": "acupuncture treatment",
+            "침치료": "acupuncture",
             "한의학": "korean medicine",
+            "증례보고": "case report",
         }
 
         for keyword in keywords:
-            # 한국어 키워드 변환
-            if keyword in keyword_mapping:
-                eng_keyword = keyword_mapping[keyword]
-                queries.append(f"({eng_keyword}) AND (korea OR korean)")
-            else:
-                # 영어 키워드 그대로 사용
-                queries.append(f"({keyword}) AND case report")
+            eng_keyword = keyword_mapping.get(keyword, keyword)
+            # 모든 검색어는 전통의학 필터와 AND 결합
+            queries.append(
+                f"{self.TRADITIONAL_MEDICINE_FILTER} AND ({eng_keyword})"
+            )
 
-        # 기본 쿼리 추가
         if not queries:
-            queries = self.DEFAULT_SEARCH_TERMS[:2]
+            queries = list(self.DEFAULT_SEARCH_TERMS)
 
         return queries
 
