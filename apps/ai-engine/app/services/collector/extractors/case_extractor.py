@@ -102,19 +102,38 @@ class CaseExtractor:
     # 한약 처방명 어미 (이게 없으면 양방 치료로 간주)
     KOREAN_FORMULA_SUFFIXES = ('탕', '산', '환', '단', '음', '원', '전', '방', '제', '고')
 
-    # 침구/약침 등 한의학 치료법 (formula_name 자리에 올 수 있는 것)
+    # 한의학/전통의학 치료법 키워드 (한글 + 영문, 한 가지라도 매칭되면 통과)
     KOREAN_TREATMENT_KEYWORDS = (
-        '침치료', '침구', '약침', '부항', '뜸', '봉약침', '한방',
+        # 한글 — 치료법
+        '침치료', '침구', '약침', '부항', '뜸', '봉약침',
         '아시혈', '체침', '전침', '이침', '두침',
+        # 한글 — 한의학 일반
+        '한방', '한약', '한의학', '한의원', '한의', '본초', '약재',
+        '한약재', '한방치료', '전통의학',
+        # 영문
+        'korean medicine', 'korean traditional', 'traditional korean',
+        'herbal medicine', 'herbal extract', 'herbal formula',
+        'acupuncture', 'acupressure', 'moxibustion', 'cupping',
+        'pharmacopuncture', 'oriental medicine', 'integrative medicine',
+        'chinese herbal', 'traditional chinese medicine',
+        # 대표 한약재 영문 표기
+        'angelica', 'astragalus', 'ginseng', 'rehmannia',
+        'paeonia', 'bupleurum', 'cinnamon', 'licorice',
     )
 
-    # 양방/수의학/수술 키워드 (있으면 reject)
+    # 양방/수의학/수술 키워드 (정확히 매칭하기 위해 단어 경계 의식)
     EXCLUSION_KEYWORDS = (
+        # 한글 — 양방 치료
         '혈액투석', '혈관 중재', '동맥 색전', '복강경', '개복',
-        '수술적 절제', '내시경', '카테터', '스텐트',
-        '강아지', '고양이', '개', '소', '말', '돼지', '동물', '수의', '수의학',
-        'dog', 'cat', 'canine', 'feline', 'veterinary', 'animal',
-        'surgery', 'surgical', 'hemodialysis', 'embolization',
+        '내시경', '카테터', '스텐트', '인공관절', '관절치환',
+        # 한글 — 수의학
+        '강아지', '고양이', '수의학', '수의사',
+        # 영문 — 동물
+        'canine', 'feline', 'veterinary',
+        # 영문 — 양방 치료 (일반 surgery 는 한방 한방외과 가능성 때문에 제외하지 않음;
+        # 대신 구체적 양방 시술명만)
+        'hemodialysis', 'embolization', 'angioplasty', 'endoscopic',
+        'laparoscopic', 'arthroplasty', 'organ transplant',
     )
 
     def __init__(self, use_llm_fallback: bool = True):
@@ -188,18 +207,24 @@ class CaseExtractor:
 [본문]
 {text_excerpt}
 
-엄격한 추출 규칙:
-1. 다음 중 하나 이상이 명확한 경우만 케이스로 인정:
+추출 규칙:
+1. 다음 중 하나 이상이 명확한 경우 케이스로 인정 (광범위):
    - 한약 처방 (○○탕/산/환/단/음/원/전/방/제 형식)
-   - 침구 치료, 약침 치료, 부항, 뜸
-   - 전통의학 외용제, 한방 외치법
-2. 다음은 **반드시 제외** (빈 cases 배열 반환):
-   - 양약/수술/혈액투석/혈관중재/장기이식 등 서양의학 치료
+   - 한약 단방 (당귀/인삼/황기 등 단일 약재 또는 추출물)
+   - 한방 통합치료 (Integrative Korean medicine, Korean medicine intervention)
+   - 침구, 약침, 봉약침, 부항, 뜸, 약침
+   - 전통중의학(TCM) 케이스 (한국어로 번역해 추출)
+2. 다음은 **반드시 제외** (해당 케이스만 빈 객체로 두지 말고 cases에서 빼기):
+   - 인공관절/혈액투석/혈관 중재/색전술 등 양방 시술이 주 치료인 케이스
    - 동물(개/고양이/소 등) 수의학 케이스
-   - review article, RCT, meta-analysis (개별 환자 보고 아님)
-3. 한의학 치료가 한 줄도 안 나오면 즉시 cases: [] 반환.
-4. 영문 논문이면 한국어로 번역. 처방명은 한국식 표기.
-5. 처방명(formula_name)이 없거나 양방 치료면 그 케이스는 제외.
+   - review article, meta-analysis (개별 환자 보고 아님)
+3. 영문 논문이면 모든 텍스트 필드는 한국어로 번역.
+4. 처방명(formula_name) 자리:
+   - 한약 처방이면 한국식 표기 (보중익기탕)
+   - 단방이면 약재명 (당귀, 황기 등)
+   - 침구 위주면 "침치료" 또는 구체 치료명 (전침, 약침 등)
+   - 통합치료면 "한방 통합치료"
+5. 한의학 요소가 본문에 한 줄도 안 나오면 cases: [] 반환.
 
 출력 JSON 스키마:
 {{
