@@ -6,6 +6,7 @@ import { PatientPrescription } from '../../database/entities/patient-prescriptio
 import { PatientAccount } from '../../database/entities/patient-account.entity';
 import { User } from '../../database/entities/user.entity';
 import { UsageTracking } from '../../database/entities/usage-tracking.entity';
+import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
 import { PracticeAnalyticsService } from './practice-analytics.service';
 import { AnalyticsController } from './analytics.controller';
 
@@ -18,6 +19,7 @@ import { AnalyticsController } from './analytics.controller';
       PatientAccount,
       User,
       UsageTracking,
+      AnalyticsEvent,
     ]),
   ],
   controllers: [AnalyticsController],

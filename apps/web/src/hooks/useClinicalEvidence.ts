@@ -1,23 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { useAuthStore } from '@/stores/authStore'
-
-function shouldUseMockFallback() {
-  const state = useAuthStore.getState()
-  return state.isGuest || !state.isAuthenticated
-}
 import type {
   ClinicalEvidenceParams,
   AIReasoningData,
   ScientificEvidenceData,
   TreatmentStatsData,
   SimilarCasesResult,
-} from '@/types/clinical-evidence'
-import {
-  MOCK_REASONING,
-  MOCK_SIMILAR_CASES,
-  MOCK_SCIENTIFIC,
-  MOCK_STATISTICS,
 } from '@/types/clinical-evidence'
 import { transformCaseSearchResponse } from '@/types/case-search'
 
@@ -39,21 +27,13 @@ function useAIReasoning(params: ClinicalEvidenceParams, enabled: boolean) {
   return useQuery({
     queryKey: ['clinical-evidence-reasoning', params.formulaName, params.chiefComplaint],
     queryFn: async (): Promise<AIReasoningData> => {
-      try {
-        const { data } = await api.post('/ai/scientific-rationale/quick-summary', {
-          formula_name: params.formulaName,
-          chief_complaint: params.chiefComplaint,
-          symptoms: params.symptoms.map(s => s.name),
-          constitution: params.constitution,
-        })
-        if (data && data.keyPoints) {
-          return { ...data, _isDemo: false }
-        }
-        return MOCK_REASONING
-      } catch (err) {
-        if (!shouldUseMockFallback()) throw err
-        return MOCK_REASONING
-      }
+      const { data } = await api.post('/ai/scientific-rationale/quick-summary', {
+        formula_name: params.formulaName,
+        chief_complaint: params.chiefComplaint,
+        symptoms: params.symptoms.map(s => s.name),
+        constitution: params.constitution,
+      })
+      return { ...data, _isDemo: false }
     },
     enabled,
     staleTime: 5 * 60 * 1000,
@@ -65,25 +45,17 @@ function useSimilarCases(params: ClinicalEvidenceParams, enabled: boolean) {
   return useQuery({
     queryKey: ['clinical-evidence-similar-cases', params.formulaName, params.chiefComplaint],
     queryFn: async (): Promise<SimilarCasesResult> => {
-      try {
-        const { data } = await api.post('/cases/search', {
-          chief_complaint: params.chiefComplaint,
-          symptoms: params.symptoms.map(s => ({ name: s.name, severity: s.severity })),
-          formula: params.formulaName,
-          options: { top_k: 3, min_confidence: 30 },
-        })
-        if (data && data.results) {
-          const transformed = transformCaseSearchResponse(data)
-          return {
-            cases: transformed.results,
-            totalFound: transformed.totalFound,
-            _isDemo: false,
-          }
-        }
-        return MOCK_SIMILAR_CASES
-      } catch (err) {
-        if (!shouldUseMockFallback()) throw err
-        return MOCK_SIMILAR_CASES
+      const { data } = await api.post('/cases/search', {
+        chief_complaint: params.chiefComplaint,
+        symptoms: params.symptoms.map(s => ({ name: s.name, severity: s.severity })),
+        formula: params.formulaName,
+        options: { top_k: 3, min_confidence: 30 },
+      })
+      const transformed = transformCaseSearchResponse(data)
+      return {
+        cases: transformed.results,
+        totalFound: transformed.totalFound,
+        _isDemo: false,
       }
     },
     enabled,
@@ -96,19 +68,11 @@ function useScientificEvidence(params: ClinicalEvidenceParams, enabled: boolean)
   return useQuery({
     queryKey: ['clinical-evidence-scientific', params.formulaName],
     queryFn: async (): Promise<ScientificEvidenceData> => {
-      try {
-        const { data } = await api.post('/ai/scientific-rationale/generate', {
-          formula_name: params.formulaName,
-          herbs: params.herbs.map(h => h.name),
-        })
-        if (data && data.pharmacologicalActions) {
-          return { ...data, _isDemo: false }
-        }
-        return MOCK_SCIENTIFIC
-      } catch (err) {
-        if (!shouldUseMockFallback()) throw err
-        return MOCK_SCIENTIFIC
-      }
+      const { data } = await api.post('/ai/scientific-rationale/generate', {
+        formula_name: params.formulaName,
+        herbs: params.herbs.map(h => h.name),
+      })
+      return { ...data, _isDemo: false }
     },
     enabled,
     staleTime: 10 * 60 * 1000,
@@ -120,20 +84,12 @@ function useTreatmentStatistics(params: ClinicalEvidenceParams, enabled: boolean
   return useQuery({
     queryKey: ['clinical-evidence-statistics', params.formulaName, params.chiefComplaint],
     queryFn: async (): Promise<TreatmentStatsData> => {
-      try {
-        const { data } = await api.post('/ai/statistics/similar-patients', {
-          formula_name: params.formulaName,
-          chief_complaint: params.chiefComplaint,
-          symptoms: params.symptoms.map(s => s.name),
-        })
-        if (data && data.overallSuccessRate !== undefined) {
-          return { ...data, _isDemo: false }
-        }
-        return MOCK_STATISTICS
-      } catch (err) {
-        if (!shouldUseMockFallback()) throw err
-        return MOCK_STATISTICS
-      }
+      const { data } = await api.post('/ai/statistics/similar-patients', {
+        formula_name: params.formulaName,
+        chief_complaint: params.chiefComplaint,
+        symptoms: params.symptoms.map(s => s.name),
+      })
+      return { ...data, _isDemo: false }
     },
     enabled,
     staleTime: 5 * 60 * 1000,

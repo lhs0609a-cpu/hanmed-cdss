@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, BadGatewayException, RequestTimeoutException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 
@@ -69,8 +69,9 @@ export class LlmService {
     currentMedications?: string[];
   }): Promise<RecommendationResult> {
     if (!this.client) {
-      console.warn('⚠️ OpenAI API 키가 설정되지 않아 더미 데이터를 반환합니다.');
-      return this.getFallbackRecommendation(patientInfo, 'api_key_missing');
+      throw new ServiceUnavailableException(
+        'AI 추천 서비스가 설정되지 않았습니다. (OPENAI_API_KEY 환경변수 필요)',
+      );
     }
 
     const medicationsText = patientInfo.currentMedications?.join(', ') || '없음';
@@ -142,24 +143,24 @@ JSON 형식:
     } catch (error: any) {
       console.error('❌ LLM 호출 오류:', error);
 
-      // 오류 유형 분류
-      let errorType: RecommendationResult['errorType'] = 'api_error';
-
       if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
-        errorType = 'timeout';
-      } else if (error.status === 429 || error.message?.includes('rate limit')) {
-        errorType = 'rate_limit';
-      } else if (error.status === 401 || error.status === 403) {
-        errorType = 'api_key_missing';
+        throw new RequestTimeoutException('AI 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
       }
-
-      return this.getFallbackRecommendation(patientInfo, errorType);
+      if (error.status === 429 || error.message?.includes('rate limit')) {
+        throw new ServiceUnavailableException('AI 사용 한도에 도달했습니다. 잠시 후 다시 시도해주세요.');
+      }
+      if (error.status === 401 || error.status === 403) {
+        throw new ServiceUnavailableException('AI 서비스 인증에 실패했습니다. 운영자에게 문의하세요.');
+      }
+      throw new BadGatewayException(`AI 추천 생성 실패: ${error.message || 'unknown error'}`);
     }
   }
 
   async generatePatientExplanation(prompt: string, context?: string): Promise<string> {
     if (!this.client) {
-      return '현재 AI 서비스가 설정되지 않았습니다.';
+      throw new ServiceUnavailableException(
+        'AI 설명 생성 서비스가 설정되지 않았습니다. (OPENAI_API_KEY 필요)',
+      );
     }
 
     const systemPrompt = `당신은 한의학 전문가로서 환자에게 진료 내용을 쉽게 설명하는 역할을 합니다.
@@ -180,9 +181,9 @@ JSON 형식:
       });
 
       return response.choices[0]?.message?.content || '';
-    } catch (error) {
+    } catch (error: any) {
       console.error('LLM 호출 오류:', error);
-      return '설명을 생성하는 중 오류가 발생했습니다.';
+      throw new BadGatewayException(`AI 설명 생성 실패: ${error.message || 'unknown error'}`);
     }
   }
 
@@ -201,67 +202,6 @@ JSON 형식:
         analysis: content,
       };
     }
-  }
-
-  /**
-   * AI 실패 시 반환할 폴백 응답 (명확한 경고 포함)
-   */
-  private getFallbackRecommendation(
-    patientInfo: any,
-    errorType: RecommendationResult['errorType']
-  ): RecommendationResult {
-    // 체열/근실도에 따른 기본 처방 선택
-    const bodyHeat = patientInfo.bodyHeat;
-    const bodyStrength = patientInfo.bodyStrength;
-
-    let formula = {
-      formula_name: '이중탕',
-      confidence_score: 0.50, // 낮은 신뢰도 표시
-      herbs: [
-        { name: '인삼', amount: '6g', role: '군' },
-        { name: '백출', amount: '8g', role: '신' },
-        { name: '건강', amount: '4g', role: '신' },
-        { name: '감초', amount: '3g', role: '사' },
-      ],
-      rationale: '비위허한증에 대한 대표 처방으로 제안됩니다.',
-      constitution_fit: '온보성(溫補性) 처방입니다.',
-    };
-
-    // 열증 환자의 경우 다른 처방 제안
-    if (bodyHeat === 'hot') {
-      formula = {
-        formula_name: '육미지황환',
-        confidence_score: 0.50,
-        herbs: [
-          { name: '숙지황', amount: '24g', role: '군' },
-          { name: '산수유', amount: '12g', role: '신' },
-          { name: '산약', amount: '12g', role: '신' },
-          { name: '택사', amount: '9g', role: '좌' },
-          { name: '목단피', amount: '9g', role: '좌' },
-          { name: '복령', amount: '9g', role: '사' },
-        ],
-        rationale: '음허(陰虛)를 보충하는 대표 처방입니다.',
-        constitution_fit: '량성(凉性) 처방입니다.',
-      };
-    }
-
-    // 오류 유형별 경고 메시지
-    const warningMessages: Record<string, string> = {
-      api_key_missing: '⚠️ AI 서비스가 설정되지 않았습니다. 아래 처방은 기본 추천으로, AI 분석이 아닙니다. 반드시 한의사의 전문적 판단에 따라 처방을 결정하십시오.',
-      api_error: '⚠️ AI 서비스 오류가 발생했습니다. 아래 처방은 응급 대체 추천으로, 정확도가 낮을 수 있습니다. 반드시 한의사의 전문적 판단이 필요합니다.',
-      timeout: '⚠️ AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요. 아래는 기본 추천입니다.',
-      rate_limit: '⚠️ AI 서비스 사용 한도에 도달했습니다. 잠시 후 다시 시도해 주세요. 아래는 기본 추천입니다.',
-      parse_error: '⚠️ AI 응답을 처리하는 중 오류가 발생했습니다. 아래는 기본 추천입니다.',
-    };
-
-    return {
-      recommendations: [formula],
-      analysis: `⚠️ AI 분석 불가 - 기본 추천\n\n환자의 주소증 '${patientInfo.chiefComplaint}'과 체열(${this.getBodyHeatText(bodyHeat)}), 근실도(${this.getBodyStrengthText(bodyStrength)})를 기반으로 한 기본 추천입니다.`,
-      isAiGenerated: false,
-      errorType,
-      warning: warningMessages[errorType || 'api_error'],
-      cautions: '🔴 중요: 이 추천은 AI 분석이 아닌 기본 데이터베이스 기반입니다. 환자의 개별 상황을 반드시 고려하여 한의사의 전문적 판단에 따라 처방을 결정하십시오.',
-    };
   }
 
   /**

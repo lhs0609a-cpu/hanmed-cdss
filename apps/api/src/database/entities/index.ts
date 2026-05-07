@@ -64,3 +64,6 @@ export * from './herb-inventory.entity';
 export * from './saju-report.entity';
 export * from './saju-report-section.entity';
 export * from './saju-purchase.entity';
+
+// Analytics events
+export * from './analytics-event.entity';

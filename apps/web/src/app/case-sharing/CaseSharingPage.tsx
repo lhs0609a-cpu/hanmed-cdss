@@ -26,14 +26,12 @@ import {
 } from '@/hooks/useCaseSharing';
 
 const categoryLabels: Record<string, string> = {
-  internal: '내과',
-  external: '외과',
-  acupuncture: '침구',
-  herbal: '한약',
-  combined: '복합',
-  pediatric: '소아',
-  gynecology: '부인과',
-  other: '기타',
+  diagnosis: '진단',
+  treatment: '치료',
+  prescription: '처방',
+  adverse: '부작용/이상반응',
+  difficult: '난치',
+  discussion: '토론',
 };
 
 const difficultyLabels: Record<string, { label: string; color: string }> = {

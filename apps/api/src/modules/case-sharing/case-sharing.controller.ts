@@ -14,7 +14,6 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
@@ -34,23 +33,20 @@ import { SharedCaseStatus, CaseCategory, CaseDifficulty } from '../../database/e
 @ApiTags('Case Sharing Network')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('cases')
+@Controller('case-sharing')
 export class CaseSharingController {
   constructor(private readonly caseSharingService: CaseSharingService) {}
 
   // ============ Cases ============
 
-  @Post()
-  @ApiOperation({ summary: '케이스 공유', description: '익명으로 케이스를 공유합니다.' })
-  async createCase(
-    @Request() req: any,
-    @Body() dto: CreateSharedCaseDto,
-  ) {
+  @Post('cases')
+  @ApiOperation({ summary: '케이스 공유' })
+  async createCase(@Request() req: any, @Body() dto: CreateSharedCaseDto) {
     const result = await this.caseSharingService.createCase(req.user.id, dto);
     return { success: true, data: result };
   }
 
-  @Get()
+  @Get('cases')
   @ApiOperation({ summary: '케이스 목록 조회' })
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'category', enum: CaseCategory, required: false })
@@ -60,28 +56,76 @@ export class CaseSharingController {
   @ApiQuery({ name: 'limit', type: Number, required: false })
   async getCases(@Query() query: SearchCasesDto) {
     const result = await this.caseSharingService.getCases(query);
+    const cases = result.cases || [];
+    const total = result.total || 0;
+    const page = result.page || 1;
+    const limit = result.limit || 20;
+    return {
+      success: true,
+      data: { cases, total, page, hasMore: page * limit < total },
+    };
+  }
+
+  @Get('cases/featured')
+  @ApiOperation({ summary: '추천 케이스 조회' })
+  async getFeaturedCases() {
+    const result = await this.caseSharingService.getFeaturedCases();
     return { success: true, data: result };
   }
 
-  @Get('statistics')
-  @ApiOperation({ summary: '커뮤니티 통계' })
-  async getStatistics() {
+  @Get('cases/bookmarked')
+  @ApiOperation({ summary: '북마크한 케이스' })
+  async getBookmarkedCases(@Request() req: any) {
+    const result = await this.caseSharingService.getBookmarks(req.user.id);
+    return { success: true, data: result };
+  }
+
+  @Get('cases/mine')
+  @ApiOperation({ summary: '내가 작성한 케이스' })
+  async getMyCases(@Request() req: any) {
+    const result = await this.caseSharingService.getMyCases(req.user.id);
+    return { success: true, data: result };
+  }
+
+  @Get('cases/similar')
+  @ApiOperation({ summary: '유사 케이스 검색 (증상 기반)' })
+  async getSimilarBySymptoms(
+    @Query('symptoms') symptoms?: string,
+    @Query('constitution') constitution?: string,
+  ) {
+    const symptomList = symptoms ? symptoms.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const result = await this.caseSharingService.findSimilarBySymptoms(symptomList, constitution);
+    return { success: true, data: result };
+  }
+
+  @Get('cases/statistics')
+  @ApiOperation({ summary: '케이스 통계' })
+  async getCasesStatistics() {
     const result = await this.caseSharingService.getStatistics();
     return { success: true, data: result };
   }
 
-  @Get(':id')
+  @Get('cases/:id')
   @ApiOperation({ summary: '케이스 상세 조회' })
   @ApiParam({ name: 'id', description: '케이스 ID' })
-  async getCase(
-    @Request() req: any,
-    @Param('id') id: string,
-  ) {
+  async getCase(@Request() req: any, @Param('id') id: string) {
     const result = await this.caseSharingService.getCase(id, req.user.id);
     return { success: true, data: result };
   }
 
-  @Put(':id/status')
+  @Put('cases/:id')
+  @ApiOperation({ summary: '케이스 수정' })
+  @ApiParam({ name: 'id', description: '케이스 ID' })
+  async updateCase(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateSharedCaseDto>,
+  ) {
+    const result = await this.caseSharingService.updateCase(id, req.user.id, dto);
+    return { success: true, data: result };
+  }
+
+  @Put('cases/:id/status')
   @ApiOperation({ summary: '케이스 상태 변경' })
   @ApiParam({ name: 'id', description: '케이스 ID' })
   async updateCaseStatus(
@@ -93,19 +137,29 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
-  @Get(':id/similar')
-  @ApiOperation({ summary: '유사 케이스 조회' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
-  async getSimilarCases(@Param('id') id: string) {
+  @Post('cases/:id/publish')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '케이스 발행 (드래프트 → 공개)' })
+  async publishCase(@Request() req: any, @Param('id') id: string) {
+    const result = await this.caseSharingService.updateCaseStatus(
+      id,
+      req.user.id,
+      SharedCaseStatus.OPEN,
+    );
+    return { success: true, data: result };
+  }
+
+  @Get('cases/:id/similar')
+  @ApiOperation({ summary: '특정 케이스 기준 유사 케이스' })
+  async getSimilarById(@Param('id') id: string) {
     const result = await this.caseSharingService.findSimilarCases(id);
     return { success: true, data: result };
   }
 
   // ============ Comments ============
 
-  @Post(':id/comments')
-  @ApiOperation({ summary: '댓글/답변 작성' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
+  @Post('cases/:id/comments')
+  @ApiOperation({ summary: '댓글 작성' })
   async createComment(
     @Request() req: any,
     @Param('id') id: string,
@@ -115,19 +169,16 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
-  @Get(':id/comments')
+  @Get('cases/:id/comments')
   @ApiOperation({ summary: '댓글 목록 조회' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
   async getComments(@Param('id') id: string) {
     const result = await this.caseSharingService.getComments(id);
     return { success: true, data: result };
   }
 
-  @Post(':id/comments/:commentId/accept')
+  @Post('cases/:id/comments/:commentId/accept')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '답변 채택' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
-  @ApiParam({ name: 'commentId', description: '댓글 ID' })
   async acceptAnswer(
     @Request() req: any,
     @Param('id') id: string,
@@ -137,12 +188,19 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
-  // ============ Votes ============
+  // ============ Likes / Votes ============
 
-  @Post(':id/vote')
+  @Post('cases/:id/like')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '케이스 좋아요 토글' })
+  async toggleLike(@Request() req: any, @Param('id') id: string) {
+    const result = await this.caseSharingService.toggleLike(req.user.id, id);
+    return { success: true, data: result };
+  }
+
+  @Post('cases/:id/vote')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '케이스 투표' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
   async voteCase(
     @Request() req: any,
     @Param('id') id: string,
@@ -152,10 +210,9 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
-  @Post('comments/:commentId/vote')
+  @Post('cases/comments/:commentId/vote')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '댓글 투표' })
-  @ApiParam({ name: 'commentId', description: '댓글 ID' })
   async voteComment(
     @Request() req: any,
     @Param('commentId') commentId: string,
@@ -167,10 +224,9 @@ export class CaseSharingController {
 
   // ============ Bookmarks ============
 
-  @Post(':id/bookmark')
+  @Post('cases/:id/bookmark')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '북마크 토글' })
-  @ApiParam({ name: 'id', description: '케이스 ID' })
   async toggleBookmark(
     @Request() req: any,
     @Param('id') id: string,
@@ -180,21 +236,11 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
-  @Get('user/bookmarks')
-  @ApiOperation({ summary: '내 북마크 조회' })
-  async getMyBookmarks(@Request() req: any) {
-    const result = await this.caseSharingService.getBookmarks(req.user.id);
-    return { success: true, data: result };
-  }
-
   // ============ Mentorship ============
 
   @Post('mentorship/request')
   @ApiOperation({ summary: '멘토링 요청' })
-  async requestMentorship(
-    @Request() req: any,
-    @Body() dto: RequestMentorshipDto,
-  ) {
+  async requestMentorship(@Request() req: any, @Body() dto: RequestMentorshipDto) {
     const result = await this.caseSharingService.requestMentorship(req.user.id, dto);
     return { success: true, data: result };
   }
@@ -202,7 +248,6 @@ export class CaseSharingController {
   @Post('mentorship/:id/respond')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '멘토링 요청 응답' })
-  @ApiParam({ name: 'id', description: '멘토링 ID' })
   async respondToMentorship(
     @Request() req: any,
     @Param('id') id: string,
@@ -212,20 +257,41 @@ export class CaseSharingController {
     return { success: true, data: result };
   }
 
+  @Get('mentorship/mine')
+  @ApiOperation({ summary: '내 멘토링 (mentee 입장)' })
+  async getMyMentorships(@Request() req: any) {
+    const result = await this.caseSharingService.getMyMentorships(req.user.id);
+    return { success: true, data: result };
+  }
+
+  @Get('mentorship/requests')
+  @ApiOperation({ summary: '내가 받은 멘토링 요청 (mentor 입장)' })
+  async getMentorshipRequests(@Request() req: any) {
+    const result = await this.caseSharingService.getMentorshipRequests(req.user.id);
+    return { success: true, data: result };
+  }
+
   // ============ Experts ============
 
-  @Get('experts/list')
-  @ApiOperation({ summary: '전문가 목록 조회' })
-  @ApiQuery({ name: 'specialization', required: false })
-  @ApiQuery({ name: 'mentoringOnly', type: Boolean, required: false })
+  @Get('experts')
+  @ApiOperation({ summary: '전문가 목록' })
+  @ApiQuery({ name: 'specialty', required: false })
+  @ApiQuery({ name: 'availableOnly', type: Boolean, required: false })
   async getExperts(
-    @Query('specialization') specialization?: string,
-    @Query('mentoringOnly') mentoringOnly?: boolean,
+    @Query('specialty') specialty?: string,
+    @Query('availableOnly') availableOnly?: boolean,
   ) {
     const result = await this.caseSharingService.getExperts({
-      specialization,
-      mentoringOnly,
+      specialization: specialty,
+      mentoringOnly: availableOnly,
     });
+    return { success: true, data: result };
+  }
+
+  @Get('experts/:id')
+  @ApiOperation({ summary: '전문가 상세' })
+  async getExpert(@Param('id') id: string) {
+    const result = await this.caseSharingService.getExpert(id);
     return { success: true, data: result };
   }
 
@@ -236,6 +302,22 @@ export class CaseSharingController {
     @Body() dto: CreateExpertProfileDto,
   ) {
     const result = await this.caseSharingService.upsertExpertProfile(req.user.id, dto);
+    return { success: true, data: result };
+  }
+
+  // ============ Stats / Tags ============
+
+  @Get('statistics')
+  @ApiOperation({ summary: '커뮤니티 통계' })
+  async getStatistics() {
+    const result = await this.caseSharingService.getStatistics();
+    return { success: true, data: result };
+  }
+
+  @Get('tags/popular')
+  @ApiOperation({ summary: '인기 태그' })
+  async getPopularTags() {
+    const result = await this.caseSharingService.getPopularTags();
     return { success: true, data: result };
   }
 }

@@ -20,8 +20,11 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PracticeAnalyticsService } from './practice-analytics.service';
+import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
 import { PeriodType } from './dto';
 
 // 이벤트 타입 정의
@@ -44,7 +47,11 @@ interface TrackedEvent {
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 
-  constructor(private readonly analyticsService: PracticeAnalyticsService) {}
+  constructor(
+    private readonly analyticsService: PracticeAnalyticsService,
+    @InjectRepository(AnalyticsEvent)
+    private readonly eventRepository: Repository<AnalyticsEvent>,
+  ) {}
 
   /**
    * 대시보드 요약 데이터
@@ -152,6 +159,20 @@ export class AnalyticsController {
   }
 
   /**
+   * 최근 활동 피드
+   */
+  @Get('recent-activity')
+  @ApiOperation({ summary: '최근 활동 피드', description: '진료/처방 최근 활동 합산' })
+  async getRecentActivity(
+    @Request() req: any,
+    @Query('limit') limit?: string,
+  ) {
+    const max = Math.min(50, Math.max(1, Number(limit) || 10));
+    const result = await this.analyticsService.getRecentActivityFeed(req.user.id, max);
+    return { success: true, data: result };
+  }
+
+  /**
    * 클라이언트 이벤트 수집
    * 사용자 행동 분석용 이벤트를 배치로 수집합니다.
    */
@@ -168,27 +189,24 @@ export class AnalyticsController {
       return { success: false, message: 'Invalid events format' };
     }
 
-    // 이벤트 처리 (비동기, 실패해도 무시)
-    // 실제 프로덕션에서는 Kafka, Redis Queue 등으로 비동기 처리 권장
     try {
-      // 간단한 로깅 (개발 환경)
-      if (process.env.NODE_ENV === 'development') {
-        this.logger.debug(`이벤트 수신: ${events.length}건`);
-        events.forEach((e) => {
-          this.logger.debug(`  - ${e.type}: ${JSON.stringify(e.properties)}`);
-        });
-      }
-
-      // TODO: 이벤트 저장 로직 구현
-      // - Elasticsearch로 전송
-      // - 또는 TimescaleDB에 저장
-      // - 또는 Google Analytics / Mixpanel로 전달
-
-      // 현재는 집계용 카운터만 업데이트 (메모리 내)
-      // 실제로는 DB나 외부 서비스에 저장해야 함
+      const rows = events.map((e) =>
+        this.eventRepository.create({
+          type: e.type,
+          properties: e.properties || {},
+          userId: e.userId || null,
+          userTier: e.userTier || null,
+          sessionId: e.sessionId,
+          userAgent: e.userAgent || null,
+          screenSize: e.screenSize || null,
+          locale: e.locale || null,
+          occurredAt: e.timestamp ? new Date(e.timestamp) : null,
+        }),
+      );
+      await this.eventRepository.save(rows, { chunk: 100 });
     } catch (error) {
-      this.logger.error('이벤트 처리 실패:', error);
-      // 실패해도 클라이언트에는 성공 반환 (분석 데이터는 크리티컬하지 않음)
+      this.logger.error('이벤트 저장 실패:', error);
+      // 분석 이벤트는 비크리티컬 - 실패해도 200 반환
     }
 
     return { success: true, received: events.length };

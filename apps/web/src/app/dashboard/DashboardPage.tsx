@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
@@ -85,16 +87,37 @@ const stats = [
 
 // quickActions는 컴포넌트 내에서 동적으로 생성됨 (아래 참조)
 
-// TODO: 실제 사용자 활동 데이터를 API에서 가져오도록 변경
-const recentActivities: Array<{
-  type: string
+interface RecentActivityItem {
+  type: 'consultation' | 'prescription'
   title: string
   description: string
   time: string
-  icon: typeof Stethoscope
-  iconBg: string
-  iconColor: string
-}> = []
+  patientId?: string
+}
+
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  if (Number.isNaN(diffMs)) return ''
+  const min = Math.floor(diffMs / 60_000)
+  if (min < 1) return '방금 전'
+  if (min < 60) return `${min}분 전`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}시간 전`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day}일 전`
+  return new Date(iso).toLocaleDateString('ko-KR')
+}
+
+function useRecentActivities() {
+  return useQuery({
+    queryKey: ['dashboard-recent-activity'],
+    queryFn: async () => {
+      const { data } = await api.get('/analytics/recent-activity?limit=8')
+      return data.data as RecentActivityItem[]
+    },
+    staleTime: 60_000,
+  })
+}
 
 export default function DashboardPage() {
   useSEO(PAGE_SEO.dashboard)
@@ -103,6 +126,8 @@ export default function DashboardPage() {
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
   const currentHour = new Date().getHours()
+  const recentActivityQuery = useRecentActivities()
+  const recentActivities = recentActivityQuery.data ?? []
 
   // 동적 quickActions (치험례 수 반영)
   const quickActions = useMemo(() => [
@@ -317,22 +342,40 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <div className={`p-2.5 ${activity.iconBg} rounded-xl`}>
-                    <activity.icon className={`h-5 w-5 ${activity.iconColor}`} />
+            {recentActivityQuery.isLoading ? (
+              <div className="text-center py-8 text-gray-400">
+                <p className="text-sm">불러오는 중...</p>
+              </div>
+            ) : recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => {
+                const isConsultation = activity.type === 'consultation'
+                const Icon = isConsultation ? Stethoscope : BookOpen
+                const iconBg = isConsultation ? 'bg-teal-50' : 'bg-blue-50'
+                const iconColor = isConsultation ? 'text-teal-600' : 'text-blue-600'
+                return (
+                  <div
+                    key={index}
+                    onClick={() =>
+                      activity.patientId &&
+                      navigate(`/dashboard/patients/${activity.patientId}`)
+                    }
+                    className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <div className={`p-2.5 ${iconBg} rounded-xl`}>
+                      <Icon className={`h-5 w-5 ${iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900">{activity.title}</p>
+                      <p className="text-sm text-gray-500 mt-0.5 truncate">
+                        {activity.description}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {formatRelativeTime(activity.time)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-500 mt-0.5 truncate">{activity.description}</p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="text-center py-8 text-gray-400">
                 <Stethoscope className="h-10 w-10 mx-auto mb-3 opacity-50" />

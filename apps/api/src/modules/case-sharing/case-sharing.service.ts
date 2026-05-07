@@ -162,7 +162,83 @@ export class CaseSharingService {
   }
 
   /**
-   * 유사 케이스 검색
+   * 케이스 수정
+   */
+  async updateCase(
+    caseId: string,
+    userId: string,
+    data: Partial<SharedCase>,
+  ): Promise<SharedCase> {
+    const sharedCase = await this.caseRepository.findOne({ where: { id: caseId } });
+    if (!sharedCase) {
+      throw new NotFoundException('케이스를 찾을 수 없습니다.');
+    }
+    if (sharedCase.authorId !== userId) {
+      throw new ForbiddenException('본인이 작성한 케이스만 수정할 수 있습니다.');
+    }
+    const updatable: Array<keyof SharedCase> = [
+      'title',
+      'content',
+      'category',
+      'difficulty',
+      'patientInfo',
+      'triedTreatments',
+      'questions',
+      'tags',
+    ];
+    for (const key of updatable) {
+      if (data[key] !== undefined) (sharedCase as any)[key] = data[key];
+    }
+    return this.caseRepository.save(sharedCase);
+  }
+
+  /**
+   * 추천 케이스 목록
+   */
+  async getFeaturedCases(): Promise<SharedCase[]> {
+    return this.caseRepository.find({
+      where: { status: SharedCaseStatus.RESOLVED },
+      order: { voteCount: 'DESC', viewCount: 'DESC' },
+      take: 10,
+    });
+  }
+
+  /**
+   * 내 케이스
+   */
+  async getMyCases(userId: string): Promise<SharedCase[]> {
+    return this.caseRepository.find({
+      where: { authorId: userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * 증상 기반 유사 케이스 검색
+   */
+  async findSimilarBySymptoms(
+    symptoms: string[],
+    constitution?: string,
+  ): Promise<SharedCase[]> {
+    if (symptoms.length === 0) return [];
+
+    const queryBuilder = this.caseRepository.createQueryBuilder('case');
+    for (const symptom of symptoms) {
+      queryBuilder.orWhere(
+        `case.patientInfo->'mainSymptoms' @> :symptom::jsonb`,
+        { symptom: JSON.stringify([symptom]) },
+      );
+    }
+    if (constitution) {
+      queryBuilder.andWhere(`case.patientInfo->>'constitution' = :constitution`, {
+        constitution,
+      });
+    }
+    return queryBuilder.orderBy('case.voteCount', 'DESC').take(10).getMany();
+  }
+
+  /**
+   * 유사 케이스 검색 (특정 케이스 기준)
    */
   async findSimilarCases(caseId: string): Promise<SharedCase[]> {
     const targetCase = await this.getCase(caseId);
@@ -359,6 +435,31 @@ export class CaseSharingService {
     return { voteCount: 0 };
   }
 
+  // ============ Likes ============
+
+  /**
+   * 좋아요 토글 (vote=up 의 alias)
+   */
+  async toggleLike(
+    userId: string,
+    caseId: string,
+  ): Promise<{ liked: boolean; voteCount: number }> {
+    const existing = await this.voteRepository.findOne({
+      where: { userId, caseId, voteType: 'up' },
+    });
+    if (existing) {
+      await this.voteRepository.remove(existing);
+      await this.caseRepository.decrement({ id: caseId }, 'voteCount', 1);
+      const c = await this.caseRepository.findOne({ where: { id: caseId } });
+      return { liked: false, voteCount: c?.voteCount || 0 };
+    }
+    const vote = this.voteRepository.create({ userId, caseId, voteType: 'up' });
+    await this.voteRepository.save(vote);
+    await this.caseRepository.increment({ id: caseId }, 'voteCount', 1);
+    const c = await this.caseRepository.findOne({ where: { id: caseId } });
+    return { liked: true, voteCount: c?.voteCount || 0 };
+  }
+
   // ============ Bookmarks ============
 
   /**
@@ -461,7 +562,41 @@ export class CaseSharingService {
     return this.mentorshipRepository.save(mentorship);
   }
 
+  /**
+   * 내 멘토링 (mentee 입장)
+   */
+  async getMyMentorships(menteeId: string): Promise<CaseMentorship[]> {
+    return this.mentorshipRepository.find({
+      where: { menteeId },
+      relations: ['mentor', 'case'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * 받은 멘토링 요청 (mentor 입장)
+   */
+  async getMentorshipRequests(mentorId: string): Promise<CaseMentorship[]> {
+    return this.mentorshipRepository.find({
+      where: { mentorId },
+      relations: ['mentee', 'case'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   // ============ Expert Profiles ============
+
+  /**
+   * 전문가 단건 조회
+   */
+  async getExpert(expertId: string): Promise<ExpertProfile> {
+    const expert = await this.expertProfileRepository.findOne({
+      where: { id: expertId },
+      relations: ['user'],
+    });
+    if (!expert) throw new NotFoundException('전문가를 찾을 수 없습니다.');
+    return expert;
+  }
 
   /**
    * 전문가 프로필 생성/수정
@@ -560,6 +695,23 @@ export class CaseSharingService {
         acceptedCount: p.acceptedAnswerCount,
       })),
     };
+  }
+
+  /**
+   * 인기 태그 (사용 빈도순)
+   */
+  async getPopularTags(): Promise<Array<{ tag: string; count: number }>> {
+    const cases = await this.caseRepository.find({ select: ['tags'] });
+    const counter = new Map<string, number>();
+    for (const c of cases) {
+      for (const t of c.tags || []) {
+        counter.set(t, (counter.get(t) || 0) + 1);
+      }
+    }
+    return Array.from(counter.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 30);
   }
 
   // ============ Private Helpers ============

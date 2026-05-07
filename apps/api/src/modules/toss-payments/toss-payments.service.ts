@@ -370,7 +370,14 @@ export class TossPaymentsService {
         `자동 환불 실패 - 수동 확인 필요: paymentKey=${paymentKey}, orderId=${orderId}`,
         refundError,
       );
-      // TODO: 관리자에게 알림 발송 (이메일/슬랙 등)
+      const errorBody =
+        refundError instanceof Error
+          ? `${refundError.message}\n${refundError.stack || ''}`
+          : JSON.stringify(refundError);
+      await this.emailService.sendAdminAlert(
+        '결제 자동 환불 실패 - 수동 확인 필요',
+        `paymentKey=${paymentKey}\norderId=${orderId}\namount=${amount}\n\n${errorBody}`,
+      );
     }
   }
 

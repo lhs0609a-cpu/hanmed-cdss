@@ -135,6 +135,82 @@ export class PracticeAnalyticsService {
   }
 
   /**
+   * 최근 활동 피드 (대시보드용)
+   * 최근 진료기록 + 처방 발행 이벤트를 합쳐서 시간순 반환
+   */
+  async getRecentActivityFeed(
+    practitionerId: string,
+    limit = 10,
+  ): Promise<
+    Array<{
+      type: 'consultation' | 'prescription';
+      title: string;
+      description: string;
+      time: string;
+      patientId?: string;
+    }>
+  > {
+    const records = await this.patientRecordRepository.find({
+      where: { practitionerId },
+      order: { visitDate: 'DESC', createdAt: 'DESC' },
+      take: limit,
+      relations: ['patient'],
+    });
+
+    const prescriptions = await this.prescriptionRepository.find({
+      where: { practitionerId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+      relations: ['patient'],
+    });
+
+    const items: Array<{
+      type: 'consultation' | 'prescription';
+      title: string;
+      description: string;
+      time: string;
+      patientId?: string;
+      _ts: number;
+    }> = [];
+
+    for (const r of records) {
+      const ts = ((r as any).visitDate || (r as any).createdAt || new Date()).valueOf();
+      const patientName = (r as any).patient?.name || '환자';
+      const summary =
+        (r as any).chiefComplaintPatient ||
+        (r as any).diagnosisSummary ||
+        '진료기록';
+      items.push({
+        type: 'consultation',
+        title: '진료 완료',
+        description: `${patientName} - ${summary}`,
+        time: new Date(ts).toISOString(),
+        patientId: (r as any).patientId,
+        _ts: ts,
+      });
+    }
+
+    for (const p of prescriptions) {
+      const ts = (p.createdAt || new Date()).valueOf();
+      const patientName = (p as any).patient?.name || '환자';
+      const formula = (p as any).formulaName || (p as any).name || '처방';
+      items.push({
+        type: 'prescription',
+        title: '처방 발행',
+        description: `${patientName} - ${formula}`,
+        time: new Date(ts).toISOString(),
+        patientId: (p as any).patientAccountId,
+        _ts: ts,
+      });
+    }
+
+    return items
+      .sort((a, b) => b._ts - a._ts)
+      .slice(0, limit)
+      .map(({ _ts, ...rest }) => rest);
+  }
+
+  /**
    * 실시간 대시보드 데이터
    */
   async getDashboardData(practitionerId: string): Promise<DashboardData> {
