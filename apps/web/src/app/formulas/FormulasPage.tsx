@@ -8,10 +8,13 @@ import {
   Loader2,
   Leaf,
   Filter,
+  Pill,
+  Building2,
 } from 'lucide-react'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
+import { useMfdsDrugSearch, type MfdsListItem } from '@/hooks/useMfdsDrug'
 
 interface FormulaHerb {
   id: string
@@ -114,6 +117,8 @@ export default function FormulasPage() {
   const [selectedCategory, setSelectedCategory] = useState('전체')
   const [selectedSchool, setSelectedSchool] = useState<MedicineSchool | 'all'>('all')
   const [page, setPage] = useState(1)
+  const [mfdsEnabled, setMfdsEnabled] = useState(false)
+  const [submittedQuery, setSubmittedQuery] = useState('')
 
   const {
     data: allFormulas = [],
@@ -163,7 +168,19 @@ export default function FormulasPage() {
 
   const handleSearch = () => {
     setPage(1)
+    setSubmittedQuery(searchQuery.trim())
   }
+
+  const mfdsQuery = mfdsEnabled && submittedQuery ? submittedQuery : null
+  const {
+    data: mfdsData,
+    isLoading: mfdsLoading,
+    isError: mfdsError,
+  } = useMfdsDrugSearch(mfdsQuery, { limit: 12 })
+
+  const mfdsItems: MfdsListItem[] = (mfdsData?.items || []).filter(
+    (it) => !it.CANCEL_NAME || it.CANCEL_NAME === '정상',
+  )
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
@@ -213,6 +230,20 @@ export default function FormulasPage() {
           </div>
         </div>
 
+        {/* MFDS toggle */}
+        <div className="mt-3 flex items-center gap-2">
+          <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
+            <input
+              type="checkbox"
+              checked={mfdsEnabled}
+              onChange={(e) => setMfdsEnabled(e.target.checked)}
+              className="rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+            />
+            <Pill className="h-4 w-4 text-blue-500" />
+            식약처 시판 의약품(NEDRUG)도 함께 검색
+          </label>
+        </div>
+
         {/* Category Filter */}
         <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2">
           <Filter className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -243,6 +274,71 @@ export default function FormulasPage() {
           />
         </div>
       </div>
+
+      {/* MFDS results panel */}
+      {mfdsEnabled && submittedQuery && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Pill className="h-5 w-5 text-blue-500" />
+              식약처 시판 의약품 ({mfdsItems.length}건)
+            </h2>
+            <span className="text-xs text-gray-400">검색어: "{submittedQuery}"</span>
+          </div>
+
+          {mfdsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+            </div>
+          ) : mfdsError ? (
+            <p className="text-sm text-gray-500 py-4">
+              식약처 정보를 불러오지 못했습니다.
+            </p>
+          ) : mfdsItems.length === 0 ? (
+            <p className="text-sm text-gray-500 py-4">
+              일치하는 시판 의약품이 없습니다.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {mfdsItems.slice(0, 10).map((it) => (
+                <Link
+                  key={it.ITEM_SEQ}
+                  to={`/formulas?mfds=${encodeURIComponent(it.ITEM_NAME)}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setSearchQuery(it.ITEM_NAME)
+                    setSubmittedQuery(it.ITEM_NAME)
+                  }}
+                  className="border border-gray-100 rounded-xl p-3 hover:border-blue-200 hover:bg-blue-50/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+                      {it.ITEM_NAME}
+                    </h3>
+                    {it.SPCLTY_PBLC && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded shrink-0">
+                        {it.SPCLTY_PBLC}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Building2 className="h-3 w-3" />
+                    {it.ENTP_NAME}
+                  </p>
+                  {it.ITEM_INGR_NAME && (
+                    <p className="text-xs text-gray-400 line-clamp-1 mt-1">
+                      성분: {it.ITEM_INGR_NAME}
+                    </p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 mt-3">
+            * 일치하는 처방을 누르면 처방 상세 페이지에서 식약처 허가 정보 전체를 확인할 수 있습니다.
+          </p>
+        </div>
+      )}
 
       {/* Results */}
       {isLoading ? (

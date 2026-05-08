@@ -235,6 +235,7 @@ function ProductDetail({ itemSeq }: { itemSeq: string }) {
           icon={<AlertCircle className="h-4 w-4 text-red-600" />}
           variant="warning"
         >
+          <CautionChips articles={cautions} />
           {cautions.map((art, i) => (
             <ParagraphGroup key={i} title={art.articleTitle} paragraphs={art.paragraphs} />
           ))}
@@ -322,4 +323,62 @@ function ParagraphGroup({
 function formatDate(yyyymmdd: string): string {
   if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd
   return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
+}
+
+/**
+ * 사용상 주의사항 본문에서 주요 대상자/금기 키워드를 자동 추출하여 칩으로 표시.
+ * NEDRUG 공식 표현이 다양해 키워드 기반 휴리스틱 사용.
+ */
+const CAUTION_KEYWORDS: Array<{ label: string; patterns: string[]; severe?: boolean }> = [
+  { label: '임부 금기', patterns: ['임부', '임산부', '임신부'], severe: true },
+  { label: '수유부 주의', patterns: ['수유부', '수유 중'] },
+  { label: '소아 주의', patterns: ['소아', '어린이', '15세 미만', '12세 미만', '6세 미만'] },
+  { label: '고령자 주의', patterns: ['고령자', '노인'] },
+  { label: '간장애 주의', patterns: ['간장애', '간 장애', '간기능', '간 기능'], severe: true },
+  { label: '신장애 주의', patterns: ['신장애', '신 장애', '신기능', '신 기능'], severe: true },
+  { label: '심장애 주의', patterns: ['심장애', '심부전', '심 기능'] },
+  { label: '운전·기계조작', patterns: ['운전', '기계조작', '기계 조작'] },
+  { label: '음주 주의', patterns: ['음주', '알코올', '알콜'] },
+  { label: '과민증/알레르기', patterns: ['과민증', '과민반응', '알레르기', '아나필락시'] },
+  { label: '당뇨 주의', patterns: ['당뇨', '혈당'] },
+  { label: '고혈압 주의', patterns: ['고혈압'] },
+  { label: '출혈 위험', patterns: ['출혈'] },
+]
+
+function CautionChips({
+  articles,
+}: {
+  articles: Array<{ articleTitle: string; paragraphs: string[] }>
+}) {
+  const flat = articles
+    .flatMap((a) => [a.articleTitle, ...a.paragraphs])
+    .join(' ')
+    .toLowerCase()
+
+  const hits = CAUTION_KEYWORDS.filter((kw) =>
+    kw.patterns.some((p) => flat.includes(p.toLowerCase())),
+  )
+
+  if (hits.length === 0) return null
+
+  return (
+    <div className="mb-3 -mt-1">
+      <p className="text-[11px] font-medium text-red-700 mb-1.5">주의 대상자 / 금기</p>
+      <div className="flex flex-wrap gap-1.5">
+        {hits.map((kw) => (
+          <span
+            key={kw.label}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+              kw.severe
+                ? 'bg-red-100 text-red-800 border-red-200'
+                : 'bg-amber-50 text-amber-800 border-amber-200'
+            }`}
+          >
+            <AlertCircle className="h-3 w-3" />
+            {kw.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
