@@ -44,6 +44,7 @@ import { UserDataModule } from './modules/user-data/user-data.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
 import { SajuModule } from './modules/saju/saju.module';
 import { MfdsDrugModule } from './modules/mfds-drug/mfds-drug.module';
+import { MfdsDurModule } from './modules/mfds-dur/mfds-dur.module';
 import { SeederModule } from './seed/seeder.module';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
@@ -154,6 +155,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     FeedbackModule,         // 사용자 피드백 수집
     SajuModule,             // 사주풀이 프리미엄 서비스
     MfdsDrugModule,         // 식약처 의약품 허가정보 (공공 API)
+    MfdsDurModule,          // 식약처 DUR 의약품안전사용서비스 (공공 API)
 
     // 시드 모듈 (운영에서는 standalone 컨텍스트로만 사용)
     SeederModule,

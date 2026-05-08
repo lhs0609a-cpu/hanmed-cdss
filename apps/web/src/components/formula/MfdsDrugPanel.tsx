@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pill, Building2, Calendar, AlertCircle, ChevronDown, ChevronUp, ExternalLink, ShieldCheck } from 'lucide-react'
+import { Pill, Building2, Calendar, AlertCircle, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, ShieldAlert } from 'lucide-react'
 import {
   useMfdsDrugSearch,
   useMfdsDrugDetailBySeq,
@@ -7,6 +7,7 @@ import {
   parseMaterialName,
   type MfdsListItem,
 } from '@/hooks/useMfdsDrug'
+import { useMfdsDurProduct, type DurProductItem } from '@/hooks/useMfdsDur'
 
 interface Props {
   /** 검색할 처방명 (예: "반하사심탕") */
@@ -190,6 +191,10 @@ function ProductDetail({ itemSeq }: { itemSeq: string }) {
         </div>
       </div>
 
+      {/* DUR 안전성 검사 */}
+      <DurSafetyCheck itemSeq={item.ITEM_SEQ} />
+
+
       {/* 성분 */}
       {ingredients.length > 0 && (
         <Section title="성분 / 분량" icon={<Pill className="h-4 w-4 text-emerald-600" />}>
@@ -323,6 +328,173 @@ function ParagraphGroup({
 function formatDate(yyyymmdd: string): string {
   if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd
   return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`
+}
+
+/** DUR 플래그 → 위험도 색상/아이콘 매핑 */
+const DUR_TYPE_STYLE: Record<
+  string,
+  { label: string; className: string; severe: boolean }
+> = {
+  병용금기: { label: '병용금기', className: 'bg-red-100 text-red-800 border-red-200', severe: true },
+  임부금기: { label: '임부금기', className: 'bg-red-100 text-red-800 border-red-200', severe: true },
+  특정연령대금기: {
+    label: '연령금기',
+    className: 'bg-red-100 text-red-800 border-red-200',
+    severe: true,
+  },
+  노인주의: {
+    label: '노인주의',
+    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    severe: false,
+  },
+  용량주의: {
+    label: '용량주의',
+    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    severe: false,
+  },
+  투여기간주의: {
+    label: '투여기간주의',
+    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    severe: false,
+  },
+  효능군중복: {
+    label: '효능군중복',
+    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    severe: false,
+  },
+  서방형분할주의: {
+    label: '분할주의',
+    className: 'bg-amber-50 text-amber-800 border-amber-200',
+    severe: false,
+  },
+}
+
+function DurSafetyCheck({ itemSeq }: { itemSeq: string }) {
+  const { data, isLoading, isError } = useMfdsDurProduct({ itemSeq })
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-gray-100 bg-gray-50/40 p-3 text-xs text-gray-500 flex items-center gap-2">
+        <div className="h-3 w-3 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        DUR 안전성 검사 중...
+      </div>
+    )
+  }
+  if (isError) return null
+  if (!data || data.totalCount === 0) {
+    return (
+      <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 text-xs text-emerald-700 flex items-center gap-2">
+        <ShieldCheck className="h-3.5 w-3.5" />
+        식약처 DUR 등록된 금기·주의사항이 없습니다.
+      </div>
+    )
+  }
+
+  const types = data.types
+  const hasSevere = types.some((t) => DUR_TYPE_STYLE[t]?.severe)
+
+  return (
+    <div
+      className={`rounded-lg border p-3 ${
+        hasSevere
+          ? 'bg-red-50/60 border-red-200'
+          : 'bg-amber-50/40 border-amber-200'
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        {hasSevere ? (
+          <ShieldAlert className="h-4 w-4 text-red-600" />
+        ) : (
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+        )}
+        <h5 className="font-semibold text-sm text-gray-900">
+          식약처 DUR 안전성 검사
+        </h5>
+        <span className="text-[11px] text-gray-500">
+          (총 {data.totalCount}건)
+        </span>
+      </div>
+
+      {/* 타입별 칩 */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {types.map((t) => {
+          const style = DUR_TYPE_STYLE[t]
+          const count = data.grouped[t]?.length ?? 0
+          return (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+                style ? style.className : 'bg-gray-50 text-gray-700 border-gray-200'
+              }`}
+            >
+              <AlertCircle className="h-3 w-3" />
+              {style?.label || t}
+              <span className="opacity-70">·{count}</span>
+            </span>
+          )
+        })}
+      </div>
+
+      {/* 상세 목록 (각 타입별 최대 3건) */}
+      <div className="space-y-2 mt-2">
+        {types.map((t) => {
+          const list = data.grouped[t] || []
+          const visible = list.slice(0, 3)
+          if (visible.length === 0) return null
+          return (
+            <details key={t} className="text-xs">
+              <summary className="cursor-pointer text-gray-700 font-medium hover:text-gray-900">
+                {DUR_TYPE_STYLE[t]?.label || t} 상세 ({list.length})
+              </summary>
+              <ul className="mt-1.5 ml-3 space-y-1.5">
+                {visible.map((row, i) => (
+                  <li key={i} className="text-gray-600 leading-snug">
+                    <DurRowSummary row={row} type={t} />
+                  </li>
+                ))}
+                {list.length > visible.length && (
+                  <li className="text-[11px] text-gray-400">
+                    + 외 {list.length - visible.length}건
+                  </li>
+                )}
+              </ul>
+            </details>
+          )
+        })}
+      </div>
+      <p className="text-[11px] text-gray-400 mt-2">
+        출처: 식품의약품안전처 의약품안전사용서비스(DUR) · 환자별 위험도는 해당 환자 정보 입력 시 정밀 매칭됩니다.
+      </p>
+    </div>
+  )
+}
+
+function DurRowSummary({ row, type }: { row: DurProductItem; type: string }) {
+  const ingr =
+    row.INGR_KOR_NAME || row.INGR_NAME || row.INGR_ENG_NAME || ''
+  const reason = row.PROHBT_CONTENT || row.REMARK || ''
+  const mixtureName =
+    row.MIXTURE_INGR_KOR_NAME ||
+    row.MIXTURE_INGR_ENG_NAME ||
+    row.MIXTURE_ITEM_NAME ||
+    ''
+
+  if (type === '병용금기' && mixtureName) {
+    return (
+      <span>
+        <span className="font-medium">{ingr}</span>
+        <span className="text-gray-400 mx-1">×</span>
+        <span className="font-medium">{mixtureName}</span>
+        {reason && <span className="block text-gray-500 mt-0.5">— {reason}</span>}
+      </span>
+    )
+  }
+  return (
+    <span>
+      <span className="font-medium">{ingr}</span>
+      {reason && <span className="text-gray-500"> — {reason}</span>}
+    </span>
+  )
 }
 
 /**
