@@ -17,6 +17,7 @@ import {
 import api from '@/services/api'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
+import { MfdsDrugPanel } from '@/components/formula/MfdsDrugPanel'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 
 // AI Engine URL
@@ -522,6 +523,9 @@ export default function FormulaDetailPage() {
           </div>
         )}
       </div>
+
+      {/* 식약처 NEDRUG 허가 제품 정보 */}
+      <MfdsDrugPanel formulaName={formula.name} />
     </div>
   )
 }
