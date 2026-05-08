@@ -1,47 +1,59 @@
 """
-OASIS (한의학학술정보포털) 어댑터
+OASIS (전통의학정보포털) 어댑터
 https://oasis.kiom.re.kr
+
+논문 검색 흐름:
+- POST /oasis/paper/pbaseAction.jsp  (검색 실행)
+- POST /oasis/paper/pdetailView.jsp?idx={IDX}  (상세 보기)
+
+페이지는 eGov framework + plani 기반. 결과는 HTML 테이블 형태이며
+각 결과는 `<a href="javascript:paperDetailView('IDX')">` 로 연결.
 """
 
 import asyncio
-import aiohttp
-from typing import List, Optional, AsyncIterator
-from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin, quote
+from typing import AsyncIterator, List, Optional
+from urllib.parse import quote
 
-from .base import BaseSourceAdapter, ArticleInfo, ArticleDetail
+import aiohttp
+from bs4 import BeautifulSoup
+
+from .base import ArticleDetail, ArticleInfo, BaseSourceAdapter
+from ....core.logger import get_logger
+
+
+logger = get_logger("collector.oasis")
 
 
 class OASISAdapter(BaseSourceAdapter):
-    """
-    OASIS 한의학학술정보포털 크롤러
-    한의학 학술 논문 전문 DB
-    """
-
     source_name = "oasis"
     base_url = "https://oasis.kiom.re.kr"
+    search_action = "/oasis/paper/pbaseAction.jsp"
+    detail_action = "/oasis/paper/pdetailView.jsp"
+    srch_menu_nix = "JI3a9m1H"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.session: Optional[aiohttp.ClientSession] = None
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
 
     async def initialize(self) -> None:
-        """세션 초기화"""
         if self.session is None:
             timeout = aiohttp.ClientTimeout(total=30)
             self.session = aiohttp.ClientSession(
-                headers=self.headers,
-                timeout=timeout
+                headers=self.headers, timeout=timeout
             )
 
     async def cleanup(self) -> None:
-        """세션 정리"""
         if self.session:
             await self.session.close()
             self.session = None
@@ -51,227 +63,219 @@ class OASISAdapter(BaseSourceAdapter):
         keywords: List[str],
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
-        max_results: int = 100
+        max_results: int = 50,
     ) -> AsyncIterator[ArticleInfo]:
-        """
-        OASIS에서 논문 검색
-
-        OASIS 검색 URL 패턴:
-        https://oasis.kiom.re.kr/search/search.do?searchWord=치험례
-        """
         if not self.session:
             await self.initialize()
+
+        per_keyword = max(5, min(max_results, 30))
+        seen: set[str] = set()
 
         for keyword in keywords:
             try:
-                # 검색 URL 구성
-                search_url = f"{self.base_url}/search/search.do"
-                params = {
-                    'searchWord': keyword,
-                    'searchType': 'all',
-                    'pageSize': min(max_results, 50),
-                    'pageNo': 1,
+                form = {
+                    "search_word": keyword,
+                    "orginSearch": keyword,
+                    "searchType": "base",
+                    "sort": "dateDESC",
+                    "flag": "A",
+                    "rowCount": str(per_keyword),
+                    "gShowDetail": "false",
+                    "reSearch": "once",
+                    "totalSearchGubun": "1",
+                    "pageIndex": "1",
                 }
-
-                async with self.session.get(search_url, params=params) as response:
-                    if response.status != 200:
-                        print(f"[OASIS] Search failed for '{keyword}': {response.status}")
+                url = f"{self.base_url}{self.search_action}?srch_menu_nix={self.srch_menu_nix}"
+                async with self.session.post(url, data=form) as resp:
+                    if resp.status != 200:
+                        logger.warning(
+                            "OASIS search failed for '%s': HTTP %s",
+                            keyword,
+                            resp.status,
+                        )
                         continue
+                    html = await resp.text(errors="ignore")
 
-                    html = await response.text()
-                    soup = BeautifulSoup(html, 'lxml')
+                items = self._parse_search_results(html, keyword)
+                logger.info(
+                    "OASIS keyword '%s': %d results", keyword, len(items)
+                )
+                for art in items:
+                    if art.article_id in seen:
+                        continue
+                    seen.add(art.article_id)
+                    yield art
+                    await asyncio.sleep(0.5)
 
-                    # 검색 결과 파싱
-                    results = self._parse_search_results(soup)
-
-                    for article in results:
-                        yield article
-
-                        # Rate limiting
-                        await asyncio.sleep(0.5)
-
+                if len(seen) >= max_results:
+                    return
             except Exception as e:
-                print(f"[OASIS] Error searching for '{keyword}': {e}")
+                logger.exception("OASIS error on '%s': %s", keyword, e)
                 continue
 
-    def _parse_search_results(self, soup: BeautifulSoup) -> List[ArticleInfo]:
-        """검색 결과 HTML 파싱"""
-        articles = []
+    def _parse_search_results(self, html: str, keyword: str) -> List[ArticleInfo]:
+        """
+        결과 행 추출:
+        - 각 결과는 `<a href="javascript:paperDetailView('IDX')" title="...">제목</a>` 패턴
+        - 그 직후 `<small>저자, 저널, 연도</small>` 또는 `<input name="hIdx" value="IDX">`
+        """
+        results: List[ArticleInfo] = []
 
-        # OASIS 검색 결과는 보통 리스트 형태
-        # 실제 HTML 구조에 따라 조정 필요
-        result_items = soup.select('.search-result-item, .article-item, .list-item, li.result')
-
-        for item in result_items:
-            try:
-                # 제목 추출
-                title_elem = item.select_one('.title, h3, h4, a.article-title')
-                if not title_elem:
-                    continue
-
-                title = title_elem.get_text(strip=True)
-
-                # 링크 추출
-                link_elem = item.select_one('a[href]')
-                url = ""
-                article_id = ""
-                if link_elem:
-                    href = link_elem.get('href', '')
-                    url = urljoin(self.base_url, href)
-                    # ID 추출 시도
-                    id_match = re.search(r'[?&]id=([^&]+)', href)
-                    if id_match:
-                        article_id = id_match.group(1)
-                    else:
-                        article_id = re.sub(r'[^\w]', '_', href)[-50:]
-
-                # 저자 추출
-                author_elem = item.select_one('.author, .authors, .writer')
-                authors = []
-                if author_elem:
-                    author_text = author_elem.get_text(strip=True)
-                    authors = [a.strip() for a in re.split(r'[,;]', author_text) if a.strip()]
-
-                # 저널 추출
-                journal_elem = item.select_one('.journal, .source, .publication')
-                journal = journal_elem.get_text(strip=True) if journal_elem else ""
-
-                # 연도 추출
-                year = None
-                year_elem = item.select_one('.year, .date, .pub-date')
-                if year_elem:
-                    year_text = year_elem.get_text(strip=True)
-                    year_match = re.search(r'(19|20)\d{2}', year_text)
-                    if year_match:
-                        year = int(year_match.group(0))
-
-                # 초록 추출
-                abstract_elem = item.select_one('.abstract, .summary, .description')
-                abstract = abstract_elem.get_text(strip=True) if abstract_elem else ""
-
-                if title and article_id:
-                    articles.append(ArticleInfo(
-                        article_id=article_id,
-                        title=title,
-                        authors=authors,
-                        journal=journal,
-                        year=year,
-                        url=url,
-                        abstract=abstract[:500],
-                    ))
-
-            except Exception as e:
-                print(f"[OASIS] Error parsing result item: {e}")
+        # idx + title 페어 추출 (정규식 — 한글 인코딩 문제 회피용)
+        pattern = re.compile(
+            r"paperDetailView\(['\"]([0-9]+)['\"]\)[^>]*"
+            r"(?:title=\"([^\"]*)\")?[^>]*>\s*<strong>(.*?)</strong>",
+            re.DOTALL,
+        )
+        for m in pattern.finditer(html):
+            idx = m.group(1)
+            title = (m.group(2) or m.group(3) or "").strip()
+            # title 에 "...상세보기" 라벨이 붙어 있으면 제거
+            title = re.sub(r"\s*상세보기\s*$", "", title)
+            title = re.sub(r"<[^>]+>", "", title).strip()
+            if not idx or not title:
                 continue
 
-        return articles
+            # 직후 <small>에서 저자/저널/연도 추출
+            tail_start = m.end()
+            tail = html[tail_start : tail_start + 800]
+            small_match = re.search(r"<small>(.*?)</small>", tail, re.DOTALL)
+            authors: List[str] = []
+            journal = ""
+            year: Optional[int] = None
+            if small_match:
+                small_html = small_match.group(1)
+                small_text = re.sub(r"<[^>]+>", " ", small_html)
+                small_text = re.sub(r"\s+", " ", small_text).strip()
+                # 흔한 패턴: "저자1, 저자2 외 N 편  저널명  연도"
+                year_match = re.search(r"(19|20)\d{2}", small_text)
+                if year_match:
+                    year = int(year_match.group(0))
+                # 첫 부분이 저자
+                segs = re.split(r"\s{2,}|·|\|", small_text)
+                if segs:
+                    author_part = segs[0]
+                    authors = [
+                        a.strip()
+                        for a in re.split(r"[,;]", author_part)
+                        if a.strip()
+                    ][:8]
+                if len(segs) > 1:
+                    journal = segs[1].strip()
+
+            results.append(
+                ArticleInfo(
+                    article_id=f"OASIS:{idx}",
+                    title=title[:300],
+                    authors=authors,
+                    journal=journal[:200],
+                    year=year,
+                    url=f"{self.base_url}{self.detail_action}?idx={idx}&srch_menu_nix={self.srch_menu_nix}",
+                    abstract="",
+                )
+            )
+
+        return results
 
     async def fetch_detail(self, article_id: str) -> Optional[ArticleDetail]:
-        """논문 상세 페이지에서 전문 가져오기"""
         if not self.session:
             await self.initialize()
 
-        try:
-            # 상세 페이지 URL (실제 URL 패턴에 맞게 조정 필요)
-            detail_url = f"{self.base_url}/view/view.do?id={article_id}"
+        idx = article_id.replace("OASIS:", "")
+        if not idx.isdigit():
+            return None
 
-            async with self.session.get(detail_url) as response:
-                if response.status != 200:
-                    print(f"[OASIS] Failed to fetch detail for {article_id}: {response.status}")
+        url = f"{self.base_url}{self.detail_action}?idx={idx}&srch_menu_nix={self.srch_menu_nix}"
+        try:
+            async with self.session.post(url, data={}) as resp:
+                if resp.status != 200:
+                    logger.warning(
+                        "OASIS detail fetch failed for %s: HTTP %s", idx, resp.status
+                    )
                     return None
-
-                html = await response.text()
-                soup = BeautifulSoup(html, 'lxml')
-
-                return self._parse_article_detail(soup, article_id, detail_url)
-
+                html = await resp.text(errors="ignore")
         except Exception as e:
-            print(f"[OASIS] Error fetching detail for {article_id}: {e}")
+            logger.exception("OASIS detail error for %s: %s", idx, e)
             return None
 
-    def _parse_article_detail(
-        self,
-        soup: BeautifulSoup,
-        article_id: str,
-        url: str
+        return self._parse_detail(html, idx, url)
+
+    def _parse_detail(
+        self, html: str, idx: str, url: str
     ) -> Optional[ArticleDetail]:
-        """상세 페이지 파싱"""
-        try:
-            # 제목
-            title_elem = soup.select_one('.article-title, h1.title, .view-title')
-            title = title_elem.get_text(strip=True) if title_elem else ""
+        soup = BeautifulSoup(html, "lxml")
 
-            # 저자
-            author_elem = soup.select_one('.authors, .author-list, .writer')
-            authors = []
-            if author_elem:
-                author_text = author_elem.get_text(strip=True)
-                authors = [a.strip() for a in re.split(r'[,;]', author_text) if a.strip()]
+        # 메인 view 테이블에서 제목/메타/초록 추출
+        view_table = soup.select_one("table.tstyle_view")
+        title = ""
+        if view_table:
+            cap = view_table.select_one("caption")
+            if cap and cap.get_text(strip=True):
+                title = cap.get_text(strip=True)
+            if not title:
+                # 첫 번째 th/td 헤딩 시도
+                head = view_table.select_one("th, h2, h3, .title")
+                if head:
+                    title = head.get_text(strip=True)
+        if not title:
+            t = soup.select_one("h2.title, .stitle, h2")
+            if t:
+                title = t.get_text(strip=True)
 
-            # 저널
-            journal_elem = soup.select_one('.journal-name, .source, .publication-info')
-            journal = journal_elem.get_text(strip=True) if journal_elem else ""
+        # 모든 테이블 셀에서 라벨/값 매핑 추출
+        meta = self._extract_meta(soup)
 
-            # 연도
-            year = None
-            date_elem = soup.select_one('.pub-date, .date, .year')
-            if date_elem:
-                date_text = date_elem.get_text(strip=True)
-                year_match = re.search(r'(19|20)\d{2}', date_text)
-                if year_match:
-                    year = int(year_match.group(0))
+        authors_raw = meta.get("저자") or meta.get("저자명") or ""
+        authors = [a.strip() for a in re.split(r"[,;·]", authors_raw) if a.strip()][:20]
+        journal = meta.get("학술지명") or meta.get("학술지") or meta.get("저널") or ""
+        year = None
+        year_text = meta.get("발행연도") or meta.get("발행일") or meta.get("연도") or ""
+        ym = re.search(r"(19|20)\d{2}", year_text)
+        if ym:
+            year = int(ym.group(0))
 
-            # DOI
-            doi = None
-            doi_elem = soup.select_one('[class*="doi"], a[href*="doi.org"]')
-            if doi_elem:
-                doi_text = doi_elem.get_text(strip=True)
-                doi_match = re.search(r'10\.\d+/[^\s]+', doi_text)
-                if doi_match:
-                    doi = doi_match.group(0)
+        keywords_raw = meta.get("키워드") or meta.get("Keywords") or ""
+        keywords = [k.strip() for k in re.split(r"[,;]", keywords_raw) if k.strip()][:15]
 
-            # 초록
-            abstract_elem = soup.select_one('.abstract, .summary, [class*="abstract"]')
-            abstract = abstract_elem.get_text(strip=True) if abstract_elem else ""
+        abstract = (
+            meta.get("초록")
+            or meta.get("Abstract")
+            or meta.get("논문초록")
+            or ""
+        )
 
-            # 본문 (전문)
-            content_elem = soup.select_one('.article-content, .full-text, .content, .body')
-            full_text = ""
-            if content_elem:
-                # HTML 태그 제거하고 텍스트만 추출
-                full_text = content_elem.get_text(separator='\n', strip=True)
+        # 본문 텍스트 (전문 없으면 abstract+meta 합산)
+        full_text = abstract
+        if not full_text:
+            content = soup.select_one(".view_content, .pdetail, .tstyle_view")
+            if content:
+                full_text = content.get_text(separator="\n", strip=True)
 
-            # 전문이 없으면 페이지 전체에서 추출 시도
-            if not full_text:
-                # 불필요한 요소 제거
-                for tag in soup.select('script, style, nav, header, footer, .sidebar'):
-                    tag.decompose()
-                full_text = soup.get_text(separator='\n', strip=True)
+        return ArticleDetail(
+            article_id=f"OASIS:{idx}",
+            title=title[:300],
+            authors=authors,
+            journal=journal[:200],
+            year=year,
+            doi=None,
+            url=url,
+            abstract=abstract[:5000],
+            full_text=(full_text or "")[:50000],
+            keywords=keywords,
+        )
 
-            # 키워드
-            keywords = []
-            keyword_elem = soup.select_one('.keywords, [class*="keyword"]')
-            if keyword_elem:
-                keyword_text = keyword_elem.get_text(strip=True)
-                keywords = [k.strip() for k in re.split(r'[,;]', keyword_text) if k.strip()]
-
-            return ArticleDetail(
-                article_id=article_id,
-                title=title,
-                authors=authors,
-                journal=journal,
-                year=year,
-                doi=doi,
-                url=url,
-                abstract=abstract,
-                full_text=full_text[:50000],  # 최대 50KB
-                keywords=keywords,
-            )
-
-        except Exception as e:
-            print(f"[OASIS] Error parsing article detail: {e}")
-            return None
+    def _extract_meta(self, soup: BeautifulSoup) -> dict[str, str]:
+        meta: dict[str, str] = {}
+        for tr in soup.select("table tr"):
+            th = tr.select_one("th")
+            td = tr.select_one("td")
+            if not th or not td:
+                continue
+            key = th.get_text(strip=True)
+            val = td.get_text(separator=" ", strip=True)
+            if key:
+                meta[key] = val
+        return meta
 
     def get_rate_limit(self) -> float:
-        """OASIS는 5초 간격"""
-        return 5.0
+        return 3.0
