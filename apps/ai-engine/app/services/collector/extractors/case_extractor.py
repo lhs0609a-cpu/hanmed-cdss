@@ -214,37 +214,45 @@ class CaseExtractor:
    - 한방 통합치료 (Integrative Korean medicine, Korean medicine intervention)
    - 침구, 약침, 봉약침, 부항, 뜸, 약침
    - 전통중의학(TCM) 케이스 (한국어로 번역해 추출)
-2. 다음은 **반드시 제외** (해당 케이스만 빈 객체로 두지 말고 cases에서 빼기):
+2. 다음은 **반드시 제외**:
    - 인공관절/혈액투석/혈관 중재/색전술 등 양방 시술이 주 치료인 케이스
    - 동물(개/고양이/소 등) 수의학 케이스
    - review article, meta-analysis (개별 환자 보고 아님)
 3. 영문 논문이면 모든 텍스트 필드는 한국어로 번역.
-4. 처방명(formula_name) 자리:
+4. **환자 정보 (patient_age, patient_gender, patient_constitution)는 본문에 명시적으로
+   언급된 경우만 입력하세요. 명시 안 된 정보는 절대 추측/생성하지 말고 반드시 null로 두세요.**
+   - 예: "45세 남자" 명시 → age=45, gender="M"
+   - 예: 나이/성별/체질 언급 없음 → age=null, gender=null, constitution=null
+   - 사상체질(소음인/태음인/소양인/태양인)은 본문에 명시될 때만, 추측 금지
+5. 처방명(formula_name) 자리:
    - 한약 처방이면 한국식 표기 (보중익기탕)
    - 단방이면 약재명 (당귀, 황기 등)
    - 침구 위주면 "침치료" 또는 구체 치료명 (전침, 약침 등)
    - 통합치료면 "한방 통합치료"
-5. 한의학 요소가 본문에 한 줄도 안 나오면 cases: [] 반환.
+6. 한의학 요소가 본문에 한 줄도 안 나오면 cases: [] 반환.
 
-출력 JSON 스키마:
+출력 JSON 스키마 (필드 값은 예시일 뿐, 실제 본문에서만 추출):
 {{
   "cases": [
     {{
-      "chief_complaint": "주소증 (한 줄 요약)",
-      "symptoms": ["증상1", "증상2"],
-      "diagnosis": "진단명/병명",
-      "differentiation": "변증 (한의학적)",
-      "formula_name": "처방명 (한글, ○○탕/산/환 등)",
-      "formula_hanja": "處方名 (한자, 있으면)",
-      "patient_age": 45,
-      "patient_gender": "M",
-      "patient_constitution": "소양인",
-      "treatment_principle": "치법 (한의학적)",
-      "result": "치료 결과 요약",
+      "chief_complaint": "<본문의 주소증, 한 줄 요약>",
+      "symptoms": ["<증상1>", "<증상2>"],
+      "diagnosis": "<진단명/병명>",
+      "differentiation": "<변증, 한의학적, 본문에 있을 때만>",
+      "formula_name": "<처방명 또는 약재명 또는 한방 치료명>",
+      "formula_hanja": "<한자, 본문에 있을 때만 그렇지 않으면 빈 문자열>",
+      "patient_age": null,
+      "patient_gender": null,
+      "patient_constitution": null,
+      "treatment_principle": "<한의학적 치법, 본문에 있을 때만>",
+      "result": "<치료 결과 요약>",
       "confidence": 0.85
     }}
   ]
 }}
+
+위 스키마의 patient_age=null/patient_gender=null/patient_constitution=null는
+"본문에 명시되지 않으면 null" 의미. 본문에 명시된 경우만 실제 값으로 채우세요.
 
 JSON만 출력:"""
 

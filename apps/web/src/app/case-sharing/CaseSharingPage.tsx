@@ -256,10 +256,10 @@ export default function CaseSharingPage() {
                           >
                             {difficultyLabels[caseItem.difficulty]?.label}
                           </span>
-                          {caseItem.status === 'featured' && (
+                          {caseItem.status === 'resolved' && (
                             <span className="px-2 py-0.5 text-xs bg-amber-100 text-amber-700 rounded flex items-center gap-1">
                               <Star className="w-3 h-3" />
-                              추천
+                              해결됨
                             </span>
                           )}
                         </div>
