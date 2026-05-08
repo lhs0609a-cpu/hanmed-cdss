@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-from ...services.collector import collector_scheduler
+from ...services.collector import collector_scheduler, llm_metrics
 
 router = APIRouter(prefix="/collector", tags=["collector"])
 
@@ -162,4 +162,119 @@ async def get_storage_stats():
 
     수집된 케이스 통계 정보를 반환합니다.
     """
-    return collector_scheduler.storage.get_stats()
+    base = collector_scheduler.storage.get_stats()
+    try:
+        base["failed_queue"] = collector_scheduler.failed_storage.get_stats()
+    except Exception:
+        pass
+    return base
+
+
+# ============ LLM Metrics ============
+
+@router.get("/llm-metrics")
+async def get_llm_metrics():
+    """
+    GPT-4o-mini 폴백 사용량 메트릭
+
+    누적 호출/실패율/토큰 사용량/추정 비용 등을 반환합니다.
+    """
+    return llm_metrics.get_summary()
+
+
+@router.get("/llm-metrics/daily")
+async def get_llm_metrics_daily(days: int = 30):
+    """일자별 LLM 사용량 (최근 N일)"""
+    if days < 1 or days > 90:
+        raise HTTPException(status_code=400, detail="days must be 1..90")
+    return {"daily": llm_metrics.get_daily_history(days), "days": days}
+
+
+# ============ Failed Extraction Queue ============
+
+@router.get("/failed")
+async def list_failed_extractions(limit: int = 50, offset: int = 0):
+    """
+    추출 실패 큐 조회
+
+    규칙 기반·LLM 폴백 모두 실패한 항목을 반환합니다.
+    """
+    return collector_scheduler.failed_storage.list_pending(limit=limit, offset=offset)
+
+
+@router.get("/failed/dead-letter")
+async def list_dead_letter(limit: int = 50):
+    """재시도 한도 초과로 dead-letter 처리된 항목"""
+    return {"items": collector_scheduler.failed_storage.list_dead(limit=limit)}
+
+
+class RetryRequest(BaseModel):
+    keys: Optional[List[str]] = Field(
+        None, description="재시도할 항목 key 목록 (None이면 큐 전체)"
+    )
+
+
+@router.post("/failed/retry")
+async def retry_failed_extractions(request: RetryRequest):
+    """
+    실패 큐 재시도
+
+    저장된 article_text_excerpt 로 추출기를 재실행합니다.
+    성공한 항목은 정상 파이프라인으로 흘려보내고 큐에서 제거합니다.
+    """
+    candidates = collector_scheduler.failed_storage.get_retry_candidates()
+    if request.keys:
+        keyset = set(request.keys)
+        candidates = [c for c in candidates if c.get("key") in keyset]
+
+    extractor = collector_scheduler.extractor
+    normalizer = collector_scheduler.normalizer
+    validator = collector_scheduler.validator
+    storage = collector_scheduler.storage
+    failed_store = collector_scheduler.failed_storage
+
+    succeeded = 0
+    still_failing = 0
+    new_pending: List[dict] = []
+
+    for item in candidates:
+        article_info = item.get("article_info", {})
+        article_text = item.get("article_text_excerpt", "")
+        try:
+            cases = extractor.extract_cases(article_text, article_info)
+        except Exception as e:
+            failed_store.add_failure(article_info, article_text, f"retry_error: {e}")
+            still_failing += 1
+            continue
+
+        if not cases:
+            failed_store.add_failure(article_info, article_text, "retry_no_cases")
+            still_failing += 1
+            continue
+
+        for case in cases:
+            d = normalizer.normalize(case.to_dict())
+            v = validator.validate(d)
+            if v.is_valid:
+                new_pending.append(d)
+
+        failed_store.remove_success(item["key"])
+        succeeded += 1
+
+    if new_pending:
+        # 신뢰도 기준으로 자동 승인 / pending 분리
+        threshold = collector_scheduler.auto_approve_threshold
+        auto = [c for c in new_pending if c.get("confidence_score", 0) >= threshold]
+        pend = [c for c in new_pending if c.get("confidence_score", 0) < threshold]
+        if auto:
+            storage.add_to_pending(auto)
+            storage.approve_cases([c["id"] for c in auto])
+        if pend:
+            storage.add_to_pending(pend)
+
+    return {
+        "attempted": len(candidates),
+        "succeeded": succeeded,
+        "still_failing": still_failing,
+        "new_cases": len(new_pending),
+    }

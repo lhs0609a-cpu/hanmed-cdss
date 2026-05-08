@@ -19,6 +19,14 @@ except Exception:
     settings = None  # type: ignore
     _OPENAI_AVAILABLE = False
 
+try:
+    from ....core.logger import get_logger
+    from ..metrics import llm_metrics
+    _logger = get_logger("collector.extractor")
+except Exception:
+    _logger = None  # type: ignore
+    llm_metrics = None  # type: ignore
+
 
 @dataclass
 class ExtractedCase:
@@ -256,9 +264,12 @@ class CaseExtractor:
 
 JSON만 출력:"""
 
+        model = getattr(settings, "GPT_MODEL", "gpt-4o-mini") if settings else "gpt-4o-mini"
+        prompt_tokens = 0
+        completion_tokens = 0
         try:
             response = self._llm_client.chat.completions.create(
-                model=getattr(settings, "GPT_MODEL", "gpt-4o-mini") if settings else "gpt-4o-mini",
+                model=model,
                 max_tokens=2048,
                 temperature=0.1,
                 messages=[
@@ -268,9 +279,25 @@ JSON만 출력:"""
                 response_format={"type": "json_object"},
             )
             content = response.choices[0].message.content or "{}"
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                prompt_tokens = getattr(usage, "prompt_tokens", 0) or 0
+                completion_tokens = getattr(usage, "completion_tokens", 0) or 0
             parsed = json.loads(content)
         except Exception as e:
-            print(f"[CaseExtractor] LLM 추출 실패: {e}")
+            if _logger:
+                _logger.warning("LLM 추출 실패: %s", e)
+            else:
+                print(f"[CaseExtractor] LLM 추출 실패: {e}")
+            if llm_metrics:
+                llm_metrics.record_call(
+                    success=False,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    cases_extracted=0,
+                    error=str(e),
+                    model=model,
+                )
             return []
 
         raw_cases = parsed.get("cases", []) if isinstance(parsed, dict) else []
@@ -331,6 +358,15 @@ JSON만 출력:"""
             case.search_text = self._generate_search_text(case)
 
             results.append(case)
+
+        if llm_metrics:
+            llm_metrics.record_call(
+                success=True,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                cases_extracted=len(results),
+                model=model,
+            )
 
         return results
 

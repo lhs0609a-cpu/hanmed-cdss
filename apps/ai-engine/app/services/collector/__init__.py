@@ -10,6 +10,8 @@ from .processors.validator import CaseValidator
 from .processors.normalizer import CaseNormalizer
 from .processors.deduplicator import CaseDeduplicator
 from .storage.case_storage import CaseStorage
+from .storage.failed_storage import FailedExtractionStorage
+from .metrics import LLMMetrics, llm_metrics
 
 __all__ = [
     'CollectorScheduler',
@@ -20,4 +22,7 @@ __all__ = [
     'CaseNormalizer',
     'CaseDeduplicator',
     'CaseStorage',
+    'FailedExtractionStorage',
+    'LLMMetrics',
+    'llm_metrics',
 ]

@@ -3,35 +3,42 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from .core.config import settings
+from .core.logger import get_logger
 from .core.middleware import ResponseWrapperMiddleware
 from .api.v1 import retrieval, recommendation, interaction, case_search, subscription, patient_explanation, formula_recommendation, statistics, collector
 from .services.collector import collector_scheduler
+
+logger = get_logger("main")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """앱 시작/종료 시 실행되는 라이프사이클 관리"""
     # Startup
-    print("[START] AI Engine starting...")
-    print(f"[INFO] GPT Model: {settings.GPT_MODEL}")
-    print(f"[INFO] OpenAI API Key: {'configured' if settings.OPENAI_API_KEY else 'not set'}")
+    logger.info("AI Engine starting...")
+    logger.info("GPT Model: %s", settings.GPT_MODEL)
+    logger.info(
+        "OpenAI API Key: %s",
+        "configured" if settings.OPENAI_API_KEY else "not set",
+    )
 
     # 치험례 수집기 초기화
     try:
         await collector_scheduler.initialize()
-        print("[INFO] Case Collector initialized")
-    except Exception as e:
-        print(f"[WARN] Case Collector initialization failed: {e}")
+        logger.info("Case Collector initialized")
+    except Exception:
+        logger.exception("Case Collector initialization failed")
 
     yield
 
     # Shutdown
-    print("[STOP] AI Engine shutting down...")
+    logger.info("AI Engine shutting down...")
 
     # 수집기 정리
     try:
         await collector_scheduler.cleanup()
-    except Exception as e:
-        print(f"[WARN] Case Collector cleanup failed: {e}")
+    except Exception:
+        logger.exception("Case Collector cleanup failed")
 
 app = FastAPI(
     title="온고지신 AI Engine",

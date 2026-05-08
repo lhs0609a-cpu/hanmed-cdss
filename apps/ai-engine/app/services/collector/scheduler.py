@@ -21,6 +21,11 @@ from .processors.validator import CaseValidator
 from .processors.normalizer import CaseNormalizer
 from .processors.deduplicator import CaseDeduplicator
 from .storage.case_storage import CaseStorage
+from .storage.failed_storage import FailedExtractionStorage
+from .metrics import llm_metrics
+from ...core.logger import get_logger
+
+logger = get_logger("collector.scheduler")
 
 
 class CollectorScheduler:
@@ -59,6 +64,7 @@ class CollectorScheduler:
 
         # 컴포넌트 초기화
         self.storage = CaseStorage(data_dir)
+        self.failed_storage = FailedExtractionStorage()
         self.extractor = CaseExtractor()
         self.validator = CaseValidator()
         self.normalizer = CaseNormalizer()
@@ -103,7 +109,10 @@ class CollectorScheduler:
             )
 
             self.scheduler.start()
-            print(f"[Collector] Scheduler started. Collection every {self.collection_interval_hours} hours")
+            logger.info(
+                "Scheduler started. Collection every %d hours",
+                self.collection_interval_hours,
+            )
 
     async def cleanup(self) -> None:
         """정리"""
@@ -182,7 +191,7 @@ class CollectorScheduler:
 
                 except Exception as e:
                     result['errors'].append(f"Error from {adapter_name}: {str(e)}")
-                    print(f"[Collector] Error from {adapter_name}: {e}")
+                    logger.exception("Error from adapter %s", adapter_name)
 
             # 중복 제거
             if all_new_cases and self.deduplicator:
@@ -221,7 +230,7 @@ class CollectorScheduler:
         except Exception as e:
             result['status'] = 'failed'
             result['errors'].append(str(e))
-            print(f"[Collector] Collection failed: {e}")
+            logger.exception("Collection failed")
 
         finally:
             self.is_running = False
@@ -232,8 +241,31 @@ class CollectorScheduler:
             duration = (datetime.now() - start_time).total_seconds()
             result['duration_seconds'] = round(duration, 2)
 
+            # LLM 메트릭 스냅샷 첨부
+            try:
+                result['llm_metrics_snapshot'] = llm_metrics.get_summary()
+            except Exception:
+                pass
+
+            # 실패 큐 통계 첨부
+            try:
+                result['failed_queue'] = self.failed_storage.get_stats()
+            except Exception:
+                pass
+
             # 로그 저장
             self.storage.log_collection(result)
+            logger.info(
+                "Collection done: id=%s status=%s extracted=%d valid=%d added=%d auto=%d duplicates=%d duration=%.1fs",
+                result.get('collection_id'),
+                result.get('status'),
+                result['statistics'].get('cases_extracted', 0),
+                result['statistics'].get('cases_valid', 0),
+                result['statistics'].get('cases_added', 0),
+                result['statistics'].get('cases_auto_approved', 0),
+                result['statistics'].get('cases_duplicate', 0),
+                duration,
+            )
 
         return result
 
@@ -278,6 +310,14 @@ class CollectorScheduler:
                 extracted = self.extractor.extract_cases(detail.full_text, article_dict)
                 result['statistics']['cases_extracted'] += len(extracted)
 
+                # 추출 0건이면 실패 큐에 적재
+                if not extracted:
+                    self.failed_storage.add_failure(
+                        article_info=article_dict,
+                        article_text=detail.full_text or "",
+                        reason="no_cases_extracted",
+                    )
+
                 # 검증 및 정규화
                 for case in extracted:
                     case_dict = case.to_dict()
@@ -295,7 +335,24 @@ class CollectorScheduler:
                 await asyncio.sleep(self.request_delay)
 
             except Exception as e:
-                print(f"[Collector] Error processing article {article_info.article_id}: {e}")
+                logger.warning(
+                    "Error processing article %s: %s",
+                    article_info.article_id,
+                    e,
+                )
+                try:
+                    self.failed_storage.add_failure(
+                        article_info={
+                            "url": getattr(article_info, "url", ""),
+                            "article_id": getattr(article_info, "article_id", ""),
+                            "title": getattr(article_info, "title", ""),
+                            "source": adapter.source_name,
+                        },
+                        article_text="",
+                        reason=f"processing_error: {e}",
+                    )
+                except Exception:
+                    pass
                 continue
 
         return cases
