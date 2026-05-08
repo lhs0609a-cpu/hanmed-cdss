@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { PageErrorBoundary } from '@/components/common'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { AccessibilityProvider } from '@/contexts/AccessibilityContext'
+import { SystemNoticeProvider } from '@/contexts/SystemNoticeContext'
 import { initSentry } from '@/lib/sentry'
 import '@/lib/i18n' // i18n 초기화
 import './index.css'
@@ -26,11 +28,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <PageErrorBoundary>
       <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </QueryClientProvider>
+        <AccessibilityProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <SystemNoticeProvider>
+                <App />
+              </SystemNoticeProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </AccessibilityProvider>
       </ThemeProvider>
     </PageErrorBoundary>
   </React.StrictMode>,

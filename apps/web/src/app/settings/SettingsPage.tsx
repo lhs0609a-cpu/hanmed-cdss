@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import {
   usePlans,
@@ -57,6 +57,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TwoFactorSection } from '@/components/settings/TwoFactorSection';
+import { useAccessibility } from '@/contexts/AccessibilityContext';
+import { exportPatientsCsv, exportAsJson } from '@/lib/dataExport';
+import api from '@/services/api';
+import { Download, Trash2, FileText as FileTextIcon } from 'lucide-react';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -811,32 +815,9 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="border-t pt-4">
-                <Label className="flex items-center gap-2 text-sm font-medium">
-                  <Type className="h-4 w-4" />
-                  글꼴 크기
-                </Label>
-                <div className="flex gap-2 mt-2">
-                  {[
-                    { value: 'small', label: '작게', size: 'text-sm' },
-                    { value: 'medium', label: '보통', size: 'text-base' },
-                    { value: 'large', label: '크게', size: 'text-lg' },
-                    { value: 'xlarge', label: '매우 크게', size: 'text-xl' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setAccessibility({ ...accessibility, fontSize: option.value as 'small' | 'medium' | 'large' | 'xlarge' })}
-                      className={`px-4 py-2 rounded-lg border transition-colors ${option.size} ${
-                        accessibility.fontSize === option.value
-                          ? 'bg-teal-50 border-teal-500 text-teal-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <FontScaleSelector />
+              <HighContrastSync localValue={accessibility.highContrast} />
+              <ReducedMotionSync localValue={accessibility.reducedMotion} />
             </CardContent>
           </Card>
 
@@ -953,6 +934,76 @@ export default function SettingsPage() {
           </Card>
 
           <Button className="w-full">접근성 설정 저장</Button>
+
+          {/* 데이터 다운로드 / 사업자 정보 / 회원탈퇴 — 신규 섹션 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                데이터 다운로드 (백업/이전)
+              </CardTitle>
+              <CardDescription>
+                환자·진료 기록을 CSV 또는 JSON 으로 내려받을 수 있습니다. 다른 EMR 로 이전 시
+                활용하세요.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await api.get<{
+                        patients: Array<Record<string, unknown>>
+                      }>('/users/me/export', { params: { format: 'json' } })
+                      exportAsJson(res.data, { filename: `ongojisin-export-${Date.now()}.json` })
+                      toast.success('데이터를 내려받았습니다.')
+                    } catch {
+                      toast.error('데이터 내려받기에 실패했습니다. 잠시 후 다시 시도해주세요.')
+                    }
+                  }}
+                >
+                  JSON 으로 내려받기
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await api.get<{
+                        patients: Array<{ id: string; name?: string; visits?: any[] }>
+                      }>('/users/me/export', { params: { format: 'json' } })
+                      exportPatientsCsv(res.data?.patients ?? [], { anonymize: false })
+                      toast.success('CSV 내려받기 완료')
+                    } catch {
+                      toast.error('CSV 내려받기에 실패했습니다.')
+                    }
+                  }}
+                >
+                  CSV 로 내려받기
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                ※ 다운로드는 본인 한의원 데이터 한정. 처리 이력은 감사 로그에 기록됩니다.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileTextIcon className="h-5 w-5" />
+                세금계산서 발행 정보
+              </CardTitle>
+              <CardDescription>
+                사업자 정보를 입력하면 결제 시 자동 발행됩니다 (B2B).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BusinessInfoForm />
+            </CardContent>
+          </Card>
+
+          <DeleteAccountCard />
         </TabsContent>
 
         {/* Security Tab */}
@@ -1110,5 +1161,228 @@ export default function SettingsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// ============================================================================
+// 보조 컴포넌트들 — 설정 탭 내부에서 사용
+// ============================================================================
+
+function FontScaleSelector() {
+  const { fontScale, setFontScale } = useAccessibility();
+  return (
+    <div className="border-t pt-4">
+      <Label className="flex items-center gap-2 text-sm font-medium">
+        <Type className="h-4 w-4" />
+        글꼴 크기
+      </Label>
+      <p className="text-xs text-gray-500 mt-1">화면 전체 글자 크기에 즉시 반영됩니다.</p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        {[
+          { value: 'normal', label: '보통' },
+          { value: 'large', label: '크게' },
+          { value: 'xlarge', label: '매우 크게' },
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setFontScale(option.value as 'normal' | 'large' | 'xlarge')}
+            className={`px-4 py-2 rounded-lg border transition-colors min-h-[44px] ${
+              fontScale === option.value
+                ? 'bg-teal-50 border-teal-500 text-teal-700'
+                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HighContrastSync({ localValue }: { localValue: boolean }) {
+  const { highContrast, setHighContrast } = useAccessibility();
+  useEffect(() => {
+    if (highContrast !== localValue) setHighContrast(localValue);
+  }, [highContrast, localValue, setHighContrast]);
+  return null;
+}
+
+function ReducedMotionSync({ localValue }: { localValue: boolean }) {
+  const { reduceMotion, setReduceMotion } = useAccessibility();
+  useEffect(() => {
+    if (reduceMotion !== localValue) setReduceMotion(localValue);
+  }, [reduceMotion, localValue, setReduceMotion]);
+  return null;
+}
+
+function BusinessInfoForm() {
+  const [info, setInfo] = useState({
+    businessNumber: '',
+    companyName: '',
+    representative: '',
+    contactEmail: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const onSubmit = async () => {
+    if (!/^\d{10}$/.test(info.businessNumber.replace(/\D/g, ''))) {
+      toast.error('사업자등록번호는 10자리 숫자입니다.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.put('/users/me/business-info', info);
+      toast.success('사업자 정보가 저장되었습니다. 이후 결제부터 자동 발행됩니다.');
+    } catch {
+      toast.error('저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="bn">사업자등록번호 (10자리)</Label>
+          <Input
+            id="bn"
+            inputMode="numeric"
+            placeholder="123-45-67890"
+            value={info.businessNumber}
+            onChange={(e) => setInfo({ ...info, businessNumber: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="cn">상호명</Label>
+          <Input
+            id="cn"
+            placeholder="온고지신 한의원"
+            value={info.companyName}
+            onChange={(e) => setInfo({ ...info, companyName: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="rep">대표자</Label>
+          <Input
+            id="rep"
+            placeholder="홍길동"
+            value={info.representative}
+            onChange={(e) => setInfo({ ...info, representative: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label htmlFor="email">세금계산서 수신 이메일</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="biz@clinic.com"
+            value={info.contactEmail}
+            onChange={(e) => setInfo({ ...info, contactEmail: e.target.value })}
+          />
+        </div>
+      </div>
+      <Button onClick={onSubmit} disabled={saving}>
+        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+        사업자 정보 저장
+      </Button>
+      <p className="text-xs text-gray-500">
+        ※ 결제 후 익영업일에 세금계산서가 자동 발행됩니다. 누락 시{' '}
+        <a href="mailto:support@ongojisin.ai" className="text-teal-600 underline">
+          support@ongojisin.ai
+        </a>
+        로 문의해주세요.
+      </p>
+    </div>
+  );
+}
+
+function DeleteAccountCard() {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!password) {
+      toast.error('본인 확인용 비밀번호를 입력해주세요.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await api.delete<{ scheduledFor: string; message: string }>('/users/me', {
+        data: { password, reason, acknowledgeDeletion: true },
+      });
+      toast.success(res.data?.message || '탈퇴가 접수되었습니다.');
+      setOpen(false);
+      // 로그아웃 + 메인으로
+      useAuthStore.getState().logout();
+      window.location.href = '/';
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || '탈퇴 처리에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-red-700">
+          <Trash2 className="h-5 w-5" />
+          회원탈퇴
+        </CardTitle>
+        <CardDescription>
+          탈퇴 신청 후 30일간 데이터가 보관되며, 그 기간 동안 다시 로그인하시면 취소할 수 있습니다.
+          이후 환자·진료 기록은 영구 삭제 또는 익명화됩니다.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          탈퇴 신청
+        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>회원탈퇴 신청</DialogTitle>
+              <DialogDescription>
+                탈퇴 후 30일이 지나면 환자/진료 데이터는 복구할 수 없습니다. 데이터 다운로드 후 진행해주세요.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="pw">현재 비밀번호 *</Label>
+                <Input
+                  id="pw"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="rs">탈퇴 사유 (선택)</Label>
+                <Input
+                  id="rs"
+                  placeholder="예: 다른 EMR 로 이전"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                취소
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                탈퇴 신청
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   );
 }

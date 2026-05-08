@@ -24,6 +24,7 @@ import {
   FileOutput,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { applyCorrections } from '@/lib/sttDictionary'
 
 interface SOAPNote {
   subjective: string
@@ -267,7 +268,10 @@ export default function VoiceChartPage() {
           }
 
           if (finalTranscript) {
-            setTranscript((prev) => prev + finalTranscript)
+            // 한의 용어 사전 후처리 — '기흐'→'기허', '보충익기탕'→'보중익기탕' 등.
+            // 적용 결과는 transcript 에 자동 반영된다 (사용자가 화면에서 즉시 확인 가능).
+            const corrected = applyCorrections(finalTranscript)
+            setTranscript((prev) => prev + corrected.text)
           }
         }
 

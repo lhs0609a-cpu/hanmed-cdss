@@ -1,0 +1,35 @@
+{
+  "name": "온고지신 환자 앱",
+  "short_name": "온고지신 환자",
+  "description": "예약·복약 알림·진료 안내를 한 곳에서 — 한의원 환자 전용 앱",
+  "start_url": "/patient",
+  "scope": "/patient",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "lang": "ko-KR",
+  "categories": ["health", "medical"],
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "다음 진료 예약",
+      "short_name": "예약",
+      "url": "/patient/appointments",
+      "description": "다음 진료 예약 확인 및 변경"
+    },
+    {
+      "name": "처방·복약",
+      "short_name": "처방",
+      "url": "/patient/prescriptions",
+      "description": "현재 복용 중인 처방 안내"
+    }
+  ]
+}

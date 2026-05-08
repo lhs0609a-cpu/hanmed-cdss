@@ -335,7 +335,7 @@ export default function LandingPage() {
     // 서비스 소개
     {
       question: '온고지신은 어떤 서비스인가요?',
-      answer: `온고지신은 AI 기반 한의학 임상 의사결정 지원 시스템(CDSS)입니다. ${appStats.formatted.totalCasesApprox}의 치험례와 ${appStats.formulas}건의 처방 데이터를 기반으로 변증 진단, 처방 추천, 삭감 예측 등 한의사의 임상 진료를 지원합니다.`,
+      answer: `온고지신은 한의원의 진료 차트(EMR) + 임상 결정 보조(CDSS)가 결합된 시스템입니다. 환자 등록·진료 기록·처방 발행·청구 점검·환자 알림을 한 곳에서 처리하며, ${appStats.formatted.totalCasesApprox}의 치험례와 ${appStats.formulas}건의 처방 데이터로 변증 추론·처방 후보·삭감 위험을 자동으로 보조합니다.`,
       category: '서비스 소개',
     },
     {
@@ -361,7 +361,7 @@ export default function LandingPage() {
     // AI 기능
     {
       question: 'AI 진단을 신뢰할 수 있나요?',
-      answer: 'AI는 참고 도구로서 최종 진단과 처방 결정은 항상 한의사의 임상적 판단에 따릅니다. 온고지신의 AI는 수천 건의 실제 임상 데이터를 학습하여 보조적인 인사이트를 제공합니다.',
+      answer: '온고지신은 진료 차트와 결정 보조를 결합한 시스템으로, 환자 기록 작성·검색·처방 발행을 직접 지원합니다. AI 추론 결과는 한의사의 임상 판단을 보조하기 위한 후보로 제공되며, 한의사가 최종 결정합니다.',
       category: 'AI 기능',
     },
     {
@@ -371,7 +371,7 @@ export default function LandingPage() {
     },
     {
       question: 'AI가 추천하는 처방의 정확도는 어느 정도인가요?',
-      answer: '현재 AI 처방 추천의 일치율은 약 80-90% 수준입니다. 다만 AI는 참고용이며, 최종 처방 결정은 반드시 한의사의 임상적 판단에 따라야 합니다.',
+      answer: '현재 처방 추론 후보의 일치율은 약 80-90%이며, 한의사 본인의 처방 이력을 학습할수록 높아집니다. 본 도구는 임상 결정 보조이며, 최종 처방·진단은 한의사의 책임하에 이루어집니다.',
       category: 'AI 기능',
     },
     {
@@ -814,11 +814,11 @@ export default function LandingPage() {
           <div className="text-center">
             <Badge className="mb-6 bg-teal-100 text-teal-700 hover:bg-teal-100 animate-bounce-in px-4 py-1.5">
               <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              AI 기반 한의학 CDSS
+              한의원을 위한 진료 차트 + 임상 결정 보조 시스템
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight animate-fade-in-up">
-              옛것을 익혀 새것을 안다
+              한의원의 하루가 흐르는 곳
               <br />
               <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
                 온고지신
@@ -833,9 +833,12 @@ export default function LandingPage() {
             </div>
 
             <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
-              {appStats.formatted.totalCasesApprox}의 치험례와 AI 변증 진단으로
+              환자 차트 · 변증 추론 · 처방 발행 · 청구 점검 · 환자 알림까지
               <br className="hidden sm:block" />
-              한의학 임상의 새로운 기준을 제시합니다
+              한 화면에서 끝내는 진료 시스템.
+              <span className="block mt-2 text-base text-gray-500">
+                {appStats.formatted.totalCasesApprox}의 치험례를 기반으로 본인 처방 스타일을 학습합니다.
+              </span>
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>

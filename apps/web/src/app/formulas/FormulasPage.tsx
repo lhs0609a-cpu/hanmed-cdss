@@ -15,6 +15,7 @@ import { MedicineSchool } from '@/types'
 import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
 import { useMfdsDrugSearch, type MfdsListItem } from '@/hooks/useMfdsDrug'
+import { koreanContains } from '@/lib/hangul'
 
 interface FormulaHerb {
   id: string
@@ -145,14 +146,14 @@ export default function FormulasPage() {
       result = result.filter(f => f.school === selectedSchool)
     }
 
-    // 검색어 필터
+    // 검색어 필터 — 자모 정규화/초성/오타 1-2개 포용 (lib/hangul.koreanContains).
     if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase()
+      const query = searchQuery.trim()
       result = result.filter(f =>
-        f.name.toLowerCase().includes(query) ||
-        f.hanja.toLowerCase().includes(query) ||
-        f.indication.toLowerCase().includes(query) ||
-        f.herbs.some(h => h.name.toLowerCase().includes(query))
+        koreanContains(f.name, query) ||
+        koreanContains(f.hanja, query) ||
+        koreanContains(f.indication, query) ||
+        f.herbs.some(h => koreanContains(h.name, query))
       )
     }
 

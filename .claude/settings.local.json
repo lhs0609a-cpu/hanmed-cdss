@@ -162,7 +162,9 @@
       "Bash(\"G:\\\\내 드라이브\\\\developer\\\\hanmed-cdss\\\\scripts\\\\fix-purple.ps1\" << 'SCRIPT'\n$file = \"G:\\\\내 드라이브\\\\developer\\\\hanmed-cdss\\\\apps\\\\web\\\\src\\\\components\\\\layouts\\\\DashboardLayout.tsx\"\n$content = [System.IO.File]::ReadAllText\\($file, [System.Text.Encoding]::UTF8\\)\n\n$content = $content -replace 'from-purple-500 to-pink-500', 'from-slate-600 to-slate-700'\n$content = $content -replace \"hover:bg-purple-50\", 'hover:bg-slate-50'\n$content = $content -replace \"text-purple-400\", 'text-slate-400'\n$content = $content -replace 'bg-purple-100 text-purple-700', 'bg-slate-100 text-slate-700'\n$content = $content -replace \"'purple'\", \"'slate'\"\n\n[System.IO.File]::WriteAllText\\($file, $content, [System.Text.Encoding]::UTF8\\)\nWrite-Output \"Done replacing in DashboardLayout.tsx\"\nSCRIPT)",
       "Bash(rsync:*)",
       "Bash(flyctl deploy:*)",
-      "WebFetch(domain:ongojisin.co.kr)"
+      "WebFetch(domain:ongojisin.co.kr)",
+      "Bash(pnpm -F web add:*)",
+      "Bash(pnpm:*)"
     ]
   }
 }

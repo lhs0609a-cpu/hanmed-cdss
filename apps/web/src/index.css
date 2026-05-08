@@ -108,6 +108,33 @@
     }
   }
 
+  /* 접근성: 사용자 토글 모션 감소 (AccessibilityProvider 의 reduce-motion 클래스) */
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* 접근성: 사용자 토글 고대비 모드 */
+  .high-contrast {
+    --border: 0 0% 0%;
+    --ring: 0 0% 0%;
+    --muted-foreground: 0 0% 25%;
+  }
+  .high-contrast.dark {
+    --border: 0 0% 100%;
+    --ring: 0 0% 100%;
+    --muted-foreground: 0 0% 80%;
+  }
+  /* 색약 대응: 상태 배지에 ::before 마커를 강제하여 색상에만 의존하지 않게 한다. */
+  .high-contrast [data-status='success']::before { content: '✓ '; }
+  .high-contrast [data-status='warning']::before { content: '⚠ '; }
+  .high-contrast [data-status='danger']::before { content: '✕ '; }
+  .high-contrast [data-status='info']::before { content: 'ⓘ '; }
+
   /* 접근성: 스크린리더 전용 */
   .sr-only {
     position: absolute;

@@ -128,22 +128,31 @@ export default function UnifiedSearchPage() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // API 검색 (치험례)
+  // API 검색 (치험례) — AbortController 로 race condition 방지.
+  // 빠르게 타이핑하면 진행 중 요청을 취소하여 늦게 도착한 응답이 화면을 덮어쓰지 않게 한다.
+  const caseAbortRef = useRef<AbortController | null>(null)
   useEffect(() => {
     if (!debouncedQuery || (selectedCategory !== 'all' && selectedCategory !== 'case')) {
+      if (caseAbortRef.current) caseAbortRef.current.abort()
       setCaseResults([])
       return
     }
 
     const fetchCases = async () => {
       setCaseLoading(true)
+      if (caseAbortRef.current) caseAbortRef.current.abort()
+      const controller = new AbortController()
+      caseAbortRef.current = controller
       try {
         const params = new URLSearchParams({
           page: '1',
           limit: '10',
           search: debouncedQuery,
         })
-        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`)
+        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
+          signal: controller.signal,
+        })
+        if (controller.signal.aborted) return
         if (response.ok) {
           const data = await response.json()
           const result = data.data || data

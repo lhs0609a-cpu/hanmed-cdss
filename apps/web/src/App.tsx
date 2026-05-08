@@ -68,6 +68,13 @@ const InsurancePage = lazy(() => import('@/app/insurance/InsurancePage'))
 const CrmPage = lazy(() => import('@/app/crm/CrmPage'))
 const CaseSharingPage = lazy(() => import('@/app/case-sharing/CaseSharingPage'))
 const InventoryPage = lazy(() => import('@/app/inventory/InventoryPage'))
+const MigrationWizardPage = lazy(() => import('@/app/onboarding/MigrationWizardPage'))
+
+// 환자용 PWA — /patient 스코프로 분리되어 한의사 앱과 독립적으로 동작
+const PatientLayout = lazy(() => import('@/app/patient/PatientLayout'))
+const PatientLandingPage = lazy(() => import('@/app/patient/PatientLandingPage'))
+const PatientConnectPage = lazy(() => import('@/app/patient/PatientConnectPage'))
+const PatientHomePage = lazy(() => import('@/app/patient/PatientHomePage'))
 
 // B2C Health Platform (lazy)
 const HealthHomePage = lazy(() => import('@/app/health/HealthHomePage'))
@@ -122,6 +129,30 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* 첫 로그인 후 마이그레이션 마법사 — Dashboard 진입 전 */}
+        <Route
+          path="/welcome/migration"
+          element={
+            <ProtectedRoute>
+              <RouteBoundary>
+                <MigrationWizardPage />
+              </RouteBoundary>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 환자용 PWA — 별도 manifest + service worker 스코프 */}
+        <Route path="/patient" element={<RouteBoundary><PatientLayout /></RouteBoundary>}>
+          <Route index element={route(<PatientLandingPage />)} />
+          <Route path="connect" element={route(<PatientConnectPage />)} />
+          <Route path="home" element={route(<PatientHomePage />)} />
+          <Route path="appointments" element={route(<PatientHomePage />)} />
+          <Route path="appointments/:id" element={route(<PatientHomePage />)} />
+          <Route path="prescriptions" element={route(<PatientHomePage />)} />
+          <Route path="prescriptions/:id" element={route(<PatientHomePage />)} />
+          <Route path="notifications" element={route(<PatientHomePage />)} />
+        </Route>
 
         {/* B2C Health Platform (Public) */}
         <Route path="/health" element={<RouteBoundary><HealthLayout /></RouteBoundary>}>

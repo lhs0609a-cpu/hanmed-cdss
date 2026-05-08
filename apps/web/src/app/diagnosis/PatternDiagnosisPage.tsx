@@ -29,6 +29,9 @@ import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitut
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { TermTooltip } from '@/components/common'
+import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/lib/kcdOm'
+import { suggestCheopyakCodes, describeCheopyak } from '@/data/cheopyak-codes'
+import { usePrescriptionTracking } from '@/hooks/usePrescriptionTracking'
 
 interface SymptomCategory {
   id: string
@@ -731,6 +734,7 @@ export default function PatternDiagnosisPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [results, setResults] = useState<PatternResult[]>([])
   const [isSavingToChart, setIsSavingToChart] = useState(false)
+  const { trackPrescription } = usePrescriptionTracking()
 
   const toggleSymptom = (symptomId: string) => {
     setSelectedSymptoms((prev) =>
@@ -836,7 +840,7 @@ export default function PatternDiagnosisPage() {
     setIsSavingToChart(true)
 
     try {
-      // 진단 결과를 로컬 스토리지에 임시 저장 (실제 구현 시 API 호출로 대체)
+      // 변증 추론 결과를 로컬 스토리지에 임시 저장 (실제 구현 시 API 호출로 대체)
       const diagnosisRecord = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
@@ -859,15 +863,28 @@ export default function PatternDiagnosisPage() {
         allResults: results,
       }
 
-      // 기존 진단 기록 가져오기
+      // 기존 변증 추론 기록 가져오기
       const existingRecords = JSON.parse(localStorage.getItem('diagnosisRecords') || '[]')
       existingRecords.unshift(diagnosisRecord)
       localStorage.setItem('diagnosisRecords', JSON.stringify(existingRecords.slice(0, 50))) // 최근 50개만 유지
 
+      // 개인화 학습 — 한의사가 자주 쓰는 변증·처방 패턴을 누적해 다음 추론에 반영.
+      // 첫 번째 추천 처방을 본인 학습 데이터로 기록 (best-effort, 실패해도 진료엔 영향 없음).
+      try {
+        if (results[0].formulas?.[0]) {
+          await trackPrescription({
+            formulaName: results[0].formulas[0],
+            pattern: results[0].pattern,
+          })
+        }
+      } catch {
+        // ignore
+      }
+
       // 성공 토스트 표시
       toast({
         title: '차트에 기록되었습니다',
-        description: `${results[0].pattern} (${results[0].hanja}) 진단 결과가 저장되었습니다.`,
+        description: `${results[0].pattern} (${results[0].hanja}) 변증 추론 결과가 차트에 기록되었습니다.`,
       })
 
       // 잠시 후 환자 관리 페이지로 이동 옵션 안내
@@ -896,10 +913,10 @@ export default function PatternDiagnosisPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Brain className="h-7 w-7 text-slate-600" />
-            AI 변증 진단
+            AI 변증 추론 <span className="ml-1 text-xs font-medium text-gray-400">(참고용)</span>
           </h1>
           <p className="mt-1 text-gray-500">
-            증상, 맥, 설을 입력하면 AI가 변증을 분석합니다
+            증상·맥·설을 입력하면 AI가 변증 후보를 추론합니다. 최종 진단·처방은 한의사의 판단에 따릅니다.
           </p>
         </div>
         {step !== 'symptoms' && (
@@ -1239,26 +1256,84 @@ export default function PatternDiagnosisPage() {
           <AIResultDisclaimer />
 
           {/* Main Result */}
-          <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-slate-200 text-sm mb-1">AI 변증 결과</p>
-                <h2 className="text-3xl font-bold">
-                  {results[0].pattern} ({results[0].hanja})
-                </h2>
+          {(() => {
+            const kcdPattern: KcdOmEntry | null = lookupPatternCode(results[0].pattern) || lookupPatternCode(results[0].hanja || '')
+            const constitutionName = (bodyConstitution as { constitution?: string; type?: string } | null)?.constitution
+              || (bodyConstitution as { constitution?: string; type?: string } | null)?.type
+              || ''
+            const kcdConstitution: KcdOmEntry | null = lookupConstitutionCode(constitutionName)
+            return (
+              <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-slate-200 text-sm mb-1">AI 변증 추론 결과 (참고용)</p>
+                    <h2 className="text-3xl font-bold">
+                      {results[0].pattern} ({results[0].hanja})
+                    </h2>
+                  </div>
+                  <div className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
+                    일치도 {results[0].confidence}%
+                  </div>
+                </div>
+                <p className="text-slate-100 mb-4">{results[0].description}</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-3 py-1 bg-white/20 rounded-lg text-sm">
+                    <Flame className="h-3 w-3 inline mr-1" />
+                    치법: {results[0].treatment}
+                  </span>
+                </div>
+                {(kcdPattern || kcdConstitution) && (
+                  <div className="mt-3 rounded-xl bg-white/10 border border-white/20 p-3 text-sm">
+                    <p className="text-slate-100 font-semibold mb-2">KCD-OM 추천 코드 (청구 참고)</p>
+                    <ul className="space-y-1 text-slate-50">
+                      {kcdPattern && (
+                        <li>
+                          <span className="inline-block min-w-[64px] font-mono text-slate-200">{kcdPattern.code}</span>{' '}
+                          {kcdPattern.korean} {kcdPattern.hanja && <span className="text-slate-300">({kcdPattern.hanja})</span>}
+                        </li>
+                      )}
+                      {kcdConstitution && (
+                        <li>
+                          <span className="inline-block min-w-[64px] font-mono text-slate-200">{kcdConstitution.code}</span>{' '}
+                          {kcdConstitution.korean} {kcdConstitution.hanja && <span className="text-slate-300">({kcdConstitution.hanja})</span>}
+                        </li>
+                      )}
+                    </ul>
+                    <p className="mt-2 text-xs text-slate-300">
+                      ※ 이 코드는 후보이며, 실제 청구 시 한의사가 직접 확인·수정해 주세요.
+                    </p>
+                  </div>
+                )}
+                {(() => {
+                  // 첩약 건강보험 시범사업 자동 추천
+                  const cheopyak = suggestCheopyakCodes({
+                    diagnosisName: results[0].pattern,
+                    kcdCodes: kcdPattern ? [kcdPattern.code] : [],
+                    formulaNames: results[0].formulas,
+                  })
+                  if (!cheopyak.length) return null
+                  return (
+                    <div className="mt-3 rounded-xl bg-amber-50/95 text-amber-900 border border-amber-200 p-3 text-sm">
+                      <p className="font-semibold mb-2 flex items-center gap-1">
+                        <Pill className="h-4 w-4" />
+                        첩약 건강보험 시범사업 자동 추천
+                      </p>
+                      <ul className="space-y-1">
+                        {cheopyak.slice(0, 3).map((d) => (
+                          <li key={d.pilotCode} className="font-medium">
+                            · {describeCheopyak(d)}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs text-amber-700">
+                        ※ 시범사업 코드는 한의사가 청구 시점에 최종 확인·선택. 본 추천은 진단/처방 일치도 기반.
+                      </p>
+                    </div>
+                  )
+                })()}
               </div>
-              <div className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
-                일치도 {results[0].confidence}%
-              </div>
-            </div>
-            <p className="text-slate-100 mb-4">{results[0].description}</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-white/20 rounded-lg text-sm">
-                <Flame className="h-3 w-3 inline mr-1" />
-                치법: {results[0].treatment}
-              </span>
-            </div>
-          </div>
+            )
+          })()}
 
           {/* 처방 전 필수 확인 사항 */}
           <PrescriptionDisclaimer />
@@ -1425,7 +1500,7 @@ export default function PatternDiagnosisPage() {
               onClick={resetDiagnosis}
               className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
             >
-              새로운 진단
+              새 변증 추론
             </button>
             <button
               onClick={saveToChart}

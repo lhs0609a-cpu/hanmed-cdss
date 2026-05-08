@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from .core.config import settings
 from .core.logger import get_logger
 from .core.middleware import ResponseWrapperMiddleware
-from .api.v1 import retrieval, recommendation, interaction, case_search, subscription, patient_explanation, formula_recommendation, statistics, collector
+from .api.v1 import retrieval, recommendation, interaction, case_search, subscription, patient_explanation, formula_recommendation, statistics, collector, personalization
 from .services.collector import collector_scheduler
 
 logger = get_logger("main")
@@ -104,6 +104,11 @@ app.include_router(
     collector.router,
     prefix="/api/v1",
     tags=["Case Collector"]
+)
+app.include_router(
+    personalization.router,
+    prefix="/api/v1/personalization",
+    tags=["Personalization (per-doctor)"]
 )
 
 @app.get("/")

@@ -41,6 +41,7 @@ import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ROICalculator } from '@/components/dashboard';
 import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
+import { formatKRW, formatKRDate, withVat, vatAmount } from '@/lib/format';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -233,9 +234,7 @@ export default function SubscriptionPage() {
     });
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ko-KR').format(price);
-  };
+  // 가격은 모두 공급가(부가세 별도). 표시는 formatKRW 로 통일됨 (lib/format).
 
   if (plansLoading) {
     return <SkeletonSubscriptionPage />;
@@ -312,7 +311,7 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-emerald-100">체험 종료일</p>
                 <p className="font-semibold">
                   {trialStatus.trialEndsAt
-                    ? new Date(trialStatus.trialEndsAt).toLocaleDateString('ko-KR')
+                    ? formatKRDate(trialStatus.trialEndsAt)
                     : '-'}
                 </p>
               </div>
@@ -395,7 +394,7 @@ export default function SubscriptionPage() {
               <div className="bg-white/60 rounded-lg p-4">
                 <p className="text-sm text-gray-600">다음 갱신일</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {new Date(usage.resetDate).toLocaleDateString('ko-KR')}
+                  {formatKRDate(usage.resetDate)}
                 </p>
               </div>
             </div>
@@ -456,12 +455,18 @@ export default function SubscriptionPage() {
 
                 <div>
                   <span className="text-3xl font-bold text-gray-900">
-                    {formatPrice(monthlyEquivalent)}원
+                    {formatKRW(monthlyEquivalent)}
                   </span>
                   <span className="text-gray-500">/월</span>
+                  {plan.tier !== 'free' && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      부가세 별도 · 결제액 월 <span className="font-medium text-gray-700">{formatKRW(withVat(monthlyEquivalent))}</span>
+                      {' '}(VAT {formatKRW(vatAmount(monthlyEquivalent))})
+                    </p>
+                  )}
                   {billingInterval === 'yearly' && plan.tier !== 'free' && (
                     <p className="text-sm text-emerald-600 mt-1">
-                      연 {formatPrice(price)}원 (2개월 무료)
+                      연 {formatKRW(price)} · 부가세 포함 {formatKRW(withVat(price))} (2개월 무료, 17% 할인)
                     </p>
                   )}
                 </div>
@@ -544,18 +549,14 @@ export default function SubscriptionPage() {
               <div>
                 <p className="text-sm text-gray-600">다음 결제일</p>
                 <p className="font-medium">
-                  {new Date(
-                    subscriptionInfo.subscription.currentPeriodEnd
-                  ).toLocaleDateString('ko-KR')}
+                  {formatKRDate(subscriptionInfo.subscription.currentPeriodEnd)}
                 </p>
               </div>
             </div>
             {subscriptionInfo.subscription.cancelAt && (
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-sm text-amber-700">
-                  {new Date(
-                    subscriptionInfo.subscription.cancelAt
-                  ).toLocaleDateString('ko-KR')}
+                  {formatKRDate(subscriptionInfo.subscription.cancelAt)}
                   에 취소 예정입니다.
                 </p>
               </div>

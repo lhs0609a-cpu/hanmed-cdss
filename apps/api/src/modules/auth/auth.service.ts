@@ -17,6 +17,10 @@ import { EncryptionService } from '../../common/services/encryption.service';
 import { TotpService } from './services/totp.service';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
+import {
+  LicenseVerificationStatus,
+  PractitionerType,
+} from '../../database/entities/enums';
 
 const TOKEN_BLACKLIST_PREFIX = 'auth:revoked';
 const TWOFA_CHALLENGE_PREFIX = 'auth:2fa-challenge';
@@ -61,11 +65,32 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const { email, password, name, licenseNumber, clinicName, consentTerms, consentPrivacy, consentMarketing } = registerDto;
+    const {
+      email,
+      password,
+      name,
+      licenseNumber,
+      clinicName,
+      role,
+      consentTerms,
+      consentPrivacy,
+      consentMarketing,
+    } = registerDto;
 
     // 필수 동의 확인
     if (!consentTerms || !consentPrivacy) {
       throw new ConflictException('이용약관과 개인정보처리방침에 동의해주세요.');
+    }
+
+    const practitionerType = role ?? PractitionerType.PRACTITIONER;
+
+    // 한의사 가입 시 면허번호 필수 + 형식 (5-8자리 숫자)
+    if (practitionerType === PractitionerType.PRACTITIONER) {
+      if (!licenseNumber || !/^\d{5,8}$/.test(licenseNumber)) {
+        throw new BadRequestException(
+          '한의사 면허번호는 5~8자리 숫자로 입력해주세요. 학생/공보의는 가입 유형에서 변경하세요.',
+        );
+      }
     }
 
     // 이메일 중복 확인
@@ -80,6 +105,12 @@ export class AuthService {
     // 동의 시간 기록
     const now = new Date();
 
+    // 면허 검증 상태: 한의사 + 면허번호 제출 시 PENDING(검수 대기), 그 외 UNSUBMITTED.
+    const licenseVerificationStatus =
+      practitionerType === PractitionerType.PRACTITIONER && licenseNumber
+        ? LicenseVerificationStatus.PENDING
+        : LicenseVerificationStatus.UNSUBMITTED;
+
     // 사용자 생성
     const user = await this.usersService.create({
       email,
@@ -87,6 +118,8 @@ export class AuthService {
       name,
       licenseNumber,
       clinicName,
+      practitionerType,
+      licenseVerificationStatus,
       consentTerms,
       consentPrivacy,
       consentMarketing: consentMarketing || false,
@@ -107,6 +140,9 @@ export class AuthService {
         isVerified: user.isVerified,
         role: user.role,
         status: user.status,
+        practitionerType: user.practitionerType,
+        isLicenseVerified: user.isLicenseVerified,
+        licenseVerificationStatus: user.licenseVerificationStatus,
       },
       ...tokens,
     };

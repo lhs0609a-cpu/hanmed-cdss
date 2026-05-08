@@ -19,6 +19,7 @@ import {
 import { useToast } from '@/hooks/useToast'
 import { useAuthStore } from '@/stores/authStore'
 import type { PostType } from '../../types'
+import { isPostSafeForCommunity, anonymizePatientText } from '@/lib/patientPii'
 
 const DRAFT_STORAGE_KEY = 'hanmed_post_draft'
 
@@ -237,13 +238,41 @@ export default function WritePostPage() {
       return
     }
 
+    // 의료광고 금지 표현 사전 차단 (의료법 56조 + 의협 가이드)
+    const adCheck = isPostSafeForCommunity(`${title}\n${content}`)
+    if (!adCheck.safe) {
+      const reasons = adCheck.report.map((r) => `· ${r.reason}: ${r.matched.join(', ')}`).join('\n')
+      toast({
+        title: '게시 불가 — 표현 수정 필요',
+        description: `의료법상 사용할 수 없는 표현이 포함되어 있습니다.\n${reasons}`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // 환자 PII 자동 마스킹 — 게시 전 한의사에게 변경 사항을 알림.
+    const titleAnon = anonymizePatientText(title)
+    const contentAnon = anonymizePatientText(content)
+    if (titleAnon.removed.length || contentAnon.removed.length) {
+      const removed = [...titleAnon.removed, ...contentAnon.removed]
+        .map((r) => r.kind)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .join(', ')
+      toast({
+        title: '환자 식별정보 자동 마스킹',
+        description: `게시 전 ${removed} 항목이 자동 비식별화되었습니다. 내용을 한 번 더 확인해주세요.`,
+      })
+    }
+    const safeTitle = titleAnon.text
+    const safeContent = contentAnon.text
+
     setIsSubmitting(true)
     try {
-      // API 호출
+      // API 호출 — 비식별화된 텍스트로 전송
       console.log('Submitting post:', {
         type: postType,
-        title,
-        content,
+        title: safeTitle,
+        content: safeContent,
         tags,
         isAnonymous,
         categoryId: forumCategory || undefined,

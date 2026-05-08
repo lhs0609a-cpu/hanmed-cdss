@@ -12,13 +12,12 @@ class RAGService:
         self,
         patient_info: Dict,
         top_k: int = 3,
+        *,
+        user_id: Optional[str] = None,
     ) -> Dict:
-        """환자 정보 기반 처방 추천"""
-
-        # GPT로 직접 추천 생성
-        recommendation = await self.llm_service.generate_recommendation(
+        """환자 정보 기반 처방 추론 후보. user_id 가 있으면 동시성/Rate-limit 에 사용."""
+        return await self.llm_service.generate_recommendation(
             patient_info=patient_info,
             current_medications=patient_info.get('current_medications'),
+            user_id=user_id,
         )
-
-        return recommendation

@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
+import { gcDrafts } from '@/lib/formDraft'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.kr/api/v1'
 
@@ -79,8 +80,18 @@ api.interceptors.response.use(
 
     // 401 에러 - 토큰 만료
     if (error.response?.status === 401) {
+      // 진료 입력 중일 수 있으므로 드래프트는 그대로 두고 로그아웃만 한다.
+      // 재로그인 후 형태별 페이지가 loadDraft 로 자동 복원한다.
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      try {
+        // 만료된 드래프트만 정리 (24h+). 입력 중 데이터 보존이 우선.
+        gcDrafts()
+      } catch {
+        // ignore
+      }
+      // 진료 입력 페이지에서 갑자기 로그인으로 점프하지 않도록 returnTo 전달.
+      const returnTo = encodeURIComponent(window.location.pathname + window.location.search)
+      window.location.href = `/login?session=expired&returnTo=${returnTo}`
     }
 
     // 오프라인 에러 메시지 개선

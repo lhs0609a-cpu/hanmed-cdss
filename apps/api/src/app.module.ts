@@ -23,6 +23,8 @@ import { PatientRecordsModule } from './modules/patient-records/patient-records.
 import { PatientPrescriptionsModule } from './modules/patient-prescriptions/patient-prescriptions.module';
 import { PatientHealthModule } from './modules/patient-health/patient-health.module';
 import { PatientNotificationsModule } from './modules/patient-notifications/patient-notifications.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -156,6 +158,8 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     SajuModule,             // 사주풀이 프리미엄 서비스
     MfdsDrugModule,         // 식약처 의약품 허가정보 (공공 API)
     MfdsDurModule,          // 식약처 DUR 의약품안전사용서비스 (공공 API)
+    NotificationsModule,    // 카카오톡 비즈메시지 (환자 락인)
+    ComplianceModule,       // 전자의무기록 인증 자가 진단
 
     // 시드 모듈 (운영에서는 standalone 컨텍스트로만 사용)
     SeederModule,

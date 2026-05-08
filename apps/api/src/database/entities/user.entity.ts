@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { UserRole, UserStatus } from './enums';
+import { UserRole, UserStatus, PractitionerType, LicenseVerificationStatus } from './enums';
 
 export enum SubscriptionTier {
   FREE = 'free',
@@ -107,12 +107,43 @@ export class User {
   @JoinColumn({ name: 'suspendedById' })
   suspendedBy: User | null;
 
-  // Community 관련 필드
+  // 직역 구분 — 처방/저장 권한 게이트에 사용
+  @Column({
+    type: 'enum',
+    enum: PractitionerType,
+    default: PractitionerType.PRACTITIONER,
+  })
+  practitionerType: PractitionerType;
+
+  // Community / 처방권한 관련 필드
   @Column({ default: false })
   isLicenseVerified: boolean; // 면허 인증 완료 여부
 
+  @Column({
+    type: 'enum',
+    enum: LicenseVerificationStatus,
+    default: LicenseVerificationStatus.UNSUBMITTED,
+  })
+  licenseVerificationStatus: LicenseVerificationStatus;
+
   @Column({ nullable: true })
   licenseVerifiedAt: Date | null;
+
+  @Column({ nullable: true })
+  licenseVerifiedById: string | null;
+
+  @Column('text', { nullable: true })
+  licenseRejectionReason: string | null;
+
+  // 회원탈퇴(grace period) 추적
+  @Column({ nullable: true })
+  deletionRequestedAt: Date | null;
+
+  @Column({ nullable: true })
+  deletionScheduledFor: Date | null; // 30일 후 hard-delete 예정일
+
+  @Column('text', { nullable: true })
+  deletionReason: string | null;
 
   @Column({ nullable: true })
   specialization: string | null; // 전문 분야 (본초학, 상한론 등)

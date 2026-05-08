@@ -5,6 +5,7 @@ import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
+import { isMigrationDone } from '@/app/onboarding/MigrationWizardPage'
 import { Sparkles, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import type { LoginResponse } from '@/types'
 
@@ -56,7 +57,8 @@ export default function LoginPage() {
         return
       }
       login(data.user, data.accessToken, data.refreshToken)
-      navigate('/dashboard')
+      // 첫 로그인 → 마이그레이션 마법사로. 이미 완료된 사용자는 대시보드로 직행.
+      navigate(isMigrationDone() ? '/dashboard' : '/welcome/migration')
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -82,7 +84,8 @@ export default function LoginPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-      navigate('/dashboard')
+      // 첫 로그인 → 마이그레이션 마법사로. 이미 완료된 사용자는 대시보드로 직행.
+      navigate(isMigrationDone() ? '/dashboard' : '/welcome/migration')
     } catch (err: unknown) {
       setError(getErrorMessage(err))
     } finally {
@@ -99,7 +102,8 @@ export default function LoginPage() {
   const handleDemoLogin = async () => {
     if (DEMO_CONFIG.token) {
       login(DEMO_CONFIG.user, DEMO_CONFIG.token, DEMO_CONFIG.refreshToken)
-      navigate('/dashboard')
+      // 첫 로그인 → 마이그레이션 마법사로. 이미 완료된 사용자는 대시보드로 직행.
+      navigate(isMigrationDone() ? '/dashboard' : '/welcome/migration')
     } else {
       // 데모 토큰이 설정되지 않은 경우 서버 데모 로그인 API 호출
       setIsLoading(true)
@@ -107,7 +111,8 @@ export default function LoginPage() {
         const response = await api.post<LoginResponse>('/auth/demo-login')
         const { user, accessToken, refreshToken } = response.data
         login(user, accessToken, refreshToken)
-        navigate('/dashboard')
+        // 첫 로그인 → 마이그레이션 마법사로. 이미 완료된 사용자는 대시보드로 직행.
+      navigate(isMigrationDone() ? '/dashboard' : '/welcome/migration')
       } catch (err: unknown) {
         setError('데모 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.')
       } finally {
@@ -142,12 +147,12 @@ export default function LoginPage() {
 
         <div className="relative z-10 space-y-6">
           <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
-            {appStats.formatted.totalCases}의 치험례로<br />
-            <span className="text-white/90">처방을 추천받으세요</span>
+            한의원의 하루,<br />
+            <span className="text-white/90">여기서 흐릅니다</span>
           </h1>
           <p className="text-lg text-white/80 max-w-md">
-            한의학 임상 경험을 AI로 학습하여,
-            환자 증상에 최적화된 처방을 추천해 드립니다.
+            환자 차트·변증 추론·처방·청구 점검·환자 알림까지 한 화면.
+            {appStats.formatted.totalCases}의 치험례 + 본인 처방 학습으로 매일 정확해집니다.
           </p>
 
           {/* Feature cards */}
