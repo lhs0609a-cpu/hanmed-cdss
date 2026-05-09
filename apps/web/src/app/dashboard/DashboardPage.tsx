@@ -16,9 +16,7 @@ import {
   Users,
   TrendingUp,
   ArrowRight,
-  Sparkles,
   ChevronRight,
-  Zap,
   Search,
 } from 'lucide-react'
 
@@ -129,34 +127,28 @@ export default function DashboardPage() {
   const recentActivityQuery = useRecentActivities()
   const recentActivities = recentActivityQuery.data ?? []
 
-  // 동적 quickActions (치험례 수 반영)
+  // 빠른 실행 — 단일 톤. 아이콘 배경/배지도 모두 neutral 정렬.
   const quickActions = useMemo(() => [
     {
       name: '새 진료 시작',
-      description: 'AI가 증상을 분석하고 최적의 처방을 추천해드립니다',
+      description: '환자 증상을 입력하면 변증·처방 후보를 보여드립니다.',
       href: '/dashboard/consultation',
       icon: Stethoscope,
-      gradient: 'from-teal-500 to-emerald-500',
-      shadowColor: 'shadow-teal-500/25',
-      badge: 'AI 추천',
+      badge: '추천',
     },
     {
       name: '치험례 검색',
-      description: `${appStats.formatted.totalCases}의 임상 데이터에서 유사 사례를 찾아보세요`,
+      description: `${appStats.formatted.totalCases}의 임상 데이터에서 유사 사례를 찾아보세요.`,
       href: '/dashboard/cases',
       icon: BookOpen,
-      gradient: 'from-blue-500 to-indigo-500',
-      shadowColor: 'shadow-blue-500/25',
       badge: appStats.formatted.totalCases,
     },
     {
       name: '상호작용 검사',
-      description: '양약-한약 간 상호작용을 빠르게 확인하세요',
+      description: '양약과 한약 간 상호작용을 빠르게 확인합니다.',
       href: '/dashboard/interactions',
       icon: AlertTriangle,
-      gradient: 'from-amber-500 to-orange-500',
-      shadowColor: 'shadow-amber-500/25',
-      badge: '안전 검사',
+      badge: '안전',
     },
   ], [appStats.formatted.totalCases])
 
@@ -174,36 +166,27 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
+      {/* Welcome Header — 단정한 그레이톤 */}
       <div
         data-tour="welcome-header"
-        className="relative overflow-hidden bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-3xl p-8 text-white"
+        className="rounded-lg bg-white border border-neutral-200 p-8"
       >
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5 text-amber-300" />
-              <span className="text-sm font-medium text-teal-100">{greeting}</span>
-            </div>
-            <h1 className="text-3xl font-bold">
-              {user?.name}님, 오늘도 파이팅!
+            <p className="text-[13px] text-neutral-500">{greeting}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mt-1">
+              {user?.name}님, 안녕하세요
             </h1>
-            <p className="mt-2 text-teal-100 max-w-md">
-              온고지신 AI가 오늘도 임상을 함께합니다.
-              새로운 환자 증상을 입력해 보세요.
+            <p className="mt-2 text-[15px] text-neutral-600 max-w-md">
+              오늘 진료를 시작하기 좋은 시간입니다.
             </p>
           </div>
 
           <Link
             to="/dashboard/consultation"
             data-tour="start-consultation"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-600 rounded-xl font-semibold hover:bg-teal-50 transition-colors shadow-lg"
+            className="inline-flex items-center gap-2 h-12 px-5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md font-semibold transition-colors active:scale-[0.99]"
           >
-            <Zap className="h-5 w-5" />
             새 진료 시작
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -211,33 +194,32 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Search Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <form onSubmit={handleQuickSearch} className="flex items-center gap-3">
+      <div className="bg-white rounded-md border border-neutral-200 p-3">
+        <form onSubmit={handleQuickSearch} className="flex items-center gap-2">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <input
               type="text"
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
-              placeholder="증상, 처방명, 약재명으로 빠르게 검색... (예: 두통, 보중익기탕, 황기)"
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all"
+              placeholder="증상, 처방명, 약재명으로 검색"
+              className="w-full h-12 pl-11 pr-4 bg-neutral-50 rounded-md text-[15px] text-neutral-900 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-primary focus:shadow-focus border border-transparent transition"
             />
           </div>
           <button
             type="submit"
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all flex items-center gap-2"
+            className="h-12 px-5 bg-primary hover:bg-brand-600 text-white text-[14px] font-semibold rounded-md transition-colors active:scale-[0.99]"
           >
-            <Sparkles className="h-4 w-4" />
-            AI 검색
+            검색
           </button>
         </form>
-        <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <span className="text-xs text-gray-400">인기 검색어:</span>
+        <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+          <span className="text-[12px] text-neutral-400">자주 찾는 키워드</span>
           {['두통', '요통', '불면', '소화불량', '보중익기탕'].map((term) => (
             <button
               key={term}
               onClick={() => navigate(`/dashboard/cases?keyword=${encodeURIComponent(term)}`)}
-              className="px-2.5 py-1 bg-gray-100 hover:bg-teal-50 hover:text-teal-600 text-gray-600 text-xs rounded-lg transition-colors"
+              className="h-7 px-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[12px] font-medium rounded-sm transition-colors"
             >
               {term}
             </button>
@@ -249,32 +231,21 @@ export default function DashboardPage() {
       <KillerFeatureHighlight />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {stats.map((stat) => (
           <div
             key={stat.name}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            className="bg-white rounded-md p-6 border border-neutral-200"
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      stat.changeType === 'positive'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {stat.change}
-                  </span>
-                  <span className="text-xs text-gray-400">{stat.description}</span>
-                </div>
+                <p className="text-[13px] font-medium text-neutral-500">{stat.name}</p>
+                <p className="text-[28px] font-extrabold tabular text-neutral-900 mt-2 tracking-tight">
+                  {stat.value}
+                </p>
+                <p className="text-[12px] text-neutral-400 mt-1.5">{stat.description}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-xl">
-                <stat.icon className="h-6 w-6 text-gray-400" />
-              </div>
+              <stat.icon className="h-5 w-5 text-neutral-400" />
             </div>
           </div>
         ))}
@@ -283,44 +254,35 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div data-tour="quick-actions">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">빠른 실행</h2>
+          <h2 className="text-lg font-bold text-neutral-900">빠른 실행</h2>
           <ExportDialog />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {quickActions.map((action) => (
             <Link
               key={action.name}
               to={action.href}
-              className={`group relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl ${action.shadowColor} transition-all duration-300 overflow-hidden`}
+              className="group block bg-white rounded-md p-6 border border-neutral-200 hover:border-neutral-900 transition-colors"
             >
-              {/* Gradient overlay on hover */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-5 transition-opacity`}
-              />
-
-              <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-lg ${action.shadowColor}`}
-                  >
-                    <action.icon className="h-6 w-6" />
-                  </div>
-                  <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg">
-                    {action.badge}
-                  </span>
+              <div className="flex items-start justify-between mb-5">
+                <div className="inline-flex w-10 h-10 rounded-md bg-neutral-100 text-neutral-900 items-center justify-center">
+                  <action.icon className="h-5 w-5" />
                 </div>
+                <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-[11px] font-semibold rounded-sm">
+                  {action.badge}
+                </span>
+              </div>
 
-                <h3 className="text-lg font-bold text-gray-900 group-hover:text-teal-600 transition-colors">
-                  {action.name}
-                </h3>
-                <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                  {action.description}
-                </p>
+              <h3 className="text-[17px] font-bold text-neutral-900">
+                {action.name}
+              </h3>
+              <p className="mt-1.5 text-[13px] text-neutral-500 leading-relaxed">
+                {action.description}
+              </p>
 
-                <div className="mt-4 flex items-center text-sm font-medium text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  바로가기
-                  <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
+              <div className="mt-4 inline-flex items-center text-[13px] font-medium text-neutral-900">
+                시작하기
+                <ChevronRight className="h-3.5 w-3.5 ml-0.5 transition-transform group-hover:translate-x-0.5" />
               </div>
             </Link>
           ))}
@@ -328,30 +290,28 @@ export default function DashboardPage() {
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {/* Recent Activity */}
-        <div data-tour="recent-activity" className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900">최근 활동</h2>
+        <div data-tour="recent-activity" className="lg:col-span-3 bg-white rounded-md border border-neutral-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-neutral-900">최근 활동</h2>
             <Link
               to="/dashboard/statistics"
-              className="text-sm font-medium text-teal-600 hover:text-teal-700"
+              className="text-[13px] font-medium text-neutral-500 hover:text-neutral-900"
             >
               전체 보기
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-1">
             {recentActivityQuery.isLoading ? (
-              <div className="text-center py-8 text-gray-400">
-                <p className="text-sm">불러오는 중...</p>
+              <div className="text-center py-8 text-neutral-400">
+                <p className="text-[13px]">불러오는 중…</p>
               </div>
             ) : recentActivities.length > 0 ? (
               recentActivities.map((activity, index) => {
                 const isConsultation = activity.type === 'consultation'
                 const Icon = isConsultation ? Stethoscope : BookOpen
-                const iconBg = isConsultation ? 'bg-teal-50' : 'bg-blue-50'
-                const iconColor = isConsultation ? 'text-teal-600' : 'text-blue-600'
                 return (
                   <div
                     key={index}
@@ -359,66 +319,61 @@ export default function DashboardPage() {
                       activity.patientId &&
                       navigate(`/dashboard/patients/${activity.patientId}`)
                     }
-                    className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex items-start gap-3 p-3 -mx-3 rounded-md hover:bg-neutral-50 transition-colors cursor-pointer"
                   >
-                    <div className={`p-2.5 ${iconBg} rounded-xl`}>
-                      <Icon className={`h-5 w-5 ${iconColor}`} />
+                    <div className="w-9 h-9 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center flex-shrink-0">
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900">{activity.title}</p>
-                      <p className="text-sm text-gray-500 mt-0.5 truncate">
+                      <p className="font-semibold text-[14px] text-neutral-900">{activity.title}</p>
+                      <p className="text-[13px] text-neutral-500 mt-0.5 truncate">
                         {activity.description}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                    <span className="text-[12px] text-neutral-400 whitespace-nowrap mt-1">
                       {formatRelativeTime(activity.time)}
                     </span>
                   </div>
                 )
               })
             ) : (
-              <div className="text-center py-8 text-gray-400">
-                <Stethoscope className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">아직 활동 기록이 없습니다</p>
-                <p className="text-xs mt-1">새 진료를 시작하면 여기에 표시됩니다</p>
+              <div className="text-center py-12 text-neutral-400">
+                <Stethoscope className="h-8 w-8 mx-auto mb-3 opacity-40" />
+                <p className="text-[13px] font-medium text-neutral-500">아직 활동 기록이 없습니다</p>
+                <p className="text-[12px] mt-1">새 진료를 시작하면 여기에 표시돼요.</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* AI Insight Card */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Today's Tip */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-amber-100 rounded-xl">
-                <Sparkles className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-amber-900">오늘의 임상 팁</h3>
-                <p className="text-sm text-amber-700 mt-2 leading-relaxed">
-                  겨울철 감기 환자가 많습니다. 소청룡탕과 갈근탕의
-                  구분 포인트를 확인해 보세요.
-                </p>
-                <button
-                  onClick={() => navigate('/dashboard/cases?keyword=소청룡탕+갈근탕')}
-                  className="mt-3 text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
-                >
-                  자세히 보기
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+        {/* Side panel */}
+        <div className="lg:col-span-2 space-y-3">
+          {/* Today's Tip — 단정한 회색 카드 */}
+          <div className="rounded-md border border-neutral-200 bg-white p-6">
+            <p className="text-[12px] font-semibold text-primary">오늘의 임상 팁</p>
+            <h3 className="font-bold text-neutral-900 mt-1.5">
+              감기 환자, 소청룡탕 vs 갈근탕
+            </h3>
+            <p className="text-[13px] text-neutral-600 mt-2 leading-relaxed">
+              겨울철에 자주 보는 두 처방의 구분 포인트를 정리했어요.
+            </p>
+            <button
+              onClick={() => navigate('/dashboard/cases?keyword=소청룡탕+갈근탕')}
+              className="mt-4 inline-flex items-center text-[13px] font-medium text-neutral-900"
+            >
+              자세히 보기
+              <ArrowRight className="h-3.5 w-3.5 ml-0.5" />
+            </button>
           </div>
 
           {/* Usage Stats - Value Metrics */}
-          <div data-tour="usage-stats" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div data-tour="usage-stats" className="bg-white rounded-md border border-neutral-200 p-6">
             <ValueMetricsDashboard compact />
 
             {user?.subscriptionTier === 'free' && (
               <Link
                 to="/dashboard/subscription"
-                className="block w-full mt-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors text-center"
+                className="block w-full mt-4 h-11 leading-[44px] bg-neutral-900 text-white text-[14px] font-semibold rounded-md hover:bg-neutral-800 transition-colors text-center"
               >
                 Pro로 업그레이드
               </Link>
@@ -427,10 +382,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Tour Guide */}
       {/* Statistics Charts */}
       <div className="mt-8">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">진료 통계</h2>
+        <h2 className="text-lg font-bold text-neutral-900 mb-4">진료 통계</h2>
         <DashboardCharts />
       </div>
 

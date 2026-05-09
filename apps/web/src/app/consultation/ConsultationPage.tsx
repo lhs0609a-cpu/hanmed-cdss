@@ -32,6 +32,7 @@ import {
   ClipboardList,
   Stethoscope,
   FileCheck,
+  Zap,
 } from 'lucide-react'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
@@ -472,23 +473,22 @@ export default function ConsultationPage() {
       {/* Header with Mode Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Brain className="h-7 w-7 text-teal-500" />
-            AI 진료 어시스턴트
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            새 진료
           </h1>
-          <p className="mt-1 text-gray-500">
+          <p className="mt-1 text-[14px] text-neutral-500">
             {inputMode === 'wizard'
-              ? '단계별로 안내해 드립니다'
-              : '증상을 입력하고 Enter를 누르면 즉시 분석됩니다'}
+              ? '단계별로 안내해 드릴게요.'
+              : '증상을 입력하고 Enter를 누르면 즉시 분석됩니다.'}
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+        <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-md">
           <button
             onClick={() => { setInputMode('wizard'); setWizardStep(1) }}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+            className={`h-9 px-3 rounded-sm text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
               inputMode === 'wizard'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-neutral-900'
+                : 'text-neutral-500 hover:text-neutral-900'
             }`}
             title="단계별 마법사"
           >
@@ -497,22 +497,22 @@ export default function ConsultationPage() {
           </button>
           <button
             onClick={() => setInputMode('quick')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+            className={`h-9 px-3 rounded-sm text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
               inputMode === 'quick'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-neutral-900'
+                : 'text-neutral-500 hover:text-neutral-900'
             }`}
             title="빠른 입력"
           >
-            <Sparkles className="h-4 w-4" />
+            <Zap className="h-4 w-4" />
             빠른
           </button>
           <button
             onClick={() => setInputMode('detailed')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+            className={`h-9 px-3 rounded-sm text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
               inputMode === 'detailed'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-neutral-900'
+                : 'text-neutral-500 hover:text-neutral-900'
             }`}
             title="상세 입력"
           >

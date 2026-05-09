@@ -911,12 +911,12 @@ export default function PatternDiagnosisPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Brain className="h-7 w-7 text-slate-600" />
-            AI 변증 추론 <span className="ml-1 text-xs font-medium text-gray-400">(참고용)</span>
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            변증 추론
+            <span className="ml-2 text-[12px] font-medium text-neutral-400 align-middle">참고용</span>
           </h1>
-          <p className="mt-1 text-gray-500">
-            증상·맥·설을 입력하면 AI가 변증 후보를 추론합니다. 최종 진단·처방은 한의사의 판단에 따릅니다.
+          <p className="mt-1 text-[14px] text-neutral-500">
+            증상·맥·설을 입력하면 변증 후보를 추론합니다. 최종 진단·처방은 한의사의 판단에 따릅니다.
           </p>
         </div>
         {step !== 'symptoms' && (
@@ -1220,12 +1220,12 @@ export default function PatternDiagnosisPage() {
             <button
               onClick={analyzePatterns}
               disabled={analyzing}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 h-12 px-6 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white rounded-md font-semibold transition-colors active:scale-[0.99]"
             >
               {analyzing ? (
                 <>
                   <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  AI 분석 중...
+                  분석 중
                 </>
               ) : (
                 <>
@@ -1263,44 +1263,45 @@ export default function PatternDiagnosisPage() {
               || ''
             const kcdConstitution: KcdOmEntry | null = lookupConstitutionCode(constitutionName)
             return (
-              <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white">
-                <div className="flex items-start justify-between mb-4">
+              <div className="bg-neutral-900 rounded-md p-6 text-white">
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="text-slate-200 text-sm mb-1">AI 변증 추론 결과 (참고용)</p>
-                    <h2 className="text-3xl font-bold">
-                      {results[0].pattern} ({results[0].hanja})
+                    <p className="text-neutral-400 text-[12px] font-medium mb-1.5">변증 추론 결과 · 참고용</p>
+                    <h2 className="text-[28px] font-bold tracking-tight">
+                      {results[0].pattern}{' '}
+                      <span className="text-neutral-400 font-semibold">({results[0].hanja})</span>
                     </h2>
                   </div>
-                  <div className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
+                  <div className="px-2.5 py-1 bg-white/10 rounded-sm text-[12px] font-semibold tabular">
                     일치도 {results[0].confidence}%
                   </div>
                 </div>
-                <p className="text-slate-100 mb-4">{results[0].description}</p>
+                <p className="text-neutral-300 text-[14px] leading-relaxed mb-4">{results[0].description}</p>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className="px-3 py-1 bg-white/20 rounded-lg text-sm">
-                    <Flame className="h-3 w-3 inline mr-1" />
-                    치법: {results[0].treatment}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/10 rounded-sm text-[12px] font-medium">
+                    <Flame className="h-3 w-3" />
+                    치법 · {results[0].treatment}
                   </span>
                 </div>
                 {(kcdPattern || kcdConstitution) && (
-                  <div className="mt-3 rounded-xl bg-white/10 border border-white/20 p-3 text-sm">
-                    <p className="text-slate-100 font-semibold mb-2">KCD-OM 추천 코드 (청구 참고)</p>
-                    <ul className="space-y-1 text-slate-50">
+                  <div className="mt-3 rounded-md bg-white/5 border border-white/10 p-3 text-[13px]">
+                    <p className="text-white font-semibold mb-2">KCD-OM 추천 코드 · 청구 참고</p>
+                    <ul className="space-y-1 text-neutral-200">
                       {kcdPattern && (
-                        <li>
-                          <span className="inline-block min-w-[64px] font-mono text-slate-200">{kcdPattern.code}</span>{' '}
-                          {kcdPattern.korean} {kcdPattern.hanja && <span className="text-slate-300">({kcdPattern.hanja})</span>}
+                        <li className="tabular">
+                          <span className="inline-block min-w-[64px] font-mono text-neutral-400">{kcdPattern.code}</span>{' '}
+                          {kcdPattern.korean} {kcdPattern.hanja && <span className="text-neutral-400">({kcdPattern.hanja})</span>}
                         </li>
                       )}
                       {kcdConstitution && (
-                        <li>
-                          <span className="inline-block min-w-[64px] font-mono text-slate-200">{kcdConstitution.code}</span>{' '}
-                          {kcdConstitution.korean} {kcdConstitution.hanja && <span className="text-slate-300">({kcdConstitution.hanja})</span>}
+                        <li className="tabular">
+                          <span className="inline-block min-w-[64px] font-mono text-neutral-400">{kcdConstitution.code}</span>{' '}
+                          {kcdConstitution.korean} {kcdConstitution.hanja && <span className="text-neutral-400">({kcdConstitution.hanja})</span>}
                         </li>
                       )}
                     </ul>
-                    <p className="mt-2 text-xs text-slate-300">
-                      ※ 이 코드는 후보이며, 실제 청구 시 한의사가 직접 확인·수정해 주세요.
+                    <p className="mt-2 text-[12px] text-neutral-400">
+                      후보이며, 실제 청구 시 한의사가 직접 확인·수정해 주세요.
                     </p>
                   </div>
                 )}
@@ -1313,20 +1314,20 @@ export default function PatternDiagnosisPage() {
                   })
                   if (!cheopyak.length) return null
                   return (
-                    <div className="mt-3 rounded-xl bg-amber-50/95 text-amber-900 border border-amber-200 p-3 text-sm">
-                      <p className="font-semibold mb-2 flex items-center gap-1">
-                        <Pill className="h-4 w-4" />
-                        첩약 건강보험 시범사업 자동 추천
+                    <div className="mt-3 rounded-md bg-white/5 border border-white/10 p-3 text-[13px]">
+                      <p className="font-semibold mb-2 flex items-center gap-1.5 text-white">
+                        <Pill className="h-3.5 w-3.5" />
+                        첩약 건강보험 시범사업
                       </p>
-                      <ul className="space-y-1">
+                      <ul className="space-y-1 text-neutral-200">
                         {cheopyak.slice(0, 3).map((d) => (
-                          <li key={d.pilotCode} className="font-medium">
-                            · {describeCheopyak(d)}
+                          <li key={d.pilotCode}>
+                            {describeCheopyak(d)}
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-2 text-xs text-amber-700">
-                        ※ 시범사업 코드는 한의사가 청구 시점에 최종 확인·선택. 본 추천은 진단/처방 일치도 기반.
+                      <p className="mt-2 text-[12px] text-neutral-400">
+                        시범사업 코드는 청구 시점에 한의사가 최종 확인·선택해주세요.
                       </p>
                     </div>
                   )
