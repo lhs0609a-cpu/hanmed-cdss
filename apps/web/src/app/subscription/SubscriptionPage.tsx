@@ -41,7 +41,7 @@ import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ROICalculator } from '@/components/dashboard';
 import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
-import { formatKRW, formatKRDate, withVat, vatAmount } from '@/lib/format';
+import { formatKRW, formatKRDate, withVat } from '@/lib/format';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -50,12 +50,7 @@ const planIcons: Record<string, React.ElementType> = {
   clinic: Building2,
 };
 
-const planColors: Record<string, string> = {
-  free: 'from-gray-500 to-gray-600',
-  basic: 'from-blue-500 to-indigo-500',
-  professional: 'from-purple-500 to-pink-500',
-  clinic: 'from-amber-500 to-orange-500',
-};
+// 모든 플랜 시각은 단일 톤(neutral) 통일 — 별도 색상 매핑 불필요.
 
 export default function SubscriptionPage() {
   useSEO(PAGE_SEO.subscription);
@@ -420,53 +415,58 @@ export default function SubscriptionPage() {
           return (
             <Card
               key={plan.tier}
-              className={`relative overflow-hidden transition-all hover:shadow-lg ${
-                isCurrentPlan ? 'ring-2 ring-teal-500' : ''
-              } ${plan.tier === 'professional' ? 'border-purple-200' : ''}`}
+              className={
+                'relative overflow-hidden transition-colors ' +
+                (isCurrentPlan
+                  ? 'border-primary'
+                  : plan.tier === 'professional'
+                    ? 'border-neutral-900'
+                    : '')
+              }
             >
-              {plan.tier === 'professional' && (
-                <div className="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-                  인기
+              {plan.tier === 'professional' && !isCurrentPlan && (
+                <div className="absolute top-0 right-0 bg-neutral-900 text-white text-[11px] font-semibold px-2.5 py-1 rounded-bl-md">
+                  추천
                 </div>
               )}
               {isCurrentPlan && (
-                <div className="absolute top-0 left-0 bg-teal-500 text-white text-xs font-bold px-3 py-1 rounded-br-lg">
+                <div className="absolute top-0 left-0 bg-primary text-white text-[11px] font-semibold px-2.5 py-1 rounded-br-md">
                   현재 플랜
                 </div>
               )}
 
               <CardContent className="pt-8 space-y-6">
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br text-white ${
-                    planColors[plan.tier]
-                  }`}
-                >
-                  <Icon className="h-6 w-6" />
+                <div className="w-10 h-10 rounded-md flex items-center justify-center bg-neutral-900 text-white">
+                  <Icon className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">
+                  <h3 className="text-xl font-bold text-neutral-900">
                     {plan.name}
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-[13px] text-neutral-500 mt-1">
                     {plan.description}
                   </p>
                 </div>
 
                 <div>
-                  <span className="text-3xl font-bold text-gray-900">
-                    {formatKRW(monthlyEquivalent)}
-                  </span>
-                  <span className="text-gray-500">/월</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[32px] font-extrabold tabular text-neutral-900 tracking-tight">
+                      {formatKRW(monthlyEquivalent)}
+                    </span>
+                    <span className="text-[14px] text-neutral-500">/월</span>
+                  </div>
                   {plan.tier !== 'free' && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      부가세 별도 · 결제액 월 <span className="font-medium text-gray-700">{formatKRW(withVat(monthlyEquivalent))}</span>
-                      {' '}(VAT {formatKRW(vatAmount(monthlyEquivalent))})
+                    <p className="mt-2 text-[12px] text-neutral-500">
+                      부가세 별도 · 결제액 월{' '}
+                      <span className="font-semibold text-neutral-700 tabular">
+                        {formatKRW(withVat(monthlyEquivalent))}
+                      </span>
                     </p>
                   )}
                   {billingInterval === 'yearly' && plan.tier !== 'free' && (
-                    <p className="text-sm text-emerald-600 mt-1">
-                      연 {formatKRW(price)} · 부가세 포함 {formatKRW(withVat(price))} (2개월 무료, 17% 할인)
+                    <p className="text-[13px] text-primary mt-1 font-medium">
+                      연 {formatKRW(price)} · 2개월 무료
                     </p>
                   )}
                 </div>
@@ -490,18 +490,14 @@ export default function SubscriptionPage() {
                   </Button>
                 ) : (
                   <Button
-                    className={`w-full ${
-                      plan.tier === 'professional'
-                        ? 'bg-purple-600 hover:bg-purple-700'
-                        : ''
-                    }`}
+                    className="w-full"
                     onClick={() => handleSubscribe(plan.tier)}
                     disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan}
                   >
                     {subscribe.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : null}
-                    {plan.tier === 'free' ? '무료' : isCurrentPlan ? '현재 플랜' : '구독하기'}
+                    {plan.tier === 'free' ? '무료 이용' : isCurrentPlan ? '현재 플랜' : '구독하기'}
                   </Button>
                 )}
               </CardContent>

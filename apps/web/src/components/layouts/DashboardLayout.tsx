@@ -288,10 +288,7 @@ export default function DashboardLayout() {
             <Menu className="h-5 w-5 text-gray-700" aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 gradient-primary rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <Sparkles className="h-4 w-4 text-white" aria-hidden="true" />
-            </div>
-            <span className="font-bold text-gray-900">온고지신</span>
+            <span className="font-extrabold text-[17px] tracking-tight text-neutral-900">온고지신</span>
           </div>
           <div className="flex items-center gap-1">
             <HanjaToggle compact />
@@ -319,20 +316,14 @@ export default function DashboardLayout() {
         <div className="flex flex-col h-full">
           {/* Logo & Toggle */}
           <div className={cn('flex items-center justify-between px-4 py-4', isMinimized && 'lg:px-2 lg:justify-center')}>
-            <div className={cn('flex items-center gap-3', isMinimized && 'lg:hidden')}>
-              <div className="w-10 h-10 gradient-primary rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/30">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-gray-900">온고지신</h1>
-                <p className="text-xs text-gray-500 font-medium">AI 한의학 CDSS</p>
-              </div>
+            <div className={cn('flex items-center gap-2', isMinimized && 'lg:hidden')}>
+              <h1 className="font-extrabold text-[18px] tracking-tight text-neutral-900">온고지신</h1>
             </div>
 
-            {/* Mini logo for minimized state */}
+            {/* Mini logo for minimized state — 첫 글자 한 자만 */}
             <div className={cn('hidden', isMinimized && 'lg:flex')}>
-              <div className="w-10 h-10 gradient-primary rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/30">
-                <Sparkles className="h-5 w-5 text-white" />
+              <div className="w-9 h-9 rounded-md bg-neutral-900 flex items-center justify-center text-white text-[14px] font-extrabold">
+                온
               </div>
             </div>
 
@@ -554,17 +545,17 @@ export default function DashboardLayout() {
                 isMinimized && 'lg:justify-center'
               )}
             >
-              <div className="w-9 h-9 gradient-primary rounded-xl flex items-center justify-center shadow-md shadow-teal-500/20">
-                <span className="text-white font-semibold text-sm">
+              <div className="w-9 h-9 rounded-md bg-neutral-100 flex items-center justify-center">
+                <span className="text-neutral-900 font-bold text-[13px]">
                   {user?.name?.charAt(0) || 'U'}
                 </span>
               </div>
               {!isMinimized && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-teal-600 transition-colors">
+                  <p className="text-[14px] font-semibold text-neutral-900 truncate">
                     {user?.name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  <p className="text-[12px] text-neutral-500 truncate">{user?.email}</p>
                 </div>
               )}
             </Link>
@@ -707,30 +698,23 @@ export default function DashboardLayout() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'flex flex-col items-center justify-center px-3 py-2 min-w-[60px] rounded-xl transition-all',
-                  item.primary && !isActive
-                    ? 'text-teal-600'
-                    : isActive
-                    ? 'text-teal-600'
-                    : 'text-gray-500 hover:text-gray-900'
+                  'flex flex-col items-center justify-center px-3 py-2 min-w-[60px] rounded-md transition-colors',
+                  isActive ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900',
                 )}
               >
                 {item.primary ? (
-                  <div className={cn(
-                    'w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center shadow-lg transition-all',
-                    isActive
-                      ? 'bg-gradient-to-br from-teal-500 to-emerald-500 shadow-teal-500/40'
-                      : 'bg-gradient-to-br from-teal-400 to-emerald-400 shadow-teal-400/30'
-                  )}>
-                    <Icon className="h-6 w-6 text-white" />
+                  <div
+                    className={cn(
+                      'w-12 h-12 -mt-6 rounded-md flex items-center justify-center transition-colors',
+                      isActive ? 'bg-primary' : 'bg-neutral-900',
+                    )}
+                  >
+                    <Icon className="h-5 w-5 text-white" />
                   </div>
                 ) : (
                   <>
-                    <Icon className={cn('h-5 w-5', isActive && 'text-teal-600')} />
-                    <span className={cn(
-                      'text-[10px] mt-0.5 font-medium',
-                      isActive && 'text-teal-600'
-                    )}>{item.name}</span>
+                    <Icon className="h-5 w-5" />
+                    <span className="text-[11px] mt-0.5 font-medium">{item.name}</span>
                   </>
                 )}
               </Link>
@@ -762,23 +746,8 @@ function MenuItemComponent({
   sectionColor?: 'teal' | 'slate' | 'amber'
   isRecent?: boolean
 }) {
-  const gradients = {
-    teal: 'from-teal-500 to-emerald-500',
-    slate: 'from-slate-600 to-slate-700',
-    amber: 'from-amber-500 to-orange-500',
-  }
-
-  const hoverBg = {
-    teal: 'hover:bg-gray-100/80',
-    slate: 'hover:bg-slate-50',
-    amber: 'hover:bg-amber-50',
-  }
-
-  const iconColors = {
-    teal: 'text-gray-400',
-    slate: 'text-slate-400',
-    amber: 'text-amber-500',
-  }
+  // sectionColor 는 호환을 위해 prop 으로만 받고 사용하지 않는다 (Toss 단일 톤 정책).
+  void sectionColor
 
   return (
     <div className="group relative">
@@ -786,31 +755,35 @@ function MenuItemComponent({
         to={item.href}
         onClick={onClick}
         className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:ring-offset-1',
+          'flex items-center gap-3 px-3 h-10 rounded-md text-[14px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
           isMinimized && 'lg:justify-center lg:px-2',
           isActive
-            ? `bg-gradient-to-r ${gradients[sectionColor]} text-white shadow-lg shadow-${sectionColor}-500/30`
-            : `text-gray-600 ${hoverBg[sectionColor]} hover:text-gray-900`
+            ? 'bg-neutral-900 text-white'
+            : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
         )}
         title={isMinimized ? item.name : undefined}
         aria-current={isActive ? 'page' : undefined}
         aria-label={`${item.name}${item.description ? ` - ${item.description}` : ''}${item.badge ? ` (${item.badge})` : ''}`}
       >
-        <item.icon className={cn('h-4 w-4 flex-shrink-0', isActive ? '' : iconColors[sectionColor])} aria-hidden="true" />
+        <item.icon
+          className={cn(
+            'h-4 w-4 flex-shrink-0',
+            isActive ? 'text-white' : 'text-neutral-400',
+          )}
+          aria-hidden="true"
+        />
         {!isMinimized && (
           <>
             <span className="flex-1 truncate">{item.name}</span>
             {item.badge && (
-              <span className={cn(
-                'px-1.5 py-0.5 text-[10px] font-bold rounded-md',
-                isActive
-                  ? 'bg-white/20 text-white'
-                  : item.badge === 'HOT'
-                  ? 'bg-red-100 text-red-700'
-                  : item.badge === 'AI'
-                  ? 'bg-slate-100 text-slate-700'
-                  : 'bg-teal-100 text-teal-700'
-              )}>
+              <span
+                className={cn(
+                  'px-1.5 py-0.5 text-[10px] font-bold rounded-sm',
+                  isActive
+                    ? 'bg-white/15 text-white'
+                    : 'bg-neutral-100 text-neutral-600',
+                )}
+              >
                 {item.badge}
               </span>
             )}

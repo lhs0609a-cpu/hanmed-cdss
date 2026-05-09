@@ -21,7 +21,6 @@ import {
   ChevronDown,
   Menu,
   X,
-  Play,
   Zap,
   Clock,
   TrendingUp,
@@ -100,41 +99,7 @@ function useScrollAnimation() {
   return { ref, isVisible }
 }
 
-// 타이핑 효과 컴포넌트
-function TypingEffect({ texts, className }: { texts: string[]; className?: string }) {
-  const [currentTextIndex, setCurrentTextIndex] = useState(0)
-  const [displayText, setDisplayText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    const currentFullText = texts[currentTextIndex]
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        if (displayText.length < currentFullText.length) {
-          setDisplayText(currentFullText.slice(0, displayText.length + 1))
-        } else {
-          setTimeout(() => setIsDeleting(true), 2000)
-        }
-      } else {
-        if (displayText.length > 0) {
-          setDisplayText(displayText.slice(0, -1))
-        } else {
-          setIsDeleting(false)
-          setCurrentTextIndex((prev) => (prev + 1) % texts.length)
-        }
-      }
-    }, isDeleting ? 50 : 100)
-
-    return () => clearTimeout(timeout)
-  }, [displayText, isDeleting, currentTextIndex, texts])
-
-  return (
-    <span className={className}>
-      {displayText}
-      <span className="animate-pulse">|</span>
-    </span>
-  )
-}
+// 기존 타이핑 효과 — Toss 스타일에 맞지 않아 제거됨.
 
 export default function LandingPage() {
   const navigate = useNavigate()
@@ -176,13 +141,6 @@ export default function LandingPage() {
   const targetsAnim = useScrollAnimation()
   const demoAnim = useScrollAnimation()
   const pricingAnim = useScrollAnimation()
-
-  const typingTexts = [
-    'AI가 변증을 분석합니다',
-    `${appStats.formatted.totalCases} 치험례를 검색합니다`,
-    '최적의 처방을 추천합니다',
-    '삭감 위험을 예측합니다',
-  ]
 
   const features = [
     {
@@ -803,75 +761,55 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-teal-50/50 via-white to-white" />
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-teal-200/30 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute top-40 right-1/4 w-80 h-80 bg-emerald-200/30 rounded-full blur-3xl animate-pulse-slow delay-1000" />
-
-        <div className="relative max-w-7xl mx-auto">
+      {/* Hero Section — Toss 스타일: 단정한 흑백 + 한 가지 액센트 */}
+      <section className="pt-28 pb-20 px-5 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-[920px] mx-auto">
           <div className="text-center">
-            <Badge className="mb-6 bg-teal-100 text-teal-700 hover:bg-teal-100 animate-bounce-in px-4 py-1.5">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              한의원을 위한 진료 차트 + 임상 결정 보조 시스템
-            </Badge>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight animate-fade-in-up">
-              한의원의 하루가 흐르는 곳
-              <br />
-              <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-                온고지신
-              </span>
-            </h1>
-
-            <div className="h-8 mb-8">
-              <TypingEffect
-                texts={typingTexts}
-                className="text-lg sm:text-xl text-gray-600"
-              />
-            </div>
-
-            <p className="text-lg sm:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200 opacity-0" style={{ animationFillMode: 'forwards' }}>
-              환자 차트 · 변증 추론 · 처방 발행 · 청구 점검 · 환자 알림까지
-              <br className="hidden sm:block" />
-              한 화면에서 끝내는 진료 시스템.
-              <span className="block mt-2 text-base text-gray-500">
-                {appStats.formatted.totalCasesApprox}의 치험례를 기반으로 본인 처방 스타일을 학습합니다.
-              </span>
+            <p className="text-[14px] font-semibold text-primary mb-6 animate-fade-up">
+              한의원을 위한 진료 차트
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in-up delay-300 opacity-0" style={{ animationFillMode: 'forwards' }}>
-              <Button
-                size="lg"
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-[1.15] tracking-tight animate-fade-up">
+              한의원의 하루,
+              <br />
+              여기서 흐릅니다.
+            </h1>
+
+            <p className="text-lg sm:text-xl text-neutral-600 mb-12 max-w-2xl mx-auto leading-relaxed animate-fade-up delay-100">
+              환자 차트, 변증 추론, 처방 발행, 청구 점검까지
+              <br className="hidden sm:block" />
+              하나의 화면에서 끝납니다.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-20 animate-fade-up delay-200">
+              <button
                 onClick={handleTryProgram}
-                className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-lg px-8 py-6 shadow-xl shadow-teal-500/25 btn-press group"
+                className="h-14 px-8 bg-primary hover:bg-brand-600 text-white text-[16px] font-semibold rounded-md transition-colors active:scale-[0.99] inline-flex items-center justify-center gap-2"
               >
-                <Play className="w-5 h-5 mr-2" />
-                무료로 체험하기
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Link to="/register">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6 group btn-press">
-                  회원가입
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                무료로 시작하기
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <Link
+                to="/register"
+                className="h-14 px-8 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-[16px] font-semibold rounded-md transition-colors inline-flex items-center justify-center"
+              >
+                회원가입
               </Link>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <div ref={stat1.ref} className="text-center p-4 rounded-2xl bg-white/50 backdrop-blur border border-gray-100 hover-lift">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">
+            {/* Stats — 토스 톤: 단정한 회색 라인, 큰 숫자 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 max-w-3xl mx-auto pt-8 border-t border-neutral-200">
+              <div ref={stat1.ref} className="text-center">
+                <div className="text-3xl sm:text-4xl font-bold text-neutral-900 tabular">
                   {stat1.count}+
                 </div>
-                <div className="text-sm text-gray-500 mt-1">처방 데이터</div>
+                <div className="text-[13px] text-neutral-500 mt-1">처방 데이터</div>
               </div>
-              <div ref={stat2.ref} className="text-center p-4 rounded-2xl bg-white/50 backdrop-blur border border-gray-100 hover-lift">
-                <div className="text-3xl sm:text-4xl font-bold text-gray-900">
+              <div ref={stat2.ref} className="text-center">
+                <div className="text-3xl sm:text-4xl font-bold text-neutral-900 tabular">
                   {stat2.count.toLocaleString()}+
                 </div>
-                <div className="text-sm text-gray-500 mt-1">치험례</div>
+                <div className="text-[13px] text-neutral-500 mt-1">치험례</div>
               </div>
               <div ref={stat3.ref} className="text-center p-4 rounded-2xl bg-white/50 backdrop-blur border border-gray-100 hover-lift">
                 <div className="text-3xl sm:text-4xl font-bold text-gray-900">
@@ -916,14 +854,14 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section id="features" className="py-24 px-4 sm:px-6 lg:px-8">
-        <div ref={featuresAnim.ref} className={`max-w-7xl mx-auto ${featuresAnim.isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
+        <div ref={featuresAnim.ref} className={`max-w-[1080px] mx-auto ${featuresAnim.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
           <div className="text-center mb-16">
-            <Badge className="mb-4 bg-purple-100 text-purple-700 hover:bg-purple-100">핵심 기능</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              한의학 임상을 위한 모든 것
+            <p className="text-[14px] font-semibold text-primary mb-3">핵심 기능</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-neutral-900 mb-4 tracking-tight">
+              한의학 진료의 전 과정을 하나로
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              AI 기술과 임상 데이터의 결합으로 더 정확하고 효율적인 진료를 지원합니다
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+              차트·진단·처방·청구·환자 알림이 한 화면에서 끊김 없이 이어집니다.
             </p>
           </div>
 
