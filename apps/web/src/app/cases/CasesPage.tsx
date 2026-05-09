@@ -416,12 +416,11 @@ export default function CasesPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <BookOpen className="h-7 w-7 text-amber-500" />
-          치험례 검색
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          치험례
         </h1>
-        <p className="mt-1 text-gray-600">
-          {totalCases > 0 ? `${totalCases.toLocaleString()}건의 치험례 데이터를 검색합니다.` : '치험례 데이터를 불러오는 중...'}
+        <p className="mt-1 text-[14px] text-neutral-500">
+          {totalCases > 0 ? `${totalCases.toLocaleString()}건의 치험례에서 검색합니다.` : '치험례 데이터를 불러오는 중…'}
         </p>
       </div>
 

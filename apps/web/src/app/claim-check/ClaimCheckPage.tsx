@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Shield,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -350,12 +349,11 @@ export default function ClaimCheckPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield className="h-7 w-7 text-blue-500" />
-          보험 삭감 예측
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          삭감 위험 점검
         </h1>
-        <p className="mt-1 text-gray-500">
-          청구 전 삭감 위험을 미리 확인하고 안전하게 청구하세요
+        <p className="mt-1 text-[14px] text-neutral-500">
+          청구 전 코드 조합의 삭감 가능성을 미리 확인합니다.
         </p>
       </div>
 

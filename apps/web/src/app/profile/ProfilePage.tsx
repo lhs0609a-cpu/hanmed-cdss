@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  User,
   Shield,
   Calendar,
   Award,
@@ -92,12 +91,11 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <User className="h-7 w-7 text-teal-500" />
-            내 프로필
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            프로필
           </h1>
-          <p className="mt-1 text-gray-600">
-            커뮤니티 활동 현황과 레벨을 확인하세요
+          <p className="mt-1 text-[14px] text-neutral-500">
+            커뮤니티 활동 현황과 레벨을 확인합니다.
           </p>
         </div>
         <Link

@@ -295,12 +295,11 @@ export default function CaseSearchPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <BookOpen className="h-7 w-7 text-indigo-500" />
-          AI 치험례 검색
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          치험례 검색
         </h1>
-        <p className="mt-1 text-gray-500">
-          환자 증상을 입력하면 {formatStatNumber(BASE_STATS.cases)} 치험례 중 유사 사례를 AI가 찾아드립니다
+        <p className="mt-1 text-[14px] text-neutral-500">
+          환자 증상을 입력하면 {formatStatNumber(BASE_STATS.cases)}건의 치험례에서 유사 사례를 찾아드립니다.
         </p>
       </div>
 

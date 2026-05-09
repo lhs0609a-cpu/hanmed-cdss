@@ -206,12 +206,11 @@ export default function ComboPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Calculator className="h-7 w-7 text-purple-500" />
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
           합방 계산기
         </h1>
-        <p className="mt-1 text-gray-500">
-          여러 처방을 합쳐서 총 약재 구성을 계산합니다
+        <p className="mt-1 text-[14px] text-neutral-500">
+          여러 처방의 총 약재 구성을 한눈에 확인합니다.
         </p>
       </div>
 

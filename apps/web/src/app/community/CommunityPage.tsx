@@ -319,17 +319,18 @@ export default function CommunityPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-7 w-7 text-teal-500" />
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
             커뮤니티
           </h1>
-          <p className="mt-1 text-gray-600">한의사/한약사 전문가들과 함께 지식을 나누세요</p>
+          <p className="mt-1 text-[14px] text-neutral-500">
+            한의사들과 사례·지식을 공유합니다.
+          </p>
         </div>
         <button
           onClick={handleWriteClick}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+          className="inline-flex items-center gap-2 h-11 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-[14px] font-semibold rounded-md transition-colors active:scale-[0.99]"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-4 w-4" />
           글쓰기
         </button>
       </div>

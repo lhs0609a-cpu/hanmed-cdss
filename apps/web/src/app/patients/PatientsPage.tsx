@@ -276,20 +276,21 @@ export default function PatientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-7 w-7 text-blue-500" />
-            환자 관리
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            환자
           </h1>
-          <p className="mt-1 text-gray-500">환자 차트와 진료 기록을 관리합니다</p>
+          <p className="mt-1 text-[14px] text-neutral-500">
+            환자 차트와 진료 기록을 관리합니다.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ExportDialog defaultType="patients" />
           <button
             data-tour="add-patient"
             onClick={() => setShowNewPatientModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-[14px] font-semibold rounded-md transition-colors active:scale-[0.99]"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             새 환자 등록
           </button>
         </div>

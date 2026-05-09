@@ -102,13 +102,12 @@ export default function HerbDetailPage() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Leaf className="h-6 w-6 text-teal-500" />
+          <h1 className="text-[24px] font-bold tracking-tight text-neutral-900 flex items-baseline gap-2">
             {herb.standardName}
-            <span className="text-lg font-normal text-gray-500">{herb.hanjaName}</span>
+            <span className="text-[15px] font-medium text-neutral-400">{herb.hanjaName}</span>
           </h1>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="px-3 py-1 bg-teal-50 text-teal-600 text-xs font-medium rounded-lg">
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="px-2 py-0.5 bg-neutral-100 text-neutral-700 text-[12px] font-semibold rounded-sm">
               {herb.category}
             </span>
             {herb.aliases && herb.aliases.length > 0 && (

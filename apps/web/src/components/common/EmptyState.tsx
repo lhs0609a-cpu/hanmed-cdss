@@ -234,10 +234,10 @@ export function EmptyState({
   const IllustrationComponent = illustration ? illustrationMap[illustration] : null
 
   const actionButtonClass = cn(
-    'px-4 py-2 rounded-xl font-medium transition-all',
+    'h-11 px-5 rounded-md text-[14px] font-semibold transition-colors active:scale-[0.99]',
     action?.variant === 'secondary'
-      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-      : 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:from-teal-600 hover:to-emerald-600 shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30'
+      ? 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200'
+      : 'bg-neutral-900 text-white hover:bg-neutral-800',
   )
 
   return (
@@ -254,14 +254,14 @@ export function EmptyState({
       ) : (
         <div
           className={cn(
-            'rounded-full bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center shadow-inner',
-            isCompact ? 'w-12 h-12 mb-3' : 'w-16 h-16 mb-4'
+            'rounded-md bg-neutral-50 border border-neutral-200 flex items-center justify-center',
+            isCompact ? 'w-12 h-12 mb-3' : 'w-14 h-14 mb-4',
           )}
         >
           <Icon
             className={cn(
-              'text-gray-400',
-              isCompact ? 'w-6 h-6' : 'w-8 h-8'
+              'text-neutral-400',
+              isCompact ? 'w-5 h-5' : 'w-6 h-6'
             )}
           />
         </div>

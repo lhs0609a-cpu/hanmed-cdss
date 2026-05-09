@@ -185,12 +185,11 @@ export default function StatisticsDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="h-7 w-7 text-indigo-500" />
-            진료 통계 대시보드
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            진료 통계
           </h1>
-          <p className="mt-1 text-gray-500">
-            내 진료 데이터를 한눈에 분석하세요
+          <p className="mt-1 text-[14px] text-neutral-500">
+            내 진료 데이터를 한눈에 분석합니다.
           </p>
         </div>
 

@@ -732,12 +732,11 @@ export default function ConstitutionPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <User className="h-7 w-7 text-purple-500" />
-          사상체질 진단
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          사상체질
         </h1>
-        <p className="mt-1 text-gray-500">
-          {questions.length}가지 질문으로 나의 체질을 알아보세요 (가중치 적용)
+        <p className="mt-1 text-[14px] text-neutral-500">
+          {questions.length}개 질문으로 환자의 체질 후보를 추론합니다.
         </p>
       </div>
 

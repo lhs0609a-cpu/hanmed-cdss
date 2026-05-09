@@ -530,14 +530,13 @@ export default function IntegratedDiagnosisPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg">
-              <Stethoscope className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">통합의학 진단</h1>
-              <p className="text-sm text-gray-500">ICD-10 기반 양·한방 통합 진단 가이드</p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+              통합의학 진단
+            </h1>
+            <p className="mt-1 text-[14px] text-neutral-500">
+              ICD-10 기반 양·한방 통합 진단 가이드.
+            </p>
           </div>
 
           {/* Search */}

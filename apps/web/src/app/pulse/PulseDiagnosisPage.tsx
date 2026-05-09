@@ -599,12 +599,11 @@ export default function PulseDiagnosisPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Activity className="h-7 w-7 text-red-500" />
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
           맥진 기록
         </h1>
-        <p className="mt-1 text-gray-500">
-          육부위 맥진 결과를 기록하세요
+        <p className="mt-1 text-[14px] text-neutral-500">
+          육부위 맥진 결과를 기록합니다.
         </p>
       </div>
 

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Scale,
   Search,
   ArrowLeftRight,
   CheckCircle2,
@@ -433,12 +432,11 @@ export default function FormulaComparePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Scale className="h-7 w-7 text-indigo-500" />
-          처방 비교 가이드
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          처방 비교
         </h1>
-        <p className="mt-1 text-gray-500">
-          유사 처방의 차이점을 비교하고 최적의 처방을 선택하세요
+        <p className="mt-1 text-[14px] text-neutral-500">
+          유사 처방의 차이점을 한눈에 비교합니다.
         </p>
       </div>
 

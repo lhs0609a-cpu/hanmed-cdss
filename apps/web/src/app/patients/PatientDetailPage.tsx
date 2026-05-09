@@ -362,18 +362,17 @@ export default function PatientDetailPage() {
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                'w-12 h-12 rounded-full flex items-center justify-center',
-                patient.gender === 'F' ? 'bg-pink-100' : 'bg-blue-100'
+                'w-11 h-11 rounded-md flex items-center justify-center bg-neutral-100',
               )}
             >
-              <User className={cn('h-6 w-6', patient.gender === 'F' ? 'text-pink-500' : 'text-blue-500')} />
+              <User className="h-5 w-5 text-neutral-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-              <p className="text-gray-500">
-                {patient.gender === 'F' ? '여' : '남'}, 만 {calculateAge(patient.birthDate)}세
+              <h1 className="text-[22px] font-bold text-neutral-900 tracking-tight">{patient.name}</h1>
+              <p className="text-[13px] text-neutral-500">
+                {patient.gender === 'F' ? '여' : '남'} · 만 {calculateAge(patient.birthDate)}세
                 {patient.constitution && (
-                  <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                  <span className="ml-2 px-2 py-0.5 bg-neutral-100 text-neutral-700 text-[11px] font-semibold rounded-sm">
                     {patient.constitution}
                   </span>
                 )}

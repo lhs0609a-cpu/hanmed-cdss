@@ -948,12 +948,11 @@ export default function AcupointsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <MapPin className="h-7 w-7 text-rose-500" />
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
           경혈 검색
         </h1>
-        <p className="mt-1 text-gray-500">
-          경락별, 부위별, 증상별로 경혈을 검색하세요
+        <p className="mt-1 text-[14px] text-neutral-500">
+          경락·부위·증상별로 경혈을 검색합니다.
         </p>
       </div>
 

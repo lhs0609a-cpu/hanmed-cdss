@@ -906,12 +906,11 @@ export default function InteractionsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield className="h-7 w-7 text-amber-500" />
-          양약-한약 상호작용 검사
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          상호작용 검사
         </h1>
-        <p className="mt-1 text-gray-500">
-          처방 약재와 환자의 복용 양약 간 상호작용을 빠르게 확인하세요
+        <p className="mt-1 text-[14px] text-neutral-500">
+          한약과 양약의 상호작용 가능성을 점검합니다.
         </p>
       </div>
 

@@ -7,7 +7,6 @@ import {
   DollarSign,
   Users,
   ArrowRight,
-  Sparkles,
   Info,
   CheckCircle2,
 } from 'lucide-react'
@@ -111,16 +110,16 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-md border border-neutral-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-6 text-white">
+      <div className="px-8 py-6 border-b border-neutral-100">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-white/20 rounded-2xl">
-            <Calculator className="h-7 w-7" />
+          <div className="w-10 h-10 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center">
+            <Calculator className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">ROI 계산기</h2>
-            <p className="text-emerald-100 mt-1">온고지신 AI 도입 시 예상 효과를 확인하세요</p>
+            <h2 className="text-xl font-bold text-neutral-900 tracking-tight">ROI 계산기</h2>
+            <p className="text-[13px] text-neutral-500 mt-0.5">도입 시 예상 효과를 확인합니다.</p>
           </div>
         </div>
       </div>
@@ -244,34 +243,31 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                 </div>
               </div>
 
-              <div className="p-5 bg-purple-50 rounded-2xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm text-purple-600">ROI</span>
-                </div>
+              <div className="p-5 bg-neutral-50 rounded-md border border-neutral-200">
+                <div className="text-[12px] text-neutral-500 mb-1">ROI</div>
                 <div className={cn(
-                  'text-3xl font-bold',
-                  calculations.roi >= 0 ? 'text-purple-600' : 'text-red-500'
+                  'text-[28px] font-extrabold tabular tracking-tight',
+                  calculations.roi >= 0 ? 'text-neutral-900' : 'text-red-600'
                 )}>
                   {calculations.roi >= 0 ? '+' : ''}{calculations.roi.toFixed(0)}
-                  <span className="text-lg font-normal">%</span>
+                  <span className="text-[16px] font-bold">%</span>
                 </div>
               </div>
             </div>
 
             {/* Summary Card */}
-            <div className="p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl text-white">
+            <div className="p-6 bg-neutral-900 rounded-md text-white">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-emerald-100">순수익 효과</span>
-                <span className="text-3xl font-bold">
+                <span className="text-neutral-400 text-[13px]">순수익 효과</span>
+                <span className="text-2xl font-extrabold tabular">
                   {calculations.netBenefit >= 0 ? '+' : ''}{calculations.netBenefit.toLocaleString()}원
                 </span>
               </div>
-              <div className="h-px bg-white/20 mb-4" />
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="h-px bg-white/10 mb-4" />
+              <div className="grid grid-cols-2 gap-4 text-[13px]">
                 <div>
-                  <span className="text-emerald-100">추가 수익</span>
-                  <span className="block font-semibold">+{calculations.additionalRevenue.toLocaleString()}원</span>
+                  <span className="text-neutral-400">추가 수익</span>
+                  <span className="block font-semibold tabular">+{calculations.additionalRevenue.toLocaleString()}원</span>
                 </div>
                 <div>
                   <span className="text-emerald-100">구독 비용</span>

@@ -541,12 +541,11 @@ export default function SymptomSearchPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Search className="h-7 w-7 text-indigo-500" />
-          증상→처방 검색
+        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+          증상 → 처방 검색
         </h1>
-        <p className="mt-1 text-gray-500">
-          증상을 선택하면 적합한 처방을 추천해 드립니다
+        <p className="mt-1 text-[14px] text-neutral-500">
+          증상을 선택하면 적합한 처방 후보를 보여드립니다.
         </p>
       </div>
 

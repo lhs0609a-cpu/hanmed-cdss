@@ -89,13 +89,15 @@ export default function InsurancePage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">보험청구 점검 도구</h1>
-          <p className="text-gray-500 mt-1">
-            삭감 위험 점검·청구서 초안 작성용 — 심평원 EDI 자동 제출은 지원하지 않습니다
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+            보험청구 점검
+          </h1>
+          <p className="text-[14px] text-neutral-500 mt-1">
+            삭감 위험을 미리 확인하고 청구서 초안을 만듭니다.
           </p>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-md bg-amber-50 px-3 py-1.5 text-xs text-amber-800 border border-amber-200">
+          <div className="mt-2 inline-flex items-center gap-2 rounded-sm bg-neutral-100 px-2.5 py-1 text-[12px] text-neutral-700">
             <AlertTriangle className="h-3.5 w-3.5" />
-            제출은 기존 청구 SW에서 진행해 주세요. 본 도구는 사전 점검·코드 매핑 보조용입니다.
+            실제 제출은 기존 청구 SW에서 진행해 주세요.
           </div>
         </div>
         <div className="flex items-center gap-3">
