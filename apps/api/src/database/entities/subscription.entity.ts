@@ -18,6 +18,7 @@ export enum SubscriptionStatus {
   ACTIVE = 'active',
   CANCELED = 'canceled',
   PAST_DUE = 'past_due',
+  SUSPENDED = 'suspended', // PAST_DUE 유예 기간(3일)이 지났는데도 결제 미해결
   INCOMPLETE = 'incomplete',
   TRIALING = 'trialing',
 }
@@ -86,6 +87,14 @@ export class Subscription {
 
   @Column({ type: 'text', nullable: true })
   lastPaymentError: string | null; // 마지막 결제 오류 메시지
+
+  /** 자동 갱신 결제가 처음 실패한 시각 (3일 유예 기간 시작점) */
+  @Column({ type: 'timestamp', nullable: true })
+  paymentFailedAt: Date | null;
+
+  /** PAST_DUE 유예 마감 일시 — 이 시각이 지나면 SUSPENDED 처리됨 */
+  @Column({ type: 'timestamp', nullable: true })
+  pastDueUntil: Date | null;
 
   // ========== 무료 체험 관련 필드 ==========
 

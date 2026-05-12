@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { Repository, Between, In, DataSource } from 'typeorm';
 import {
   InsuranceClaim,
   ClaimStatus,
@@ -23,6 +23,17 @@ export interface ClaimSummary {
 
 @Injectable()
 export class InsuranceService {
+  private readonly logger = new Logger(InsuranceService.name);
+
+  /**
+   * 매월 10일(청구 마감일) 부하 대비 — 청구 생성 동시 처리 제한.
+   * BullMQ 도입 전 임시 in-memory 큐 (단일 인스턴스 환경 가정).
+   * 동시 처리 한도 초과 시 FIFO 대기.
+   */
+  private readonly CLAIM_CONCURRENCY_LIMIT = 5;
+  private activeClaimJobs = 0;
+  private claimQueue: Array<() => void> = [];
+
   constructor(
     @InjectRepository(InsuranceClaim)
     private claimRepository: Repository<InsuranceClaim>,
@@ -32,12 +43,47 @@ export class InsuranceService {
     private patientRecordRepository: Repository<PatientRecord>,
     @InjectRepository(PatientAccount)
     private patientRepository: Repository<PatientAccount>,
+    private dataSource: DataSource,
   ) {}
+
+  /**
+   * p-limit 패턴 — 동시 처리 한도 제한 (인스턴스 내).
+   * 청구 생성 함수가 동시에 N개 이상 실행되지 않도록 게이트.
+   */
+  private async withClaimConcurrency<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.activeClaimJobs >= this.CLAIM_CONCURRENCY_LIMIT) {
+      await new Promise<void>((resolve) => this.claimQueue.push(resolve));
+    }
+    this.activeClaimJobs++;
+    try {
+      return await fn();
+    } finally {
+      this.activeClaimJobs--;
+      const next = this.claimQueue.shift();
+      if (next) next();
+    }
+  }
 
   /**
    * 청구서 자동 생성 (진료 기록 기반)
    */
   async createClaimFromRecord(
+    practitionerId: string,
+    clinicId: string,
+    recordId: string,
+    insuranceType: InsuranceType = InsuranceType.NATIONAL_HEALTH,
+  ): Promise<InsuranceClaim> {
+    return this.withClaimConcurrency(() =>
+      this.createClaimFromRecordInternal(
+        practitionerId,
+        clinicId,
+        recordId,
+        insuranceType,
+      ),
+    );
+  }
+
+  private async createClaimFromRecordInternal(
     practitionerId: string,
     clinicId: string,
     recordId: string,
@@ -103,6 +149,23 @@ export class InsuranceService {
    * 청구서 수동 생성
    */
   async createClaim(
+    practitionerId: string,
+    clinicId: string,
+    data: {
+      patientId: string;
+      recordId?: string;
+      insuranceType?: InsuranceType;
+      treatmentDate: Date;
+      diagnosisCodes?: DiagnosisCode[];
+      treatmentItems?: TreatmentItem[];
+    },
+  ): Promise<InsuranceClaim> {
+    return this.withClaimConcurrency(() =>
+      this.createClaimInternal(practitionerId, clinicId, data),
+    );
+  }
+
+  private async createClaimInternal(
     practitionerId: string,
     clinicId: string,
     data: {
@@ -417,23 +480,54 @@ export class InsuranceService {
   }
 
   /**
-   * 청구 번호 생성
+   * 청구 번호 생성 — Postgres SEQUENCE 기반 (동시 호출 안전).
+   *
+   * 포맷: `YYYYMM-{clinicId6}-{nextval:08d}`
+   * - YYYYMM: 청구 생성 년월
+   * - clinicId6: 클리닉 UUID 앞 6자리 (가독성)
+   * - nextval: insurance_claim_seq 의 단조 증가 정수
+   *
+   * SEQUENCE 는 트랜잭션 격리 없이 원자적으로 증가하므로 동시 INSERT 에도 중복 불가.
+   * 마이그레이션: 1748000000000-BetaLaunchBillingAndInsurance.
+   *
+   * Fallback: 시퀀스 조회 실패 시 (마이그레이션 미적용 환경) 기존 COUNT 방식으로 폴백.
    */
   private async generateClaimNumber(clinicId: string): Promise<string> {
     const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+    const yyyymm =
+      today.getFullYear().toString() +
+      String(today.getMonth() + 1).padStart(2, '0');
+    const clinicShort = (clinicId || 'NOCLNC')
+      .replace(/-/g, '')
+      .slice(0, 6)
+      .toUpperCase();
 
+    try {
+      const result = await this.dataSource.query<Array<{ nextval: string }>>(
+        `SELECT nextval('insurance_claim_seq') AS nextval`,
+      );
+      const seq = parseInt(result[0]?.nextval || '0', 10);
+      if (Number.isFinite(seq) && seq > 0) {
+        return `${yyyymm}-${clinicShort}-${String(seq).padStart(8, '0')}`;
+      }
+    } catch (err) {
+      this.logger.warn(
+        `insurance_claim_seq 사용 불가 — 기존 COUNT 방식 폴백: ${(err as Error).message}`,
+      );
+    }
+
+    // Fallback (시퀀스 미존재 시): 날짜 + 카운트 (동시성은 약하지만 0건이 아닌 환경에서)
+    const dayStart = new Date(today);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(today);
+    dayEnd.setHours(23, 59, 59, 999);
     const count = await this.claimRepository.count({
       where: {
         clinicId,
-        createdAt: Between(
-          new Date(today.setHours(0, 0, 0, 0)),
-          new Date(today.setHours(23, 59, 59, 999)),
-        ),
+        createdAt: Between(dayStart, dayEnd),
       },
     });
-
-    return `CLM-${dateStr}-${String(count + 1).padStart(4, '0')}`;
+    return `${yyyymm}-${clinicShort}-${String(count + 1).padStart(8, '0')}`;
   }
 
   /**

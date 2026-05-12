@@ -87,4 +87,20 @@ export class BillingSchedulerService {
       this.logger.error('결제 실패 재시도 처리 중 오류 발생:', error);
     }
   }
+
+  // 매시간 30분: PAST_DUE 3일 유예 경과한 구독을 SUSPENDED 로 전환
+  @Cron('0 30 * * * *', {
+    name: 'suspend-overdue',
+    timeZone: 'Asia/Seoul',
+  })
+  async handleSuspendOverdue() {
+    this.logger.log('PAST_DUE 유예 만료 처리 시작...');
+
+    try {
+      await this.tossPaymentsService.processSuspendOverdueSubscriptions();
+      this.logger.log('PAST_DUE 유예 만료 처리 완료');
+    } catch (error) {
+      this.logger.error('PAST_DUE 유예 만료 처리 중 오류 발생:', error);
+    }
+  }
 }

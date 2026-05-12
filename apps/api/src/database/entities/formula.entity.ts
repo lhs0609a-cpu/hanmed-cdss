@@ -25,6 +25,14 @@ export enum FormulaStrengthNature {
   DRAINING = 'draining',     // 사(瀉) - 사기를 배출
 }
 
+// 보험 급여 여부
+export enum FormulaInsuranceStatus {
+  COVERED = 'COVERED',         // 급여 (전액 청구 가능)
+  NON_COVERED = 'NON_COVERED', // 비급여 (보험 청구 불가)
+  PARTIAL = 'PARTIAL',         // 일부 급여
+  UNKNOWN = 'UNKNOWN',         // 미확인 (기본값 — 한의사 직접 확인 필요)
+}
+
 @Entity('formulas')
 export class Formula {
   @PrimaryGeneratedColumn('uuid')
@@ -113,6 +121,20 @@ export class Formula {
     nullable: true,
   })
   contraindicatedBodyStrength: BodyStrength[];
+
+  // === 보험 청구 정보 ===
+
+  // 보험 급여 여부 (기본 UNKNOWN — 한의사 직접 확인 필요)
+  @Column({
+    type: 'enum',
+    enum: FormulaInsuranceStatus,
+    default: FormulaInsuranceStatus.UNKNOWN,
+  })
+  insuranceStatus: FormulaInsuranceStatus;
+
+  // 보험 청구 코드 (심평원 등록 코드, 비급여면 null)
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  insuranceCode: string | null;
 
   @OneToMany(() => FormulaHerb, (fh) => fh.formula, { cascade: true })
   formulaHerbs: FormulaHerb[];

@@ -33,6 +33,11 @@ import {
   PaymentErrorInfo,
 } from './payment-errors';
 import { EmailService } from '../email/email.service';
+import {
+  REFUND_POLICY,
+  REFUND_POLICY_TEXT,
+  evaluateRefundEligibility,
+} from './refund-policy';
 
 // 플랜별 가격 정보 (수익성 최적화 버전 - 2024.02)
 // 핵심 변경사항:
@@ -218,13 +223,9 @@ export class TossPaymentsService {
     const orderId = `order_${userId}_${Date.now()}`;
     const orderName = `온고지신 AI ${price.name} 플랜 (${interval === BillingInterval.YEARLY ? '연간' : '월간'})`;
 
-    // 중복 결제 방지: 동일 사용자의 PENDING 상태 결제가 있으면 거부
-    const existingPending = await this.paymentRepository.findOne({
-      where: { userId, status: PaymentStatus.PENDING },
-    });
-    if (existingPending) {
-      throw new BadRequestException('이전 결제가 처리 중입니다. 잠시 후 다시 시도해 주세요.');
-    }
+    // 중복 결제 방지는 DB 부분 unique index (idx_payment_user_pending) 가 강제한다.
+    // 낙관적 락 패턴: 사전 SELECT 없이 곧바로 INSERT 시도 → 충돌(23505) 이면 거부.
+    // (마이그레이션: 1748000000000-BetaLaunchBillingAndInsurance)
 
     // QueryRunner를 사용하여 트랜잭션 시작
     const queryRunner = this.dataSource.createQueryRunner();
@@ -245,7 +246,22 @@ export class TossPaymentsService {
         overageCount: 0,
         status: PaymentStatus.PENDING,
       });
-      await queryRunner.manager.save(Payment, pendingPayment);
+      try {
+        await queryRunner.manager.save(Payment, pendingPayment);
+      } catch (insertError: any) {
+        // Postgres unique_violation = 23505. 부분 unique index 위반 = 동시 결제 시도.
+        const pgCode = insertError?.driverError?.code || insertError?.code;
+        if (pgCode === '23505') {
+          await queryRunner.rollbackTransaction();
+          this.logger.warn(
+            `중복 결제 시도 차단 (DB unique violation): userId=${userId}`,
+          );
+          throw new BadRequestException(
+            '이미 처리 중인 결제가 있습니다. 결제 화면을 새로고침 후 잠시 뒤 다시 시도해 주세요.',
+          );
+        }
+        throw insertError;
+      }
 
       this.logger.log(`결제 시작: userId=${userId}, orderId=${orderId}, amount=${amount}`);
 
@@ -619,21 +635,117 @@ export class TossPaymentsService {
           sub.billingInterval,
         );
 
-        // 결제 성공 시 재시도 횟수 초기화
+        // 결제 성공 시 재시도 횟수 + 유예 상태 초기화
         sub.paymentRetryCount = 0;
         sub.lastPaymentError = null;
+        sub.paymentFailedAt = null;
+        sub.pastDueUntil = null;
         await this.subscriptionRepository.save(sub);
 
         this.logger.log(`자동 갱신 성공: userId=${sub.userId}`);
       } catch (error) {
         this.logger.error(`자동 갱신 실패: userId=${sub.userId}`, error);
 
-        // 결제 실패 시 재시도 정보 저장
+        // 결제 실패 시 재시도 정보 저장 + 3일 유예 기간 시작
         sub.paymentRetryCount = (sub.paymentRetryCount || 0) + 1;
         sub.lastPaymentError = error.message || '결제 실패';
         sub.status = SubscriptionStatus.PAST_DUE;
+        if (!sub.paymentFailedAt) {
+          sub.paymentFailedAt = new Date();
+          sub.pastDueUntil = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        }
+        await this.subscriptionRepository.save(sub);
+
+        // 즉시 알림 트리거 (3일 유예 안내)
+        await this.notifyPaymentFailure(
+          sub.userId,
+          sub.id,
+          sub.lastPaymentError,
+          sub.pastDueUntil,
+        );
+      }
+    }
+  }
+
+  /**
+   * 결제 실패 알림 트리거 (Notification 모듈 미연동 stub).
+   *
+   * 현 시점 — 별도 system notification 테이블이 없으므로 로그 + Subscription.metadata
+   * 에 알림 발송 기록만 저장. 추후 NotificationsModule 의 Kakao Biz / 이메일 채널 연동.
+   */
+  private async notifyPaymentFailure(
+    userId: string,
+    subscriptionId: string,
+    errorMessage: string,
+    pastDueUntil: Date | null,
+  ): Promise<void> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) return;
+
+      this.logger.warn(
+        `[결제실패알림] userId=${userId}, email=${user.email}, ` +
+          `pastDueUntil=${pastDueUntil?.toISOString()}, reason=${errorMessage}`,
+      );
+
+      // 이메일 채널 — 기존 EmailService 가 있으면 사용 (sendPaymentFailedEmail 메서드는 미존재
+      // 일 수 있으니 best-effort)
+      const emailSvc = this.emailService as any;
+      if (typeof emailSvc?.sendPaymentFailedEmail === 'function') {
+        await emailSvc.sendPaymentFailedEmail(
+          user.email,
+          user.name,
+          errorMessage,
+          pastDueUntil,
+        );
+      }
+
+      // Subscription.metadata 에 알림 발송 기록 (DB stub)
+      const sub = await this.subscriptionRepository.findOne({
+        where: { id: subscriptionId },
+      });
+      if (sub) {
+        sub.metadata = {
+          ...sub.metadata,
+          paymentFailedNotifiedAt: new Date().toISOString(),
+          lastFailureReason: errorMessage,
+        };
         await this.subscriptionRepository.save(sub);
       }
+    } catch (err) {
+      this.logger.error('결제실패 알림 발송 실패:', err);
+    }
+  }
+
+  /**
+   * PAST_DUE 유예 만료 처리 — pastDueUntil 경과한 구독을 SUSPENDED 로 전환.
+   * 크론잡(billing-scheduler)에서 매시간 호출.
+   */
+  async processSuspendOverdueSubscriptions(): Promise<void> {
+    const now = new Date();
+
+    const overdue = await this.subscriptionRepository.find({
+      where: {
+        status: SubscriptionStatus.PAST_DUE,
+        pastDueUntil: LessThanOrEqual(now),
+      },
+    });
+
+    for (const sub of overdue) {
+      sub.status = SubscriptionStatus.SUSPENDED;
+      await this.subscriptionRepository.save(sub);
+
+      this.logger.warn(
+        `3일 유예 경과 — 구독 SUSPENDED: userId=${sub.userId}, subId=${sub.id}`,
+      );
+
+      // 사용자에게 마지막 안내 발송
+      await this.notifyPaymentFailure(
+        sub.userId,
+        sub.id,
+        '결제 미해결로 서비스 일시 정지됨',
+        null,
+      );
     }
   }
 
@@ -674,10 +786,12 @@ export class TossPaymentsService {
           sub.billingInterval,
         );
 
-        // 결제 성공 시 상태 복원
+        // 결제 성공 시 상태 + 유예 기간 복원
         sub.status = SubscriptionStatus.ACTIVE;
         sub.paymentRetryCount = 0;
         sub.lastPaymentError = null;
+        sub.paymentFailedAt = null;
+        sub.pastDueUntil = null;
         await this.subscriptionRepository.save(sub);
 
         this.logger.log(`결제 재시도 성공: userId=${sub.userId}`);
@@ -1493,6 +1607,240 @@ export class TossPaymentsService {
         error.response?.data?.message || '환불 처리에 실패했습니다.',
       );
     }
+  }
+
+  /**
+   * 환불 처리 (관리자/시스템 호출 — 정책 검증 없이 토스 환불 API 직행).
+   *
+   * - 같은 paymentId 중복 호출 차단 (idempotency): COMPLETED Refund 가 이미 있으면 그대로 반환.
+   * - 부분 환불 지원 (amount 미지정 시 잔여 전액).
+   * - 트랜잭션: Payment 업데이트 + Refund 레코드 생성을 원자적으로.
+   *
+   * @param paymentId  내부 Payment.id
+   * @param reason     환불 사유 (한국어, 토스에도 전달)
+   * @param amount     부분 환불 금액 (원). 미지정 시 잔여 전액.
+   */
+  async refundPayment(
+    paymentId: string,
+    reason: string,
+    amount?: number,
+  ): Promise<{
+    success: boolean;
+    refundId: string;
+    refundedAmount: number;
+    payment: Payment;
+  }> {
+    if (!paymentId) {
+      throw new BadRequestException('paymentId 가 필요합니다.');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Payment 조회 + 행 단위 락 (동시 환불 차단)
+      const payment = await queryRunner.manager.findOne(Payment, {
+        where: { id: paymentId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!payment) {
+        throw new NotFoundException('결제 내역을 찾을 수 없습니다.');
+      }
+
+      if (!payment.paymentKey) {
+        throw new BadRequestException(
+          '결제가 완료되지 않아 환불할 수 없습니다.',
+        );
+      }
+
+      if (payment.status === PaymentStatus.REFUNDED) {
+        // Idempotency: 이미 전액 환불된 경우 — 기존 환불 정보를 그대로 반환.
+        const existingRefund = await queryRunner.manager.findOne(Refund, {
+          where: { paymentId: payment.id, status: RefundStatus.COMPLETED },
+          order: { createdAt: 'DESC' },
+        });
+        await queryRunner.commitTransaction();
+        return {
+          success: true,
+          refundId: existingRefund?.id || '',
+          refundedAmount: payment.refundedAmount,
+          payment,
+        };
+      }
+
+      // 2. 환불 가능 금액 계산
+      const refundableAmount = payment.amount - payment.refundedAmount;
+      const refundAmount = amount
+        ? Math.min(amount, refundableAmount)
+        : refundableAmount;
+
+      if (refundAmount < REFUND_POLICY.MIN_PARTIAL_REFUND_AMOUNT) {
+        throw new BadRequestException(
+          `환불 가능 금액이 ${REFUND_POLICY.MIN_PARTIAL_REFUND_AMOUNT}원 미만입니다.`,
+        );
+      }
+
+      // 3. 토스 API 호출 — idempotency-key 로 같은 paymentId+reason 의 중복 호출 차단
+      let cancelTransactionKey: string | undefined;
+      try {
+        const response = await axios.post(
+          `${this.apiUrl}/payments/${payment.paymentKey}/cancel`,
+          {
+            cancelReason: reason,
+            cancelAmount: refundAmount,
+          },
+          {
+            headers: {
+              Authorization: this.getAuthHeader(),
+              'Content-Type': 'application/json',
+              // 같은 결제건의 중복 환불 호출을 토스 측에서도 차단
+              'Idempotency-Key': `refund_${paymentId}_${refundAmount}`,
+            },
+          },
+        );
+
+        const cancels = response.data?.cancels;
+        cancelTransactionKey = cancels?.[cancels.length - 1]?.transactionKey;
+      } catch (apiError: any) {
+        // 토스 측 실패 — Refund FAILED 기록 후 롤백
+        const failedRefund = queryRunner.manager.create(Refund, {
+          paymentId: payment.id,
+          amount: refundAmount,
+          reason,
+          status: RefundStatus.FAILED,
+          failureReason:
+            apiError?.response?.data?.message || '토스 환불 API 호출 실패',
+        });
+        await queryRunner.manager.save(Refund, failedRefund);
+        await queryRunner.commitTransaction(); // 실패 기록은 남김
+
+        this.logger.error(
+          `환불 실패: paymentId=${paymentId}, amount=${refundAmount}`,
+          apiError?.response?.data || apiError?.message,
+        );
+
+        throw new BadRequestException(
+          apiError?.response?.data?.message || '환불 처리에 실패했습니다.',
+        );
+      }
+
+      // 4. Refund 레코드 + Payment 업데이트 (트랜잭션 내)
+      const refund = queryRunner.manager.create(Refund, {
+        paymentId: payment.id,
+        amount: refundAmount,
+        reason,
+        status: RefundStatus.COMPLETED,
+        refundKey: cancelTransactionKey,
+        processedAt: new Date(),
+      });
+      const savedRefund = await queryRunner.manager.save(Refund, refund);
+
+      payment.refundedAmount += refundAmount;
+      payment.refundReason = reason;
+      payment.refundedAt = new Date();
+      payment.status =
+        payment.refundedAmount >= payment.amount
+          ? PaymentStatus.REFUNDED
+          : PaymentStatus.PARTIALLY_REFUNDED;
+      await queryRunner.manager.save(Payment, payment);
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `환불 완료: paymentId=${paymentId}, amount=${refundAmount}, refundId=${savedRefund.id}`,
+      );
+
+      return {
+        success: true,
+        refundId: savedRefund.id,
+        refundedAmount: refundAmount,
+        payment,
+      };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * 7일 환불 보증 — 결제일 7일 이내 + 사용량 50% 미만 자동 승인.
+   *
+   * 정책 상수는 refund-policy.ts 의 REFUND_POLICY 참고.
+   * 자동 승인 미충족 시 BadRequestException 으로 사유 반환 (UI 가 고객센터 안내).
+   */
+  async requestRefundWithinGracePeriod(
+    userId: string,
+    paymentId: string,
+  ): Promise<{
+    success: boolean;
+    refundedAmount: number;
+    refundId: string;
+    message: string;
+  }> {
+    const payment = await this.paymentRepository.findOne({
+      where: { id: paymentId, userId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('결제 내역을 찾을 수 없습니다.');
+    }
+
+    // 사용량 비율 계산: 이번 월 AI_QUERY 사용량 / 플랜 포함량
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const aiUsage = await this.usageRepository.findOne({
+      where: {
+        userId,
+        usageType: UsageType.AI_QUERY,
+        periodStart,
+      },
+    });
+    const includedQueries = PLAN_PRICES[user.subscriptionTier]?.includedQueries || 0;
+    const usageRatio =
+      includedQueries > 0 ? (aiUsage?.count || 0) / includedQueries : 0;
+
+    const eligibility = evaluateRefundEligibility(
+      payment.paidAt,
+      payment.amount,
+      payment.refundedAmount,
+      usageRatio,
+    );
+
+    if (!eligibility.eligible) {
+      throw new BadRequestException(eligibility.reason);
+    }
+
+    if (!eligibility.autoApprove) {
+      throw new BadRequestException({
+        message: eligibility.reason,
+        action: `고객센터(${REFUND_POLICY.SUPPORT_EMAIL})에 문의해 주세요.`,
+        autoApprove: false,
+      });
+    }
+
+    // 자동 승인 → 환불 실행
+    const result = await this.refundPayment(
+      paymentId,
+      `7일 환불 보증 자동 승인 (사용량 ${Math.round(usageRatio * 100)}%)`,
+    );
+
+    return {
+      success: true,
+      refundedAmount: result.refundedAmount,
+      refundId: result.refundId,
+      message: `${REFUND_POLICY.GRACE_PERIOD_DAYS}일 환불 보증에 따라 ${result.refundedAmount.toLocaleString()}원이 자동 환불되었습니다. ${REFUND_POLICY_TEXT.processingTime}`,
+    };
   }
 
   // 환불 내역 조회
