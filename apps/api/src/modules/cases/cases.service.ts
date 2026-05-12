@@ -136,9 +136,12 @@ export class CasesService {
   }
 
   async getStatistics() {
+    // 전역 통계 — 모든 사용자 동일 키 공유. 2,000명 동시 사용 시 캐시 만료 직후
+    // 다수의 워커가 한꺼번에 동일 쿼리를 돌려 DB 가 마비될 수 있음(Thundering Herd).
+    // 분산 락 + stale fallback 으로 첫 워커만 DB 를 치도록 만든다.
     const cacheKey = 'statistics';
 
-    return this.cacheService.getOrSet(
+    return this.cacheService.getOrSetWithLock(
       cacheKey,
       async () => {
         const total = await this.casesRepository.count();
@@ -162,7 +165,13 @@ export class CasesService {
           byOutcome,
         };
       },
-      { prefix: CACHE_PREFIX, ttl: 3600 }, // 1 hour - statistics don't change frequently
+      {
+        prefix: CACHE_PREFIX,
+        ttl: 3600,          // 통계 1h
+        lockTtl: 15,        // 통계 쿼리는 길어야 수초
+        lockWaitMs: 4_000,  // 대시보드 응답이 끊기지 않게
+        staleTtl: 6 * 3600, // stale fallback 6h 보존
+      },
     );
   }
 }

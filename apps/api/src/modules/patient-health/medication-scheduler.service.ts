@@ -12,6 +12,7 @@ import {
 } from '../../database/entities';
 import { PushService } from '../messaging/services/push.service';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../cache/cache.service';
 
 interface ReminderWithPatient extends MedicationReminder {
   patient: PatientAccount & {
@@ -28,11 +29,13 @@ interface ReminderWithPatient extends MedicationReminder {
   };
 }
 
+// 중복 발송 방지 락 prefix — Redis 키 네임스페이스
+const REMINDER_LOCK_PREFIX = 'med:reminder:sent';
+const REMINDER_LOCK_TTL_SECONDS = 5 * 60; // 5분 쿨다운
+
 @Injectable()
 export class MedicationSchedulerService {
   private readonly logger = new Logger(MedicationSchedulerService.name);
-  private readonly sentReminders = new Map<string, Date>(); // 중복 발송 방지
-  private readonly reminderCooldown = 5 * 60 * 1000; // 5분 쿨다운
 
   constructor(
     @InjectRepository(MedicationReminder)
@@ -45,6 +48,7 @@ export class MedicationSchedulerService {
     private logRepository: Repository<MedicationLog>,
     private pushService: PushService,
     private configService: ConfigService,
+    private cacheService: CacheService,
   ) {}
 
   // 매 분마다 실행
@@ -70,8 +74,7 @@ export class MedicationSchedulerService {
         await this.sendMedicationReminder(reminder);
       }
 
-      // 오래된 캐시 정리
-      this.cleanupSentReminders();
+      // Redis TTL 이 자동으로 키를 만료시킴 → 별도 cleanup 불필요
     } catch (error) {
       this.logger.error(`복약 알림 체크 실패: ${error.message}`);
     }
@@ -102,13 +105,23 @@ export class MedicationSchedulerService {
 
   // 복약 알림 발송
   private async sendMedicationReminder(reminder: ReminderWithPatient) {
-    const cacheKey = `${reminder.id}-${this.formatDate(new Date())}`;
+    const lockKey = `${reminder.id}-${this.formatDate(new Date())}`;
 
-    // 중복 발송 체크
-    const lastSent = this.sentReminders.get(cacheKey);
-    if (lastSent && Date.now() - lastSent.getTime() < this.reminderCooldown) {
-      this.logger.debug(`알림 쿨다운 중: ${reminder.id}`);
-      return;
+    // 분산 락(SETNX) — 멀티 인스턴스/오토스케일 환경에서도 한 알림은 1회만 발송.
+    // Redis 가능 시: 잠금 획득 실패면 다른 워커가 이미 발송함.
+    // Redis 다운 시: 단일 인스턴스 가정으로 통과 (안전한 graceful degrade).
+    let lockAcquired = true;
+    if (this.cacheService.isAvailable()) {
+      lockAcquired = await this.cacheService.setNx(
+        lockKey,
+        Date.now(),
+        REMINDER_LOCK_TTL_SECONDS,
+        { prefix: REMINDER_LOCK_PREFIX },
+      );
+      if (!lockAcquired) {
+        this.logger.debug(`알림 쿨다운 중(분산): ${reminder.id}`);
+        return;
+      }
     }
 
     // 환자 정보 조회 (푸시 토큰 포함)
@@ -118,11 +131,20 @@ export class MedicationSchedulerService {
 
     if (!patient) {
       this.logger.warn(`환자 없음: ${reminder.patientId}`);
+      // 락을 잡고도 발송 못 한 경우 해제 — 다음 분 사이클에 재시도 가능하게
+      if (lockAcquired) {
+        await this.cacheService
+          .delete(lockKey, { prefix: REMINDER_LOCK_PREFIX })
+          .catch(() => undefined);
+      }
       return;
     }
 
-    // 알림 설정 확인
-    const settings = patient.notificationSettings || {};
+    // 알림 설정 확인 (null safety 강화 — JSON 컬럼이 null/문자열일 수 있음)
+    const settings =
+      patient.notificationSettings && typeof patient.notificationSettings === 'object'
+        ? patient.notificationSettings
+        : {};
     if (settings.medicationEnabled === false) {
       this.logger.debug(`복약 알림 비활성화: ${reminder.patientId}`);
       return;
@@ -167,16 +189,27 @@ export class MedicationSchedulerService {
 
         if (result.success) {
           this.logger.log(`복약 알림 발송 성공: ${reminder.patientId}`);
-          this.sentReminders.set(cacheKey, new Date());
+          // 락은 이미 setNx 로 잡혀 있음 — TTL 만료까지 유지되어 중복 발송 방지
         } else {
           this.logger.error(`복약 알림 발송 실패: ${result.error}`);
+          // 발송 실패 시 락 해제 — 다음 사이클에 재시도
+          if (lockAcquired && this.cacheService.isAvailable()) {
+            await this.cacheService
+              .delete(lockKey, { prefix: REMINDER_LOCK_PREFIX })
+              .catch(() => undefined);
+          }
         }
       } catch (error) {
         this.logger.error(`푸시 발송 에러: ${error.message}`);
+        if (lockAcquired && this.cacheService.isAvailable()) {
+          await this.cacheService
+            .delete(lockKey, { prefix: REMINDER_LOCK_PREFIX })
+            .catch(() => undefined);
+        }
       }
     } else {
       this.logger.debug(`푸시 토큰 없음: ${reminder.patientId}`);
-      this.sentReminders.set(cacheKey, new Date());
+      // 푸시 토큰 없는 환자도 락 유지 (DB 알림은 저장됨)
     }
   }
 
@@ -240,7 +273,10 @@ export class MedicationSchedulerService {
       return;
     }
 
-    const settings = patient.notificationSettings || {};
+    const settings =
+      patient.notificationSettings && typeof patient.notificationSettings === 'object'
+        ? patient.notificationSettings
+        : {};
     if (settings.medicationEnabled === false) {
       return;
     }
@@ -268,13 +304,10 @@ export class MedicationSchedulerService {
     this.logger.log(`미복용 알림 발송: ${reminder.patientId}`);
   }
 
-  // 매일 자정에 알림 통계 및 정리
+  // 매일 자정에 알림 통계 및 정리 (in-memory 캐시는 더 이상 없음 — Redis TTL 자동 처리)
   @Cron('0 0 0 * * *') // 매일 자정
   async dailyCleanup() {
     this.logger.log('일일 정리 작업 시작');
-
-    // 발송 캐시 전체 정리
-    this.sentReminders.clear();
 
     // 만료된 처방의 알림 비활성화
     await this.deactivateExpiredReminders();
@@ -299,18 +332,6 @@ export class MedicationSchedulerService {
 
     if (result.affected && result.affected > 0) {
       this.logger.log(`만료된 알림 비활성화: ${result.affected}건`);
-    }
-  }
-
-  // 캐시 정리 (24시간 이상 된 항목 제거)
-  private cleanupSentReminders() {
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24시간
-
-    for (const [key, date] of this.sentReminders.entries()) {
-      if (now - date.getTime() > maxAge) {
-        this.sentReminders.delete(key);
-      }
     }
   }
 

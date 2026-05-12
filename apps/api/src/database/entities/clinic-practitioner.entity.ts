@@ -11,8 +11,12 @@ import { Clinic } from './clinic.entity';
 import { User } from './user.entity';
 
 export enum PractitionerRole {
-  OWNER = 'owner',
-  PRACTITIONER = 'practitioner',
+  OWNER = 'owner',               // 원장 — ALL
+  PRACTITIONER = 'practitioner', // 한의사 — 진료/처방/AI 추천
+  RECEPTIONIST = 'receptionist', // 접수/데스크 — 환자 등록·예약, 진료 기록 읽기 전용
+  BILLING = 'billing',           // 청구 담당 — 청구 작성·제출만
+  NURSE = 'nurse',               // 간호조무사 — 환자 등록·생체신호 입력 (처방 X)
+  VIEWER = 'viewer',             // 읽기 전용
 }
 
 @Entity('clinic_practitioners')

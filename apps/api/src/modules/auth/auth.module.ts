@@ -9,11 +9,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { TotpService } from './services/totp.service';
 import { UsersModule } from '../users/users.module';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
+import { ClinicPractitioner } from '../../database/entities/clinic-practitioner.entity';
+import { PractitionerRolesGuard } from './guards/practitioner-role.guard';
 
 @Module({
   imports: [
     UsersModule,
-    TypeOrmModule.forFeature([PasswordResetToken]),
+    TypeOrmModule.forFeature([PasswordResetToken, ClinicPractitioner]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -27,7 +29,7 @@ import { PasswordResetToken } from '../../database/entities/password-reset-token
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, TotpService],
-  exports: [AuthService, JwtModule, TotpService],
+  providers: [AuthService, JwtStrategy, TotpService, PractitionerRolesGuard],
+  exports: [AuthService, JwtModule, TotpService, PractitionerRolesGuard, TypeOrmModule],
 })
 export class AuthModule {}

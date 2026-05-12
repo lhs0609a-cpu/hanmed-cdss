@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { UserThrottlerGuard, AI_THROTTLER_NAME } from './modules/auth/guards/user-throttler.guard';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -65,22 +66,31 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     // 스케줄러 모듈 (크론잡)
     ScheduleModule.forRoot(),
 
-    // Rate Limiting (브루트포스 공격 방지)
+    // Rate Limiting — 사용자(userId)/구독 등급 기반.
+    // UserThrottlerGuard 가 trackerKey 를 userId 로 바꿔주므로 한의원 NAT 공유 IP
+    // 환경에서도 직원별로 독립적인 한도가 적용된다.
     ThrottlerModule.forRoot([
       {
         name: 'short',
         ttl: 1000, // 1초
-        limit: 3,  // 초당 3회
+        limit: 5,  // 초당 5회 (직원 동시 입력 대응)
       },
       {
         name: 'medium',
         ttl: 10000, // 10초
-        limit: 20,  // 10초당 20회
+        limit: 40,  // 10초당 40회
       },
       {
         name: 'long',
         ttl: 60000, // 1분
-        limit: 100, // 분당 100회
+        limit: 200, // 분당 200회 (한의사 1인 사용량 기준)
+      },
+      {
+        // AI 엔드포인트 전용 — UserThrottlerGuard 가 라우트 검사 후 동적 한도 적용.
+        // 실제 한도는 구독 등급에 따라 5/10/30/60 으로 덮어쓰여진다.
+        name: AI_THROTTLER_NAME,
+        ttl: 60_000,
+        limit: 20, // fallback 상한
       },
     ]),
 
@@ -166,10 +176,10 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
   ],
   controllers: [HealthController],
   providers: [
-    // 전역 Rate Limiting Guard
+    // 전역 Rate Limiting Guard — 사용자별/구독 등급별 한도
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: UserThrottlerGuard,
     },
     // 전역 예외 필터 (Sentry 에러 추적)
     {

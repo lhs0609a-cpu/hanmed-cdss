@@ -26,9 +26,35 @@ const TOKEN_BLACKLIST_PREFIX = 'auth:revoked';
 const TWOFA_CHALLENGE_PREFIX = 'auth:2fa-challenge';
 const TWOFA_CHALLENGE_TTL_SECONDS = 5 * 60; // 5분 내 코드 입력
 
+/**
+ * JWT 블랙리스트 1차 캐시.
+ * 모든 인증 요청마다 Redis 를 치는 비용을 줄이기 위한 짧은 로컬 캐시.
+ *
+ * 보안 요구사항:
+ *  - 캐시 미스(=블랙리스트 아님)만 fast path 로 처리 — false positive 절대 금지.
+ *  - 캐시에 "revoked" 가 들어가면 즉시 차단(보수적).
+ *  - 캐시에 "valid" 가 들어가면 BLACKLIST_NEGATIVE_TTL 동안만 신뢰.
+ *  - 로그아웃 호출 시 해당 jti 캐시 무효화 + 'revoked' 강제 마킹.
+ */
+const BLACKLIST_LOCAL_CACHE_MAX = 5000;
+const BLACKLIST_NEGATIVE_TTL_MS = 5 * 60 * 1000; // 5분 — false positive 차단 폭
+
+type BlacklistCacheValue = 'revoked' | 'valid';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+
+  /**
+   * 로컬 1차 블랙리스트 캐시(LRU).
+   * value === 'revoked' → 즉시 차단 (Redis 확인 생략).
+   * value === 'valid' + expiresAt > now → Redis 확인 생략, 통과.
+   * 그 외 → Redis 조회 후 캐시 갱신.
+   */
+  private readonly blacklistLocalCache = new Map<
+    string,
+    { value: BlacklistCacheValue; expiresAt: number }
+  >();
 
   constructor(
     private usersService: UsersService,
@@ -41,10 +67,58 @@ export class AuthService {
     private passwordResetTokenRepository: Repository<PasswordResetToken>,
   ) {}
 
+  private blacklistCacheGet(jti: string): BlacklistCacheValue | null {
+    const entry = this.blacklistLocalCache.get(jti);
+    if (!entry) return null;
+    // revoked 는 영원히 캐시 (TTL 없이) — 안전한 쪽으로 기울임
+    if (entry.value === 'revoked') {
+      // LRU 갱신
+      this.blacklistLocalCache.delete(jti);
+      this.blacklistLocalCache.set(jti, entry);
+      return 'revoked';
+    }
+    // valid 는 짧은 TTL
+    if (entry.expiresAt > Date.now()) {
+      this.blacklistLocalCache.delete(jti);
+      this.blacklistLocalCache.set(jti, entry);
+      return 'valid';
+    }
+    this.blacklistLocalCache.delete(jti);
+    return null;
+  }
+
+  private blacklistCacheSet(jti: string, value: BlacklistCacheValue) {
+    // LRU 크기 캡
+    while (this.blacklistLocalCache.size >= BLACKLIST_LOCAL_CACHE_MAX) {
+      const oldest = this.blacklistLocalCache.keys().next().value;
+      if (oldest === undefined) break;
+      this.blacklistLocalCache.delete(oldest);
+    }
+    this.blacklistLocalCache.set(jti, {
+      value,
+      expiresAt:
+        value === 'revoked'
+          ? Number.MAX_SAFE_INTEGER
+          : Date.now() + BLACKLIST_NEGATIVE_TTL_MS,
+    });
+  }
+
   async isTokenRevoked(jti: string): Promise<boolean> {
     if (!jti) return false;
+
+    // 1차: 로컬 LRU 캐시
+    const local = this.blacklistCacheGet(jti);
+    if (local === 'revoked') return true;
+    if (local === 'valid') return false;
+
+    // 2차: Redis (정답)
     const value = await this.cacheService.get<number>(jti, { prefix: TOKEN_BLACKLIST_PREFIX });
-    return value !== null;
+    const revoked = value !== null;
+
+    // 캐시 갱신 — revoked 만 영구 캐시, valid 는 짧은 TTL
+    this.blacklistCacheSet(jti, revoked ? 'revoked' : 'valid');
+
+    return revoked;
   }
 
   async logout(jti: string, exp: number): Promise<void> {
@@ -52,6 +126,9 @@ export class AuthService {
     const ttlSeconds = exp - Math.floor(Date.now() / 1000);
     if (ttlSeconds <= 0) return;
     await this.cacheService.set(jti, 1, { prefix: TOKEN_BLACKLIST_PREFIX, ttl: ttlSeconds });
+    // 모든 인스턴스에서 즉시 차단되려면 Redis pub/sub 가 필요하지만,
+    // 최소한 현재 인스턴스의 로컬 캐시는 즉시 갱신해서 stale valid 제거.
+    this.blacklistCacheSet(jti, 'revoked');
   }
 
   decodeToken(token: string): { jti?: string; exp?: number; sub?: string } | null {
@@ -84,11 +161,12 @@ export class AuthService {
 
     const practitionerType = role ?? PractitionerType.PRACTITIONER;
 
-    // 한의사 가입 시 면허번호 필수 + 형식 (5-8자리 숫자)
+    // 한의사 가입 시 면허번호 필수 + 형식 검증 강화 (validateLicenseNumber)
     if (practitionerType === PractitionerType.PRACTITIONER) {
-      if (!licenseNumber || !/^\d{5,8}$/.test(licenseNumber)) {
+      const check = this.validateLicenseNumber(licenseNumber);
+      if (!check.ok) {
         throw new BadRequestException(
-          '한의사 면허번호는 5~8자리 숫자로 입력해주세요. 학생/공보의는 가입 유형에서 변경하세요.',
+          `${check.reason} 학생/공보의는 가입 유형에서 변경하세요.`,
         );
       }
     }
@@ -190,6 +268,12 @@ export class AuthService {
         isVerified: user.isVerified,
         role: user.role,
         status: user.status,
+        // 면허 상태 — settings 페이지에서 검증 배지/거부 사유 UI 에 사용
+        licenseNumber: user.licenseNumber,
+        clinicName: user.clinicName,
+        isLicenseVerified: user.isLicenseVerified,
+        licenseVerificationStatus: user.licenseVerificationStatus,
+        licenseRejectionReason: user.licenseRejectionReason,
       },
       ...tokens,
     };
@@ -339,6 +423,37 @@ export class AuthService {
       backupCodes,
       warning: '이 백업 코드는 다시 표시되지 않습니다. 안전한 곳에 저장하세요.',
     };
+  }
+
+  /**
+   * 한의사 면허번호 형식 검증.
+   *
+   * 룰:
+   *   - 숫자만
+   *   - 5~8자리 (현행 한의사 면허번호 자릿수 범위)
+   *   - 0으로 시작 금지 (실제 면허번호 체계에 0번대 발급 없음 — 오타·테스트 데이터 거름망)
+   *
+   * 검증 결과를 { ok, reason } 으로 반환해 호출자가 사용자에게 표시할 수
+   * 있는 사유 메시지를 그대로 사용한다. 가입 외에 면허 정정 API 등에서도
+   * 동일 규칙을 재사용 가능하도록 public 으로 노출.
+   */
+  validateLicenseNumber(
+    licenseNumber: string | null | undefined,
+  ): { ok: true; reason: null } | { ok: false; reason: string } {
+    const raw = (licenseNumber ?? '').trim();
+    if (!raw) {
+      return { ok: false, reason: '한의사 면허번호를 입력해주세요.' };
+    }
+    if (!/^\d+$/.test(raw)) {
+      return { ok: false, reason: '면허번호는 숫자만 입력 가능합니다.' };
+    }
+    if (raw.startsWith('0')) {
+      return { ok: false, reason: '면허번호는 0으로 시작할 수 없습니다.' };
+    }
+    if (raw.length < 5 || raw.length > 8) {
+      return { ok: false, reason: '면허번호는 5~8자리 숫자여야 합니다.' };
+    }
+    return { ok: true, reason: null };
   }
 
   /** 사람이 수기 입력하기 쉬운 형식: xxxx-xxxx (영숫자 9자, 모호 문자 제외) */

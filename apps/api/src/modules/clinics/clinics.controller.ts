@@ -89,4 +89,29 @@ export class ClinicsController {
   async update(@Param('id') id: string, @Request() req: any, @Body() dto: UpdateClinicDto) {
     return this.clinicsService.update(req.user.id, id, dto);
   }
+
+  // 한의원 원장 - 직원 접근 로그 조회 (의료법 시행규칙 제15조 대응)
+  @Get(':id/audit-logs')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '한의원 직원 접근 로그 조회 (원장 전용)' })
+  @ApiResponse({ status: 200, description: '조회 성공' })
+  @ApiResponse({ status: 403, description: '원장만 접근 가능' })
+  async getAuditLogs(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('userId') userId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.clinicsService.getAuditLogs(req.user.id, id, {
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      userId,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+    });
+  }
 }

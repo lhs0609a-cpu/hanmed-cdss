@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, In } from 'typeorm';
+import { Repository, ILike, In, Between } from 'typeorm';
 import {
   Clinic,
   ClinicPractitioner,
@@ -8,6 +8,8 @@ import {
   ReservationStatus,
   PatientClinicConnection,
 } from '../../database/entities';
+import { PractitionerRole } from '../../database/entities/clinic-practitioner.entity';
+import { PatientAccessLog } from '../../database/entities/patient-access-log.entity';
 import { SearchClinicsDto, GetAvailabilityDto, CreateClinicDto, UpdateClinicDto } from './dto';
 
 @Injectable()
@@ -21,7 +23,70 @@ export class ClinicsService {
     private reservationRepository: Repository<Reservation>,
     @InjectRepository(PatientClinicConnection)
     private connectionRepository: Repository<PatientClinicConnection>,
+    @InjectRepository(PatientAccessLog)
+    private accessLogRepository: Repository<PatientAccessLog>,
   ) {}
+
+  /**
+   * 한의원 OWNER 가 자기 한의원 직원들의 환자 기록 접근 로그를 조회.
+   * 권한 확인:
+   *   1) 요청자가 한의원의 OWNER 역할 ClinicPractitioner 인지
+   *   2) 또는 clinic.ownerId 가 요청자인지 (등록 직후 fallback)
+   */
+  async getAuditLogs(
+    requesterId: string,
+    clinicId: string,
+    options: {
+      page?: number;
+      limit?: number;
+      userId?: string;
+      from?: Date;
+      to?: Date;
+    } = {},
+  ) {
+    const clinic = await this.findById(clinicId);
+
+    let isOwner = clinic.ownerId === requesterId;
+    if (!isOwner) {
+      const membership = await this.practitionerRepository.findOne({
+        where: { clinicId, userId: requesterId },
+      });
+      isOwner = membership?.role === PractitionerRole.OWNER;
+    }
+
+    if (!isOwner) {
+      throw new ForbiddenException(
+        '한의원 원장만 직원 접근 로그를 조회할 수 있습니다.',
+      );
+    }
+
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.min(200, Math.max(1, options.limit ?? 50));
+
+    const qb = this.accessLogRepository
+      .createQueryBuilder('log')
+      .where('log.clinicId = :clinicId', { clinicId })
+      .orderBy('log.accessedAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (options.userId) {
+      qb.andWhere('log.userId = :userId', { userId: options.userId });
+    }
+    if (options.from) {
+      qb.andWhere('log.accessedAt >= :from', { from: options.from });
+    }
+    if (options.to) {
+      qb.andWhere('log.accessedAt <= :to', { to: options.to });
+    }
+
+    const [logs, total] = await qb.getManyAndCount();
+
+    return {
+      data: logs,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
 
   // 한의원 검색
   async search(dto: SearchClinicsDto) {
