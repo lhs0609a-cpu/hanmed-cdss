@@ -389,6 +389,52 @@ export default function SettingsPage() {
                     onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
                     placeholder="면허번호"
                   />
+                  {/* 검증 상태 — pending / verified / rejected */}
+                  {(() => {
+                    const status = user?.licenseVerificationStatus
+                    if (!status || status === 'unsubmitted') return null
+                    if (status === 'pending') {
+                      return (
+                        <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-md">
+                          ⏳ 면허 <strong>검증 중</strong> — 영업일 기준 1~2일 소요됩니다.
+                        </p>
+                      )
+                    }
+                    if (status === 'verified') {
+                      return (
+                        <p className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-md">
+                          ✓ 면허 <strong>검증 완료</strong>
+                        </p>
+                      )
+                    }
+                    if (status === 'rejected') {
+                      return (
+                        <div className="text-[12px] bg-red-50 border border-red-200 px-2.5 py-2 rounded-md space-y-1.5">
+                          <p className="text-red-700">
+                            ✕ 면허 <strong>검증 거부</strong>
+                          </p>
+                          {user?.licenseRejectionReason && (
+                            <p className="text-red-600">
+                              사유: {user.licenseRejectionReason}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // 사용자가 면허번호를 다시 입력 후 저장하면 백엔드가 PENDING 으로 전환.
+                              const el = document.getElementById('licenseNumber') as HTMLInputElement | null
+                              el?.focus()
+                              el?.select()
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-medium rounded transition-colors"
+                          >
+                            재제출
+                          </button>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
               </div>
               <div className="space-y-2">

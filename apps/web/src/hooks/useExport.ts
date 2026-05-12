@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import api from '@/services/api'
+import { ensureBomBlob, downloadCsv } from '@/lib/csv'
 
 export type ExportType = 'consultations' | 'patients'
 
@@ -13,7 +14,8 @@ export function useExport() {
   const [isExporting, setIsExporting] = useState(false)
 
   /**
-   * CSV 파일 내보내기
+   * CSV 파일 내보내기 — UTF-8 BOM 을 자동 prepend 해서 Windows Excel 에서
+   * 한글이 깨지지 않도록 한다 (apps/web/src/lib/csv.ts).
    */
   const exportToCSV = async (type: ExportType, options?: ExportOptions) => {
     setIsExporting(true)
@@ -30,22 +32,13 @@ export function useExport() {
         responseType: 'blob',
       })
 
-      // 파일 다운로드
-      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' })
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-
+      // 서버 응답에 BOM 이 없으면 prepend (한글 깨짐 방지)
+      const blob = await ensureBomBlob(response.data as Blob)
       const filename =
         type === 'consultations'
           ? `진료기록_${getDateString()}.csv`
           : `환자목록_${getDateString()}.csv`
-      link.download = filename
-
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
+      downloadCsv(filename, blob)
 
       toast.success('내보내기 완료', {
         description: `${filename} 파일이 다운로드되었습니다.`,

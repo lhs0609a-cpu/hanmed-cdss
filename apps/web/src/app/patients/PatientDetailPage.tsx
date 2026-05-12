@@ -18,8 +18,10 @@ import {
   AlertCircle,
   Brain,
   AlertTriangle,
+  Printer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { setInlineToastTimeout } from '@/hooks/useToast'
 
 // 로컬스토리지 키
 const PATIENTS_STORAGE_KEY = 'hanmed_patients'
@@ -303,7 +305,13 @@ export default function PatientDetailPage() {
     })
     setFormErrors({})
 
-    setTimeout(() => setShowSuccessToast(false), 3000)
+    // 글자수 기반 자동 닫힘 (기본 6초+)
+    setInlineToastTimeout(() => setShowSuccessToast(false), '진료 기록이 추가되었습니다')
+  }
+
+  /** 환자 차트 인쇄 — print.css 의 [data-print-area] 만 노출. */
+  const handlePrintChart = () => {
+    window.print()
   }
 
   const getPainScoreColor = (score: number) => {
@@ -352,13 +360,17 @@ export default function PatientDetailPage() {
   const hasVisits = visits.length > 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-print-area>
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <div className="flex items-center gap-4 flex-wrap">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          data-print-hide
+        >
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -380,9 +392,19 @@ export default function PatientDetailPage() {
             </div>
           </div>
         </div>
+        <button
+          onClick={handlePrintChart}
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl transition-colors"
+          title="환자 차트와 진료 기록을 A4 용지로 인쇄합니다"
+          data-print-hide
+        >
+          <Printer className="h-5 w-5" aria-hidden="true" />
+          차트 인쇄
+        </button>
         <Link
           to="/dashboard/consultation"
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all mr-2"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all"
+          data-print-hide
         >
           <Brain className="h-5 w-5" />
           AI 진료
@@ -390,10 +412,19 @@ export default function PatientDetailPage() {
         <button
           onClick={() => setShowNewVisitModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+          data-print-hide
         >
           <Plus className="h-5 w-5" />
           새 진료 기록
         </button>
+      </div>
+
+      {/* 인쇄 전용 헤더 (한의원 정보) — 화면에서는 보이지 않음 */}
+      <div className="print-only print-rx-header">
+        <h2 className="text-lg font-bold">환자 차트</h2>
+        <p className="text-xs text-gray-600 mt-1">
+          발행일: {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
       {/* Quick Stats */}
@@ -912,16 +943,35 @@ export default function PatientDetailPage() {
 
       {/* Success Toast */}
       {showSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-green-500 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3">
-            <CheckCircle className="h-5 w-5" />
-            <div>
+        <div
+          className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300"
+          role="alert"
+          aria-live="polite"
+          data-print-hide
+        >
+          <div className="bg-green-500 text-white pl-6 pr-3 py-4 rounded-xl shadow-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5" aria-hidden="true" />
+            <div className="flex-1">
               <p className="font-medium">진료 기록이 저장되었습니다</p>
               <p className="text-sm text-green-100">{new Date().toLocaleDateString('ko-KR')} 기록 추가</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowSuccessToast(false)}
+              className="p-1.5 rounded-md hover:bg-white/20 transition-colors"
+              aria-label="알림 닫기"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
       )}
+
+      {/* 인쇄 전용 푸터 — 의료기기/면책 고지 */}
+      <div className="print-only print-footer-disclaimer">
+        본 차트는 임상 보조 출력물이며, 본 서비스는 의료기기가 아닙니다 (의료기기 인증 신청 진행 중).
+        최종 진단 · 처방은 한의사의 판단에 따릅니다.
+      </div>
     </div>
   )
 }

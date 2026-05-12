@@ -1,0 +1,153 @@
+/*
+ * Print stylesheet — 처방전 / 환자 차트 / 진료 기록 인쇄용.
+ *
+ * 사용법:
+ *   - 인쇄하고 싶은 영역을 <div data-print-area> 로 감싼다.
+ *   - 인쇄 버튼은 window.print() 만 호출하면 된다.
+ *   - 헤더 / 사이드바 / 모바일 하단 네비 / 떠다니는 버튼 / 토스트는 자동으로 숨겨진다.
+ *
+ * 종이: A4 기준 (210mm × 297mm), 18mm 마진.
+ */
+
+@media print {
+  /* 페이지 크기와 마진 */
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  /* 인쇄 시 배경/색감을 종이 톤으로 단순화 */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 12pt;
+  }
+
+  /* 화면 전용 UI 일괄 숨김 */
+  aside,
+  nav,
+  header.lg\:hidden,
+  [data-print-hide],
+  .print-hide,
+  /* 사이드바 / 모바일 헤더 / 하단 탭 / FAB / 토스트 / 의료 면책 배너 */
+  .fixed-bottom-mobile,
+  [role="toast"],
+  [data-sonner-toaster],
+  /* 우측 떠다니는 진료 버튼 등 */
+  .fixed.bottom-0,
+  .fixed.bottom-4,
+  .fixed.bottom-6,
+  .fixed.bottom-8,
+  .floating-consult,
+  /* 의료 면책 mandatory / banner — 인쇄에서는 별도 푸터로 처리 */
+  [data-medical-disclaimer-banner] {
+    display: none !important;
+  }
+
+  /* 메인 컨테이너 — 사이드바 패딩 제거 */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  /* 인쇄 영역이 지정된 경우, 그것만 보여준다 */
+  body:has([data-print-area]) > *:not(:has([data-print-area])) {
+    /* 폴백 — :has 미지원 브라우저에서는 print-only/print-hide 클래스를 사용 */
+  }
+
+  [data-print-area] {
+    box-shadow: none !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  [data-print-area] * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 카드/패널은 종이 톤으로 단순화 */
+  [data-print-area] .bg-white,
+  [data-print-area] [class*="bg-neutral-"],
+  [data-print-area] [class*="bg-gray-"],
+  [data-print-area] [class*="bg-slate-"],
+  [data-print-area] [class*="bg-teal-"],
+  [data-print-area] [class*="bg-amber-"],
+  [data-print-area] [class*="bg-blue-"] {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  [data-print-area] [class*="border-"] {
+    border-color: #cccccc !important;
+  }
+
+  /* 인쇄 전용 헤더/푸터 노출 */
+  .print-only {
+    display: block !important;
+  }
+
+  /* 링크는 밑줄 제거 (종이에서 시각적 노이즈) */
+  [data-print-area] a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* 표 가독성 */
+  [data-print-area] table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+  [data-print-area] thead {
+    display: table-header-group;
+  }
+  [data-print-area] tr {
+    page-break-inside: avoid;
+  }
+  [data-print-area] th,
+  [data-print-area] td {
+    border: 1px solid #999 !important;
+    padding: 4pt 6pt;
+    font-size: 11pt;
+  }
+
+  /* 페이지 분할 힌트 */
+  .print-page-break {
+    page-break-before: always;
+  }
+  .print-no-break {
+    page-break-inside: avoid;
+  }
+
+  /* 처방전 헤더 (한의원 정보) */
+  .print-rx-header {
+    border-bottom: 2px solid #111 !important;
+    padding-bottom: 6pt;
+    margin-bottom: 10pt;
+  }
+
+  /* 의료기기 면책 푸터 — 인쇄 시 항상 노출 */
+  .print-footer-disclaimer {
+    display: block !important;
+    margin-top: 12pt;
+    padding-top: 6pt;
+    border-top: 1px solid #999 !important;
+    font-size: 9pt;
+    color: #555;
+  }
+}
+
+/* 화면에서 인쇄 전용 요소 숨기기 */
+@media screen {
+  .print-only,
+  .print-footer-disclaimer {
+    display: none;
+  }
+}

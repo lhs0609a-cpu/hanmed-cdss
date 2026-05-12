@@ -13,13 +13,34 @@ interface ToastOptions {
   }
 }
 
+/**
+ * 글자수에 따라 자동 연장된 토스트 지속 시간을 계산.
+ * - 기본 6초 (한의사 현장 — 환자 진료 중 알람을 놓치지 않도록 충분히 길게)
+ * - 메시지가 길수록 100ms/글자 가산 (최대 15초)
+ * - 에러는 더 오래 (8초 base)
+ */
+export function computeToastDuration(
+  message: string,
+  description?: string,
+  variant?: ToastVariant,
+): number {
+  const base = variant === 'destructive' ? 8000 : 6000
+  const total = (message?.length ?? 0) + (description?.length ?? 0)
+  const extra = Math.min(total * 100, 9000)
+  return base + extra
+}
+
 export function useToast() {
   const toast = (options: ToastOptions) => {
     const { title, description, variant = 'default', duration, action } = options
 
     const toastOptions: Parameters<typeof sonnerToast>[1] = {
       description,
-      duration: duration ?? (variant === 'destructive' ? 5000 : 3000),
+      // 사용자가 명시한 duration 이 있으면 사용. 없으면 글자수 기반 자동 계산.
+      duration: duration ?? computeToastDuration(title, description, variant),
+      // sonner 의 기본 close 버튼은 toaster 컴포넌트에서 closeButton 옵션으로 제어.
+      // (Toaster 레벨에서 closeButton 활성화가 필요. 토스트 단위에서는 dismissible 으로 보장.)
+      dismissible: true,
       action: action
         ? {
             label: action.label,
@@ -91,6 +112,22 @@ export function useToast() {
     promise,
     dismiss,
   }
+}
+
+/**
+ * 임시 인라인 토스트 (페이지 내 고정 위치 X-띄움) 의 표준 지속 시간.
+ * 사용자가 글자수에 맞춰 dismiss 까지 충분히 읽을 시간.
+ *
+ *   const t = setInlineToastTimeout(() => setShow(false), `${name} 등록 완료`)
+ *   return () => clearTimeout(t)
+ */
+export function setInlineToastTimeout(
+  hide: () => void,
+  message?: string,
+  description?: string,
+): ReturnType<typeof setTimeout> {
+  const ms = computeToastDuration(message ?? '', description, 'success')
+  return setTimeout(hide, ms)
 }
 
 export default useToast

@@ -5,6 +5,7 @@ import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
+import { useDashboardStats } from '@/hooks/useDashboardStats'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
@@ -18,6 +19,7 @@ import {
   ArrowRight,
   ChevronRight,
   Search,
+  Info,
 } from 'lucide-react'
 
 const dashboardTourSteps = [
@@ -55,31 +57,28 @@ const dashboardTourSteps = [
   },
 ]
 
-// 실제 사용 데이터가 없는 경우 빈 상태를 표시
-const stats = [
+// stats 카드 메타데이터 — 값은 useDashboardStats 훅에서 동적으로 주입.
+const statsMeta = [
   {
+    key: 'todaySavedMinutes' as const,
     name: '오늘 절약한 시간',
-    value: '-',
     icon: Clock,
-    change: '',
-    changeType: 'positive',
     description: '진료 시작 시 자동 집계',
+    suffix: '분',
   },
   {
+    key: 'monthlyConsultations' as const,
     name: '이번 달 진료',
-    value: '0건',
     icon: Users,
-    change: '',
-    changeType: 'positive',
     description: '진료 기록 기준',
+    suffix: '건',
   },
   {
+    key: 'aiRecommendationsUsed' as const,
     name: 'AI 추천 활용',
-    value: '0회',
     icon: TrendingUp,
-    change: '',
-    changeType: 'positive',
     description: 'AI 처방 추천 기준',
+    suffix: '회',
   },
 ]
 
@@ -120,6 +119,10 @@ function useRecentActivities() {
 export default function DashboardPage() {
   useSEO(PAGE_SEO.dashboard)
   const appStats = useAppStats()
+  const dashboardStatsQuery = useDashboardStats()
+  const dashboardStats = dashboardStatsQuery.data
+  const isStatsLoading = dashboardStatsQuery.isLoading
+  const isStatsDemo = dashboardStats?._isDemo === true
 
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
@@ -231,24 +234,49 @@ export default function DashboardPage() {
       <KillerFeatureHighlight />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {stats.map((stat) => (
-          <div
-            key={stat.name}
-            className="bg-white rounded-md p-6 border border-neutral-200"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[13px] font-medium text-neutral-500">{stat.name}</p>
-                <p className="text-[28px] font-extrabold tabular text-neutral-900 mt-2 tracking-tight">
-                  {stat.value}
-                </p>
-                <p className="text-[12px] text-neutral-400 mt-1.5">{stat.description}</p>
-              </div>
-              <stat.icon className="h-5 w-5 text-neutral-400" />
-            </div>
+      <div>
+        {isStatsDemo && (
+          <div className="mb-3 flex items-start gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-md text-[13px] text-amber-800">
+            <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <span>
+              아직 실제 진료 기록이 없어 <strong>샘플 통계</strong>를 표시합니다.
+              첫 진료를 등록하면 실제 수치로 자동 갱신됩니다.
+            </span>
           </div>
-        ))}
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {statsMeta.map((stat) => {
+            const raw = dashboardStats?.[stat.key]
+            const display =
+              raw === null || raw === undefined
+                ? '—'
+                : `${raw.toLocaleString('ko-KR')}${stat.suffix}`
+            return (
+              <div
+                key={stat.name}
+                className="bg-white rounded-md p-6 border border-neutral-200"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-neutral-500">{stat.name}</p>
+                    {isStatsLoading ? (
+                      <div
+                        className="mt-2 h-9 w-24 rounded bg-neutral-100 animate-pulse"
+                        aria-label="불러오는 중"
+                      />
+                    ) : (
+                      <p className="text-[28px] font-extrabold tabular text-neutral-900 mt-2 tracking-tight">
+                        {display}
+                      </p>
+                    )}
+                    <p className="text-[12px] text-neutral-400 mt-1.5">{stat.description}</p>
+                  </div>
+                  <stat.icon className="h-5 w-5 text-neutral-400 ml-2 flex-shrink-0" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -305,8 +333,9 @@ export default function DashboardPage() {
 
           <div className="space-y-1">
             {recentActivityQuery.isLoading ? (
-              <div className="text-center py-8 text-neutral-400">
-                <p className="text-[13px]">불러오는 중…</p>
+              <div className="text-center py-8 text-neutral-500">
+                <p className="text-[16px] font-semibold">불러오는 중…</p>
+                <p className="text-[13px] mt-1 text-neutral-400">최근 진료 기록을 가져오고 있어요</p>
               </div>
             ) : recentActivities.length > 0 ? (
               recentActivities.map((activity, index) => {

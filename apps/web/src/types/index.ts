@@ -54,6 +54,15 @@ export interface User {
   licenseNumber?: string
   clinicName?: string
   createdAt?: string
+  /** 면허 검증 상태 — 검증 중 / 검증 완료 / 거부. settings 페이지에서 사유 노출. */
+  licenseVerificationStatus?:
+    | 'unsubmitted'
+    | 'pending'
+    | 'verified'
+    | 'rejected'
+  /** 거부 사유 (rejected 시) */
+  licenseRejectionReason?: string | null
+  isLicenseVerified?: boolean
 }
 
 export interface AuthTokens {

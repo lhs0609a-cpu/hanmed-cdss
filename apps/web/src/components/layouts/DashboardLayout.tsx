@@ -654,6 +654,20 @@ export default function DashboardLayout() {
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
+
+        {/* 의료기기/면책 고정 푸터 — 모든 로그인 페이지에 노출 */}
+        <footer
+          data-print-hide
+          className="mt-8 border-t border-neutral-200 bg-white/80 px-4 py-3 text-[11px] leading-relaxed text-neutral-500 lg:px-8"
+        >
+          <p className="max-w-7xl mx-auto">
+            본 서비스는 임상 보조 도구이며, 의료기기 인증 신청 진행 중입니다.
+            최종 진단 · 처방은 한의사의 판단에 따릅니다.
+            <span className="ml-2 text-neutral-400">
+              © {new Date().getFullYear()} 온고지신
+            </span>
+          </p>
+        </footer>
       </main>
 
       {/* Keyboard Shortcut Hint - 데스크톱만 */}

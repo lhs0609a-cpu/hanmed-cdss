@@ -47,6 +47,9 @@ import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
 import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { SimilarPatientStats, RecommendationStatHighlight } from '@/components/consultation'
+import { printPrescription } from '@/lib/prescriptionPrint'
+import { useAuthStore } from '@/stores/authStore'
+import { Printer } from 'lucide-react'
 
 const consultationTourSteps = [
   {
@@ -212,6 +215,7 @@ export default function ConsultationPage() {
 
   const { showHanja } = useHanjaSettings()
   const { toast } = useToast()
+  const currentUser = useAuthStore((state) => state.user)
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
@@ -367,6 +371,35 @@ export default function ConsultationPage() {
     setSelectedFormula(rec)
     setShowDetailModal(true)
   }
+
+  /**
+   * 처방전 인쇄 — apps/web/src/lib/prescriptionPrint.ts 의 iframe 격리 인쇄.
+   * 한의사 면허번호와 한의원명은 로그인 사용자 정보에서 가져온다.
+   */
+  const handlePrintPrescription = useCallback(
+    (rec: Recommendation) => {
+      const today = new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      printPrescription({
+        clinicName: currentUser?.clinicName || '한의원',
+        doctorName: currentUser?.name || '담당 한의사',
+        doctorLicense: currentUser?.licenseNumber,
+        patientName: '환자',
+        visitDate: today,
+        diagnosis: analysis || chiefComplaint || '-',
+        prescription: rec.formula_name,
+        herbs: rec.herbs,
+        dosage: '1일 2회, 식후 30분',
+        duration: '7일분 (1주)',
+        instructions: rec.rationale,
+        cautions: 'AI 추천은 참고용입니다. 처방 전 환자의 알레르기·복용약·기저질환을 반드시 확인하세요.',
+      })
+    },
+    [currentUser, analysis, chiefComplaint],
+  )
 
   const handleSelectFormula = (rec: Recommendation) => {
     setSelectedForSelect(rec)
@@ -1442,10 +1475,29 @@ export default function ConsultationPage() {
         </div>
 
         {/* Results Section */}
-        <div data-tour="result-area" className="lg:col-span-3 space-y-4">
+        <div data-tour="result-area" data-print-area className="lg:col-span-3 space-y-4">
           {recommendations.length > 0 ? (
             <>
-              {/* AI 결과 면책 조항 */}
+              {/* 의료기기/면책 고지 — 결과 영역 최상단에 노란 배너 (요청대로 하단 X) */}
+              <div
+                role="note"
+                className="flex items-start gap-3 px-4 py-3 bg-amber-50 border-2 border-amber-300 rounded-lg"
+              >
+                <AlertTriangle
+                  className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5"
+                  aria-hidden="true"
+                />
+                <div className="text-[13px] text-amber-900 leading-relaxed">
+                  <p className="font-semibold">
+                    본 서비스는 임상 보조 도구이며, 의료기기 인증 신청 진행 중입니다.
+                  </p>
+                  <p className="mt-0.5">
+                    AI 추천은 참고용이며, 최종 진단 · 처방은 한의사의 판단에 따릅니다.
+                  </p>
+                </div>
+              </div>
+
+              {/* AI 결과 면책 조항 (세부) */}
               <AIResultDisclaimer />
 
               {/* AI Analysis */}
@@ -1577,11 +1629,11 @@ export default function ConsultationPage() {
                         />
                       )}
 
-                      {/* Action buttons */}
-                      <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Action buttons — 처방 카드 위에 마우스 올리면 노출 */}
+                      <div className="mt-4 flex flex-wrap items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleSelectFormula(rec)}
-                          className="flex-1 py-2 px-4 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                          className="flex-1 min-w-[120px] py-2 px-4 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors"
                         >
                           이 처방 선택
                         </button>
@@ -1602,6 +1654,15 @@ export default function ConsultationPage() {
                         >
                           <FileText className="h-4 w-4" />
                           문서화
+                        </button>
+                        <button
+                          onClick={() => handlePrintPrescription(rec)}
+                          className="py-2 px-4 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors flex items-center gap-1"
+                          title="처방전을 A4 용지로 인쇄합니다"
+                          data-print-hide
+                        >
+                          <Printer className="h-4 w-4" aria-hidden="true" />
+                          처방전 인쇄
                         </button>
                       </div>
                     </div>

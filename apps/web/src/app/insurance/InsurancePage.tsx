@@ -13,6 +13,7 @@ import {
   ChevronRight,
   TrendingUp,
   Calendar,
+  Printer,
 } from 'lucide-react';
 import {
   useInsuranceClaims,
@@ -85,9 +86,9 @@ export default function InsurancePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-print-area>
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
             보험청구 점검
@@ -100,8 +101,8 @@ export default function InsurancePage() {
             실제 제출은 기존 청구 SW에서 진행해 주세요.
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2" data-print-hide>
             <Calendar className="w-4 h-4 text-gray-400" />
             <input
               type="date"
@@ -117,7 +118,22 @@ export default function InsurancePage() {
               className="px-3 py-2 border rounded-lg text-sm"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-sm font-medium rounded-lg transition-colors"
+            title="청구 명세서를 A4 용지로 인쇄합니다"
+            data-print-hide
+          >
+            <Printer className="w-4 h-4" aria-hidden="true" />
+            명세서 인쇄
+          </button>
         </div>
+      </div>
+
+      {/* 인쇄 전용 푸터 */}
+      <div className="print-only print-footer-disclaimer">
+        본 명세서는 임상 보조 출력물입니다. 실제 보험 청구는 정식 청구 SW에서 제출해 주세요.
       </div>
 
       {/* Summary Cards */}

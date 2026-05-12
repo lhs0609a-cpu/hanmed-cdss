@@ -7,7 +7,9 @@ export function Toaster() {
       position="top-right"
       gap={12}
       toastOptions={{
-        duration: 4000,
+        // 현장 한의사 — 진료 중 토스트를 놓치지 않도록 기본을 6초로 늘림.
+        // 개별 호출에서 useToast 의 computeToastDuration 으로 글자수 가산 가능.
+        duration: 6000,
         classNames: {
           toast: 'bg-white/95 backdrop-blur-lg border shadow-xl rounded-xl px-4 py-3 min-w-[320px]',
           title: 'text-gray-900 font-semibold text-sm',

@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [consents, setConsents] = useState({
     terms: false,
     privacy: false,
+    aiAdvisory: false,
     marketing: false,
   })
   const [error, setError] = useState('')
@@ -33,9 +34,25 @@ export default function RegisterPage() {
 
   const requiresLicense = formData.role === 'practitioner'
   const licenseDigitsOnly = formData.licenseNumber.replace(/\D/g, '')
-  const licenseValid =
-    !requiresLicense || (licenseDigitsOnly.length >= 5 && licenseDigitsOnly.length <= 8)
-  const allRequiredConsentsChecked = consents.terms && consents.privacy
+
+  // 면허번호 검증 — 백엔드 validateLicenseNumber 와 동일 룰:
+  //   1) 5~8자리 길이
+  //   2) 숫자만 (입력 단계에서 보장되긴 하지만 안전망)
+  //   3) 0으로 시작 금지 (한의사 면허번호 체계)
+  const licenseFormatChecks = (() => {
+    if (!requiresLicense) return { ok: true as const, reason: null as string | null }
+    if (!licenseDigitsOnly) return { ok: false, reason: '면허번호를 입력해주세요' }
+    if (!/^\d+$/.test(licenseDigitsOnly))
+      return { ok: false, reason: '숫자만 입력 가능합니다' }
+    if (licenseDigitsOnly.startsWith('0'))
+      return { ok: false, reason: '면허번호는 0으로 시작할 수 없습니다' }
+    if (licenseDigitsOnly.length < 5 || licenseDigitsOnly.length > 8)
+      return { ok: false, reason: '5 ~ 8자리 숫자여야 합니다' }
+    return { ok: true, reason: null }
+  })()
+  const licenseValid = licenseFormatChecks.ok
+  const allRequiredConsentsChecked =
+    consents.terms && consents.privacy && consents.aiAdvisory
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -54,7 +71,7 @@ export default function RegisterPage() {
       return
     }
     if (requiresLicense && !licenseValid) {
-      setError('한의사 면허번호는 5~8자리 숫자로 입력해주세요.')
+      setError(licenseFormatChecks.reason ?? '면허번호를 확인해주세요.')
       return
     }
 
@@ -173,11 +190,9 @@ export default function RegisterPage() {
           <Field
             label={requiresLicense ? '한의사 면허번호' : '한의사 면허번호 (선택)'}
             required={requiresLicense}
-            hint="숫자 5~8자리"
+            hint="숫자 5~8자리 (0으로 시작 불가)"
             error={
-              formData.licenseNumber && !licenseValid
-                ? '5~8자리 숫자만 입력 가능합니다.'
-                : null
+              formData.licenseNumber && !licenseValid ? licenseFormatChecks.reason : null
             }
           >
             <input
@@ -185,9 +200,16 @@ export default function RegisterPage() {
               name="licenseNumber"
               type="text"
               inputMode="numeric"
+              pattern="[1-9][0-9]{4,7}"
               required={requiresLicense}
+              aria-required={requiresLicense}
+              aria-invalid={!!formData.licenseNumber && !licenseValid}
               value={formData.licenseNumber}
-              onChange={handleChange}
+              onChange={(e) => {
+                // 숫자만 허용 (붙여넣기 시 자동 정제)
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+                setFormData({ ...formData, licenseNumber: digits })
+              }}
               placeholder="12345"
               className={
                 formData.licenseNumber && !licenseValid
@@ -195,6 +217,12 @@ export default function RegisterPage() {
                   : inputClass
               }
             />
+            {requiresLicense && (
+              <p className="mt-1.5 text-[12px] text-neutral-500">
+                가입 후 면허 검증 상태가 <strong>검증 중</strong> → <strong>검증 완료</strong> 로
+                업데이트됩니다. 거부 시 설정에서 사유를 확인하고 재제출할 수 있어요.
+              </p>
+            )}
           </Field>
 
           <Field label="한의원명 (선택)">
@@ -211,9 +239,14 @@ export default function RegisterPage() {
 
           <div className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-4 space-y-3 mt-2">
             <ConsentRow
-              checked={consents.terms && consents.privacy && consents.marketing}
+              checked={
+                consents.terms &&
+                consents.privacy &&
+                consents.aiAdvisory &&
+                consents.marketing
+              }
               onChange={(v) =>
-                setConsents({ terms: v, privacy: v, marketing: v })
+                setConsents({ terms: v, privacy: v, aiAdvisory: v, marketing: v })
               }
               label="전체 동의"
               bold
@@ -249,6 +282,17 @@ export default function RegisterPage() {
                   >
                     개인정보처리방침
                   </Link>
+                </>
+              }
+            />
+            <ConsentRow
+              checked={consents.aiAdvisory}
+              onChange={(v) => setConsents({ ...consents, aiAdvisory: v })}
+              label={
+                <>
+                  <span className="text-neutral-500">필수</span>{' '}
+                  AI 추천은 <strong>보조 정보</strong>이며 의료 행위가 아닙니다.
+                  최종 진단 · 처방은 한의사 본인 판단에 따름을 확인합니다.
                 </>
               }
             />

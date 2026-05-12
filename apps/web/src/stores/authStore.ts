@@ -27,6 +27,16 @@ interface User {
   isVerified: boolean
   role?: UserRole
   status?: 'active' | 'suspended' | 'banned'
+  // 처방전 인쇄 / 면허 검증 UI 에서 사용
+  licenseNumber?: string
+  clinicName?: string
+  isLicenseVerified?: boolean
+  licenseVerificationStatus?:
+    | 'unsubmitted'
+    | 'pending'
+    | 'verified'
+    | 'rejected'
+  licenseRejectionReason?: string | null
 }
 
 interface AuthState {
