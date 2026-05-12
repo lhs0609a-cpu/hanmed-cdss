@@ -286,6 +286,14 @@ export class InteractionsService {
     // 6. 안전성 평가
     const safetyAssessment = this.assessSafety(critical, warning, info);
 
+    // 7. CRITICAL 항목은 blocked 플래그로 마킹하여 호출 측이 처방 진행을 차단할 수 있게 한다.
+    //    한의사 명시적 동의(override) 없이는 처방 저장 금지가 정책.
+    const criticalFormatted = critical.map((c) => ({
+      ...this.formatInteraction(c),
+      blocked: true,
+    }));
+    const requiresOverride = critical.length > 0;
+
     const result = {
       hasInteractions: allInteractions.length > 0,
       totalCount: allInteractions.length,
@@ -296,12 +304,18 @@ export class InteractionsService {
         normalizedDrugs: normalizedDrugNames,
       },
       bySeverity: {
-        critical: critical.map(this.formatInteraction),
+        critical: criticalFormatted,
         warning: warning.map(this.formatInteraction),
         info: info.map(this.formatInteraction),
       },
+      // 한의사가 명시적으로 동의해야만 처방 진행 가능 — UI 차단/감사로그 필수.
+      requiresOverride,
+      overrideRequiredReason: requiresOverride
+        ? `CRITICAL 상호작용 ${critical.length}건 — 한의사 동의(override) 없이는 처방 저장 금지.`
+        : null,
       ...safetyAssessment,
-      disclaimer: '⚠️ 이 정보는 참고용이며, 최종 판단은 반드시 전문 의료인이 해야 합니다. 모든 상호작용이 포함되어 있지 않을 수 있습니다.',
+      disclaimer:
+        '⚠️ 이 정보는 참고용이며, 최종 판단은 반드시 전문 의료인이 해야 합니다. 모든 상호작용이 포함되어 있지 않을 수 있습니다.',
     };
 
     // 결과 캐싱 (10분)
@@ -480,16 +494,21 @@ export class InteractionsService {
 
   /**
    * 상호작용 포맷팅
+   *
+   * evidenceLevel, clinicalManagement(=recommendation 별칭) 은 베타 출시 정책상 항상 포함되어야 한다.
+   * 누락 시 'D'(매우 낮은 근거) / 빈 문자열로 fill — 한의사가 임상 판단을 내릴 수 있는 최소 정보 보장.
    */
   private formatInteraction = (interaction: any) => ({
     drug: interaction.drug,
     drugClass: interaction.drugClass || '',
     herb: interaction.herb,
     herbCategory: interaction.herbCategory || '',
+    severity: interaction.severity,
     type: interaction.interactionType,
-    mechanism: interaction.mechanism,
-    recommendation: interaction.recommendation,
-    evidenceLevel: interaction.evidenceLevel || '',
+    mechanism: interaction.mechanism || '',
+    recommendation: interaction.recommendation || '',
+    clinicalManagement: interaction.recommendation || '',
+    evidenceLevel: interaction.evidenceLevel || EvidenceLevel.D,
     references: interaction.references || [],
     source: interaction.source || 'database',
   });

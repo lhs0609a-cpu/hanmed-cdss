@@ -18,6 +18,7 @@ class RecommendationRequest(BaseModel):
     patient_age: Optional[int] = Field(None, description="환자 나이")
     patient_gender: Optional[str] = Field(None, description="성별 (male/female)")
     constitution: Optional[str] = Field(None, description="체질")
+    pregnancy: Optional[bool] = Field(None, description="임신 여부 (true면 임산부 금기 본초 처방 자동 제외)")
     chief_complaint: str = Field(..., description="주소증")
     symptoms: List[SymptomInput] = Field(default=[], description="증상 목록")
     current_medications: Optional[List[str]] = Field(None, description="현재 복용 중인 양약")
@@ -33,6 +34,9 @@ class FormulaRecommendation(BaseModel):
     confidence_score: float
     herbs: List[HerbInfo]
     rationale: str
+    source: Optional[str] = None
+    has_classical_citation: Optional[bool] = None
+    safety_flags: Optional[List[str]] = None
 
 class RecommendationResponse(BaseModel):
     recommendations: List[FormulaRecommendation]
@@ -43,6 +47,8 @@ class RecommendationResponse(BaseModel):
     warnings: Optional[List[str]] = None
     source: Optional[str] = None
     disclaimer: Optional[str] = None
+    safety_disclaimer: Optional[str] = None
+    patient_safety: Optional[Dict[str, Any]] = None
     generated_at: Optional[str] = None
     model: Optional[str] = None
     grounded: Optional[bool] = None
@@ -74,6 +80,7 @@ async def get_prescription_recommendation(
         'age': rec_request.patient_age,
         'gender': rec_request.patient_gender,
         'constitution': rec_request.constitution,
+        'pregnancy': rec_request.pregnancy,
         'chief_complaint': chief_complaint,
         'symptoms': symptoms,
         'current_medications': rec_request.current_medications,
@@ -123,6 +130,9 @@ async def get_prescription_recommendation(
             confidence_score=rec.get('confidence_score', 0),
             herbs=herbs,
             rationale=rec.get('rationale', ''),
+            source=rec.get('source'),
+            has_classical_citation=rec.get('has_classical_citation'),
+            safety_flags=rec.get('safety_flags') or None,
         ))
 
     return RecommendationResponse(
@@ -134,6 +144,8 @@ async def get_prescription_recommendation(
         warnings=result.get('warnings') or None,
         source=result.get('source'),
         disclaimer=result.get('disclaimer'),
+        safety_disclaimer=result.get('safety_disclaimer'),
+        patient_safety=result.get('patient_safety'),
         generated_at=result.get('generated_at'),
         model=result.get('model'),
         grounded=result.get('grounded'),
