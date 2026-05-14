@@ -2,14 +2,11 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { performLogout } from '@/services/auth-api'
 import { useSidebarStore } from '@/stores/sidebarStore'
-import { HanjaToggle } from '@/components/hanja'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
-import { ThemeToggle, GlossaryButton, KeyboardHint } from '@/components/common'
-import { FloatingConsultButton } from '@/components/common/FloatingConsultButton'
+import { ThemeToggle } from '@/components/common'
 import { SessionWarningDialog } from '@/components/common/SessionWarningDialog'
 import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
 import { useState, useEffect, useMemo } from 'react'
-import { useAppStats } from '@/hooks/useAppStats'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import {
   LayoutDashboard,
@@ -20,9 +17,7 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   Search,
-  Sparkles,
   FlaskConical,
   Leaf,
   Calculator,
@@ -44,8 +39,6 @@ import {
   HeartPulse,
   DollarSign,
   ChevronDown,
-  Star,
-  Clock,
   PanelLeftClose,
   PanelLeft,
   Command,
@@ -57,107 +50,58 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// 메뉴 아이템 타입
+// 메뉴 아이템 — 단순화 시점엔 description/badge 제거(시각 노이즈 감소).
 interface MenuItem {
   name: string
   href: string
   icon: React.ComponentType<{ className?: string }>
-  description?: string
-  badge?: string
 }
 
-interface MenuSection {
-  id: string
-  title: string
-  icon?: React.ReactNode
-  color?: string
-  items: MenuItem[]
-}
+// 메뉴 정의 — Toss 식 단순화.
+// Primary 6 개만 항상 노출, 나머지는 "더 보기"로 접어둔다.
+// 모든 기능 도달은 ⌘K 검색 + 더보기로 가능 — 사이드바는 매일 쓰는 흐름만.
+const PRIMARY_MENU: MenuItem[] = [
+  { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
+  { name: '새 진료', href: '/dashboard/consultation', icon: Stethoscope },
+  { name: '환자', href: '/dashboard/patients', icon: Users },
+  { name: '치험례', href: '/dashboard/cases', icon: BookOpen },
+  { name: '청구', href: '/dashboard/insurance', icon: FileText },
+  { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle },
+]
 
-// 메뉴 섹션 정의
-const menuSections: MenuSection[] = [
-  {
-    id: 'main',
-    title: '메인 메뉴',
-    items: [
-      { name: '대시보드', href: '/dashboard', icon: LayoutDashboard, description: '전체 현황' },
-      { name: '통합 검색', href: '/dashboard/unified-search', icon: Search, description: '처방/증상/병증', badge: 'NEW' },
-      { name: 'AI 진료', href: '/dashboard/consultation', icon: Stethoscope, description: '처방 추천', badge: 'AI' },
-      { name: '환자 관리', href: '/dashboard/patients', icon: Users, description: 'EMR/차트' },
-      { name: '치험례', href: '/dashboard/cases', icon: BookOpen, description: '6,000건 검색' },
-      { name: '커뮤니티', href: '/dashboard/community', icon: MessageSquare, description: '전문가 토론' },
-    ],
-  },
-  {
-    id: 'core',
-    title: '핵심 기능',
-    icon: <Sparkles className="h-3 w-3" />,
-    color: 'text-red-500',
-    items: [
-      { name: 'AI 변증', href: '/dashboard/pattern-diagnosis', icon: Brain, description: '변증 분석', badge: 'HOT' },
-      { name: 'AI 치험례', href: '/dashboard/case-search', icon: BookOpen, description: '유사사례 검색', badge: 'NEW' },
-      { name: '삭감 예측', href: '/dashboard/claim-check', icon: Shield, description: '보험 청구', badge: 'NEW' },
-      { name: '처방 비교', href: '/dashboard/formula-compare', icon: ArrowLeftRight, description: '유사 처방' },
-      { name: 'Red Flag', href: '/dashboard/red-flag', icon: AlertTriangle, description: '위험 신호' },
-      { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic, description: 'STT→SOAP', badge: 'NEW' },
-    ],
-  },
-  {
-    id: 'clinical',
-    title: '진료 도구',
-    items: [
-      { name: '체질 진단', href: '/dashboard/constitution', icon: User, description: '사상체질' },
-      { name: '증상→처방', href: '/dashboard/symptom-search', icon: Search, description: '역검색' },
-      { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin, description: '경락/혈위' },
-      { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity, description: '육부위 맥진' },
-      { name: '용량 계산', href: '/dashboard/dosage', icon: Scale, description: '소아/임산부' },
-    ],
-  },
-  {
-    id: 'reference',
-    title: '참고 자료',
-    items: [
-      { name: '처방 검색', href: '/dashboard/formulas', icon: FlaskConical, description: '방제 정보' },
-      { name: '약재 검색', href: '/dashboard/herbs', icon: Leaf, description: '성분 정보' },
-      { name: '본초 DB', href: '/dashboard/herbs-db', icon: Database, description: '공공데이터', badge: 'NEW' },
-      { name: '합방 계산기', href: '/dashboard/combo', icon: Calculator, description: '처방 조합' },
-      { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle, description: '안전성 검사' },
-      { name: '고전 검색', href: '/dashboard/classics', icon: ScrollText, description: '원문/해석' },
-    ],
-  },
-  {
-    id: 'theory',
-    title: '의학 이론',
-    icon: <Library className="h-3 w-3" />,
-    color: 'text-amber-600',
-    items: [
-      { name: '병양도표', href: '/dashboard/byeongyang', icon: Library, description: '병증별 변증', badge: 'NEW' },
-      { name: '학파 비교', href: '/dashboard/school-compare', icon: GitCompare, description: '고방/후세방', badge: 'NEW' },
-      { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse, description: 'ICD-10 연계', badge: 'NEW' },
-    ],
-  },
-  {
-    id: 'admin',
-    title: '관리',
-    items: [
-      { name: '보험 코드', href: '/dashboard/insurance', icon: FileText, description: '청구 코드' },
-      { name: '수가/상병 검색', href: '/dashboard/insurance-fee', icon: DollarSign, description: '심평원 API', badge: 'NEW' },
-      { name: '문서 템플릿', href: '/dashboard/documents', icon: FileText, description: '동의서/안내문' },
-    ],
-  },
-  {
-    id: 'pro',
-    title: 'Pro 기능',
-    icon: <Sparkles className="h-3 w-3" />,
-    color: 'text-emerald-500',
-    items: [
-      { name: '진료 성과', href: '/dashboard/analytics', icon: BarChart3, description: '통계 분석', badge: 'PRO' },
-      { name: '스마트 청구', href: '/dashboard/smart-insurance', icon: Receipt, description: 'AI 자동화', badge: 'PRO' },
-      { name: '환자 CRM', href: '/dashboard/crm', icon: Target, description: '리텐션', badge: 'PRO' },
-      { name: '케이스 공유', href: '/dashboard/case-network', icon: Share2, description: '네트워크', badge: 'PRO' },
-      { name: '약재 재고', href: '/dashboard/inventory', icon: Package, description: '가격/재고', badge: 'PRO' },
-    ],
-  },
+const MORE_MENU: MenuItem[] = [
+  // 진료 보조
+  { name: '통합 검색', href: '/dashboard/unified-search', icon: Search },
+  { name: 'AI 변증', href: '/dashboard/pattern-diagnosis', icon: Brain },
+  { name: 'AI 치험례', href: '/dashboard/case-search', icon: BookOpen },
+  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },
+  { name: '처방 비교', href: '/dashboard/formula-compare', icon: ArrowLeftRight },
+  { name: 'Red Flag', href: '/dashboard/red-flag', icon: AlertTriangle },
+  { name: '체질 진단', href: '/dashboard/constitution', icon: User },
+  { name: '증상→처방', href: '/dashboard/symptom-search', icon: Search },
+  { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin },
+  { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity },
+  { name: '용량 계산', href: '/dashboard/dosage', icon: Scale },
+  // 자료
+  { name: '처방 검색', href: '/dashboard/formulas', icon: FlaskConical },
+  { name: '약재 검색', href: '/dashboard/herbs', icon: Leaf },
+  { name: '본초 DB', href: '/dashboard/herbs-db', icon: Database },
+  { name: '합방 계산기', href: '/dashboard/combo', icon: Calculator },
+  { name: '고전 검색', href: '/dashboard/classics', icon: ScrollText },
+  { name: '병양도표', href: '/dashboard/byeongyang', icon: Library },
+  { name: '학파 비교', href: '/dashboard/school-compare', icon: GitCompare },
+  { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse },
+  // 청구·관리
+  { name: '삭감 예측', href: '/dashboard/claim-check', icon: Shield },
+  { name: '수가/상병', href: '/dashboard/insurance-fee', icon: DollarSign },
+  { name: '문서 템플릿', href: '/dashboard/documents', icon: FileText },
+  // 커뮤니티 / Pro
+  { name: '커뮤니티', href: '/dashboard/community', icon: MessageSquare },
+  { name: '진료 성과', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: '스마트 청구', href: '/dashboard/smart-insurance', icon: Receipt },
+  { name: '환자 CRM', href: '/dashboard/crm', icon: Target },
+  { name: '케이스 공유', href: '/dashboard/case-network', icon: Share2 },
+  { name: '약재 재고', href: '/dashboard/inventory', icon: Package },
 ]
 
 export default function DashboardLayout() {
@@ -169,16 +113,12 @@ export default function DashboardLayout() {
     toggleMinimized,
     collapsedSections,
     toggleSection,
-    favorites,
-    toggleFavorite,
-    recentPages,
     addRecentPage,
   } = useSidebarStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const { shouldShowOnboarding } = useOnboardingStatus()
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const appStats = useAppStats()
   const {
     isSessionWarningVisible,
     warningSecondsLeft,
@@ -187,28 +127,14 @@ export default function DashboardLayout() {
     handleSessionExpired,
   } = useSessionManager()
 
-  // 동적으로 메뉴 섹션 생성 (치험례 수 반영)
-  const dynamicMenuSections = useMemo(() => {
-    return menuSections.map(section => {
-      if (section.id === 'main') {
-        return {
-          ...section,
-          items: section.items.map(item => {
-            if (item.href === '/dashboard/cases') {
-              return { ...item, description: `${appStats.formatted.totalCases} 검색` }
-            }
-            return item
-          })
-        }
-      }
-      return section
-    })
-  }, [appStats.formatted.totalCases])
+  // "더 보기" 펼침 상태 — collapsedSections 의 토큰을 재사용해 영속화한다.
+  // 기본값은 접힌 상태(=토큰 없음)이고, 한 번 펼치면 'more:open' 이 들어가서 펼침 유지.
+  const isMoreOpen = collapsedSections.includes('more:open')
 
-  const allDynamicMenuItems = useMemo(() =>
-    dynamicMenuSections.flatMap((section) =>
-      section.items.map((item) => ({ ...item, sectionId: section.id }))
-    ), [dynamicMenuSections]
+  // 모든 메뉴 항목 (페이지 방문 기록 / 검색용)
+  const allMenuItems = useMemo(
+    () => [...PRIMARY_MENU, ...MORE_MENU],
+    [],
   )
 
   // 온보딩 표시 여부 결정 (게스트 모드가 아닌 신규 사용자)
@@ -220,37 +146,24 @@ export default function DashboardLayout() {
 
   // 페이지 방문 기록
   useEffect(() => {
-    const currentItem = allDynamicMenuItems.find((item) => item.href === location.pathname)
+    const currentItem = allMenuItems.find((item) => item.href === location.pathname)
     if (currentItem) {
       addRecentPage(currentItem.href, currentItem.name)
     }
-  }, [location.pathname, addRecentPage, allDynamicMenuItems])
+  }, [location.pathname, addRecentPage, allMenuItems])
 
-  // 즐겨찾기 아이템
-  const favoriteItems = allDynamicMenuItems.filter((item) => favorites.includes(item.href))
+  // 검색 결과
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null
+    const q = searchQuery.toLowerCase()
+    return allMenuItems.filter((item) => item.name.toLowerCase().includes(q))
+  }, [searchQuery, allMenuItems])
 
-  // 최근 방문 아이템 (최대 5개)
-  const recentItems = recentPages
-    .slice(0, 5)
-    .map((recent) => allDynamicMenuItems.find((item) => item.href === recent.href))
-    .filter(Boolean) as (MenuItem & { sectionId: string })[]
-
-  // 검색 필터링
-  const filteredSections = searchQuery
-    ? dynamicMenuSections
-        .map((section) => ({
-          ...section,
-          items: section.items.filter(
-            (item) =>
-              item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.description?.toLowerCase().includes(searchQuery.toLowerCase())
-          ),
-        }))
-        .filter((section) => section.items.length > 0)
-    : dynamicMenuSections
+  // 즐겨찾기 / 최근 방문 섹션은 단순화 시점에는 노출하지 않는다.
+  // 검색(⌘K)으로 빠른 도달 가능하고, 또 다른 시각 노이즈가 됨.
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
+    <div className="min-h-screen bg-neutral-50">
       {/* 온보딩 플로우 (신규 사용자) */}
       {showOnboarding && (
         <OnboardingFlow
@@ -291,16 +204,7 @@ export default function DashboardLayout() {
             <span className="font-extrabold text-[17px] tracking-tight text-neutral-900">온고지신</span>
           </div>
           <div className="flex items-center gap-1">
-            <HanjaToggle compact />
-            <GlossaryButton variant="icon" className="p-2" />
             <ThemeToggle />
-            <button
-              className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors relative"
-              aria-label="알림"
-            >
-              <Bell className="h-5 w-5 text-gray-700 dark:text-gray-300" aria-hidden="true" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-label="새 알림 있음" />
-            </button>
           </div>
         </div>
       </header>
@@ -395,146 +299,93 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          {/* Hanja Toggle & Glossary (full mode only) */}
-          {!isMinimized && (
-            <div className="px-4 mb-2 flex items-center gap-2">
-              <HanjaToggle />
-              <GlossaryButton variant="link" />
-            </div>
-          )}
+          {/* HanjaToggle/GlossaryButton 은 사이드바에서 제거. 설정 페이지에서 토글. */}
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 space-y-2 overflow-y-auto" aria-label="주 메뉴">
-            {/* Favorites Section */}
-            {!searchQuery && favoriteItems.length > 0 && !isMinimized && (
-              <div className="mb-3">
-                <div className="flex items-center gap-2 px-3 mb-2">
-                  <Star className="h-3 w-3 text-amber-500" />
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    즐겨찾기
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {favoriteItems.map((item) => (
+          {/* Navigation — Toss 식 단순 구조: Primary 6 + 더 보기 */}
+          <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="주 메뉴">
+            {/* 검색 결과 (메뉴 검색 입력 시) */}
+            {searchResults && (
+              <div className="space-y-0.5 mb-2">
+                {searchResults.length === 0 ? (
+                  <p className="px-3 py-2 text-[12px] text-neutral-500">검색 결과가 없습니다</p>
+                ) : (
+                  searchResults.map((item) => (
                     <MenuItemComponent
-                      key={`fav-${item.href}`}
+                      key={`search-${item.href}`}
                       item={item}
                       isActive={location.pathname === item.href}
                       isMinimized={false}
-                      isFavorite={true}
-                      onToggleFavorite={() => toggleFavorite(item.href)}
                       onClick={() => setSidebarOpen(false)}
                     />
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
             )}
 
-            {/* Recent Section */}
-            {!searchQuery && recentItems.length > 0 && !isMinimized && (
-              <div className="mb-3">
-                <div className="flex items-center gap-2 px-3 mb-2">
-                  <Clock className="h-3 w-3 text-gray-400" />
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    최근 방문
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {recentItems.slice(0, 3).map((item) => (
-                    <MenuItemComponent
-                      key={`recent-${item.href}`}
-                      item={item}
-                      isActive={location.pathname === item.href}
-                      isMinimized={false}
-                      isFavorite={favorites.includes(item.href)}
-                      onToggleFavorite={() => toggleFavorite(item.href)}
-                      onClick={() => setSidebarOpen(false)}
-                      isRecent
-                    />
-                  ))}
-                </div>
+            {/* Primary — 항상 노출 */}
+            {!searchResults && (
+              <div className="space-y-0.5">
+                {PRIMARY_MENU.map((item) => (
+                  <MenuItemComponent
+                    key={item.href}
+                    item={item}
+                    isActive={location.pathname === item.href}
+                    isMinimized={isMinimized}
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                ))}
               </div>
             )}
 
-            {/* Menu Sections */}
-            {filteredSections.map((section) => {
-              const isCollapsed = collapsedSections.includes(section.id)
-              const sectionColor = section.id === 'core' ? 'slate' : section.id === 'theory' ? 'amber' : 'teal'
-
-              return (
-                <div key={section.id} className="mb-2">
-                  {/* Section Header */}
-                  <button
-                    onClick={() => !isMinimized && toggleSection(section.id)}
+            {/* 더 보기 — 한 번 펼치면 영속화 */}
+            {!searchResults && !isMinimized && (
+              <div className="mt-3 pt-3 border-t border-neutral-100">
+                <button
+                  onClick={() => toggleSection('more:open')}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                  aria-expanded={isMoreOpen}
+                >
+                  <span>더 보기</span>
+                  <ChevronDown
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-1.5 text-left',
-                      isMinimized && 'lg:justify-center'
+                      'h-4 w-4 text-neutral-400 transition-transform',
+                      isMoreOpen && 'rotate-180',
                     )}
-                  >
-                    {!isMinimized && (
-                      <>
-                        {section.icon ? (
-                          <span className={section.color}>{section.icon}</span>
-                        ) : (
-                          <ChevronDown
-                            className={cn(
-                              'h-3 w-3 text-gray-400 transition-transform',
-                              isCollapsed && '-rotate-90'
-                            )}
-                          />
-                        )}
-                        <span className={cn(
-                          'text-[10px] font-semibold uppercase tracking-wider',
-                          section.color || 'text-gray-400'
-                        )}>
-                          {section.title}
-                        </span>
-                      </>
-                    )}
-                  </button>
+                  />
+                </button>
+                {isMoreOpen && (
+                  <div className="space-y-0.5 mt-1">
+                    {MORE_MENU.map((item) => (
+                      <MenuItemComponent
+                        key={item.href}
+                        item={item}
+                        isActive={location.pathname === item.href}
+                        isMinimized={false}
+                        onClick={() => setSidebarOpen(false)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-                  {/* Section Items */}
-                  {(!isCollapsed || isMinimized) && (
-                    <div className="space-y-0.5 mt-1">
-                      {section.items.map((item) => (
-                        <MenuItemComponent
-                          key={item.href}
-                          item={item}
-                          isActive={location.pathname === item.href}
-                          isMinimized={isMinimized}
-                          isFavorite={favorites.includes(item.href)}
-                          onToggleFavorite={() => toggleFavorite(item.href)}
-                          onClick={() => setSidebarOpen(false)}
-                          sectionColor={sectionColor}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            {/* 미니마이즈 상태에서는 Primary 만 — 더보기는 확장 후 보임 */}
+            {!searchResults && isMinimized && (
+              <div className="space-y-0.5 mt-2">
+                {MORE_MENU.map((item) => (
+                  <MenuItemComponent
+                    key={item.href}
+                    item={item}
+                    isActive={location.pathname === item.href}
+                    isMinimized={true}
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                ))}
+              </div>
+            )}
           </nav>
 
-          {/* Upgrade banner (full mode only) */}
-          {!isMinimized && (user?.subscriptionTier === 'free' || user?.subscriptionTier === 'basic') && (
-            <div className="mx-3 mb-3 p-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200/50">
-              <div className="flex items-start gap-2">
-                <div className="p-1.5 bg-amber-100 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-amber-900">Pro 업그레이드</p>
-                  <p className="text-[10px] text-amber-700 mt-0.5">AI 300회/월+</p>
-                </div>
-              </div>
-              <Link
-                to="/dashboard/subscription"
-                className="block w-full mt-2 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-medium rounded-lg hover:shadow-lg hover:shadow-amber-500/30 transition-all text-center"
-              >
-                플랜 보기
-              </Link>
-            </div>
-          )}
+          {/* Pro 업그레이드 — 사이드바에서 제거. 결제 흐름은 설정·기능 막힘 시점에 in-context 안내 */}
 
           {/* User section */}
           <div className={cn('border-t border-gray-200/50 p-3', isMinimized && 'lg:p-2')}>
@@ -619,12 +470,11 @@ export default function DashboardLayout() {
           isMinimized ? 'lg:pl-20' : 'lg:pl-72'
         )}
       >
-        {/* Guest Banner */}
+        {/* Guest Banner — Toss 톤 (그라데이션 제거) */}
         {isGuest && (
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3">
+          <div className="bg-neutral-900 text-white px-4 py-3">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm sm:text-base">
-                <Sparkles className="w-5 h-5" />
                 <span className="font-medium">
                   체험 모드로 이용 중입니다. 모든 기능을 이용하려면 회원가입하세요!
                 </span>
@@ -645,11 +495,8 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        {/* 필수 의료 면책 동의 (최초 1회) */}
+        {/* 필수 의료 면책 동의 — 최초 1회만 모달. 동의 후엔 푸터에만 작게 표기. */}
         <MedicalDisclaimer variant="mandatory" />
-
-        {/* 의료 면책조항 배너 (하루 1회) */}
-        <MedicalDisclaimer variant="banner" />
 
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <Outlet />
@@ -670,13 +517,8 @@ export default function DashboardLayout() {
         </footer>
       </main>
 
-      {/* Keyboard Shortcut Hint - 데스크톱만 */}
-      <div className="hidden lg:block">
-        <KeyboardHint />
-      </div>
-
-      {/* Floating Consult Button (FAB) */}
-      <FloatingConsultButton />
+      {/* KeyboardHint·FloatingConsultButton 제거 — 대시보드 CTA 와 ⌘K 가 같은 역할,
+          상시 떠 있는 보조 UI 가 시각 노이즈를 만듦 */}
 
       {/* Mobile Bottom Navigation */}
       <nav
@@ -740,29 +582,20 @@ export default function DashboardLayout() {
   )
 }
 
-// 메뉴 아이템 컴포넌트
+// 메뉴 아이템 — 단정한 한 줄. 뱃지/디스크립션/즐겨찾기 별표 모두 제거.
 function MenuItemComponent({
   item,
   isActive,
   isMinimized,
-  isFavorite,
-  onToggleFavorite,
   onClick,
-  sectionColor = 'teal',
-  isRecent: _isRecent = false,
 }: {
   item: MenuItem
   isActive: boolean
   isMinimized: boolean
-  isFavorite: boolean
-  onToggleFavorite: () => void
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
   onClick?: () => void
-  sectionColor?: 'teal' | 'slate' | 'amber'
-  isRecent?: boolean
 }) {
-  // sectionColor 는 호환을 위해 prop 으로만 받고 사용하지 않는다 (Toss 단일 톤 정책).
-  void sectionColor
-
   return (
     <div className="group relative">
       <Link
@@ -777,7 +610,7 @@ function MenuItemComponent({
         )}
         title={isMinimized ? item.name : undefined}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={`${item.name}${item.description ? ` - ${item.description}` : ''}${item.badge ? ` (${item.badge})` : ''}`}
+        aria-label={item.name}
       >
         <item.icon
           className={cn(
@@ -786,56 +619,16 @@ function MenuItemComponent({
           )}
           aria-hidden="true"
         />
-        {!isMinimized && (
-          <>
-            <span className="flex-1 truncate">{item.name}</span>
-            {item.badge && (
-              <span
-                className={cn(
-                  'px-1.5 py-0.5 text-[10px] font-bold rounded-sm',
-                  isActive
-                    ? 'bg-white/15 text-white'
-                    : 'bg-neutral-100 text-neutral-600',
-                )}
-              >
-                {item.badge}
-              </span>
-            )}
-          </>
-        )}
+        {!isMinimized && <span className="flex-1 truncate">{item.name}</span>}
       </Link>
 
-      {/* Hover tooltip when minimized */}
+      {/* 미니마이즈 상태에서 호버 시 이름 툴팁 */}
       {isMinimized && (
         <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center z-50">
-          <div className="bg-gray-900 text-white text-sm font-medium rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+          <div className="bg-neutral-900 text-white text-[12px] font-medium rounded-md py-1.5 px-2.5 shadow-soft whitespace-nowrap">
             {item.name}
-            {item.description && (
-              <span className="text-gray-400 text-xs ml-2">({item.description})</span>
-            )}
           </div>
-          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
         </div>
-      )}
-
-      {/* Favorite toggle - show on hover (full mode only) */}
-      {!isMinimized && (
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            onToggleFavorite()
-          }}
-          className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50',
-            isFavorite
-              ? 'text-amber-500 opacity-100'
-              : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-amber-500'
-          )}
-          aria-label={isFavorite ? `${item.name} 즐겨찾기 해제` : `${item.name} 즐겨찾기 추가`}
-          aria-pressed={isFavorite}
-        >
-          <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} aria-hidden="true" />
-        </button>
       )}
     </div>
   )

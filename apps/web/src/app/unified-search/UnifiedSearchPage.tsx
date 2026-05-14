@@ -23,17 +23,13 @@ import {
   Layers,
   Grid3X3,
   Clock,
-  Sparkles,
   Keyboard,
   ArrowUp,
   ArrowDown,
   CornerDownLeft,
   Command,
   Loader2,
-  Database,
   TrendingUp,
-  Zap,
-  AlertCircle,
 } from 'lucide-react'
 import { EmojiIcon } from '@/components/common/EmojiIcon'
 
