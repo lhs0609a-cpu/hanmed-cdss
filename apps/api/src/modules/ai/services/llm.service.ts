@@ -128,6 +128,12 @@ JSON 형식:
       const response = await this.client.chat.completions.create({
         model: this.model,
         max_tokens: 4096,
+        temperature: 0.2,
+        // 결정적 재현성 — 임상 의사결정 추적성을 위해 동일 입력엔 동일 출력
+        seed: 42,
+        // GPT 응답을 강제로 JSON 객체로 — 이게 없으면 markdown/텍스트로 답할 때
+        // parseJsonResponse 가 catch 로 떨어져 recommendations 가 빈 배열이 됨 (런칭 차단 버그)
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: this.SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
@@ -136,6 +142,15 @@ JSON 형식:
 
       const content = response.choices[0]?.message?.content || '';
       const result = this.parseJsonResponse(content, patientInfo);
+
+      // recommendations 가 비었으면 LLM 출력 자체에 문제가 있다는 신호 — 로그에 남겨 운영에서 추적
+      if (!result.recommendations || result.recommendations.length === 0) {
+        console.warn(
+          '[LLM] recommendations empty after parse — content prefix:',
+          (content || '').slice(0, 200),
+        );
+      }
+
       return {
         ...result,
         isAiGenerated: true,
@@ -187,19 +202,35 @@ JSON 형식:
     }
   }
 
-  private parseJsonResponse(content: string, patientInfo: any): RecommendationResult {
+  private parseJsonResponse(content: string, _patientInfo: any): RecommendationResult {
+    if (!content || !content.trim()) {
+      return { recommendations: [], analysis: '' };
+    }
+    let jsonStr = content.trim();
+    // 안전한 fenced block 추출 (모델이 response_format 무시하고 markdown 으로 줄 때 대비)
+    if (jsonStr.includes('```json')) {
+      const after = jsonStr.split('```json')[1] || '';
+      jsonStr = after.split('```')[0] || after;
+    } else if (jsonStr.startsWith('```')) {
+      const parts = jsonStr.split('```');
+      jsonStr = parts[1] || jsonStr;
+      if (jsonStr.startsWith('json')) jsonStr = jsonStr.slice(4);
+    }
     try {
-      let jsonStr = content;
-      if (content.includes('```json')) {
-        jsonStr = content.split('```json')[1].split('```')[0];
-      } else if (content.includes('```')) {
-        jsonStr = content.split('```')[1].split('```')[0];
-      }
-      return JSON.parse(jsonStr);
-    } catch {
+      const parsed = JSON.parse(jsonStr) as Partial<RecommendationResult>;
+      // 필수 필드 보장 — recommendations 가 항상 배열이어야 화면 코드가 안전하게 동작
+      return {
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+        analysis: typeof parsed.analysis === 'string' ? parsed.analysis : '',
+        modifications: parsed.modifications,
+        cautions: parsed.cautions,
+      };
+    } catch (e) {
+      // 파싱 실패 시에도 빈 결과 + 원본 텍스트를 analysis 로 보존해 디버깅 가능
+      console.warn('[LLM] JSON parse failed:', (jsonStr || '').slice(0, 200));
       return {
         recommendations: [],
-        analysis: content,
+        analysis: content.slice(0, 2000),
       };
     }
   }
