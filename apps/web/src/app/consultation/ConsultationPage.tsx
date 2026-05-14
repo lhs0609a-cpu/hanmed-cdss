@@ -497,11 +497,8 @@ export default function ConsultationPage() {
 
   return (
     <div className="space-y-6">
-      {/* Demo Data Warning */}
-      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
-        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
-        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
-      </div>
+      {/* Demo Data Warning 제거 — 실제 백엔드 호출 흐름이라 항상 떠 있으면 안 됨.
+          진짜 데모 모드(API 실패 fallback)일 때만 별도로 노출되어야 함. */}
 
       {/* Header with Mode Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -959,6 +956,29 @@ export default function ConsultationPage() {
                       <p className="text-sm text-gray-600 leading-relaxed">{analysis}</p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* 처방 0개 — 명확한 안내. 입력은 정상이지만 AI 가 빈 응답 줄 때 */}
+              {recommendations.length === 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                  <p className="text-[14px] font-semibold text-amber-900 mb-2">
+                    추천 결과를 받지 못했어요
+                  </p>
+                  <p className="text-[13px] text-amber-800 leading-relaxed">
+                    AI 분석은 끝났지만 그라운딩 검증을 통과한 처방이 없습니다.
+                    아래 가능성을 확인해 보세요:
+                  </p>
+                  <ul className="mt-2 text-[13px] text-amber-700 list-disc list-inside space-y-1">
+                    <li>입력 증상이 너무 짧거나 모호한 경우 → "주소증 + 동반 증상 2~3개" 권장</li>
+                    <li>임산부 환자 + 임산부 금기 본초가 들어간 처방은 자동 제외됨</li>
+                    <li>AI 엔진/API 키 일시 장애 — 잠시 후 재시도</li>
+                  </ul>
+                  {analysis && (
+                    <p className="mt-3 text-[12px] text-amber-600">
+                      참고 — AI 분석 메모: {analysis.slice(0, 200)}
+                    </p>
+                  )}
                 </div>
               )}
 
