@@ -1,4 +1,5 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Brain,
   Sparkles,
@@ -736,6 +737,66 @@ export default function PatternDiagnosisPage() {
   const [isSavingToChart, setIsSavingToChart] = useState(false)
   const { trackPrescription } = usePrescriptionTracking()
 
+  // === AI 유사 치험례 매칭 — 변증 결과 + 선택 증상으로 6,454건 임베딩 검색 ===
+  const [similarCases, setSimilarCases] = useState<any[]>([])
+  const [similarLoading, setSimilarLoading] = useState(false)
+  const [similarError, setSimilarError] = useState<string | null>(null)
+
+  // 선택 증상 ID → 한글 이름 변환
+  const selectedSymptomNames = useMemo(() => {
+    return selectedSymptoms
+      .map((id) => symptomCategories.flatMap((c) => c.symptoms).find((s) => s.id === id)?.name)
+      .filter(Boolean) as string[]
+  }, [selectedSymptoms])
+
+  useEffect(() => {
+    if (!results[0]) {
+      setSimilarCases([])
+      setSimilarError(null)
+      return
+    }
+    const top = results[0]
+    // 쿼리: 변증명 + 한자 + 선택된 증상들 — 의미 매칭에 충분한 컨텍스트
+    const query = [top.pattern, top.hanja, ...selectedSymptomNames].filter(Boolean).join(' ')
+    if (!query.trim()) return
+
+    setSimilarLoading(true)
+    setSimilarError(null)
+
+    const apiBase =
+      (import.meta as any).env?.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
+
+    fetch(`${apiBase}/api/v1/cases/search-similar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, topK: 5, threshold: 0.25 }),
+      signal: controller.signal,
+    })
+      .then((r) => {
+        clearTimeout(timeoutId)
+        if (!r.ok) throw new Error(`서버 응답 ${r.status}`)
+        return r.json()
+      })
+      .then((json) => {
+        const wrapped = json && typeof json === 'object' && 'data' in json ? json.data : json
+        if (wrapped?.meta?.error) {
+          setSimilarError(wrapped.meta.error)
+          setSimilarCases([])
+        } else {
+          setSimilarCases(Array.isArray(wrapped?.results) ? wrapped.results : [])
+        }
+      })
+      .catch((err) => {
+        setSimilarError(err?.message || '유사 치험례 검색 실패')
+        setSimilarCases([])
+      })
+      .finally(() => setSimilarLoading(false))
+
+    return () => clearTimeout(timeoutId)
+  }, [results, selectedSymptomNames])
+
   const toggleSymptom = (symptomId: string) => {
     setSelectedSymptoms((prev) =>
       prev.includes(symptomId) ? prev.filter((id) => id !== symptomId) : [...prev, symptomId]
@@ -1358,6 +1419,86 @@ export default function PatternDiagnosisPage() {
                     <span className="font-bold text-slate-900">{formula}</span>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Similar Cases — AI 임베딩 매칭으로 6,454건 치험례 중 상위 5건 */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                비슷한 치험례
+                <span className="text-[11px] font-normal text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-md">
+                  AI 매칭
+                </span>
+              </h3>
+              <Link
+                to="/dashboard/cases"
+                className="text-[12px] font-medium text-neutral-500 hover:text-neutral-900"
+              >
+                전체 검색 →
+              </Link>
+            </div>
+
+            {similarLoading && (
+              <p className="text-[13px] text-neutral-500">유사 치험례 찾는 중…</p>
+            )}
+
+            {similarError && (
+              <div className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 leading-relaxed">
+                <p className="font-semibold mb-1">AI 매칭 불가</p>
+                <p>{similarError}</p>
+                <p className="text-[11px] text-amber-700 mt-2">
+                  관리자: GitHub Actions 의 "Ops · Deploy + Migrate + Embed" 워크플로에서
+                  <code className="bg-amber-100 px-1 rounded mx-0.5">embedding = full</code>
+                  으로 실행하면 6,454건 임베딩이 생성됩니다.
+                </p>
+              </div>
+            )}
+
+            {!similarLoading && !similarError && similarCases.length === 0 && (
+              <p className="text-[13px] text-neutral-500">
+                매칭 임계값 이상의 치험례가 없습니다.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {similarCases.map((c: any, i: number) => (
+                <Link
+                  key={c.id || i}
+                  to={`/dashboard/cases?q=${encodeURIComponent(c.formulaName || c.chiefComplaint?.slice(0, 30) || '')}`}
+                  className="block p-3 border border-neutral-200 rounded-lg hover:border-neutral-300 hover:shadow-soft transition-all group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-md tabular ${
+                            c.matchPercent >= 85
+                              ? 'bg-neutral-900 text-white'
+                              : c.matchPercent >= 70
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                          title={`코사인 유사도 ${c.rawScore ?? ''}`}
+                        >
+                          {c.matchPercent}%
+                        </span>
+                        <span className="text-[14px] font-semibold text-neutral-900 truncate group-hover:text-primary transition-colors">
+                          {c.formulaName || '처방 미기재'}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-neutral-500 truncate">
+                        {c.chiefComplaint}
+                      </p>
+                    </div>
+                    {c.treatmentOutcome && (
+                      <span className="text-[11px] font-bold px-2 py-1 rounded-md bg-neutral-100 text-neutral-700 flex-shrink-0">
+                        {c.treatmentOutcome}
+                      </span>
+                    )}
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
