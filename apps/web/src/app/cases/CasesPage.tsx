@@ -378,7 +378,10 @@ export default function CasesPage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
 
-      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
+      // 백엔드 경로는 GET /api/v1/cases (이전엔 존재하지 않는 /cases/list 를 호출해서
+      // 항상 mock 으로 fallback 되던 버그). 응답은 TransformInterceptor 로 한 번 감싸지고,
+      // CasesService.findAll 이 { data, meta } 를 또 한 번 감싸므로 2단계 unwrap 한다.
+      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases?${params}`, {
         headers,
         signal: controller.signal,
       })
@@ -389,19 +392,23 @@ export default function CasesPage() {
         throw new Error(`서버 응답 오류 (${response.status})`)
       }
 
-      const data = await response.json()
-      const result = data.data || data // NestJS 래퍼 형식 대응
+      const json = await response.json()
+      // TransformInterceptor 가 { success, data: <원본> } 으로 감쌈
+      const wrapped = (json && typeof json === 'object' && 'data' in json) ? json.data : json
+      // CasesService.findAll → { data: cases[], meta: { total, totalPages } }
+      const cases = Array.isArray(wrapped?.data) ? wrapped.data : []
+      const meta = wrapped?.meta || {}
 
-      setCases(result.cases || [])
-      setTotalCases(result.total || 0)
-      setTotalPages(result.total_pages || 0)
-      setRetryCount(0) // 성공 시 재시도 카운트 리셋
-      setIsUsingMockData(false) // API 성공
+      setCases(cases)
+      setTotalCases(meta.total || 0)
+      setTotalPages(meta.totalPages || 0)
+      setRetryCount(0)
+      setIsUsingMockData(false)
 
-      // 통계 계산
-      const cured = (result.cases || []).filter((c: CaseRecord) => c.outcome === '완치').length
-      const improved = (result.cases || []).filter((c: CaseRecord) => c.outcome === '호전').length
-      setStats({ cured, improved, total: result.total || 0 })
+      // 통계 계산 — 백엔드는 treatmentOutcome enum 사용. 프론트 표시값과 매핑.
+      const cured = cases.filter((c: any) => c.treatmentOutcome === '완치' || c.outcome === '완치').length
+      const improved = cases.filter((c: any) => c.treatmentOutcome === '호전' || c.outcome === '호전').length
+      setStats({ cured, improved, total: meta.total || 0 })
     } catch (err) {
       // API 실패 시 Mock 데이터 사용
       setIsUsingMockData(true)

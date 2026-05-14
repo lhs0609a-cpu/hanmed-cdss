@@ -34,12 +34,44 @@ export class CasesController {
     @Query('constitution') constitution?: string,
     @Query('outcome') outcome?: string,
   ) {
-    return this.casesService.findAll(+page, +limit, {
+    const raw = await this.casesService.findAll(+page, +limit, {
       search,
       searchField,
       constitution,
       outcome,
     });
+
+    // 프론트 CaseFromAPI shape 으로 변환 — DB 엔티티 컬럼명을 그대로 노출하지 않고
+    // UI 가 기대하는 평탄한 객체로 매핑한다.
+    const data = (raw.data || []).map((c: any) => {
+      const firstFormula = Array.isArray(c.herbalFormulas) && c.herbalFormulas.length > 0
+        ? c.herbalFormulas[0]
+        : null;
+      const symptomNames = Array.isArray(c.symptoms)
+        ? c.symptoms.map((s: any) => (typeof s === 'string' ? s : s?.name)).filter(Boolean)
+        : [];
+      return {
+        id: c.id,
+        title: c.chiefComplaint?.slice(0, 80) || '(주소증 미기재)',
+        chiefComplaint: c.chiefComplaint || '',
+        symptoms: symptomNames,
+        formulaName: firstFormula?.formulaName || '',
+        formulaHanja: firstFormula?.formulaHanja || '',
+        constitution: c.patientConstitution || '',
+        diagnosis: c.patternDiagnosis || '',
+        patientAge: c.patientAgeRange ? parseInt(String(c.patientAgeRange), 10) || null : null,
+        patientGender: c.patientGender || null,
+        outcome: c.treatmentOutcome || null,
+        result: c.clinicalNotes || '',
+        originalText: c.originalText || '',
+        dataSource: c.recorderName || '온고지신 DB',
+      };
+    });
+
+    return {
+      data,
+      meta: raw.meta,
+    };
   }
 
   @Get('statistics')
