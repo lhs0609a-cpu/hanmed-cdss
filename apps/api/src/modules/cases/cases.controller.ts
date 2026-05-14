@@ -93,8 +93,8 @@ export class CasesController {
   @Post('search')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: '유사 치험례 검색 (AI 기반)' })
-  async searchSimilar(
+  @ApiOperation({ summary: '(legacy) 증상 기반 단순 검색' })
+  async searchByStructured(
     @Body()
     searchDto: {
       symptoms: string[];
@@ -102,6 +102,35 @@ export class CasesController {
       topK?: number;
     },
   ) {
-    return this.casesService.searchSimilar(searchDto);
+    // legacy 호환을 위해 ILIKE 기반 검색을 그대로 둠.
+    // 신규 호출은 POST /search-similar 사용 권장.
+    const query = (searchDto.symptoms || []).join(' ');
+    return this.casesService.searchSimilar({
+      query,
+      topK: searchDto.topK,
+      constitution: searchDto.constitution,
+    });
+  }
+
+  @Post('search-similar')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'AI 유사도 기반 치험례 검색',
+    description:
+      '쿼리 텍스트를 OpenAI text-embedding-3-small (1536d) 로 임베딩한 뒤,' +
+      ' 모든 치험례 임베딩과 코사인 유사도를 계산해 매칭 % 와 함께 상위 N건 반환.',
+  })
+  async searchSimilar(
+    @Body()
+    body: {
+      query: string;
+      topK?: number;
+      threshold?: number;
+      constitution?: string;
+      outcome?: string;
+    },
+  ) {
+    return this.casesService.searchSimilar(body);
   }
 }

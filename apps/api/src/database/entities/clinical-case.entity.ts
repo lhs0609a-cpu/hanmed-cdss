@@ -128,7 +128,17 @@ export class ClinicalCase {
   originalText: string; // 원본 텍스트 전문
 
   @Column({ nullable: true })
-  embeddingVectorId: string; // Pinecone 벡터 ID
+  embeddingVectorId: string; // Pinecone 벡터 ID (legacy)
+
+  // OpenAI text-embedding-3-small (1536d) 임베딩.
+  // jsonb 로 저장 — pgvector 미설치 환경에서도 동작. 코사인 유사도는 백엔드에서 in-memory 계산.
+  // 검색 빈도가 높아지면 pgvector 마이그레이션으로 전환.
+  @Column('jsonb', { nullable: true })
+  embedding: number[] | null;
+
+  // 임베딩 생성 시각 — 재생성 시 어느 시점부터 다시 만들지 결정
+  @Column({ type: 'timestamp', nullable: true })
+  embeddedAt: Date | null;
 
   @Column('jsonb', { nullable: true })
   symptoms: Array<{

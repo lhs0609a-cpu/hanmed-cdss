@@ -270,11 +270,22 @@ function getConstitution(c: any): string {
   return c?.constitution || c?.patientConstitution || ''
 }
 
-// 자주 등장하는 한자 괄호 표기 제거 — '딸꾹질(吃逆)' → '딸꾹질'
+// 한자 처리 — 가독성 강화:
+//  1) '딸꾹질(吃逆)' → '딸꾹질' (괄호 내 한자 제거)
+//  2) '大病後대병후' → '대병후' (한자+한글 병기 중 한자만 제거)
+//  3) '丁香 柿蒂 人蔘' 식 순수 한자 단어는 보존 (약재명 — enrich 전엔 그대로 두는 게 안전)
 function stripHanja(text: string): string {
   if (!text) return ''
-  return text.replace(/[\(（]([一-龥]+)[\)）]/g, '').trim()
+  let out = text
+  // 한자(괄호) 제거
+  out = out.replace(/[\(（]([\u4e00-\u9fff]+)[\)）]/g, '')
+  // 연속된 한자 뒤 바로 같은 의미의 한글이 오면 한자 부분 제거 — '大病後대병후' → '대병후'
+  out = out.replace(/[\u4e00-\u9fff]+([가-힣]+)/g, '$1')
+  // 양옆 공백 정리
+  return out.replace(/\s{2,}/g, ' ').trim()
 }
+
+// (본문 단락 분리/enrich 헬퍼는 별도 PR — formatObservations 가 이미 ①②③ 분리 수행)
 
 // 해시태그 후보 추출 — 증상·체질·변증·결과를 하나의 태그 배열로
 function buildHashtags(c: any): string[] {
@@ -325,6 +336,12 @@ export default function CasesPage() {
   const [searchCategory, setSearchCategory] = useState(initialCategory)
   const [selectedConstitution, setSelectedConstitution] = useState(initialConstitution)
   const [selectedOutcome, setSelectedOutcome] = useState(initialOutcome)
+  // 검색 모드 — 'text' (ILIKE) / 'ai' (임베딩 cosine similarity)
+  // 기본은 ai — CDSS 의 핵심 가치. 임베딩 미생성 시 백엔드가 안내 메시지 반환.
+  const [searchMode, setSearchMode] = useState<'text' | 'ai'>(
+    (searchParams.get('mode') as 'text' | 'ai') || 'ai',
+  )
+  const [aiMeta, setAiMeta] = useState<{ error?: string; candidates?: number } | null>(null)
 
   // API 데이터 상태
   const [cases, setCases] = useState<CaseRecord[]>([])
@@ -397,8 +414,57 @@ export default function CasesPage() {
       setLoading(true)
     }
     setError(null)
+    setAiMeta(null)
 
     try {
+      const headers: HeadersInit = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 20000)
+
+      // AI 유사도 검색 모드 — 검색어가 있을 때만 (빈 검색은 일반 list 로)
+      if (searchMode === 'ai' && debouncedSearch && debouncedSearch.trim().length > 0) {
+        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/search-similar`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: debouncedSearch,
+            topK: ITEMS_PER_PAGE,
+            threshold: 0.25,
+            constitution: selectedConstitution || undefined,
+            outcome: selectedOutcome || undefined,
+          }),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`AI 검색 응답 오류 (${response.status})`)
+        }
+        const json = await response.json()
+        const wrapped = (json && typeof json === 'object' && 'data' in json) ? json.data : json
+        // 임베딩 미생성 / 키 미설정 등은 results=[] + meta.error
+        if (wrapped?.meta?.error) {
+          setAiMeta({ error: wrapped.meta.error, candidates: wrapped.meta.candidates })
+        } else {
+          setAiMeta({ candidates: wrapped?.meta?.candidates })
+        }
+        const items = Array.isArray(wrapped?.results) ? wrapped.results : []
+        setCases(items)
+        setTotalCases(items.length)
+        setTotalPages(1)
+        setRetryCount(0)
+        setIsUsingMockData(false)
+        setStats({ cured: 0, improved: 0, total: items.length })
+        setLoading(false)
+        setIsRetrying(false)
+        return
+      }
+
+      // === 일반 텍스트 검색 (기본 list) ===
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: ITEMS_PER_PAGE.toString(),
@@ -414,17 +480,6 @@ export default function CasesPage() {
       if (selectedConstitution) params.append('constitution', selectedConstitution)
       if (selectedOutcome) params.append('outcome', selectedOutcome)
 
-      const headers: HeadersInit = {}
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
-
-      // 백엔드 경로는 GET /api/v1/cases (이전엔 존재하지 않는 /cases/list 를 호출해서
-      // 항상 mock 으로 fallback 되던 버그). 응답은 TransformInterceptor 로 한 번 감싸지고,
-      // CasesService.findAll 이 { data, meta } 를 또 한 번 감싸므로 2단계 unwrap 한다.
       const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases?${params}`, {
         headers,
         signal: controller.signal,
@@ -498,7 +553,7 @@ export default function CasesPage() {
       setLoading(false)
       setIsRetrying(false)
     }
-  }, [currentPage, debouncedSearch, searchCategory, selectedConstitution, selectedOutcome, token, cases.length])
+  }, [currentPage, debouncedSearch, searchCategory, selectedConstitution, selectedOutcome, searchMode, token])
 
   // 수동 재시도 핸들러
   const handleRetry = useCallback(() => {
@@ -594,16 +649,51 @@ export default function CasesPage() {
           </select>
         </div>
 
-        {/* Search tip based on category */}
-        {searchCategory !== 'all' && (
-          <p className="text-xs text-gray-500">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium mr-1">
-              {DEFAULT_SEARCH_CATEGORIES.find(c => c.id === searchCategory)?.label}
-            </span>
-            필드에서만 검색합니다
-          </p>
-        )}
+        {/* 검색 모드 토글 + 카테고리 안내 */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="inline-flex rounded-lg bg-neutral-100 p-0.5">
+            <button
+              onClick={() => setSearchMode('ai')}
+              className={`px-3 py-1.5 text-[12px] font-semibold rounded-md transition-colors ${
+                searchMode === 'ai'
+                  ? 'bg-white text-neutral-900 shadow-soft'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              AI 유사 검색
+            </button>
+            <button
+              onClick={() => setSearchMode('text')}
+              className={`px-3 py-1.5 text-[12px] font-semibold rounded-md transition-colors ${
+                searchMode === 'text'
+                  ? 'bg-white text-neutral-900 shadow-soft'
+                  : 'text-neutral-500 hover:text-neutral-900'
+              }`}
+            >
+              텍스트 검색
+            </button>
+          </div>
+          {searchCategory !== 'all' && (
+            <p className="text-[11px] text-neutral-500">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-neutral-700 rounded-md font-medium mr-1">
+                {DEFAULT_SEARCH_CATEGORIES.find(c => c.id === searchCategory)?.label}
+              </span>
+              필드에서만 검색합니다
+            </p>
+          )}
+        </div>
       </div>
+
+      {/* AI 모드 안내 — 임베딩 미생성 시 명확한 액션 안내 */}
+      {aiMeta?.error && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[13px] text-amber-900">
+          <p className="font-semibold mb-1">AI 검색을 사용할 수 없습니다</p>
+          <p className="text-[12px] text-amber-800 leading-relaxed">{aiMeta.error}</p>
+          <p className="text-[11px] text-amber-700 mt-2">
+            관리자: OPENAI_API_KEY 설정 후 <code className="bg-amber-100 px-1 rounded">pnpm --filter @hanmed/api embed:cases</code> 실행
+          </p>
+        </div>
+      )}
 
       {/* Stats — Toss 톤: 검색 결과 한 줄로 텍스트로만, 카드 그리드 제거 */}
       <div className="flex items-baseline gap-2 px-1">
@@ -668,12 +758,29 @@ export default function CasesPage() {
               onClick={() => openDetailModal(caseItem)}
               className="w-full text-left bg-white rounded-2xl border border-neutral-200 p-5 hover:border-neutral-300 hover:shadow-soft transition-all group"
             >
-              {/* 헤더: 처방명 + 결과 배지 */}
+              {/* 헤더: 처방명 + 결과 배지 + AI 매칭 % */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-[16px] text-neutral-900 truncate group-hover:text-primary transition-colors">
-                    {formulaName || '처방 미기재'}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {/* AI 매칭 % 배지 — searchMode='ai' 일 때만 노출 */}
+                    {typeof caseItem.matchPercent === 'number' && (
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md tabular ${
+                          caseItem.matchPercent >= 85
+                            ? 'bg-primary text-white'
+                            : caseItem.matchPercent >= 70
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-neutral-100 text-neutral-600'
+                        }`}
+                        title={`코사인 유사도 ${caseItem.rawScore ?? ''}`}
+                      >
+                        {caseItem.matchPercent}% 일치
+                      </span>
+                    )}
+                    <h3 className="font-bold text-[16px] text-neutral-900 truncate group-hover:text-primary transition-colors">
+                      {formulaName || '처방 미기재'}
+                    </h3>
+                  </div>
                   <p className="text-[12px] text-neutral-500 mt-0.5 line-clamp-1">
                     {stripHanja(caseItem.chiefComplaint || '') || '주소증 미기재'}
                   </p>
