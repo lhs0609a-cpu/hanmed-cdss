@@ -1,0 +1,134 @@
+name: "Ops · Deploy + Migrate + Embed"
+
+# 한 번의 GitHub UI 버튼 클릭으로 다음을 자동 실행:
+#   1) hanmed-api 재배포 (cases controller mapping + AI Engine 리다이렉트 반영)
+#   2) hanmed-ai-engine 재배포 (grounding 디렉토리 포함)
+#   3) DB 마이그레이션 (embedding 컬럼 추가)
+#   4) 임베딩 dry-run (5건)
+#   5) 임베딩 전체 (full=true 일 때만, 6,454건, ~5분, ~$0.10)
+#
+# 사용자가 GitHub 웹에서 한 번만 박아야 할 secret:
+#   - FLY_API_TOKEN  (PowerShell 에서 `flyctl auth token` 으로 출력 후 복사)
+#   - OPENAI_API_KEY (https://platform.openai.com/api-keys)
+#
+# 실행:
+#   GitHub 레포 → Actions 탭 → "Ops · Deploy + Migrate + Embed" → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_api:
+        description: "hanmed-api 재배포"
+        type: boolean
+        default: true
+      deploy_ai_engine:
+        description: "hanmed-ai-engine 재배포"
+        type: boolean
+        default: true
+      run_migration:
+        description: "DB 마이그레이션 실행 (embedding 컬럼)"
+        type: boolean
+        default: true
+      embedding:
+        description: "임베딩 생성 모드"
+        type: choice
+        options:
+          - skip
+          - dry-run-only
+          - full
+        default: dry-run-only
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+jobs:
+  deploy:
+    name: "1·2) Deploy"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ensure OPENAI_API_KEY on hanmed-api
+        run: |
+          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            flyctl secrets set OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+              AI_ENGINE_URL="https://hanmed-ai-engine.fly.dev" \
+              -a hanmed-api --stage
+          fi
+
+      - name: Ensure OPENAI_API_KEY on hanmed-ai-engine
+        run: |
+          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            flyctl secrets set OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+              -a hanmed-ai-engine --stage
+          fi
+
+      - name: Deploy hanmed-api
+        if: inputs.deploy_api
+        working-directory: apps/api
+        run: flyctl deploy --remote-only
+
+      - name: Deploy hanmed-ai-engine
+        if: inputs.deploy_ai_engine
+        working-directory: apps/ai-engine
+        run: flyctl deploy --remote-only
+
+      - name: Health check
+        run: |
+          sleep 10
+          echo "[api]"
+          curl -sf https://hanmed-api.fly.dev/api/v1/health || echo "  (pending)"
+          echo "[ai-engine]"
+          curl -sf https://hanmed-ai-engine.fly.dev/health || echo "  (pending)"
+
+  migrate:
+    name: "3) DB migration"
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: inputs.run_migration
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: pnpm migration:run
+        run: |
+          flyctl ssh console -a hanmed-api -C "sh -c 'cd /app && pnpm migration:run'"
+
+  embed-dry-run:
+    name: "4) Embed dry-run (5 cases)"
+    runs-on: ubuntu-latest
+    needs: migrate
+    if: ${{ inputs.embedding != 'skip' }}
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: pnpm embed:cases --limit=5
+        run: |
+          flyctl ssh console -a hanmed-api -C "sh -c 'cd /app && pnpm embed:cases --limit=5'"
+
+  embed-full:
+    name: "5) Embed full (6,454 cases)"
+    runs-on: ubuntu-latest
+    needs: embed-dry-run
+    if: ${{ inputs.embedding == 'full' }}
+    timeout-minutes: 60
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: pnpm embed:cases
+        run: |
+          flyctl ssh console -a hanmed-api -C "sh -c 'cd /app && pnpm embed:cases'"
+
+  done:
+    name: "Done"
+    runs-on: ubuntu-latest
+    needs: [deploy, migrate, embed-dry-run, embed-full]
+    if: always()
+    steps:
+      - run: |
+          echo "## Result" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Migrate: ${{ needs.migrate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Embed dry-run: ${{ needs.embed-dry-run.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Embed full: ${{ needs.embed-full.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Verify: https://hanmed-cdss.vercel.app/dashboard/cases" >> $GITHUB_STEP_SUMMARY
