@@ -104,6 +104,11 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
         autoLoadEntities: true,
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
+        // 부팅 시 미실행 마이그레이션 자동 적용 — 운영 사고 재발 방지.
+        // entity 가 요구하는 컬럼이 DB 에 없어 로그인이 폭발하는 일이 다시는 없도록.
+        // TypeORM 마이그레이션은 멱등이고 순서대로 적용되므로 안전.
+        migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+        migrationsRun: true,
       }),
     }),
 
