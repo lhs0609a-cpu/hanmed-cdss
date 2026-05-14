@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { LlmService, RecommendationResult, FormulaRecommendation } from './llm.service';
+import { AiEngineClient } from './ai-engine.client';
 import { BodyHeat, BodyStrength } from '../../../database/entities/clinical-case.entity';
 import { FormulaHeatNature, FormulaStrengthNature } from '../../../database/entities/formula.entity';
 
@@ -13,6 +14,8 @@ export interface RecommendationRequest {
   patientAge?: number;
   patientGender?: string;
   constitution?: string;
+  /** 임산부 여부 — AI Engine grounding 단에서 임산부 금기 본초 자동 제외 */
+  pregnancy?: boolean;
   // 체열/근실도 (이종대 선생님 기준) - 필수
   bodyHeat?: BodyHeat;
   bodyStrength?: BodyStrength;
@@ -22,6 +25,8 @@ export interface RecommendationRequest {
   symptoms: SymptomInput[];
   currentMedications?: string[];
   topK?: number;
+  /** 호출자 식별 — AI Engine rate-limit/personalization 용 */
+  userId?: string;
 }
 
 // 체열/근실도 검증 결과
@@ -44,7 +49,13 @@ export interface ValidatedRecommendationResult extends RecommendationResult {
 
 @Injectable()
 export class RecommendationService {
-  constructor(private llmService: LlmService) {}
+  private readonly logger = new Logger(RecommendationService.name);
+
+  constructor(
+    private readonly aiEngine: AiEngineClient,
+    /** AI Engine 다운/타임아웃 시 최후 폴백 — 진료가 끊기지 않게 */
+    private readonly llmService: LlmService,
+  ) {}
 
   async getRecommendation(request: RecommendationRequest): Promise<ValidatedRecommendationResult> {
     // 체열/근실도 미입력 시 경고 추가
@@ -66,22 +77,52 @@ export class RecommendationService {
       });
     }
 
-    const patientInfo = {
-      age: request.patientAge,
-      gender: request.patientGender,
-      constitution: request.constitution,
-      bodyHeat: request.bodyHeat,
-      bodyStrength: request.bodyStrength,
-      bodyHeatScore: request.bodyHeatScore,
-      bodyStrengthScore: request.bodyStrengthScore,
-      chiefComplaint: request.chiefComplaint,
-      symptoms: request.symptoms,
-      currentMedications: request.currentMedications,
-    };
+    // AI Engine 호출 — 그라운딩·임산부 차단·CRITICAL·PII 가드가 여기서 작동.
+    // 체열/근실도는 AI Engine 스키마에 없으므로 chiefComplaint 에 컨텍스트로 합쳐 전달.
+    const constitutionContext = this.buildConstitutionContext(request);
+    const enrichedChiefComplaint = constitutionContext
+      ? `${request.chiefComplaint}\n\n[체질 평가]\n${constitutionContext}`
+      : request.chiefComplaint;
 
-    const result = await this.llmService.generateRecommendation(patientInfo);
+    let result: RecommendationResult;
+    try {
+      const aiResult = await this.aiEngine.getRecommendation({
+        patientAge: request.patientAge,
+        patientGender: request.patientGender,
+        constitution: request.constitution,
+        pregnancy: request.pregnancy,
+        chiefComplaint: enrichedChiefComplaint,
+        symptoms: request.symptoms,
+        currentMedications: request.currentMedications,
+        topK: request.topK,
+        userId: request.userId,
+      });
+      result = this.mapAiEngineResponse(aiResult);
+    } catch (err: any) {
+      // AI Engine 다운/타임아웃 → 폴백. 단, 안전 가드가 빠지므로 사용자에게 경고 부착.
+      this.logger.warn(
+        `AI Engine 호출 실패 → LlmService 폴백 (이유: ${err?.message || err}). ` +
+        `이 경로는 grounding/임산부 가드가 우회됨.`,
+      );
+      result = await this.llmService.generateRecommendation({
+        age: request.patientAge,
+        gender: request.patientGender,
+        constitution: request.constitution,
+        bodyHeat: request.bodyHeat,
+        bodyStrength: request.bodyStrength,
+        bodyHeatScore: request.bodyHeatScore,
+        bodyStrengthScore: request.bodyStrengthScore,
+        chiefComplaint: request.chiefComplaint,
+        symptoms: request.symptoms,
+        currentMedications: request.currentMedications,
+      });
+      // 폴백 경로 명시 — UI 가 사용자에게 안내할 수 있게
+      (result as any).warning =
+        'AI Engine 일시 불가로 폴백 추론을 사용했습니다. 임산부/노인 안전 필터가 적용되지 않았으니 한의사의 추가 검토가 필요합니다.';
+      (result as any).errorType = 'api_error';
+    }
 
-    // 체열/근실도 기반 처방 검증
+    // 체열/근실도 기반 처방 검증 (백엔드 책임 — AI Engine 은 모르는 정보)
     const validation = this.validateRecommendations(
       result.recommendations,
       request.bodyHeat,
@@ -97,6 +138,54 @@ export class RecommendationService {
       ...result,
       constitutionValidation: validation,
     };
+  }
+
+  /**
+   * AI Engine 응답 → 백엔드 RecommendationResult 매핑.
+   * AI Engine 의 안전 메타데이터(grounded, safety_disclaimer, patient_safety, warnings)는
+   * RecommendationResult 의 note/cautions/warning 으로 흡수해 UI 가 그대로 노출.
+   */
+  private mapAiEngineResponse(
+    res: Awaited<ReturnType<AiEngineClient['getRecommendation']>>,
+  ): RecommendationResult {
+    const cautionsParts: string[] = [];
+    if (res.cautions) cautionsParts.push(res.cautions);
+    if (res.warnings && res.warnings.length > 0) {
+      cautionsParts.push(res.warnings.join(' / '));
+    }
+
+    return {
+      recommendations: (res.recommendations || []).map((r) => ({
+        formula_name: r.formula_name,
+        confidence_score: r.confidence_score,
+        herbs: r.herbs || [],
+        rationale: r.rationale,
+      })),
+      analysis: res.analysis || '',
+      modifications: res.modifications || undefined,
+      cautions: cautionsParts.join('\n\n') || undefined,
+      note: res.safety_disclaimer || undefined,
+      isAiGenerated: res.grounded !== false,
+    };
+  }
+
+  private buildConstitutionContext(request: RecommendationRequest): string {
+    const parts: string[] = [];
+    if (request.bodyHeat) {
+      const scoreText =
+        request.bodyHeatScore !== undefined
+          ? ` (점수 ${request.bodyHeatScore > 0 ? '+' : ''}${request.bodyHeatScore})`
+          : '';
+      parts.push(`체열(寒熱): ${this.getBodyHeatLabel(request.bodyHeat)}${scoreText}`);
+    }
+    if (request.bodyStrength) {
+      const scoreText =
+        request.bodyStrengthScore !== undefined
+          ? ` (점수 ${request.bodyStrengthScore > 0 ? '+' : ''}${request.bodyStrengthScore})`
+          : '';
+      parts.push(`근실도(虛實): ${this.getBodyStrengthLabel(request.bodyStrength)}${scoreText}`);
+    }
+    return parts.join('\n');
   }
 
   /**

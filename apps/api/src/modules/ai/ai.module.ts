@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { LlmService } from './services/llm.service';
+import { AiEngineClient } from './services/ai-engine.client';
 import { RecommendationService } from './services/recommendation.service';
 import { PatientExplanationService } from './services/patient-explanation.service';
 import { CaseSearchService } from './services/case-search.service';
@@ -12,9 +14,10 @@ import { ComprehensiveReportService } from './services/comprehensive-report.serv
 import { AiController } from './ai.controller';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, HttpModule],
   providers: [
     LlmService,
+    AiEngineClient,
     RecommendationService,
     PatientExplanationService,
     CaseSearchService,
@@ -27,6 +30,7 @@ import { AiController } from './ai.controller';
   controllers: [AiController],
   exports: [
     LlmService,
+    AiEngineClient,
     RecommendationService,
     PatientExplanationService,
     CaseSearchService,
