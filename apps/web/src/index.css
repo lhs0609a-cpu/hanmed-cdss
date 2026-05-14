@@ -172,19 +172,6 @@
 }
 
 @layer utilities {
-  /* Toss 스타일 3D 이모지 — OS 컬러 이모지 폰트 강제 + 미세한 입체감 */
-  .emoji-3d {
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji',
-      'Twemoji Mozilla', 'EmojiOne Color', sans-serif;
-    font-feature-settings: 'liga' off, 'clig' off;
-    text-rendering: optimizeLegibility;
-    /* 살짝의 입체감 — 너무 진하면 만화 같음, 너무 약하면 평평 */
-    filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.08))
-            drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06));
-    /* 이모지가 베이스라인에 정확히 안 앉아서 vertical 미세 조정 */
-    line-height: 1;
-  }
-
   /* 기존 그라데이션/장식 유틸 — 호환을 위해 남기지만 단순한 단색으로 동작 */
   .gradient-primary {
     background-color: hsl(var(--primary));

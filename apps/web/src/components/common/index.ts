@@ -158,5 +158,12 @@ export {
   type SpotlightSequence,
 } from './FeatureSpotlight'
 
-// Toss 풍 3D 이모지 아이콘
-export { EmojiIcon, type EmojiBgTone } from './EmojiIcon'
+// 기능 카드용 실제 화면 미니 목업
+export {
+  MockupPatternDiagnosis,
+  MockupCaseSearch,
+  MockupClaimCheck,
+  MockupVoiceChart,
+  MockupInteraction,
+  MockupFormulaSearch,
+} from './FeatureMockups'

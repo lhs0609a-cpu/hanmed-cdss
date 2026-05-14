@@ -31,7 +31,12 @@ import {
   Loader2,
   TrendingUp,
 } from 'lucide-react'
-import { EmojiIcon } from '@/components/common/EmojiIcon'
+import {
+  MockupCaseSearch,
+  MockupPatternDiagnosis,
+  MockupInteraction,
+  MockupFormulaSearch,
+} from '@/components/common/FeatureMockups'
 
 // AI Engine API URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
@@ -604,46 +609,46 @@ export default function UnifiedSearchPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
                 to="/dashboard/case-search"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="mb-3 group-hover:scale-105 transition-transform">
-                  <EmojiIcon emoji="📚" tone="amber" size="lg" label="AI 치험례 검색" />
+                <div className="mb-3 group-hover:scale-[1.02] transition-transform">
+                  <MockupCaseSearch size="sm" />
                 </div>
                 <h3 className="font-bold text-neutral-900">AI 치험례 검색</h3>
-                <p className="text-sm text-neutral-500 mt-1">6,000건+ AI 분석</p>
+                <p className="text-[12px] text-neutral-500 mt-0.5">6,000건+ 임베딩 매칭</p>
               </Link>
 
               <Link
                 to="/dashboard/consultation"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="mb-3 group-hover:scale-105 transition-transform">
-                  <EmojiIcon emoji="🩺" tone="blue" size="lg" label="AI 진료" />
+                <div className="mb-3 group-hover:scale-[1.02] transition-transform">
+                  <MockupPatternDiagnosis size="sm" />
                 </div>
                 <h3 className="font-bold text-neutral-900">AI 진료</h3>
-                <p className="text-sm text-neutral-500 mt-1">증상 입력 → 처방 추천</p>
+                <p className="text-[12px] text-neutral-500 mt-0.5">증상 입력 → 변증·처방</p>
               </Link>
 
               <Link
                 to="/dashboard/interactions"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="mb-3 group-hover:scale-105 transition-transform">
-                  <EmojiIcon emoji="⚠️" tone="red" size="lg" label="상호작용 검사" />
+                <div className="mb-3 group-hover:scale-[1.02] transition-transform">
+                  <MockupInteraction size="sm" />
                 </div>
                 <h3 className="font-bold text-neutral-900">상호작용 검사</h3>
-                <p className="text-sm text-neutral-500 mt-1">양약-한약 체크</p>
+                <p className="text-[12px] text-neutral-500 mt-0.5">양약·한약 안전성</p>
               </Link>
 
               <Link
                 to="/dashboard/formulas"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="mb-3 group-hover:scale-105 transition-transform">
-                  <EmojiIcon emoji="🌿" tone="teal" size="lg" label="처방 DB" />
+                <div className="mb-3 group-hover:scale-[1.02] transition-transform">
+                  <MockupFormulaSearch size="sm" />
                 </div>
                 <h3 className="font-bold text-neutral-900">처방 DB</h3>
-                <p className="text-sm text-neutral-500 mt-1">학파별 처방 탐색</p>
+                <p className="text-[12px] text-neutral-500 mt-0.5">방약합편 429건 구성</p>
               </Link>
             </div>
           </div>

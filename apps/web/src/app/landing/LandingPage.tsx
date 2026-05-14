@@ -29,134 +29,14 @@ import {
   Activity as TrustUptime,
   Database as TrustData,
 } from 'lucide-react'
-
-// =============================================================================
-// 실제 프로그램 화면 미니 목업 — 각 기능 카드 상단에 들어가는 작은 UI 프리뷰.
-// 이모지 대신 실제 화면의 핵심 정보를 축소·정제해 보여준다.
-// =============================================================================
-
-function MockupPatternDiagnosis() {
-  return (
-    <div className="w-full h-32 rounded-xl bg-neutral-900 p-3.5 text-white">
-      <p className="text-[10px] text-white/50 mb-1.5">변증 추론 결과</p>
-      <div className="flex items-baseline justify-between mb-2">
-        <p className="text-[18px] font-bold tracking-tight">혈허(血虛)</p>
-        <span className="text-[11px] font-bold tabular bg-white/15 px-1.5 py-0.5 rounded">100%</span>
-      </div>
-      <div className="h-px bg-white/10 my-2" />
-      <div className="flex items-center gap-1.5 text-[10px] text-white/70">
-        <span className="px-1.5 py-0.5 rounded bg-white/10">보혈(補血)</span>
-        <span className="px-1.5 py-0.5 rounded bg-white/10">사물탕</span>
-      </div>
-    </div>
-  )
-}
-
-function MockupCaseSearch() {
-  return (
-    <div className="w-full h-32 rounded-xl bg-white border border-neutral-200 p-3">
-      <div className="flex items-center gap-1.5 bg-neutral-50 rounded-md px-2 py-1.5 mb-2">
-        <svg className="w-3 h-3 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3-3" />
-        </svg>
-        <span className="text-[11px] text-neutral-500">감기 오한 발열</span>
-      </div>
-      <div className="space-y-1">
-        {[
-          { name: '갈근탕', pct: 92 },
-          { name: '소청룡탕', pct: 87 },
-          { name: '천궁차조산', pct: 84 },
-        ].map((r) => (
-          <div key={r.name} className="flex items-center justify-between text-[11px]">
-            <span className="text-neutral-700 font-medium">{r.name}</span>
-            <span className="tabular font-bold text-neutral-900">{r.pct}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function MockupClaimCheck() {
-  return (
-    <div className="w-full h-32 rounded-xl bg-white border border-neutral-200 p-3.5">
-      <p className="text-[10px] text-neutral-500 mb-1.5">삭감 위험도</p>
-      <p className="text-[20px] font-bold tabular text-neutral-900">12%</p>
-      <div className="mt-2 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-        <div className="h-full w-[12%] bg-emerald-500 rounded-full" />
-      </div>
-      <div className="mt-3 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span className="text-[10px] text-neutral-600 font-medium">안전 — 청구 가능</span>
-      </div>
-    </div>
-  )
-}
-
-function MockupVoiceChart() {
-  // 음성 파형 — 가중치 패턴
-  const bars = [3, 6, 9, 12, 8, 14, 10, 16, 11, 7, 13, 9, 5, 8, 11, 14, 10, 6, 4, 7]
-  return (
-    <div className="w-full h-32 rounded-xl bg-white border border-neutral-200 p-3.5 flex flex-col">
-      <div className="flex items-end gap-[2px] h-12 mb-2">
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 bg-neutral-900 rounded-sm"
-            style={{ height: `${(h / 16) * 100}%` }}
-          />
-        ))}
-      </div>
-      <div className="text-[10px] text-neutral-500 leading-relaxed border-t border-neutral-100 pt-2">
-        <span className="font-bold text-neutral-900">S</span>: 두통 3일 ·{' '}
-        <span className="font-bold text-neutral-900">O</span>: 맥부삭 ·{' '}
-        <span className="font-bold text-neutral-900">A</span>: 풍열
-      </div>
-    </div>
-  )
-}
-
-function MockupInteraction() {
-  return (
-    <div className="w-full h-32 rounded-xl bg-white border border-neutral-200 p-3 flex flex-col justify-center">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex-1 bg-neutral-50 rounded-md px-2 py-1.5 text-center">
-          <p className="text-[9px] text-neutral-500">양약</p>
-          <p className="text-[12px] font-bold text-neutral-900">와파린</p>
-        </div>
-        <span className="text-neutral-400 text-[14px]">+</span>
-        <div className="flex-1 bg-neutral-50 rounded-md px-2 py-1.5 text-center">
-          <p className="text-[9px] text-neutral-500">한약</p>
-          <p className="text-[12px] font-bold text-neutral-900">당귀</p>
-        </div>
-      </div>
-      <div className="bg-red-50 border border-red-200 rounded-md px-2 py-1.5 text-center">
-        <p className="text-[10px] font-bold text-red-700">CRITICAL · 병용 금기</p>
-      </div>
-    </div>
-  )
-}
-
-function MockupFormulaSearch() {
-  return (
-    <div className="w-full h-32 rounded-xl bg-white border border-neutral-200 p-3.5">
-      <div className="flex items-baseline gap-2 mb-2">
-        <p className="text-[14px] font-bold text-neutral-900">갈근탕</p>
-        <p className="text-[10px] text-neutral-500">葛根湯</p>
-      </div>
-      <div className="h-px bg-neutral-100 mb-2" />
-      <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-neutral-600">
-        <span>갈근 12g · 군</span>
-        <span>마황 8g · 신</span>
-        <span>계지 6g · 좌</span>
-        <span>작약 6g · 좌</span>
-        <span>감초 4g · 사</span>
-        <span>생강 4g · 사</span>
-      </div>
-    </div>
-  )
-}
+import {
+  MockupPatternDiagnosis,
+  MockupCaseSearch,
+  MockupClaimCheck,
+  MockupVoiceChart,
+  MockupInteraction,
+  MockupFormulaSearch,
+} from '@/components/common/FeatureMockups'
 
 // 숫자 카운트업 훅
 function useCountUp(end: number, duration: number = 2000, start: number = 0) {
@@ -268,7 +148,7 @@ export default function LandingPage() {
   const pricingAnim = useScrollAnimation()
 
   const features: Array<{
-    mockup: () => JSX.Element
+    mockup: React.ComponentType<{ size?: 'sm' | 'md' }>
     title: string
     description: string
     badge: string | null
