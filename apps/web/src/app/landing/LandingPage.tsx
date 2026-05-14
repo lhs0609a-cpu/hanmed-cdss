@@ -4,16 +4,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
 import { useAppStats } from '@/hooks/useAppStats'
 import {
-  Brain,
-  BookOpen,
-  FileSearch,
-  Shield,
-  Mic,
-  Users,
-  Stethoscope,
-  Pill,
-  GraduationCap,
-  Building2,
   CheckCircle2,
   ArrowRight,
   Sparkles,
@@ -22,16 +12,14 @@ import {
   Menu,
   X,
   Zap,
-  Clock,
   TrendingUp,
-  Award,
-  HeartPulse,
   Search,
   Send,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmojiIcon, type EmojiBgTone } from '@/components/common/EmojiIcon'
 
 // 숫자 카운트업 훅
 function useCountUp(end: number, duration: number = 2000, start: number = 0) {
@@ -142,54 +130,66 @@ export default function LandingPage() {
   const demoAnim = useScrollAnimation()
   const pricingAnim = useScrollAnimation()
 
-  const features = [
+  const features: Array<{
+    emoji: string
+    tone: EmojiBgTone
+    title: string
+    description: string
+    badge: string | null
+  }> = [
     {
-      icon: Brain,
+      emoji: '🧠',
+      tone: 'purple',
       title: 'AI 변증 진단',
       description: '환자 증상을 입력하면 AI가 팔강변증, 장부변증을 분석하고 적합한 처방을 추천합니다.',
       badge: 'AI',
-      color: 'from-purple-500 to-pink-500',
     },
     {
-      icon: FileSearch,
+      emoji: '📚',
+      tone: 'amber',
       title: '치험례 검색',
       description: `${appStats.formatted.totalCasesApprox}의 실제 임상 치험례에서 유사 사례를 찾아 치료 참고자료로 활용하세요.`,
       badge: 'HOT',
-      color: 'from-orange-500 to-red-500',
     },
     {
-      icon: Shield,
+      emoji: '🛡️',
+      tone: 'teal',
       title: '삭감 예측',
       description: '보험 청구 전 삭감 가능성을 미리 예측하여 청구 누락을 방지합니다.',
       badge: 'NEW',
-      color: 'from-teal-500 to-emerald-500',
     },
     {
-      icon: Mic,
+      emoji: '🎙️',
+      tone: 'blue',
       title: '음성 차트',
       description: '진료 내용을 말하면 AI가 자동으로 SOAP 형식의 진료 기록을 생성합니다.',
       badge: 'AI',
-      color: 'from-blue-500 to-cyan-500',
     },
     {
-      icon: Pill,
+      emoji: '💊',
+      tone: 'pink',
       title: '약물 상호작용',
       description: '양약과 한약의 상호작용을 실시간으로 검사하여 안전한 처방을 돕습니다.',
       badge: null,
-      color: 'from-rose-500 to-pink-500',
     },
     {
-      icon: BookOpen,
+      emoji: '📖',
+      tone: 'orange',
       title: '처방 검색',
       description: '방약합편 기반 429건의 처방을 검색하고 구성, 효능, 비교 분석을 확인하세요.',
       badge: null,
-      color: 'from-amber-500 to-orange-500',
     },
   ]
 
-  const targetAudiences = [
+  const targetAudiences: Array<{
+    emoji: string
+    tone: EmojiBgTone
+    title: string
+    benefits: string[]
+  }> = [
     {
-      icon: Stethoscope,
+      emoji: '🩺',
+      tone: 'blue',
       title: '한의사',
       benefits: [
         'AI 변증으로 진단 정확도 향상',
@@ -199,7 +199,8 @@ export default function LandingPage() {
       ],
     },
     {
-      icon: Building2,
+      emoji: '🏥',
+      tone: 'teal',
       title: '한방병원',
       benefits: [
         '진료 프로토콜 표준화',
@@ -209,7 +210,8 @@ export default function LandingPage() {
       ],
     },
     {
-      icon: GraduationCap,
+      emoji: '🎓',
+      tone: 'amber',
       title: '한의대생',
       benefits: [
         '임상 실습 전 사례 학습',
@@ -219,7 +221,8 @@ export default function LandingPage() {
       ],
     },
     {
-      icon: Users,
+      emoji: '🧑‍🔬',
+      tone: 'purple',
       title: '한약사 · 한약업사',
       benefits: [
         '처방 구성 및 용량 확인',
@@ -832,20 +835,20 @@ export default function LandingPage() {
       <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 border-y border-gray-100">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Award className="w-5 h-5" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <EmojiIcon emoji="🏅" tone="amber" size="sm" label="의료정보 보안 준수" />
               <span className="text-sm font-medium">의료정보 보안 준수</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
-              <Shield className="w-5 h-5" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <EmojiIcon emoji="🔒" tone="blue" size="sm" label="SSL 암호화" />
               <span className="text-sm font-medium">SSL 암호화</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
-              <Clock className="w-5 h-5" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <EmojiIcon emoji="⏰" tone="neutral" size="sm" label="99.9% 가동률" />
               <span className="text-sm font-medium">99.9% 가동률</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
-              <HeartPulse className="w-5 h-5" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <EmojiIcon emoji="❤️" tone="red" size="sm" label="실제 임상 데이터 기반" />
               <span className="text-sm font-medium">실제 임상 데이터 기반</span>
             </div>
           </div>
@@ -873,8 +876,8 @@ export default function LandingPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
-                    <feature.icon className="w-6 h-6 text-white" />
+                  <div className="mb-4 group-hover:scale-105 transition-transform">
+                    <EmojiIcon emoji={feature.emoji} tone={feature.tone} size="lg" label={feature.title} />
                   </div>
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-xl font-semibold text-gray-900">{feature.title}</h3>
@@ -995,7 +998,7 @@ export default function LandingPage() {
 
               {!demoResult && !isDemoLoading && (
                 <div className="text-center py-8 text-gray-400">
-                  <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <EmojiIcon emoji="🧠" tone="neutral" size="lg" bare className="mx-auto mb-3 opacity-70" />
                   <p>증상을 입력하면 AI가 분석을 시작합니다</p>
                 </div>
               )}
@@ -1028,8 +1031,8 @@ export default function LandingPage() {
             {targetAudiences.map((target, index) => (
               <Card key={index} className="bg-white border-gray-100 hover:shadow-xl transition-all hover-lift">
                 <CardContent className="p-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center mb-4 shadow-lg shadow-teal-500/20">
-                    <target.icon className="w-7 h-7 text-white" />
+                  <div className="mb-4">
+                    <EmojiIcon emoji={target.emoji} tone={target.tone} size="lg" label={target.title} />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-4">{target.title}</h3>
                   <ul className="space-y-3">
