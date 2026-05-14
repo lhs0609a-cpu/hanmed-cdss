@@ -1,37 +1,48 @@
 import { Toaster as SonnerToaster } from 'sonner'
 import { CheckCircle, XCircle, AlertTriangle, Info, Loader2 } from 'lucide-react'
 
+/**
+ * 토스트 — Toss 톤 단정한 흰 카드. 종류 구분은 아이콘 색만으로.
+ *
+ * 이전 버그:
+ *  1) richColors prop 이 활성화되어 sonner 의 진한 기본 컬러가 우리 classNames 를
+ *     덮어쓰면서 흰색 본문 텍스트가 진한 파란 배경에 거의 안 보이던 문제.
+ *  2) from-amber-50 to-orange-50 그라데이션이 index.css 의 Toss 정합화 룰에
+ *     걸려 강제로 검정 배경으로 변환되던 문제.
+ * 해결: richColors 제거 + 단색 흰 카드 + 좌측 컬러 보더로만 종류 표시.
+ */
 export function Toaster() {
   return (
     <SonnerToaster
       position="top-right"
       gap={12}
       toastOptions={{
-        // 현장 한의사 — 진료 중 토스트를 놓치지 않도록 기본을 6초로 늘림.
-        // 개별 호출에서 useToast 의 computeToastDuration 으로 글자수 가산 가능.
         duration: 6000,
         classNames: {
-          toast: 'bg-white/95 backdrop-blur-lg border shadow-xl rounded-xl px-4 py-3 min-w-[320px]',
-          title: 'text-gray-900 font-semibold text-sm',
-          description: 'text-gray-500 text-xs mt-1',
-          success: 'border-emerald-200/80 bg-gradient-to-r from-emerald-50 to-teal-50',
-          error: 'border-red-200/80 bg-gradient-to-r from-red-50 to-rose-50',
-          warning: 'border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50',
-          info: 'border-sky-200/80 bg-gradient-to-r from-sky-50 to-cyan-50',
-          loading: 'border-gray-200/80',
-          actionButton: 'bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors',
-          cancelButton: 'bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-md hover:bg-gray-200 transition-colors',
+          toast:
+            'bg-white border border-neutral-200 shadow-soft rounded-xl px-4 py-3 min-w-[320px]',
+          title: 'text-neutral-900 font-semibold text-[14px]',
+          description: 'text-neutral-600 text-[12px] mt-0.5 leading-relaxed',
+          success: 'border-l-4 border-l-emerald-500',
+          error: 'border-l-4 border-l-red-500',
+          warning: 'border-l-4 border-l-amber-500',
+          info: 'border-l-4 border-l-blue-500',
+          loading: 'border-l-4 border-l-neutral-300',
+          actionButton:
+            'bg-neutral-900 text-white text-[12px] px-3 py-1.5 rounded-md hover:bg-neutral-800 transition-colors',
+          cancelButton:
+            'bg-neutral-100 text-neutral-600 text-[12px] px-3 py-1.5 rounded-md hover:bg-neutral-200 transition-colors',
+          closeButton: 'text-neutral-400 hover:text-neutral-700',
         },
       }}
       icons={{
-        success: <CheckCircle className="w-5 h-5 text-emerald-600" />,
-        error: <XCircle className="w-5 h-5 text-red-600" />,
-        warning: <AlertTriangle className="w-5 h-5 text-amber-600" />,
-        info: <Info className="w-5 h-5 text-sky-600" />,
-        loading: <Loader2 className="w-5 h-5 text-gray-600 animate-spin" />,
+        success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        error: <XCircle className="w-5 h-5 text-red-500" />,
+        warning: <AlertTriangle className="w-5 h-5 text-amber-500" />,
+        info: <Info className="w-5 h-5 text-blue-500" />,
+        loading: <Loader2 className="w-5 h-5 text-neutral-500 animate-spin" />,
       }}
       expand={false}
-      richColors
       closeButton
     />
   )
