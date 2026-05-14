@@ -9,6 +9,9 @@ on:
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
 jobs:
   deploy:
     name: Deploy to Fly.io
@@ -24,19 +27,24 @@ jobs:
       - name: Deploy to Fly.io
         working-directory: apps/api
         run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Run pending DB migrations
+        # 배포 직후 마이그레이션 자동 실행 — 새 entity 가 요구하는 컬럼이
+        # DB 에 없어 로그인이 폭발하는 사고 재발 방지.
+        # 멱등(이미 적용된 마이그레이션은 스킵)이라 매 배포 실행해도 안전.
+        run: |
+          flyctl ssh console -a hanmed-api -C "sh -c 'cd /app && pnpm migration:run'"
 
       - name: Health Check
         run: |
-          sleep 10
-          curl -sf https://hanmed-api.fly.dev/api/v1/health || echo "Health check pending..."
+          sleep 5
+          curl -sf https://api.ongojisin.co.kr/api/v1/health || echo "Health check pending..."
 
       - name: Notify deployment result
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Fly.io 배포 성공!"
+            echo "✅ Fly.io 배포 + 마이그레이션 성공!"
           else
-            echo "❌ Fly.io 배포 실패!"
+            echo "❌ Fly.io 배포 또는 마이그레이션 실패!"
           fi
