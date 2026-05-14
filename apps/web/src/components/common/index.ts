@@ -157,3 +157,6 @@ export {
   type SpotlightTarget,
   type SpotlightSequence,
 } from './FeatureSpotlight'
+
+// Toss 풍 3D 이모지 아이콘
+export { EmojiIcon, type EmojiBgTone } from './EmojiIcon'

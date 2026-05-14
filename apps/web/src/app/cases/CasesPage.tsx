@@ -176,6 +176,70 @@ const MOCK_CASES: CaseFromAPI[] = [
     originalText: '여성 62세. 6개월간 만성 변비로 고생. 3-4일에 1회 배변, 변이 굳고 건조. 장조변비로 변증하여 마자인환 처방. 4주 복용 후 1-2일 1회 배변으로 개선.',
     dataSource: '대한한방내과학회지',
   },
+  {
+    id: 'mock-9',
+    title: '감기 (풍한감모) 치험례',
+    chiefComplaint: '오한, 발열, 두통 3일 — 감기 초기',
+    symptoms: ['감기', '오한', '발열', '두통', '코막힘', '근육통'],
+    formulaName: '갈근탕',
+    formulaHanja: '葛根湯',
+    constitution: '태음인',
+    diagnosis: '풍한표실',
+    patientAge: 28,
+    patientGender: 'M',
+    outcome: '완치',
+    result: '3일 복용 후 감기 증상 소실',
+    originalText: '남성 28세. 환절기 감기로 내원. 오한·미열·두통·항강 호소. 풍한외감으로 변증하여 갈근탕 처방. 3일 복용 후 증상 완전 소실.',
+    dataSource: '대한한방내과학회지',
+  },
+  {
+    id: 'mock-10',
+    title: '감기 후 기침 치험례',
+    chiefComplaint: '감기 후 잔존 기침 2주',
+    symptoms: ['감기', '기침', '가래', '인후통', '피로'],
+    formulaName: '소청룡탕',
+    formulaHanja: '小靑龍湯',
+    constitution: '소음인',
+    diagnosis: '외한내음',
+    patientAge: 41,
+    patientGender: 'F',
+    outcome: '완치',
+    result: '1주 복용 후 기침·가래 소실',
+    originalText: '여성 41세. 2주 전 감기 이후 기침과 묽은 가래 지속. 오한 동반. 외한내음으로 변증하여 소청룡탕 처방. 1주 복용으로 호전.',
+    dataSource: '대한한방내과학회지',
+  },
+  {
+    id: 'mock-11',
+    title: '편두통 치험례',
+    chiefComplaint: '편측 박동성 두통 반복 3개월',
+    symptoms: ['두통', '편두통', '오심', '광공포', '소리공포'],
+    formulaName: '천궁차조산',
+    formulaHanja: '川芎茶調散',
+    constitution: '소양인',
+    diagnosis: '간양상항',
+    patientAge: 33,
+    patientGender: 'F',
+    outcome: '호전',
+    result: '6주 복용 후 두통 빈도·강도 60% 감소',
+    originalText: '여성 33세. 3개월간 월 4–5회 편측 박동성 두통 발작. 두통 발작 시 오심·구토. 간양상항으로 변증하여 천궁차조산 처방. 6주 복용 후 빈도 현저히 감소.',
+    dataSource: '대한한방내과학회지',
+  },
+  {
+    id: 'mock-12',
+    title: '급성 요통 치험례',
+    chiefComplaint: '갑작스러운 허리 통증 1주',
+    symptoms: ['요통', '허리통증', '근육경직', '하지방사통'],
+    formulaName: '독활기생탕',
+    formulaHanja: '獨活寄生湯',
+    constitution: '태음인',
+    diagnosis: '한습요통',
+    patientAge: 47,
+    patientGender: 'M',
+    outcome: '완치',
+    result: '2주 복용 후 통증 소실, 일상 복귀',
+    originalText: '남성 47세. 무거운 짐을 들다 발생한 급성 요통. 한습 노출 병력. 한습요통으로 변증하여 독활기생탕 처방. 2주 복용으로 완전 회복.',
+    dataSource: '대한한방내과학회지',
+  },
 ]
 
 // 성별 표시 함수
@@ -353,7 +417,9 @@ export default function CasesPage() {
           c.chiefComplaint.toLowerCase().includes(searchLower) ||
           c.symptoms.some(s => s.toLowerCase().includes(searchLower)) ||
           c.formulaName.toLowerCase().includes(searchLower) ||
-          c.diagnosis.toLowerCase().includes(searchLower)
+          c.diagnosis.toLowerCase().includes(searchLower) ||
+          (c.originalText || '').toLowerCase().includes(searchLower) ||
+          c.constitution.toLowerCase().includes(searchLower)
         )
       }
       if (selectedConstitution) {
@@ -364,13 +430,16 @@ export default function CasesPage() {
       }
 
       setCases(filteredMock)
-      setTotalCases(BASE_STATS.cases) // 전체 DB 통계는 중앙 설정 사용
-      setTotalPages(Math.ceil(BASE_STATS.cases / ITEMS_PER_PAGE))
+      // 검색·필터가 걸려있으면 실제 일치 건수를, 아니면 전체 DB 통계를 노출
+      const hasActiveFilter = !!(debouncedSearch || selectedConstitution || selectedOutcome)
+      const displayTotal = hasActiveFilter ? filteredMock.length : BASE_STATS.cases
+      setTotalCases(displayTotal)
+      setTotalPages(Math.max(1, Math.ceil(filteredMock.length / ITEMS_PER_PAGE)))
 
       // 통계 계산
       const cured = filteredMock.filter(c => c.outcome === '완치').length
       const improved = filteredMock.filter(c => c.outcome === '호전').length
-      setStats({ cured, improved, total: BASE_STATS.cases })
+      setStats({ cured, improved, total: displayTotal })
 
       setError(null) // Mock 데이터 사용 시 에러 숨김
       setRetryCount(0)

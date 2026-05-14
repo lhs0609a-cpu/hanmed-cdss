@@ -5,26 +5,14 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { validateSecrets } from './common/bootstrap/validate-secrets';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log('서버 초기화 중... (v1.1.0 - Admin Seeder 포함)');
 
-  // 프로덕션 필수 환경변수 검증
-  if (process.env.NODE_ENV === 'production') {
-    const requiredVars = [
-      'DATABASE_URL',
-      'JWT_SECRET',
-      'REFRESH_TOKEN_SECRET',
-      'ENCRYPTION_KEY',
-      'TOSS_SECRET_KEY',
-    ];
-    const missing = requiredVars.filter((v) => !process.env[v]);
-    if (missing.length > 0) {
-      logger.error(`필수 환경변수 누락: ${missing.join(', ')}`);
-      process.exit(1);
-    }
-  }
+  // 시크릿 검증 — 누락·placeholder·길이·운영 금지 접두사까지 점검 후 운영이면 부팅 차단
+  validateSecrets(logger);
 
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // 웹훅을 위한 raw body 파싱 활성화

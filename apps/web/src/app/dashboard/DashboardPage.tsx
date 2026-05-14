@@ -9,6 +9,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { ValueMetricsDashboard, KillerFeatureHighlight, DashboardCharts } from '@/components/dashboard'
+import { EmojiIcon } from '@/components/common/EmojiIcon'
 import {
   Stethoscope,
   BookOpen,
@@ -130,27 +131,30 @@ export default function DashboardPage() {
   const recentActivityQuery = useRecentActivities()
   const recentActivities = recentActivityQuery.data ?? []
 
-  // 빠른 실행 — 단일 톤. 아이콘 배경/배지도 모두 neutral 정렬.
+  // 빠른 실행 — Toss 풍 3D 이모지로 위계 부여
   const quickActions = useMemo(() => [
     {
       name: '새 진료 시작',
       description: '환자 증상을 입력하면 변증·처방 후보를 보여드립니다.',
       href: '/dashboard/consultation',
-      icon: Stethoscope,
+      emoji: '🩺',
+      tone: 'blue' as const,
       badge: '추천',
     },
     {
       name: '치험례 검색',
       description: `${appStats.formatted.totalCases}의 임상 데이터에서 유사 사례를 찾아보세요.`,
       href: '/dashboard/cases',
-      icon: BookOpen,
+      emoji: '📚',
+      tone: 'amber' as const,
       badge: appStats.formatted.totalCases,
     },
     {
       name: '상호작용 검사',
       description: '양약과 한약 간 상호작용을 빠르게 확인합니다.',
       href: '/dashboard/interactions',
-      icon: AlertTriangle,
+      emoji: '⚠️',
+      tone: 'red' as const,
       badge: '안전',
     },
   ], [appStats.formatted.totalCases])
@@ -293,9 +297,7 @@ export default function DashboardPage() {
               className="group block bg-white rounded-md p-6 border border-neutral-200 hover:border-neutral-900 transition-colors"
             >
               <div className="flex items-start justify-between mb-5">
-                <div className="inline-flex w-10 h-10 rounded-md bg-neutral-100 text-neutral-900 items-center justify-center">
-                  <action.icon className="h-5 w-5" />
-                </div>
+                <EmojiIcon emoji={action.emoji} tone={action.tone} size="md" label={action.name} />
                 <span className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-[11px] font-semibold rounded-sm">
                   {action.badge}
                 </span>

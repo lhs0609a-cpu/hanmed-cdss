@@ -35,6 +35,7 @@ import {
   Zap,
   AlertCircle,
 } from 'lucide-react'
+import { EmojiIcon } from '@/components/common/EmojiIcon'
 
 // AI Engine API URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
@@ -603,50 +604,50 @@ export default function UnifiedSearchPage() {
               </div>
             </div>
 
-            {/* Quick Access */}
+            {/* Quick Access — Toss 3D 이모지 톤 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
                 to="/dashboard/case-search"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-amber-300 hover:shadow-lg transition-all group"
+                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="p-3 bg-amber-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
-                  <Sparkles className="h-6 w-6 text-amber-600" />
+                <div className="mb-3 group-hover:scale-105 transition-transform">
+                  <EmojiIcon emoji="📚" tone="amber" size="lg" label="AI 치험례 검색" />
                 </div>
-                <h3 className="font-bold text-gray-900">AI 치험례 검색</h3>
-                <p className="text-sm text-gray-500 mt-1">6,000건+ AI 분석</p>
+                <h3 className="font-bold text-neutral-900">AI 치험례 검색</h3>
+                <p className="text-sm text-neutral-500 mt-1">6,000건+ AI 분석</p>
               </Link>
 
               <Link
                 to="/dashboard/consultation"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all group"
+                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="p-3 bg-blue-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
-                  <Zap className="h-6 w-6 text-blue-600" />
+                <div className="mb-3 group-hover:scale-105 transition-transform">
+                  <EmojiIcon emoji="🩺" tone="blue" size="lg" label="AI 진료" />
                 </div>
-                <h3 className="font-bold text-gray-900">AI 진료</h3>
-                <p className="text-sm text-gray-500 mt-1">증상 입력 → 처방 추천</p>
+                <h3 className="font-bold text-neutral-900">AI 진료</h3>
+                <p className="text-sm text-neutral-500 mt-1">증상 입력 → 처방 추천</p>
               </Link>
 
               <Link
                 to="/dashboard/interactions"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-red-300 hover:shadow-lg transition-all group"
+                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="p-3 bg-red-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
-                  <AlertCircle className="h-6 w-6 text-red-600" />
+                <div className="mb-3 group-hover:scale-105 transition-transform">
+                  <EmojiIcon emoji="⚠️" tone="red" size="lg" label="상호작용 검사" />
                 </div>
-                <h3 className="font-bold text-gray-900">상호작용 검사</h3>
-                <p className="text-sm text-gray-500 mt-1">양약-한약 체크</p>
+                <h3 className="font-bold text-neutral-900">상호작용 검사</h3>
+                <p className="text-sm text-neutral-500 mt-1">양약-한약 체크</p>
               </Link>
 
               <Link
                 to="/dashboard/formulas"
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-teal-300 hover:shadow-lg transition-all group"
+                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
               >
-                <div className="p-3 bg-teal-100 rounded-xl w-fit mb-3 group-hover:scale-110 transition-transform">
-                  <Database className="h-6 w-6 text-teal-600" />
+                <div className="mb-3 group-hover:scale-105 transition-transform">
+                  <EmojiIcon emoji="🌿" tone="teal" size="lg" label="처방 DB" />
                 </div>
-                <h3 className="font-bold text-gray-900">처방 DB</h3>
-                <p className="text-sm text-gray-500 mt-1">학파별 처방 탐색</p>
+                <h3 className="font-bold text-neutral-900">처방 DB</h3>
+                <p className="text-sm text-neutral-500 mt-1">학파별 처방 탐색</p>
               </Link>
             </div>
           </div>
