@@ -23,6 +23,7 @@
     "seed:formulas": "ts-node -r tsconfig-paths/register src/database/seeds/seed-formulas.ts",
     "seed:formula-properties": "ts-node -r tsconfig-paths/register src/database/seeds/seed-formula-properties.ts",
     "seed:cases": "ts-node -r tsconfig-paths/register src/database/seeds/seed-clinical-cases.ts",
+    "enrich:cases": "ts-node -r tsconfig-paths/register src/database/seeds/enrich-cases-with-ai.ts",
     "create-admin": "ts-node -r tsconfig-paths/register src/database/seeds/create-super-admin.ts"
   },
   "dependencies": {

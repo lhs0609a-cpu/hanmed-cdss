@@ -4,16 +4,9 @@ import {
   Search,
   BookOpen,
   X,
-  User,
-  Pill,
   ChevronRight,
-  TrendingUp,
-  Activity,
-  Brain,
   ChevronLeft,
   Loader2,
-  FileText,
-  Hash,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
@@ -244,10 +237,61 @@ const MOCK_CASES: CaseFromAPI[] = [
 
 // 성별 표시 함수
 function formatGender(gender: string | null): string {
-  if (!gender) return ''
-  if (gender === 'M' || gender === 'male') return '남성'
-  if (gender === 'F' || gender === 'female') return '여성'
+  if (!gender) return '미상'
+  const v = String(gender).toLowerCase()
+  if (v === 'm' || v === 'male' || v === '남' || v === '남성') return '남성'
+  if (v === 'f' || v === 'female' || v === '여' || v === '여성') return '여성'
+  if (v === 'unknown' || v === '미상') return '미상'
   return gender
+}
+
+// 케이스 데이터에서 처방명 추출 — 백엔드가 옛 코드(매핑 미반영)인 경우에도 동작하도록
+// herbalFormulas[0].formulaName 으로 폴백한다.
+function getFormulaName(c: any): string {
+  if (c?.formulaName && c.formulaName !== '') return c.formulaName
+  if (Array.isArray(c?.herbalFormulas) && c.herbalFormulas[0]?.formulaName) {
+    return c.herbalFormulas[0].formulaName
+  }
+  return ''
+}
+
+// 결과 enum/한글 매핑
+function getOutcome(c: any): string | null {
+  return c?.outcome || c?.treatmentOutcome || null
+}
+
+// 변증명 폴백
+function getDiagnosis(c: any): string {
+  return c?.diagnosis || c?.patternDiagnosis || ''
+}
+
+// 체질 폴백
+function getConstitution(c: any): string {
+  return c?.constitution || c?.patientConstitution || ''
+}
+
+// 자주 등장하는 한자 괄호 표기 제거 — '딸꾹질(吃逆)' → '딸꾹질'
+function stripHanja(text: string): string {
+  if (!text) return ''
+  return text.replace(/[\(（]([一-龥]+)[\)）]/g, '').trim()
+}
+
+// 해시태그 후보 추출 — 증상·체질·변증·결과를 하나의 태그 배열로
+function buildHashtags(c: any): string[] {
+  const tags: string[] = []
+  const constitution = getConstitution(c)
+  if (constitution) tags.push(`#${constitution}`)
+  const diagnosis = getDiagnosis(c)
+  if (diagnosis) tags.push(`#${stripHanja(diagnosis)}`)
+  const outcome = getOutcome(c)
+  if (outcome) tags.push(`#${outcome}`)
+  const symptoms = Array.isArray(c?.symptoms) ? c.symptoms : []
+  for (const s of symptoms.slice(0, 4)) {
+    const name = typeof s === 'string' ? s : s?.name
+    if (name) tags.push(`#${stripHanja(name)}`)
+  }
+  // 중복 제거
+  return Array.from(new Set(tags.filter(Boolean)))
 }
 
 // 번호가 붙은 텍스트를 분리하여 포맷팅
@@ -471,25 +515,29 @@ export default function CasesPage() {
   }, [])
 
   const getOutcomeColor = useCallback((outcome: string | null) => {
+    // Toss 톤 — 채도 줄이고 의미 구분만 유지 (성공=초록, 부분=호박, 실패=빨강)
     switch (outcome) {
       case '완치':
-        return 'bg-green-100 text-green-700 border-green-200'
+        return 'bg-green-50 text-green-700'
       case '호전':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+        return 'bg-amber-50 text-amber-700'
       case '무효':
-        return 'bg-red-100 text-red-700 border-red-200'
+      case '악화':
+        return 'bg-red-50 text-red-700'
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200'
+        return 'bg-neutral-100 text-neutral-600'
     }
   }, [])
 
   return (
     <div className="space-y-6">
-      {/* Demo Data Warning */}
-      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
-        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
-        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
-      </div>
+      {/* Demo Data Warning — 실제 API fallback 으로 mock 쓰는 경우에만 노출 */}
+      {isUsingMockData && (
+        <div className="mb-2 p-3 bg-neutral-50 border border-neutral-200 rounded-xl flex items-center gap-2 text-[12px]">
+          <span className="text-neutral-700 font-medium">샘플 데이터 표시 중</span>
+          <span className="text-neutral-500">API 서버 연결 대기 — 실제 7,000+건이 DB에 있습니다.</span>
+        </div>
+      )}
 
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
@@ -500,15 +548,7 @@ export default function CasesPage() {
         </p>
       </div>
 
-      {/* 데모 모드 배너 */}
-      {isUsingMockData && (
-        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-          <BookOpen className="h-4 w-4 flex-shrink-0" />
-          <span>
-            <strong>샘플 데이터 표시 중</strong> - API 서버 연결 대기 중입니다. 실제 {BASE_STATS.cases.toLocaleString()}건의 치험례가 데이터베이스에 있습니다.
-          </span>
-        </div>
-      )}
+      {/* 중복 데모 모드 배너 제거 — 상단에 이미 표시됨 */}
 
       {/* Search & Filters */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
@@ -565,24 +605,19 @@ export default function CasesPage() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">검색 결과</p>
-          <p className="text-2xl font-bold text-gray-900">{totalCases.toLocaleString()}건</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">완치</p>
-          <p className="text-2xl font-bold text-green-600">{stats.cured}건</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">호전</p>
-          <p className="text-2xl font-bold text-yellow-600">{stats.improved}건</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">전체 DB</p>
-          <p className="text-2xl font-bold text-amber-600">{totalCases.toLocaleString()}건</p>
-        </div>
+      {/* Stats — Toss 톤: 검색 결과 한 줄로 텍스트로만, 카드 그리드 제거 */}
+      <div className="flex items-baseline gap-2 px-1">
+        <span className="text-[14px] text-neutral-500">
+          {debouncedSearch || selectedConstitution || selectedOutcome ? '검색 결과' : '전체'}
+        </span>
+        <span className="text-[16px] font-bold text-neutral-900 tabular">
+          {totalCases.toLocaleString()}건
+        </span>
+        {(stats.cured > 0 || stats.improved > 0) && (
+          <span className="text-[12px] text-neutral-400 ml-2">
+            완치 {stats.cured} · 호전 {stats.improved}
+          </span>
+        )}
       </div>
 
       {/* Results */}
@@ -616,86 +651,80 @@ export default function CasesPage() {
           />
         )}
 
-        {/* 결과 목록 */}
-        {!loading && !error && cases.map((caseItem) => (
-          <div
-            key={caseItem.id}
-            onClick={() => openDetailModal(caseItem)}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer group"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 rounded-xl">
-                  <BookOpen className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors">
-                    {caseItem.formulaName || '처방 미상'}
+        {/* 결과 목록 — Toss 톤: 핵심 정보 + 해시태그 칩, 군더더기 제거 */}
+        {!loading && !error && cases.map((caseItem: any) => {
+          const formulaName = getFormulaName(caseItem)
+          const constitution = getConstitution(caseItem)
+          const outcome = getOutcome(caseItem)
+          const diagnosis = getDiagnosis(caseItem)
+          const tags = buildHashtags(caseItem)
+          const genderText = formatGender(caseItem.patientGender)
+          const ageText = caseItem.patientAge ? `${caseItem.patientAge}세` : ''
+
+          return (
+            <button
+              key={caseItem.id}
+              type="button"
+              onClick={() => openDetailModal(caseItem)}
+              className="w-full text-left bg-white rounded-2xl border border-neutral-200 p-5 hover:border-neutral-300 hover:shadow-soft transition-all group"
+            >
+              {/* 헤더: 처방명 + 결과 배지 */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-[16px] text-neutral-900 truncate group-hover:text-primary transition-colors">
+                    {formulaName || '처방 미기재'}
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {caseItem.dataSource}
+                  <p className="text-[12px] text-neutral-500 mt-0.5 line-clamp-1">
+                    {stripHanja(caseItem.chiefComplaint || '') || '주소증 미기재'}
                   </p>
                 </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {outcome && (
+                    <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${getOutcomeColor(outcome)}`}>
+                      {outcome}
+                    </span>
+                  )}
+                  {constitution && (
+                    <span className="text-[11px] font-medium px-2 py-1 rounded-md bg-neutral-100 text-neutral-700">
+                      {constitution}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {caseItem.constitution && (
-                  <span className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded-lg font-medium">
-                    {caseItem.constitution}
-                  </span>
-                )}
-                {caseItem.outcome && (
-                  <span className={`text-sm px-2 py-1 rounded-lg font-medium ${getOutcomeColor(caseItem.outcome)}`}>
-                    {caseItem.outcome}
-                  </span>
-                )}
-              </div>
-            </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-start gap-2">
-                <Activity className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <span className="text-xs font-medium text-gray-500 block">증상</span>
-                  <span className="text-sm text-gray-700 line-clamp-2">
-                    {caseItem.chiefComplaint || '-'}
-                  </span>
+              {/* 해시태그 */}
+              {tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {tags.slice(0, 6).map((tag, i) => (
+                    <span
+                      key={i}
+                      className="text-[11px] font-medium text-neutral-600 bg-neutral-50 hover:bg-neutral-100 px-2 py-0.5 rounded-md transition-colors"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <Pill className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <span className="text-xs font-medium text-gray-500 block">처방</span>
-                  <span className="text-sm text-amber-600 font-medium">{caseItem.formulaName || '-'}</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <User className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <span className="text-xs font-medium text-gray-500 block">환자</span>
-                  <span className="text-sm text-gray-700">
-                    {formatGender(caseItem.patientGender)}
-                    {caseItem.patientAge ? ` ${caseItem.patientAge}세` : ''}
-                    {!caseItem.patientGender && !caseItem.patientAge && '-'}
-                  </span>
-                </div>
-              </div>
-            </div>
+              )}
 
-            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                {caseItem.diagnosis && (
-                  <>
-                    <Brain className="h-4 w-4 inline mr-1" />
-                    {caseItem.diagnosis}
-                  </>
-                )}
-              </span>
-              <span className="text-sm text-amber-600 font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                상세 보기 <ChevronRight className="h-4 w-4" />
-              </span>
-            </div>
-          </div>
-        ))}
+              {/* 메타 정보 한 줄 */}
+              <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between text-[12px] text-neutral-500">
+                <div className="flex items-center gap-3">
+                  <span>
+                    {genderText !== '미상' || ageText ? `${genderText} ${ageText}`.trim() : ''}
+                  </span>
+                  {diagnosis && (
+                    <span className="truncate max-w-[200px]">
+                      변증 · {stripHanja(diagnosis)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-primary font-medium flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  상세 <ChevronRight className="h-3 w-3" />
+                </span>
+              </div>
+            </button>
+          )
+        })}
 
         {/* 빈 결과 */}
         {!loading && !error && cases.length === 0 && (
@@ -764,209 +793,193 @@ export default function CasesPage() {
         )}
       </div>
 
-      {/* 상세 정보 모달 - 전체 내용 표시 + 가독성 개선 */}
+      {/* 상세 정보 모달 — Toss 톤 단정한 카드형. 컬러 박스 줄이고 정보 위계로 구분 */}
       {showDetailModal && selectedCase && (() => {
-        const observations = formatObservations(selectedCase.originalText || '')
+        const c = selectedCase as any
+        const formulaName = getFormulaName(c)
+        const constitution = getConstitution(c)
+        const outcome = getOutcome(c)
+        const diagnosis = getDiagnosis(c)
+        const genderText = formatGender(c.patientGender)
+        const ageText = c.patientAge ? `${c.patientAge}세` : ''
+        const tags = buildHashtags(c)
+        const symptomList: string[] = (() => {
+          if (Array.isArray(c.symptoms)) {
+            return c.symptoms
+              .map((s: any) => (typeof s === 'string' ? s : s?.name))
+              .filter(Boolean) as string[]
+          }
+          return []
+        })()
+        const observations = formatObservations(c.originalText || '')
 
         return (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="case-detail-title"
             onClick={() => setShowDetailModal(false)}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[70vh] overflow-hidden flex flex-col"
+              className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col border border-neutral-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* 모달 헤더 */}
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      {selectedCase.outcome && (
-                        <span
-                          className={`text-sm px-3 py-1 rounded-full font-medium ${
-                            selectedCase.outcome === '완치'
-                              ? 'bg-green-400 text-green-900'
-                              : selectedCase.outcome === '호전'
-                                ? 'bg-yellow-400 text-yellow-900'
-                                : 'bg-red-400 text-red-900'
-                          }`}
-                        >
-                          {selectedCase.outcome}
-                        </span>
-                      )}
-                      {selectedCase.constitution && (
-                        <span className="text-sm px-3 py-1 bg-purple-400 text-purple-900 rounded-full font-medium">
-                          {selectedCase.constitution}
-                        </span>
-                      )}
-                    </div>
-                    <h2 id="case-detail-title" className="text-2xl font-bold">{selectedCase.formulaName || '처방 미상'}</h2>
-                    {selectedCase.formulaHanja && (
-                      <p className="text-white/80 mt-1 text-lg">{selectedCase.formulaHanja}</p>
+              {/* 헤더 — 흰 배경, 정보 위계 */}
+              <div className="px-6 py-5 border-b border-neutral-100 flex items-start justify-between gap-4 flex-shrink-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    {outcome && (
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${getOutcomeColor(outcome)}`}>
+                        {outcome}
+                      </span>
+                    )}
+                    {constitution && (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700">
+                        {constitution}
+                      </span>
+                    )}
+                    {(genderText !== '미상' || ageText) && (
+                      <span className="text-[11px] text-neutral-500">
+                        {`${genderText} ${ageText}`.trim()}
+                      </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => setShowDetailModal(false)}
-                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                    aria-label="닫기"
-                  >
-                    <X className="h-6 w-6" aria-hidden="true" />
-                  </button>
+                  <h2 id="case-detail-title" className="text-[22px] font-bold tracking-tight text-neutral-900">
+                    {formulaName || '처방 미기재'}
+                  </h2>
+                  {c.formulaHanja && (
+                    <p className="text-neutral-500 mt-0.5 text-[14px]">{c.formulaHanja}</p>
+                  )}
                 </div>
-              </div>
-
-              {/* 모달 본문 - 스크롤 영역 */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* 환자 정보 + 처방 - 2열 */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* 환자 정보 */}
-                  <div className="bg-blue-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <User className="h-6 w-6 text-blue-500" />
-                      환자 정보
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center py-3 border-b border-blue-100">
-                        <span className="text-gray-600 text-base">성별</span>
-                        <span className="font-semibold text-gray-900 text-lg">
-                          {formatGender(selectedCase.patientGender) || '-'}
-                        </span>
-                      </div>
-                      {selectedCase.patientAge && (
-                        <div className="flex justify-between items-center py-3 border-b border-blue-100">
-                          <span className="text-gray-600 text-base">나이</span>
-                          <span className="font-semibold text-gray-900 text-lg">{selectedCase.patientAge}세</span>
-                        </div>
-                      )}
-                      {selectedCase.constitution && (
-                        <div className="flex justify-between items-center py-3">
-                          <span className="text-gray-600 text-base">체질</span>
-                          <span className="font-semibold text-purple-600 text-lg">{selectedCase.constitution}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 처방 정보 */}
-                  <div className="bg-teal-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <Pill className="h-6 w-6 text-teal-500" />
-                      처방
-                    </h3>
-                    <p className="text-teal-700 font-bold text-2xl mb-2">
-                      {selectedCase.formulaName || '-'}
-                    </p>
-                    {selectedCase.diagnosis && (
-                      <div className="mt-4 pt-4 border-t border-teal-200">
-                        <span className="text-base text-gray-600 flex items-center gap-2">
-                          <Brain className="h-5 w-5 text-purple-500" />
-                          변증: <span className="font-semibold text-purple-700 text-lg">{selectedCase.diagnosis}</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 주요 증상 - 전체 표시 */}
-                {selectedCase.chiefComplaint && (
-                  <div className="bg-amber-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <Activity className="h-6 w-6 text-amber-600" />
-                      주요 증상
-                    </h3>
-                    <div className="bg-white rounded-lg p-5 border border-amber-200">
-                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-base">
-                        {selectedCase.chiefComplaint}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 증상 태그 */}
-                {Array.isArray(selectedCase.symptoms) && selectedCase.symptoms.length > 0 && (
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <Hash className="h-6 w-6 text-blue-500" />
-                      증상 태그
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCase.symptoms.map((symptom, i) => (
-                        <span key={i} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-base font-medium">
-                          {symptom}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 치료 결과/경과 */}
-                {selectedCase.result && (
-                  <div className="bg-green-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                      치료 결과 / 경과
-                    </h3>
-                    <div className="bg-white rounded-lg p-5 border border-green-200">
-                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-base">
-                        {selectedCase.result}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 세부 관찰 사항 (①②③ 등 있을 경우) */}
-                {observations.length > 0 && (
-                  <div className="bg-indigo-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <BookOpen className="h-6 w-6 text-indigo-600" />
-                      세부 관찰 사항
-                    </h3>
-                    <div className="space-y-3">
-                      {observations.map((obs, idx) => (
-                        <div key={idx} className="bg-white rounded-lg p-4 border border-indigo-200 flex gap-3">
-                          <span className="flex-shrink-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                            {obs.number}
-                          </span>
-                          <p className="text-gray-800 leading-relaxed text-base flex-1">
-                            {obs.content}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 원문 전체 내용 */}
-                {selectedCase.originalText && (
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <FileText className="h-6 w-6 text-gray-600" />
-                      원문 전체
-                    </h3>
-                    <div className="bg-white rounded-lg p-6 border border-gray-200 max-h-[600px] overflow-y-auto">
-                      <div className="text-gray-800 leading-[2] text-base whitespace-pre-wrap">
-                        {selectedCase.originalText}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 모달 푸터 */}
-              <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 bg-gray-50">
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="flex-1 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-medium border border-gray-200 text-base"
+                  className="flex-shrink-0 p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                  aria-label="닫기"
+                >
+                  <X className="h-5 w-5 text-neutral-500" />
+                </button>
+              </div>
+
+              {/* 본문 */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                {/* 해시태그 한 줄 — 가장 빠른 컨텍스트 */}
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="text-[12px] font-medium text-neutral-700 bg-neutral-100 px-2.5 py-1 rounded-md"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* 주요 증상 */}
+                {c.chiefComplaint && (
+                  <section>
+                    <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-2">
+                      주요 증상
+                    </h3>
+                    <p className="text-[15px] text-neutral-800 leading-relaxed whitespace-pre-wrap">
+                      {stripHanja(c.chiefComplaint)}
+                    </p>
+                  </section>
+                )}
+
+                {/* 변증 */}
+                {diagnosis && (
+                  <section className="pt-4 border-t border-neutral-100">
+                    <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-2">
+                      변증
+                    </h3>
+                    <p className="text-[15px] text-neutral-800">{stripHanja(diagnosis)}</p>
+                  </section>
+                )}
+
+                {/* 증상 칩 — 해시태그와 다르게 증상만 깔끔히 */}
+                {symptomList.length > 0 && (
+                  <section className="pt-4 border-t border-neutral-100">
+                    <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-2">
+                      증상
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {symptomList.map((s, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-md text-[13px]"
+                        >
+                          {stripHanja(s)}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* 치료 결과 */}
+                {c.result && (
+                  <section className="pt-4 border-t border-neutral-100">
+                    <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-2">
+                      치료 결과 / 경과
+                    </h3>
+                    <p className="text-[15px] text-neutral-800 leading-relaxed whitespace-pre-wrap">
+                      {c.result}
+                    </p>
+                  </section>
+                )}
+
+                {/* 세부 관찰 사항 ①②③ — 번호 위주, 시각 노이즈 줄임 */}
+                {observations.length > 0 && (
+                  <section className="pt-4 border-t border-neutral-100">
+                    <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-3">
+                      세부 관찰 사항
+                    </h3>
+                    <ol className="space-y-2">
+                      {observations.map((obs, idx) => (
+                        <li key={idx} className="flex gap-3 text-[14px] leading-relaxed">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center font-bold text-[13px]">
+                            {idx + 1}
+                          </span>
+                          <p className="text-neutral-800 flex-1">{stripHanja(obs.content)}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
+
+                {/* 원문 전체 — 접힘 (기본 닫힘, 클릭으로 펼침) */}
+                {c.originalText && (
+                  <details className="pt-4 border-t border-neutral-100 group">
+                    <summary className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider cursor-pointer hover:text-neutral-700 select-none flex items-center justify-between">
+                      <span>원문 전체</span>
+                      <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+                    </summary>
+                    <pre className="mt-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200 text-[13px] text-neutral-700 leading-relaxed whitespace-pre-wrap font-sans max-h-[400px] overflow-y-auto">
+                      {c.originalText}
+                    </pre>
+                  </details>
+                )}
+
+                {c.dataSource && (
+                  <p className="pt-2 text-[11px] text-neutral-400">
+                    출처 · {c.dataSource}
+                  </p>
+                )}
+              </div>
+
+              {/* 푸터 — Toss 톤 검정 단색 */}
+              <div className="px-6 py-4 border-t border-neutral-100 flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="flex-1 h-11 bg-neutral-100 text-neutral-700 rounded-xl hover:bg-neutral-200 transition-colors font-semibold text-[14px]"
                 >
                   닫기
                 </button>
                 <Link
-                  to={`/dashboard/consultation?formula=${encodeURIComponent(selectedCase.formulaName || '')}`}
-                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-medium text-center text-base"
+                  to={`/dashboard/consultation?formula=${encodeURIComponent(formulaName || '')}`}
+                  className="flex-1 h-11 leading-[44px] bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-colors font-semibold text-[14px] text-center"
                 >
                   이 처방으로 진료 시작
                 </Link>
