@@ -33,6 +33,7 @@ import { TermTooltip } from '@/components/common'
 import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/lib/kcdOm'
 import { suggestCheopyakCodes, describeCheopyak } from '@/data/cheopyak-codes'
 import { usePrescriptionTracking } from '@/hooks/usePrescriptionTracking'
+import { api } from '@/services/api'
 
 interface SymptomCategory {
   id: string
@@ -760,41 +761,57 @@ export default function PatternDiagnosisPage() {
     const query = [top.pattern, top.hanja, ...selectedSymptomNames].filter(Boolean).join(' ')
     if (!query.trim()) return
 
+    let cancelled = false
     setSimilarLoading(true)
     setSimilarError(null)
 
-    const apiBase =
-      (import.meta as any).env?.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
+    // Fly auto-stop cold-start + 6,454건 임베딩 스코어링 + OpenAI 임베딩 합치면 20s 로 부족 → 45s.
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 20000)
+    const timeoutId = setTimeout(() => controller.abort(), 45000)
 
-    fetch(`${apiBase}/api/v1/cases/search-similar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, topK: 5, threshold: 0.25 }),
-      signal: controller.signal,
-    })
-      .then((r) => {
-        clearTimeout(timeoutId)
-        if (!r.ok) throw new Error(`서버 응답 ${r.status}`)
-        return r.json()
-      })
-      .then((json) => {
-        const wrapped = json && typeof json === 'object' && 'data' in json ? json.data : json
-        if (wrapped?.meta?.error) {
-          setSimilarError(wrapped.meta.error)
+    api
+      .post(
+        '/cases/search-similar',
+        { query, topK: 5, threshold: 0.25 },
+        // 공용 axios 인스턴스가 JWT 자동 첨부 + {success,data} 언래핑 처리.
+        // _skipRetry: abort 시 인터셉터의 자동 재시도가 동작하지 않게 막는다.
+        { signal: controller.signal, timeout: 45000, _skipRetry: true } as any,
+      )
+      .then((res) => {
+        if (cancelled) return
+        const data: any = res.data
+        if (data?.meta?.error) {
+          setSimilarError(data.meta.error)
           setSimilarCases([])
         } else {
-          setSimilarCases(Array.isArray(wrapped?.results) ? wrapped.results : [])
+          setSimilarCases(Array.isArray(data?.results) ? data.results : [])
         }
       })
       .catch((err) => {
-        setSimilarError(err?.message || '유사 치험례 검색 실패')
+        if (cancelled) return
+        if (controller.signal.aborted) {
+          setSimilarError('AI 매칭이 시간 내 응답하지 않았습니다(45s). 잠시 후 다시 시도해주세요.')
+          setSimilarCases([])
+          return
+        }
+        const status = err?.response?.status
+        const msg =
+          err?.response?.data?.message ||
+          (status ? `서버 응답 ${status}` : err?.message) ||
+          '유사 치험례 검색 실패'
+        setSimilarError(msg)
         setSimilarCases([])
       })
-      .finally(() => setSimilarLoading(false))
+      .finally(() => {
+        clearTimeout(timeoutId)
+        if (!cancelled) setSimilarLoading(false)
+      })
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
   }, [results, selectedSymptomNames])
 
   const toggleSymptom = (symptomId: string) => {
