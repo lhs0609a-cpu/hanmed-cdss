@@ -14,6 +14,7 @@ import {
   Info,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 interface Question {
   id: number
@@ -522,9 +523,7 @@ export default function ConstitutionPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/30 mb-4">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div>
+          <Toss3DIcon icon={Sparkles} tone="purple" size="2xl" className="mb-4" />
           <h1 className="text-2xl font-bold text-gray-900">체질 진단 결과</h1>
           <p className="text-gray-500 mt-1">가중치 기반 분석 결과입니다</p>
         </div>
@@ -532,7 +531,7 @@ export default function ConstitutionPage() {
         {/* 확률 분포 차트 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-purple-500" />
+            <Toss3DIcon icon={BarChart3} tone="purple" size="sm" />
             체질 확률 분포
           </h3>
           <div className="space-y-3">
@@ -612,8 +611,8 @@ export default function ConstitutionPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 체형 */}
             <div className="p-5 bg-blue-50 rounded-xl">
-              <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                <User className="h-5 w-5" />
+              <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <Toss3DIcon icon={User} tone="blue" size="sm" />
                 체형 특징
               </h3>
               <p className="text-blue-700 text-sm">{result.bodyType}</p>
@@ -621,8 +620,8 @@ export default function ConstitutionPage() {
 
             {/* 성격 */}
             <div className="p-5 bg-purple-50 rounded-xl">
-              <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-                <Heart className="h-5 w-5" />
+              <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <Toss3DIcon icon={Heart} tone="pink" size="sm" />
                 성격 특징
               </h3>
               <p className="text-purple-700 text-sm">{result.personality}</p>
@@ -630,11 +629,14 @@ export default function ConstitutionPage() {
 
             {/* 장점 */}
             <div className="p-5 bg-green-50 rounded-xl">
-              <h3 className="font-bold text-green-900 mb-2">강점</h3>
-              <ul className="space-y-1">
+              <h3 className="font-bold text-green-900 mb-3 flex items-center gap-2">
+                <Toss3DIcon icon={CheckCircle2} tone="green" size="sm" />
+                강점
+              </h3>
+              <ul className="space-y-1.5">
                 {result.strengths.map((s, i) => (
                   <li key={i} className="text-green-700 text-sm flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
+                    <Toss3DIcon icon={CheckCircle2} tone="green" size="xs" />
                     {s}
                   </li>
                 ))}
@@ -643,11 +645,14 @@ export default function ConstitutionPage() {
 
             {/* 약점 */}
             <div className="p-5 bg-amber-50 rounded-xl">
-              <h3 className="font-bold text-amber-900 mb-2">주의할 점</h3>
-              <ul className="space-y-1">
+              <h3 className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                <Toss3DIcon icon={AlertTriangle} tone="amber" size="sm" />
+                주의할 점
+              </h3>
+              <ul className="space-y-1.5">
                 {result.weaknesses.map((w, i) => (
                   <li key={i} className="text-amber-700 text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
+                    <Toss3DIcon icon={AlertTriangle} tone="amber" size="xs" />
                     {w}
                   </li>
                 ))}
@@ -659,7 +664,7 @@ export default function ConstitutionPage() {
         {/* 음식 추천 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Utensils className="h-5 w-5 text-orange-500" />
+            <Toss3DIcon icon={Utensils} tone="orange" size="sm" />
             음식 가이드
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -689,7 +694,7 @@ export default function ConstitutionPage() {
         {/* 추천 한약재 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-teal-500" />
+            <Toss3DIcon icon={Activity} tone="teal" size="sm" />
             체질에 맞는 한약재
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -707,7 +712,7 @@ export default function ConstitutionPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {result.healthTips.map((tip, i) => (
               <div key={i} className="flex items-center gap-2 text-indigo-700">
-                <CheckCircle2 className="h-5 w-5 text-indigo-500 flex-shrink-0" />
+                <Toss3DIcon icon={CheckCircle2} tone="indigo" size="xs" />
                 <span className="text-sm">{tip}</span>
               </div>
             ))}

@@ -167,3 +167,6 @@ export {
   MockupInteraction,
   MockupFormulaSearch,
 } from './FeatureMockups'
+
+// 토스 스타일 3D 아이콘 컨테이너 (lucide 아이콘 → gradient pill)
+export { Toss3DIcon, type Toss3DTone, type Toss3DSize } from './Toss3DIcon'

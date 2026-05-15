@@ -12,6 +12,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 import type {
   BodyHeat,
   BodyStrength,
@@ -283,9 +284,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
       {/* 헤더 */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-indigo-100 rounded-lg">
-            <Thermometer className="w-5 h-5 text-indigo-600" />
-          </div>
+          <Toss3DIcon icon={Thermometer} tone="indigo" size="md" />
           <h2 className="text-lg font-semibold text-gray-900">체열/근실도 평가</h2>
         </div>
         <p className="text-sm text-gray-600">
@@ -325,7 +324,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
+              <Toss3DIcon icon={Flame} tone="orange" size="sm" />
               <h3 className="font-medium text-gray-900">체열(寒熱) 평가</h3>
               <span className="text-sm text-gray-500">
                 ({heatAnsweredCount}/{heatAssessmentQuestions.length})
@@ -404,7 +403,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Dumbbell className="w-5 h-5 text-blue-500" />
+              <Toss3DIcon icon={Dumbbell} tone="blue" size="sm" />
               <h3 className="font-medium text-gray-900">근실도(虛實) 평가</h3>
               <span className="text-sm text-gray-500">
                 ({strengthAnsweredCount}/{strengthAssessmentQuestions.length})
@@ -490,7 +489,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
       {step === 'result' && (
         <div className="p-6">
           <div className="flex items-center gap-2 mb-6">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <Toss3DIcon icon={CheckCircle2} tone="green" size="sm" />
             <h3 className="font-medium text-gray-900">평가 결과</h3>
           </div>
 
@@ -504,11 +503,11 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
             )}>
               <div className="flex items-center gap-3 mb-3">
                 {getBodyHeat(heatScore) === 'cold' ? (
-                  <Snowflake className="w-8 h-8 text-blue-500" />
+                  <Toss3DIcon icon={Snowflake} tone="blue" size="lg" />
                 ) : getBodyHeat(heatScore) === 'hot' ? (
-                  <Flame className="w-8 h-8 text-orange-500" />
+                  <Toss3DIcon icon={Flame} tone="orange" size="lg" />
                 ) : (
-                  <Thermometer className="w-8 h-8 text-gray-500" />
+                  <Toss3DIcon icon={Thermometer} tone="gray" size="lg" />
                 )}
                 <div>
                   <div className="text-lg font-bold text-gray-900">
@@ -548,11 +547,11 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
             )}>
               <div className="flex items-center gap-3 mb-3">
                 {getBodyStrength(strengthScore) === 'deficient' ? (
-                  <Feather className="w-8 h-8 text-slate-600" />
+                  <Toss3DIcon icon={Feather} tone="slate" size="lg" />
                 ) : getBodyStrength(strengthScore) === 'excess' ? (
-                  <Dumbbell className="w-8 h-8 text-green-500" />
+                  <Toss3DIcon icon={Dumbbell} tone="green" size="lg" />
                 ) : (
-                  <HelpCircle className="w-8 h-8 text-gray-500" />
+                  <Toss3DIcon icon={HelpCircle} tone="gray" size="lg" />
                 )}
                 <div>
                   <div className="text-lg font-bold text-gray-900">
@@ -587,7 +586,7 @@ export function BodyConstitutionAssessment({ onComplete, initialResult, classNam
           {/* 종합 판단 */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+              <Toss3DIcon icon={AlertTriangle} tone="amber" size="sm" className="mt-0.5" />
               <div>
                 <div className="font-medium text-amber-800 mb-1">처방 선택 시 주의사항</div>
                 <ul className="text-sm text-amber-700 space-y-1">

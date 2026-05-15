@@ -21,6 +21,8 @@ import {
   Scale,
   Dumbbell,
   CheckCircle,
+  Zap,
+  Lightbulb,
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
@@ -34,6 +36,18 @@ import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/li
 import { suggestCheopyakCodes, describeCheopyak } from '@/data/cheopyak-codes'
 import { usePrescriptionTracking } from '@/hooks/usePrescriptionTracking'
 import { api } from '@/services/api'
+import { Toss3DIcon, type Toss3DTone } from '@/components/common/Toss3DIcon'
+
+// 카테고리 id → 토스 3D 아이콘 톤 매핑.
+// 한 화면에서 6개가 한꺼번에 보이므로 색이 겹치지 않도록 의도적으로 분산.
+const SYMPTOM_CATEGORY_TONE: Record<string, Toss3DTone> = {
+  general: 'teal',
+  head: 'indigo',
+  chest: 'pink',
+  digestion: 'orange',
+  sleep: 'purple',
+  temperature: 'red',
+}
 
 interface SymptomCategory {
   id: string
@@ -1048,12 +1062,15 @@ export default function PatternDiagnosisPage() {
       {step === 'constitution' && (
         <div className="space-y-6">
           <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4">
-            <p className="text-indigo-700 text-sm">
-              ⚡ <strong>이종대 선생님 기준:</strong>{' '}
-              <TermTooltip term="체열">체열</TermTooltip>(몸이 차가운지/더운지)과{' '}
-              <TermTooltip term="근실도">근실도</TermTooltip>(기운이 약한지/튼튼한지)는 처방 선택의 핵심입니다.
-              이 두 가지만 정확히 파악하면 치료 확률 50% 이상, 부작용 최소화!
-            </p>
+            <div className="flex items-start gap-3">
+              <Toss3DIcon icon={Zap} tone="amber" size="sm" className="mt-0.5" />
+              <p className="text-indigo-700 text-sm">
+                <strong>이종대 선생님 기준:</strong>{' '}
+                <TermTooltip term="체열">체열</TermTooltip>(몸이 차가운지/더운지)과{' '}
+                <TermTooltip term="근실도">근실도</TermTooltip>(기운이 약한지/튼튼한지)는 처방 선택의 핵심입니다.
+                이 두 가지만 정확히 파악하면 치료 확률 50% 이상, 부작용 최소화!
+              </p>
+            </div>
           </div>
 
           <BodyConstitutionAssessment
@@ -1069,9 +1086,12 @@ export default function PatternDiagnosisPage() {
       {step === 'symptoms' && (
         <div className="space-y-6">
           <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
-            <p className="text-slate-700 text-sm">
-              💡 환자가 호소하는 증상을 모두 선택해주세요. 정확한 변증을 위해 가능한 많은 증상을 선택하세요.
-            </p>
+            <div className="flex items-start gap-3">
+              <Toss3DIcon icon={Lightbulb} tone="amber" size="sm" className="mt-0.5" />
+              <p className="text-slate-700 text-sm">
+                환자가 호소하는 증상을 모두 선택해주세요. 정확한 변증을 위해 가능한 많은 증상을 선택하세요.
+              </p>
+            </div>
           </div>
 
           {symptomCategories.map((category) => (
@@ -1079,8 +1099,12 @@ export default function PatternDiagnosisPage() {
               key={category.id}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <category.icon className="h-5 w-5 text-slate-600" />
+              <div className="flex items-center gap-3 mb-4">
+                <Toss3DIcon
+                  icon={category.icon as any}
+                  tone={SYMPTOM_CATEGORY_TONE[category.id] ?? 'slate'}
+                  size="sm"
+                />
                 <h3 className="font-bold text-gray-900">{category.name}</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -1261,9 +1285,12 @@ export default function PatternDiagnosisPage() {
       {step === 'palgang' && (
         <div className="space-y-6">
           <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
-            <p className="text-slate-700 text-sm">
-              💡 수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. AI가 자동으로 분석하거나 직접 선택할 수 있습니다.
-            </p>
+            <div className="flex items-start gap-3">
+              <Toss3DIcon icon={Lightbulb} tone="amber" size="sm" className="mt-0.5" />
+              <p className="text-slate-700 text-sm">
+                수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. AI가 자동으로 분석하거나 직접 선택할 수 있습니다.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
