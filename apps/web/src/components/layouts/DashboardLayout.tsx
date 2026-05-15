@@ -57,51 +57,53 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string }>
 }
 
-// 메뉴 정의 — Toss 식 단순화.
-// Primary 6 개만 항상 노출, 나머지는 "더 보기"로 접어둔다.
-// 모든 기능 도달은 ⌘K 검색 + 더보기로 가능 — 사이드바는 매일 쓰는 흐름만.
+// 메뉴 정의 — Toss 식 단순화 v2.
+// Primary 5 (매일 쓰는 진료 핵심) + 더 보기 12 (필요시 도구) = 17 노출.
+// 나머지 17개는 사이드바에서 숨기고 ⌘K 검색 인덱스(HIDDEN_MENU)에만 유지.
+// 거의 안 쓰거나 다른 페이지에 통합되어 있는 항목 — 검색으로는 여전히 도달 가능.
 const PRIMARY_MENU: MenuItem[] = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '새 진료', href: '/dashboard/consultation', icon: Stethoscope },
   { name: '환자', href: '/dashboard/patients', icon: Users },
   { name: '치험례', href: '/dashboard/cases', icon: BookOpen },
-  { name: '청구', href: '/dashboard/insurance', icon: FileText },
-  { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle },
+  { name: 'AI 변증', href: '/dashboard/pattern-diagnosis', icon: Brain },
 ]
 
 const MORE_MENU: MenuItem[] = [
-  // 진료 보조
   { name: '통합 검색', href: '/dashboard/unified-search', icon: Search },
-  { name: 'AI 변증', href: '/dashboard/pattern-diagnosis', icon: Brain },
-  { name: 'AI 치험례', href: '/dashboard/case-search', icon: BookOpen },
-  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },
   { name: '처방 비교', href: '/dashboard/formula-compare', icon: ArrowLeftRight },
-  { name: 'Red Flag', href: '/dashboard/red-flag', icon: AlertTriangle },
-  { name: '체질 진단', href: '/dashboard/constitution', icon: User },
-  { name: '증상→처방', href: '/dashboard/symptom-search', icon: Search },
-  { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin },
-  { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity },
-  { name: '용량 계산', href: '/dashboard/dosage', icon: Scale },
-  // 자료
   { name: '처방 검색', href: '/dashboard/formulas', icon: FlaskConical },
   { name: '약재 검색', href: '/dashboard/herbs', icon: Leaf },
-  { name: '본초 DB', href: '/dashboard/herbs-db', icon: Database },
-  { name: '합방 계산기', href: '/dashboard/combo', icon: Calculator },
+  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },
+  { name: 'Red Flag', href: '/dashboard/red-flag', icon: AlertTriangle },
+  { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle },
+  { name: '체질 진단', href: '/dashboard/constitution', icon: User },
   { name: '고전 검색', href: '/dashboard/classics', icon: ScrollText },
-  { name: '병양도표', href: '/dashboard/byeongyang', icon: Library },
-  { name: '학파 비교', href: '/dashboard/school-compare', icon: GitCompare },
-  { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse },
-  // 청구·관리
-  { name: '삭감 예측', href: '/dashboard/claim-check', icon: Shield },
-  { name: '수가/상병', href: '/dashboard/insurance-fee', icon: DollarSign },
-  { name: '문서 템플릿', href: '/dashboard/documents', icon: FileText },
-  // 커뮤니티 / Pro
-  { name: '커뮤니티', href: '/dashboard/community', icon: MessageSquare },
+  { name: '청구', href: '/dashboard/insurance', icon: FileText },
   { name: '진료 성과', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: '스마트 청구', href: '/dashboard/smart-insurance', icon: Receipt },
-  { name: '환자 CRM', href: '/dashboard/crm', icon: Target },
-  { name: '케이스 공유', href: '/dashboard/case-network', icon: Share2 },
-  { name: '약재 재고', href: '/dashboard/inventory', icon: Package },
+  { name: '커뮤니티', href: '/dashboard/community', icon: MessageSquare },
+]
+
+// 사이드바에서 제거된 항목 — ⌘K 검색으로는 여전히 도달 가능해야 하므로 인덱스에 유지.
+// 제거 사유는 디자인 노트(2026-05): 다른 페이지에 통합되어 있거나 너무 니치하거나 진료 흐름과 거리가 멀어 매일 노이즈만 됨.
+const HIDDEN_MENU: MenuItem[] = [
+  { name: 'AI 치험례', href: '/dashboard/case-search', icon: BookOpen },          // 치험례 안에 임베딩 매칭 통합
+  { name: '증상→처방', href: '/dashboard/symptom-search', icon: Search },          // 새 진료 위저드에 통합
+  { name: '본초 DB', href: '/dashboard/herbs-db', icon: Database },                 // 약재 검색과 중복
+  { name: '스마트 청구', href: '/dashboard/smart-insurance', icon: Receipt },       // 청구 하위
+  { name: '환자 CRM', href: '/dashboard/crm', icon: Target },                       // 환자 페이지 부분기능
+  { name: '삭감 예측', href: '/dashboard/claim-check', icon: Shield },              // 청구 하위
+  { name: '수가/상병', href: '/dashboard/insurance-fee', icon: DollarSign },        // 청구 하위
+  { name: '문서 템플릿', href: '/dashboard/documents', icon: FileText },            // 진료에서 자동 생성
+  { name: '케이스 공유', href: '/dashboard/case-network', icon: Share2 },           // 커뮤니티 하위
+  { name: '약재 재고', href: '/dashboard/inventory', icon: Package },               // 운영 관리(진료 아님)
+  { name: '합방 계산기', href: '/dashboard/combo', icon: Calculator },              // 처방 비교에 흡수
+  { name: '용량 계산', href: '/dashboard/dosage', icon: Scale },                    // 처방 작성에 흡수
+  { name: '학파 비교', href: '/dashboard/school-compare', icon: GitCompare },       // 니치
+  { name: '병양도표', href: '/dashboard/byeongyang', icon: Library },               // 니치
+  { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse },  // 의미 모호
+  { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin },                // 침구 — 한약 CDSS 분리
+  { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity },                  // 차트에 흡수 가능
 ]
 
 export default function DashboardLayout() {
@@ -132,8 +134,9 @@ export default function DashboardLayout() {
   const isMoreOpen = collapsedSections.includes('more:open')
 
   // 모든 메뉴 항목 (페이지 방문 기록 / 검색용)
+  // HIDDEN_MENU 까지 포함 — 사이드바에는 안 보여도 ⌘K 검색으로는 도달해야 함.
   const allMenuItems = useMemo(
-    () => [...PRIMARY_MENU, ...MORE_MENU],
+    () => [...PRIMARY_MENU, ...MORE_MENU, ...HIDDEN_MENU],
     [],
   )
 
@@ -301,7 +304,7 @@ export default function DashboardLayout() {
 
           {/* HanjaToggle/GlossaryButton 은 사이드바에서 제거. 설정 페이지에서 토글. */}
 
-          {/* Navigation — Toss 식 단순 구조: Primary 6 + 더 보기 */}
+          {/* Navigation — Toss 식 단순 구조: Primary 5 (매일) + 더 보기 12 (필요시) */}
           <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="주 메뉴">
             {/* 검색 결과 (메뉴 검색 입력 시) */}
             {searchResults && (
