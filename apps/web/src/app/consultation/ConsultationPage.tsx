@@ -50,6 +50,7 @@ import { SimilarPatientStats, RecommendationStatHighlight } from '@/components/c
 import { printPrescription } from '@/lib/prescriptionPrint'
 import { useAuthStore } from '@/stores/authStore'
 import { Printer } from 'lucide-react'
+import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 const consultationTourSteps = [
   {
@@ -623,9 +624,7 @@ export default function ConsultationPage() {
           {wizardStep === 1 && (
             <div className="space-y-6" data-tour="patient-info">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-2xl shadow-lg shadow-teal-500/20">
-                  <User className="h-6 w-6 text-white" />
-                </div>
+                <Toss3DIcon icon={User} tone="teal" size="xl" />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">환자 정보 입력</h2>
                   <p className="text-sm text-gray-500">진료 시작을 위한 기본 정보를 입력해주세요</p>
@@ -862,9 +861,7 @@ export default function ConsultationPage() {
           {wizardStep === 3 && (
             <div className="space-y-6" data-tour="analyze-button">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg shadow-purple-500/20 animate-pulse">
-                  <Stethoscope className="h-6 w-6 text-white" />
-                </div>
+                <Toss3DIcon icon={Stethoscope} tone="purple" size="xl" className="animate-pulse" />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">AI 분석 중</h2>
                   <p className="text-sm text-gray-500">{formatStatNumber(BASE_STATS.cases)}의 치험례를 분석하고 있습니다</p>
@@ -937,9 +934,7 @@ export default function ConsultationPage() {
           {wizardStep === 4 && (
             <div className="space-y-6" data-tour="result-area">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl shadow-lg shadow-emerald-500/20">
-                  <FileCheck className="h-6 w-6 text-white" />
-                </div>
+                <Toss3DIcon icon={FileCheck} tone="mint" size="xl" />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">처방 추천 결과</h2>
                   <p className="text-sm text-gray-500">{recommendations.length}개의 처방이 추천되었습니다</p>
@@ -950,7 +945,7 @@ export default function ConsultationPage() {
               {analysis && (
                 <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-200 p-4">
                   <div className="flex items-start gap-3">
-                    <Brain className="h-5 w-5 text-teal-500 mt-0.5" />
+                    <Toss3DIcon icon={Brain} tone="teal" size="sm" className="mt-0.5" />
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">AI 변증 분석</h4>
                       <p className="text-sm text-gray-600 leading-relaxed">{analysis}</p>

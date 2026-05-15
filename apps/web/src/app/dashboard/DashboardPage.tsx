@@ -4,6 +4,7 @@ import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { Stethoscope, BookOpen, ArrowRight, ChevronRight } from 'lucide-react'
+import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 /**
  * 대시보드 — Toss 식 단순화.
@@ -77,7 +78,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5" aria-hidden="true" />
+              <Toss3DIcon icon={Stethoscope} tone="teal" size="sm" />
               <span className="text-[13px] font-medium text-white/70">진료 시작</span>
             </div>
             <p className="mt-2 text-[22px] font-bold tracking-tight">

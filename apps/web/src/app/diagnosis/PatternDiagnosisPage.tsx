@@ -1447,7 +1447,7 @@ export default function PatternDiagnosisPage() {
           {/* Recommended Formulas */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Pill className="h-5 w-5 text-slate-600" />
+              <Toss3DIcon icon={Pill} tone="indigo" size="sm" />
               추천 처방 <span className="text-xs font-normal text-gray-500">(참고용)</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1551,7 +1551,7 @@ export default function PatternDiagnosisPage() {
           {results.length > 1 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
+                <Toss3DIcon icon={AlertCircle} tone="amber" size="sm" />
                 감별 변증
               </h3>
               <div className="space-y-3">

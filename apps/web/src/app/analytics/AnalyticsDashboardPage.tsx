@@ -10,6 +10,7 @@ import {
   Download,
   RefreshCw,
 } from 'lucide-react';
+import { Toss3DIcon } from '@/components/common/Toss3DIcon';
 import {
   AreaChart,
   Area,
@@ -112,9 +113,7 @@ export default function AnalyticsDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
+            <Toss3DIcon icon={Users} tone="blue" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor(metrics?.overview?.totalPatientsChange || 0)}`}>
               {formatChange(metrics?.overview?.totalPatientsChange || 0)}
             </span>
@@ -127,9 +126,7 @@ export default function AnalyticsDashboardPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
+            <Toss3DIcon icon={TrendingUp} tone="green" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor((metrics?.returnRate?.current || 0) - (metrics?.returnRate?.previous || 0))}`}>
               {metrics?.returnRate?.trend === 'up' ? '↑' : metrics?.returnRate?.trend === 'down' ? '↓' : '→'}
             </span>
@@ -142,9 +139,7 @@ export default function AnalyticsDashboardPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Target className="w-6 h-6 text-purple-600" />
-            </div>
+            <Toss3DIcon icon={Target} tone="purple" size="lg" />
             <span className="text-sm font-medium text-green-600">
               {metrics?.aiUsage?.acceptanceRate?.toFixed(0) ?? 0}%
             </span>
@@ -157,9 +152,7 @@ export default function AnalyticsDashboardPage() {
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-amber-100 rounded-lg">
-              <Activity className="w-6 h-6 text-amber-600" />
-            </div>
+            <Toss3DIcon icon={Activity} tone="amber" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor(metrics?.overview?.totalConsultationsChange || 0)}`}>
               {formatChange(metrics?.overview?.totalConsultationsChange || 0)}
             </span>
@@ -245,7 +238,7 @@ export default function AnalyticsDashboardPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
+                <Toss3DIcon icon={Calendar} tone="blue" size="sm" />
                 <span className="text-gray-700">오늘 진료</span>
               </div>
               <span className="text-xl font-bold text-blue-600">
@@ -254,7 +247,7 @@ export default function AnalyticsDashboardPage() {
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-green-600" />
+                <Toss3DIcon icon={Users} tone="green" size="sm" />
                 <span className="text-gray-700">내원 환자</span>
               </div>
               <span className="text-xl font-bold text-green-600">
@@ -263,7 +256,7 @@ export default function AnalyticsDashboardPage() {
             </div>
             <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
+                <Toss3DIcon icon={BarChart3} tone="purple" size="sm" />
                 <span className="text-gray-700">처방 건수</span>
               </div>
               <span className="text-xl font-bold text-purple-600">
@@ -291,8 +284,8 @@ export default function AnalyticsDashboardPage() {
       {/* Benchmark Section */}
       {benchmark && (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center gap-2 mb-6">
-            <Award className="w-5 h-5 text-amber-500" />
+          <div className="flex items-center gap-3 mb-6">
+            <Toss3DIcon icon={Award} tone="amber" size="sm" />
             <h3 className="text-lg font-semibold">전국 벤치마크 비교</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">

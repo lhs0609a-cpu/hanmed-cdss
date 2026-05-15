@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { setInlineToastTimeout } from '@/hooks/useToast'
+import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 // 로컬스토리지 키
 const PATIENTS_STORAGE_KEY = 'hanmed_patients'
@@ -507,7 +508,7 @@ export default function PatientDetailPage() {
           {/* Basic Info */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-500" />
+              <Toss3DIcon icon={User} tone="blue" size="sm" />
               기본 정보
             </h3>
             <div className="space-y-3">
@@ -533,7 +534,7 @@ export default function PatientDetailPage() {
           {/* Medical Info */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-gray-500" />
+              <Toss3DIcon icon={Stethoscope} tone="teal" size="sm" />
               의료 정보
             </h3>
             <div className="space-y-4">
@@ -588,9 +589,7 @@ export default function PatientDetailPage() {
             <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-xl">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                  </div>
+                  <Toss3DIcon icon={Calendar} tone="blue" size="md" />
                   <div>
                     <p className="font-bold text-gray-900">{visit.date}</p>
                     <p className="text-sm text-gray-500">{index === 0 ? '최근 진료' : `${index + 1}번째 전`}</p>
@@ -725,7 +724,7 @@ export default function PatientDetailPage() {
           {/* Progress Summary */}
           <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-2xl border border-green-100 p-6">
             <h3 className="font-bold text-green-900 mb-4 flex items-center gap-2">
-              <TrendingDown className="h-5 w-5" />
+              <Toss3DIcon icon={TrendingDown} tone="green" size="sm" />
               경과 요약
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

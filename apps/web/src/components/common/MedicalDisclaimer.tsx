@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AlertTriangle, X, Info, Shield, CheckCircle2, FileWarning, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Toss3DIcon } from './Toss3DIcon'
 
 /**
  * 의료 면책조항 컴포넌트
@@ -335,9 +336,7 @@ export function PrescriptionDisclaimer({ className }: { className?: string }) {
       'flex items-start gap-3 p-4 bg-white border border-neutral-200 rounded-xl',
       className
     )}>
-      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center">
-        <AlertTriangle className="h-4 w-4 text-neutral-700" />
-      </div>
+      <Toss3DIcon icon={AlertTriangle} tone="amber" size="sm" className="mt-0.5" />
       <div className="space-y-1.5 flex-1">
         <p className="text-[14px] font-semibold text-neutral-900">
           처방 전 필수 확인 사항
