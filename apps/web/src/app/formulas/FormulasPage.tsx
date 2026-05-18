@@ -158,7 +158,7 @@ export default function FormulasPage() {
     }
 
     return result
-  }, [selectedCategory, selectedSchool, searchQuery])
+  }, [allFormulas, selectedCategory, selectedSchool, searchQuery])
 
   // 페이지네이션
   const totalPages = Math.ceil(filteredFormulas.length / ITEMS_PER_PAGE)
