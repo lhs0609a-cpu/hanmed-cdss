@@ -300,6 +300,19 @@ interface PalGangDiagramProps {
 }
 
 export function PalGangDiagram({ analysis, className }: PalGangDiagramProps) {
+  // 다이어그램은 사분원 면적이 좁아 한자 괄호까지 다 넣으면 원 밖으로 삐져나옴.
+  // 좌측 분석 카드에서 이미 한자 풀네임을 보여주므로 여기는 한글 라벨만.
+  const koreanOnly = (label: string | undefined, fallback: string) =>
+    (label?.split('(')[0]?.trim() || fallback)
+
+  const yinYangLabel = koreanOnly(analysis.yinYang?.label, '음양')
+  const interiorLabel = koreanOnly(analysis.interiorExterior?.label, '표리')
+  const coldHeatLabel = koreanOnly(analysis.coldHeat?.label, '한열')
+  const deficiencyLabel = koreanOnly(analysis.deficiencyExcess?.label, '허실')
+
+  // 4글자 이상(예: 허실협잡)은 폰트를 조금 더 줄여 사분원 안에 들어가게.
+  const fontSizeFor = (label: string) => (label.length >= 4 ? 9 : 11)
+
   return (
     <div className={cn('relative w-full max-w-md mx-auto', className)}>
       <svg viewBox="0 0 200 200" className="w-full h-auto">
@@ -307,53 +320,83 @@ export function PalGangDiagram({ analysis, className }: PalGangDiagramProps) {
         <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" strokeWidth="2" />
 
         {/* Quadrants */}
-        {/* 음양 (top) */}
+        {/* 음양 (top-right) */}
         <path
           d="M 100 10 A 90 90 0 0 1 190 100 L 100 100 Z"
           fill={analysis.yinYang?.type === 'yang' ? '#f3e8ff' : '#f5f5f5'}
           stroke="#a855f7"
           strokeWidth="2"
         />
-        <text x="140" y="60" textAnchor="middle" className="text-xs font-medium fill-purple-700">
-          {analysis.yinYang?.label || '음양'}
+        <text
+          x="140"
+          y="63"
+          textAnchor="middle"
+          fontSize={fontSizeFor(yinYangLabel)}
+          className="font-medium fill-purple-700"
+        >
+          {yinYangLabel}
         </text>
 
-        {/* 표리 (right) */}
+        {/* 표리 (bottom-right) */}
         <path
           d="M 190 100 A 90 90 0 0 1 100 190 L 100 100 Z"
           fill={analysis.interiorExterior?.type === 'exterior' ? '#dbeafe' : '#f5f5f5'}
           stroke="#3b82f6"
           strokeWidth="2"
         />
-        <text x="150" y="150" textAnchor="middle" className="text-xs font-medium fill-blue-700">
-          {analysis.interiorExterior?.label || '표리'}
+        <text
+          x="140"
+          y="143"
+          textAnchor="middle"
+          fontSize={fontSizeFor(interiorLabel)}
+          className="font-medium fill-blue-700"
+        >
+          {interiorLabel}
         </text>
 
-        {/* 한열 (bottom) */}
+        {/* 한열 (bottom-left) */}
         <path
           d="M 100 190 A 90 90 0 0 1 10 100 L 100 100 Z"
           fill={analysis.coldHeat?.type === 'heat' ? '#ffedd5' : '#f5f5f5'}
           stroke="#f97316"
           strokeWidth="2"
         />
-        <text x="50" y="150" textAnchor="middle" className="text-xs font-medium fill-orange-700">
-          {analysis.coldHeat?.label || '한열'}
+        <text
+          x="60"
+          y="143"
+          textAnchor="middle"
+          fontSize={fontSizeFor(coldHeatLabel)}
+          className="font-medium fill-orange-700"
+        >
+          {coldHeatLabel}
         </text>
 
-        {/* 허실 (left) */}
+        {/* 허실 (top-left) */}
         <path
           d="M 10 100 A 90 90 0 0 1 100 10 L 100 100 Z"
           fill={analysis.deficiencyExcess?.type === 'excess' ? '#ccfbf1' : '#f5f5f5'}
           stroke="#14b8a6"
           strokeWidth="2"
         />
-        <text x="50" y="60" textAnchor="middle" className="text-xs font-medium fill-teal-700">
-          {analysis.deficiencyExcess?.label || '허실'}
+        <text
+          x="60"
+          y="63"
+          textAnchor="middle"
+          fontSize={fontSizeFor(deficiencyLabel)}
+          className="font-medium fill-teal-700"
+        >
+          {deficiencyLabel}
         </text>
 
         {/* Center */}
         <circle cx="100" cy="100" r="20" fill="white" stroke="#6b7280" strokeWidth="1" />
-        <text x="100" y="105" textAnchor="middle" className="text-xs font-bold fill-gray-700">
+        <text
+          x="100"
+          y="104"
+          textAnchor="middle"
+          fontSize="10"
+          className="font-bold fill-gray-700"
+        >
           팔강
         </text>
       </svg>
