@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 import { FORMULA_CASES } from '@/data/formula-cases'
 import { BYEONGYANG_DATA } from '@/data/byeongyang-data'
 import { BYEONGYAK_TABLES } from '@/data/byeongyak-data'
@@ -146,20 +147,30 @@ export default function UnifiedSearchPage() {
       const controller = new AbortController()
       caseAbortRef.current = controller
       try {
+        // /api/v1/cases 는 JWT 가드 — 미로그인 상태에선 호출하지 않는다.
+        const token = useAuthStore.getState().accessToken
+        if (!token) {
+          setCaseResults([])
+          setTotalCases(0)
+          return
+        }
         const params = new URLSearchParams({
           page: '1',
           limit: '10',
           search: debouncedQuery,
         })
-        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?${params}`, {
+        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases?${params}`, {
           signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` },
         })
         if (controller.signal.aborted) return
         if (response.ok) {
           const data = await response.json()
-          const result = data.data || data
-          setCaseResults(result.cases || [])
-          setTotalCases(result.total || 0)
+          // TransformInterceptor 래핑 해제 후 CasesService.findAll 의 { data: [], meta } 추출
+          const wrapped = data?.data ?? data
+          const list = Array.isArray(wrapped?.data) ? wrapped.data : wrapped?.cases ?? []
+          setCaseResults(list)
+          setTotalCases(wrapped?.meta?.total ?? wrapped?.total ?? list.length)
         }
       } catch (err) {
         console.error('Case search error:', err)

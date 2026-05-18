@@ -12,6 +12,7 @@ import {
   Minimize2,
   MessageSquare,
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 
 // AI Engine URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
@@ -75,97 +76,110 @@ export function RealTimeAssistant({
   const fetchSuggestions = async (query: string) => {
     setIsLoading(true)
     try {
-      // 치험례 검색으로 관련 처방 추천
-      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/list?search=${encodeURIComponent(query)}&limit=5`)
+      // 체험 모드(미로그인) 에서는 백엔드 호출 건너뛰고 키워드 기반 팁만 노출.
+      // /api/v1/cases 는 JWT 가드라 토큰 없으면 401 + CORS 헤더 누락으로 콘솔에 에러가 찍힘.
+      const token = useAuthStore.getState().accessToken
+      const cases: Array<Record<string, unknown>> = []
 
-      if (response.ok) {
-        const data = await response.json()
-        const cases = data.data?.cases || data.cases || []
-
-        // 관련 처방 추출 및 그룹화
-        const formulaCounts: Record<string, { count: number; cases: unknown[] }> = {}
-
-        for (const caseItem of cases) {
-          const formulaName = caseItem.formula_name || caseItem.treatment_formula
-          if (formulaName) {
-            if (!formulaCounts[formulaName]) {
-              formulaCounts[formulaName] = { count: 0, cases: [] }
-            }
-            formulaCounts[formulaName].count++
-            formulaCounts[formulaName].cases.push(caseItem)
-          }
+      if (token) {
+        const response = await fetch(
+          `${AI_ENGINE_URL}/api/v1/cases?search=${encodeURIComponent(query)}&limit=5`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+        if (response.ok) {
+          const data = await response.json()
+          const wrapped = data?.data ?? data
+          const list = Array.isArray(wrapped?.data) ? wrapped.data : wrapped?.cases ?? []
+          cases.push(...list)
         }
-
-        // 제안 생성
-        const newSuggestions: Suggestion[] = []
-
-        // 처방 제안
-        const topFormulas = Object.entries(formulaCounts)
-          .sort((a, b) => b[1].count - a[1].count)
-          .slice(0, 3)
-
-        for (const [formulaName, data] of topFormulas) {
-          newSuggestions.push({
-            id: `formula-${formulaName}`,
-            type: 'formula',
-            title: formulaName,
-            description: `${data.count}건의 유사 치험례에서 사용`,
-            confidence: Math.min(95, 60 + data.count * 10),
-            link: `/formulas?search=${encodeURIComponent(formulaName)}`,
-          })
-        }
-
-        // 관련 치험례 제안
-        if (cases.length > 0) {
-          newSuggestions.push({
-            id: 'cases',
-            type: 'case',
-            title: `${cases.length}건의 유사 치험례`,
-            description: '비슷한 증상의 치험례를 확인하세요',
-            link: `/cases?search=${encodeURIComponent(query)}`,
-          })
-        }
-
-        // 증상 기반 팁
-        if (query.includes('두통') || query.includes('어지러움')) {
-          newSuggestions.push({
-            id: 'tip-headache',
-            type: 'tip',
-            title: '두통 감별진단',
-            description: '외감두통/내상두통/어혈두통 구분 필요',
-          })
-        }
-
-        if (query.includes('소화') || query.includes('더부룩') || query.includes('복통')) {
-          newSuggestions.push({
-            id: 'tip-digestion',
-            type: 'tip',
-            title: '소화불량 변증 팁',
-            description: '비위허한/담음정체/간기범위 감별 고려',
-          })
-        }
-
-        if (query.includes('피로') || query.includes('권태')) {
-          newSuggestions.push({
-            id: 'tip-fatigue',
-            type: 'tip',
-            title: '피로 원인 감별',
-            description: '기허/혈허/양허/음허 중 주원인 파악',
-          })
-        }
-
-        // 경고 (특정 키워드)
-        if (query.includes('흉통') || query.includes('호흡곤란')) {
-          newSuggestions.unshift({
-            id: 'warning-chest',
-            type: 'warning',
-            title: '주의: 응급 증상 확인 필요',
-            description: '흉통/호흡곤란은 심혈관계 응급 감별 우선',
-          })
-        }
-
-        setSuggestions(newSuggestions)
       }
+
+      // 관련 처방 추출 및 그룹화
+      const formulaCounts: Record<string, { count: number; cases: unknown[] }> = {}
+
+      for (const caseItem of cases) {
+        // /api/v1/cases 컨트롤러는 camelCase(formulaName) 반환 — 구버전 snake_case 도 폴백.
+        const formulaName =
+          caseItem.formulaName || caseItem.formula_name || caseItem.treatment_formula
+        if (formulaName) {
+          const key = String(formulaName)
+          if (!formulaCounts[key]) {
+            formulaCounts[key] = { count: 0, cases: [] }
+          }
+          formulaCounts[key].count++
+          formulaCounts[key].cases.push(caseItem)
+        }
+      }
+
+      // 제안 생성
+      const newSuggestions: Suggestion[] = []
+
+      // 처방 제안
+      const topFormulas = Object.entries(formulaCounts)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 3)
+
+      for (const [formulaName, data] of topFormulas) {
+        newSuggestions.push({
+          id: `formula-${formulaName}`,
+          type: 'formula',
+          title: formulaName,
+          description: `${data.count}건의 유사 치험례에서 사용`,
+          confidence: Math.min(95, 60 + data.count * 10),
+          link: `/formulas?search=${encodeURIComponent(formulaName)}`,
+        })
+      }
+
+      // 관련 치험례 제안
+      if (cases.length > 0) {
+        newSuggestions.push({
+          id: 'cases',
+          type: 'case',
+          title: `${cases.length}건의 유사 치험례`,
+          description: '비슷한 증상의 치험례를 확인하세요',
+          link: `/cases?search=${encodeURIComponent(query)}`,
+        })
+      }
+
+      // 증상 기반 팁
+      if (query.includes('두통') || query.includes('어지러움')) {
+        newSuggestions.push({
+          id: 'tip-headache',
+          type: 'tip',
+          title: '두통 감별진단',
+          description: '외감두통/내상두통/어혈두통 구분 필요',
+        })
+      }
+
+      if (query.includes('소화') || query.includes('더부룩') || query.includes('복통')) {
+        newSuggestions.push({
+          id: 'tip-digestion',
+          type: 'tip',
+          title: '소화불량 변증 팁',
+          description: '비위허한/담음정체/간기범위 감별 고려',
+        })
+      }
+
+      if (query.includes('피로') || query.includes('권태')) {
+        newSuggestions.push({
+          id: 'tip-fatigue',
+          type: 'tip',
+          title: '피로 원인 감별',
+          description: '기허/혈허/양허/음허 중 주원인 파악',
+        })
+      }
+
+      // 경고 (특정 키워드)
+      if (query.includes('흉통') || query.includes('호흡곤란')) {
+        newSuggestions.unshift({
+          id: 'warning-chest',
+          type: 'warning',
+          title: '주의: 응급 증상 확인 필요',
+          description: '흉통/호흡곤란은 심혈관계 응급 감별 우선',
+        })
+      }
+
+      setSuggestions(newSuggestions)
     } catch (error) {
       console.error('Failed to fetch suggestions:', error)
       // 오프라인 제안

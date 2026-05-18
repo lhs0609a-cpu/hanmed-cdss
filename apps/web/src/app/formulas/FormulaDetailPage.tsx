@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/authStore'
 import { MedicineSchool } from '@/types'
 import { SchoolBadge, SchoolInfoCard } from '@/components/formula/SchoolBadge'
 import { MfdsDrugPanel } from '@/components/formula/MfdsDrugPanel'
@@ -135,25 +136,34 @@ export default function FormulaDetailPage() {
   const fetchRelatedCases = async (formulaName: string) => {
     setCasesLoading(true)
     try {
+      // 체험 모드(미로그인) 에서는 호출 자체를 건너뛴다 — /cases 는 JWT 필수.
+      const token = useAuthStore.getState().accessToken
+      if (!token) {
+        setRelatedCases([])
+        return
+      }
       const response = await fetch(
-        `${AI_ENGINE_URL}/api/v1/cases/list?search=${encodeURIComponent(formulaName)}&limit=20`
+        `${AI_ENGINE_URL}/api/v1/cases?search=${encodeURIComponent(formulaName)}&limit=20`,
+        { headers: { Authorization: `Bearer ${token}` } },
       )
       if (response.ok) {
         const data = await response.json()
-        // API 응답에서 케이스 추출
-        const cases = data.data?.cases || data.cases || []
+        // TransformInterceptor 래핑 해제 후 CasesService.findAll 의 { data: [], meta } 추출
+        const wrapped = data?.data ?? data
+        const cases = Array.isArray(wrapped?.data) ? wrapped.data : wrapped?.cases ?? []
+        // /api/v1/cases 컨트롤러는 camelCase 평탄화된 객체를 반환 (cases.controller.ts:46-69)
         const mappedCases: RelatedCase[] = cases.map((c: Record<string, unknown>) => ({
-          id: c.id as string || '',
-          title: c.title as string || '',
-          chiefComplaint: c.chief_complaint as string || '',
+          id: (c.id as string) || '',
+          title: (c.title as string) || '',
+          chiefComplaint: (c.chiefComplaint as string) || (c.chief_complaint as string) || '',
           symptoms: (c.symptoms as string[]) || [],
-          diagnosis: c.diagnosis as string || '',
-          patientAge: c.patient_age as number | undefined,
-          patientGender: c.patient_gender as string | undefined,
-          patientConstitution: c.patient_constitution as string | undefined,
-          formulaName: c.formula_name as string || c.treatment_formula as string || '',
+          diagnosis: (c.diagnosis as string) || '',
+          patientAge: (c.patientAge as number | undefined) ?? (c.patient_age as number | undefined),
+          patientGender: (c.patientGender as string | undefined) ?? (c.patient_gender as string | undefined),
+          patientConstitution: (c.constitution as string | undefined) ?? (c.patient_constitution as string | undefined),
+          formulaName: (c.formulaName as string) || (c.formula_name as string) || '',
           outcome: c.outcome as string | undefined,
-          dataSource: c.data_source as string || '',
+          dataSource: (c.dataSource as string) || (c.data_source as string) || '',
         }))
         setRelatedCases(mappedCases)
       }
