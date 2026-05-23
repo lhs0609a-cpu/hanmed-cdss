@@ -9,6 +9,7 @@ export const dataSourceOptions: DataSourceOptions = {
   url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/hanmed_cdss',
   entities: ['src/database/entities/*.entity{.ts,.js}'],
   migrations: ['src/database/migrations/*{.ts,.js}'],
+  migrationsTransactionMode: 'each',
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
 };

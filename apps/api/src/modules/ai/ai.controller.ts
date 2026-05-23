@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { LlmService } from './services/llm.service';
 import { RecommendationService } from './services/recommendation.service';
 import { PatientExplanationService } from './services/patient-explanation.service';
 import { CaseSearchService } from './services/case-search.service';
@@ -44,6 +45,7 @@ import {
   ChartDataRequestDto,
   ComprehensiveReportRequestDto,
   GenerateReportHtmlRequestDto,
+  ChatRequestDto,
 } from './dto';
 
 @ApiTags('AI')
@@ -52,6 +54,7 @@ import {
 @Controller('ai')
 export class AiController {
   constructor(
+    private llmService: LlmService,
     private recommendationService: RecommendationService,
     private patientExplanationService: PatientExplanationService,
     private caseSearchService: CaseSearchService,
@@ -61,6 +64,19 @@ export class AiController {
     private treatmentStatisticsService: TreatmentStatisticsService,
     private comprehensiveReportService: ComprehensiveReportService,
   ) {}
+
+  // ============ Chat Endpoint ============
+
+  @Post('chat')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'AI 챗봇 — 자유 대화 (온고지신 GPT 페르소나)' })
+  async chat(@Body() request: ChatRequestDto) {
+    const reply = await this.llmService.chat(request.messages, request.context);
+    return {
+      success: true,
+      data: { reply },
+    };
+  }
 
   // ============ Recommendation Endpoints ============
 

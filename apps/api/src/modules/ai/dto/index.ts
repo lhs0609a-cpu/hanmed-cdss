@@ -1007,3 +1007,48 @@ export class GenerateReportHtmlRequestDto extends ComprehensiveReportRequestDto 
   @Type(() => ReportHtmlOptionsDto)
   htmlOptions?: ReportHtmlOptionsDto;
 }
+
+// ============ Chat DTOs ============
+
+export class ChatMessageDto {
+  @ApiProperty({ description: '발화자', enum: ['user', 'assistant'] })
+  @IsIn(['user', 'assistant'])
+  role: 'user' | 'assistant';
+
+  @ApiProperty({ description: '메시지 내용' })
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+}
+
+export class ChatContextDto {
+  @ApiPropertyOptional({ description: '주소증' })
+  @IsOptional()
+  @IsString()
+  chiefComplaint?: string;
+
+  @ApiPropertyOptional({ description: '증상 목록', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  symptoms?: string[];
+
+  @ApiPropertyOptional({ description: '사상체질' })
+  @IsOptional()
+  @IsString()
+  constitution?: string;
+}
+
+export class ChatRequestDto {
+  @ApiProperty({ description: '대화 메시지 배열 (system 제외)', type: [ChatMessageDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChatMessageDto)
+  messages: ChatMessageDto[];
+
+  @ApiPropertyOptional({ description: '상담 폼 컨텍스트 (자동 주입)' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ChatContextDto)
+  context?: ChatContextDto;
+}
