@@ -95,7 +95,7 @@ export class CommunityService {
   }
 
   async findAllPosts(query: PostQueryDto) {
-    const { page = 1, limit = 20, type, category, sortBy = 'latest', search, tag } = query;
+    const { page = 1, limit = 20, type, category, sortBy = 'latest', search, tag, authorId } = query;
 
     const qb = this.postsRepository
       .createQueryBuilder('post')
@@ -121,6 +121,10 @@ export class CommunityService {
 
     if (tag) {
       qb.andWhere(':tag = ANY(post.tags)', { tag });
+    }
+
+    if (authorId) {
+      qb.andWhere('post.authorId = :authorId', { authorId });
     }
 
     // 정렬

@@ -94,11 +94,12 @@ export class PatientsService {
     }
   }
 
-  async createSession(patientData: any) {
+  async createSession(patientData: any, ownerId: string) {
     const sessionId = `sess_${crypto.randomUUID()}`;
     const payload = {
       ...patientData,
       sessionId,
+      ownerId,
       createdAt: new Date().toISOString(),
     };
 
@@ -123,7 +124,8 @@ export class PatientsService {
     return payload;
   }
 
-  async getSession(sessionId: string) {
+  /** 소유자 검증 없이 원본 세션을 읽는다 (내부 전용). */
+  private async getRawSession(sessionId: string) {
     if (this.isCacheReady()) {
       void this.migrateMemoryToRedisIfPossible();
       return this.cacheService.get<any>(sessionId, { prefix: PATIENT_SESSION_PREFIX });
@@ -139,10 +141,28 @@ export class PatientsService {
     return entry.payload;
   }
 
-  async updateSession(sessionId: string, data: any) {
-    const existing = await this.getSession(sessionId);
+  /**
+   * 세션 조회 — 요청자(ownerId)가 세션 소유자일 때만 반환한다.
+   * 소유자가 아니거나 존재하지 않으면 null (정보 노출 방지를 위해 동일하게 처리).
+   * 소유자 정보가 없는 레거시 세션은 호출자에게만 허용한다(점진적 이전).
+   */
+  async getSession(sessionId: string, ownerId: string) {
+    const payload = await this.getRawSession(sessionId);
+    if (!payload) return null;
+    if (payload.ownerId && payload.ownerId !== ownerId) return null;
+    return payload;
+  }
+
+  async updateSession(sessionId: string, data: any, ownerId: string) {
+    const existing = await this.getSession(sessionId, ownerId);
     if (!existing) return null;
-    const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
+    // ownerId 는 클라이언트 입력으로 덮어쓰지 못하게 마지막에 고정.
+    const merged = {
+      ...existing,
+      ...data,
+      ownerId: existing.ownerId ?? ownerId,
+      updatedAt: new Date().toISOString(),
+    };
 
     if (this.isCacheReady()) {
       await this.cacheService.set(sessionId, merged, {
@@ -160,7 +180,11 @@ export class PatientsService {
     return merged;
   }
 
-  async deleteSession(sessionId: string) {
+  async deleteSession(sessionId: string, ownerId: string) {
+    // 소유자 검증 — 타인 세션 삭제 방지.
+    const existing = await this.getSession(sessionId, ownerId);
+    if (!existing) return false;
+
     if (this.isCacheReady()) {
       return this.cacheService.delete(sessionId, { prefix: PATIENT_SESSION_PREFIX });
     }

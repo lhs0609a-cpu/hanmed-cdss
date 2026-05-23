@@ -14,7 +14,14 @@ import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
 import { User } from '../../database/entities/user.entity';
 import { Subscription, SubscriptionStatus } from '../../database/entities/subscription.entity';
+import { CacheService } from '../cache/cache.service';
 import * as crypto from 'crypto';
+
+// 웹훅 전송 시각이 현재와 이만큼 이상 차이 나면 거부 (재전송 공격 폭 제한)
+const WEBHOOK_MAX_SKEW_MS = 5 * 60 * 1000;
+// 처리 완료한 transmissionId 보관 기간 (재처리 방지)
+const WEBHOOK_DEDUPE_PREFIX = 'webhook:toss:seen';
+const WEBHOOK_DEDUPE_TTL_SECONDS = 24 * 60 * 60;
 
 interface TossWebhookPayload {
   eventType: string;
@@ -49,6 +56,7 @@ export class TossWebhookController {
     private userRepository: Repository<User>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    private cacheService: CacheService,
   ) {
     this.secretKey = this.configService.get('TOSS_SECRET_KEY') || '';
   }
@@ -65,12 +73,18 @@ export class TossWebhookController {
     @Headers('tosspayments-webhook-transmission-id') transmissionId?: string,
   ) {
     this.logger.log(`Received Toss webhook: ${payload.eventType}`);
-    this.logger.log(`Transmission ID: ${transmissionId}`);
 
     // 시그니처 검증 (필수)
     if (!signature || !transmissionTime) {
       this.logger.warn('Missing webhook signature or transmission time');
       throw new BadRequestException('Missing webhook signature');
+    }
+
+    // 전송 시각 신선도 검증 — 오래된(또는 미래의) 요청은 재전송 공격으로 간주.
+    const sentAt = Date.parse(transmissionTime);
+    if (Number.isNaN(sentAt) || Math.abs(Date.now() - sentAt) > WEBHOOK_MAX_SKEW_MS) {
+      this.logger.warn(`Webhook transmission time out of range: ${transmissionTime}`);
+      throw new BadRequestException('Webhook transmission time out of range');
     }
 
     const isValid = this.verifyWebhookSignature(
@@ -82,6 +96,17 @@ export class TossWebhookController {
     if (!isValid) {
       this.logger.warn('Invalid webhook signature');
       throw new BadRequestException('Invalid webhook signature');
+    }
+
+    // 재처리(replay) 방지 — 동일 transmissionId 는 한 번만 처리하고 이후엔 즉시 ack.
+    if (transmissionId) {
+      const seen = await this.cacheService.get<boolean>(transmissionId, {
+        prefix: WEBHOOK_DEDUPE_PREFIX,
+      });
+      if (seen) {
+        this.logger.log(`Duplicate webhook ignored: ${transmissionId}`);
+        return { success: true, duplicate: true };
+      }
     }
 
     try {
@@ -103,6 +128,14 @@ export class TossWebhookController {
           break;
         default:
           this.logger.log(`Unhandled event type: ${payload.eventType}`);
+      }
+
+      // 처리 완료 표시 — 이후 동일 transmissionId 재전송은 무시된다.
+      if (transmissionId) {
+        await this.cacheService.set(transmissionId, true, {
+          prefix: WEBHOOK_DEDUPE_PREFIX,
+          ttl: WEBHOOK_DEDUPE_TTL_SECONDS,
+        });
       }
 
       return { success: true };
@@ -133,15 +166,23 @@ export class TossWebhookController {
       return signatureParts.some((part) => {
         try {
           const decoded = Buffer.from(part.trim(), 'base64').toString();
-          return decoded === hmac;
+          return this.timingSafeEqual(decoded, hmac);
         } catch {
-          return part.trim() === hmac;
+          return this.timingSafeEqual(part.trim(), hmac);
         }
       });
     } catch (error) {
       this.logger.error('Signature verification error:', error);
       return false;
     }
+  }
+
+  /** 길이가 다르면 즉시 false, 같으면 상수 시간 비교 (타이밍 공격 방지). */
+  private timingSafeEqual(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
   }
 
   private async handlePaymentStatusChanged(data: TossWebhookPayload['data']) {

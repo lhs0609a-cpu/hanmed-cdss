@@ -280,6 +280,58 @@ export class AuthService {
   }
 
   /**
+   * 체험 모드 로그인.
+   * 고정된 데모 계정(free 티어)을 find-or-create 하여 정식 토큰을 발급한다.
+   * 비밀번호 없이 누구나 호출 가능한 공개 엔드포인트이므로,
+   * 데모 계정은 항상 free 티어 + 면허 검증 완료 상태로만 유지된다.
+   */
+  async demoLogin() {
+    const demoEmail = process.env.DEMO_USER_EMAIL || 'demo@ongojisin.ai';
+
+    let user = await this.usersService.findByEmail(demoEmail);
+    if (!user) {
+      // 사용 불가능한 랜덤 비밀번호 — 데모 계정은 password 로그인을 허용하지 않는다.
+      const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
+      const now = new Date();
+      user = await this.usersService.create({
+        email: demoEmail,
+        passwordHash,
+        name: '체험 계정',
+        clinicName: '온고지신 체험 한의원',
+        practitionerType: PractitionerType.PRACTITIONER,
+        licenseVerificationStatus: LicenseVerificationStatus.VERIFIED,
+        isVerified: true,
+        consentTerms: true,
+        consentPrivacy: true,
+        consentMarketing: false,
+        consentTermsAt: now,
+        consentPrivacyAt: now,
+        consentMarketingAt: null,
+      });
+    }
+
+    const tokens = this.generateTokens(user.id, user.email);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        subscriptionTier: user.subscriptionTier,
+        isVerified: user.isVerified,
+        role: user.role,
+        status: user.status,
+        licenseNumber: user.licenseNumber,
+        clinicName: user.clinicName,
+        isLicenseVerified: user.isLicenseVerified,
+        licenseVerificationStatus: user.licenseVerificationStatus,
+        licenseRejectionReason: user.licenseRejectionReason,
+      },
+      ...tokens,
+    };
+  }
+
+  /**
    * 2FA 챌린지 응답: password 로그인 직후 받은 challengeId + 6자리 TOTP 코드로 완전 인증.
    */
   async loginWith2fa(challengeId: string, code: string) {

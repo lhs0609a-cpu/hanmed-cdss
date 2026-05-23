@@ -77,7 +77,7 @@ const activityLabels = {
 }
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'achievements'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity'>('overview')
 
   // 레벨 계산
   const currentLevel = calculateLevel(
@@ -184,7 +184,6 @@ export default function ProfilePage() {
         {[
           { id: 'overview', label: '개요' },
           { id: 'activity', label: '활동' },
-          { id: 'achievements', label: '업적' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -253,18 +252,6 @@ export default function ProfilePage() {
             >
               모든 활동 보기 →
             </Link>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'achievements' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="text-center py-12">
-            <Award className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">업적 시스템 준비 중입니다</p>
-            <p className="text-sm text-gray-400 mt-1">
-              곧 다양한 업적과 배지를 획득할 수 있습니다
-            </p>
           </div>
         </div>
       )}

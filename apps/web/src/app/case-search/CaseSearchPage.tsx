@@ -287,12 +287,6 @@ export default function CaseSearchPage() {
 
   return (
     <div className="space-y-6">
-      {/* Demo Data Warning */}
-      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
-        <span className="text-amber-600 text-sm font-medium">⚠ 데모 데이터</span>
-        <span className="text-amber-500 text-xs">현재 표시된 데이터는 시연용 샘플입니다. 실제 서비스에서는 AI 분석 결과가 표시됩니다.</span>
-      </div>
-
       {/* Header */}
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">

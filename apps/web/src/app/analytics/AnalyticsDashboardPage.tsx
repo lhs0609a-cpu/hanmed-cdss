@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -7,7 +6,6 @@ import {
   Activity,
   Target,
   Award,
-  Download,
   RefreshCw,
 } from 'lucide-react';
 import { Toss3DIcon } from '@/components/common/Toss3DIcon';
@@ -23,34 +21,40 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   LineChart,
   Line,
 } from 'recharts';
 import {
   useDashboardMetrics,
-  useTrends,
   useBenchmark,
   usePrescriptionPatterns,
-  useTopItems,
-  useTodayActivity,
 } from '@/hooks/useAnalytics';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AnalyticsDashboardPage() {
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-  });
-
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
-  const { data: trends } = useTrends(dateRange.startDate, dateRange.endDate, 'day');
   const { data: benchmark } = useBenchmark();
   const { data: patterns } = usePrescriptionPatterns();
-  const { data: topFormulas } = useTopItems('formulas', 10);
-  const { data: todayActivity } = useTodayActivity();
+
+  // 전용 엔드포인트가 없는 위젯은 실제 데이터(/analytics/dashboard·/patterns)에서 파생한다.
+  const trends = {
+    consultations: (metrics?.recentActivity ?? []).map((d) => ({
+      date: d.date,
+      count: d.consultations,
+    })),
+    prescriptions: (metrics?.recentActivity ?? []).map((d) => ({
+      date: d.date,
+      count: d.prescriptions,
+    })),
+  };
+  const topFormulas = patterns?.prescriptionPatterns?.mostUsedFormulas ?? [];
+  const todayActivity = {
+    consultationsToday: metrics?.today?.consultations ?? 0,
+    patientsToday: metrics?.today?.newPatients ?? 0,
+    prescriptionsToday: metrics?.today?.prescriptions ?? 0,
+  };
 
   const formatChange = (change: number) => {
     const sign = change >= 0 ? '+' : '';
@@ -85,27 +89,6 @@ export default function AnalyticsDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">진료 성과 분석</h1>
           <p className="text-gray-500 mt-1">진료 통계 대시보드</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
-              className="px-3 py-2 border rounded-lg text-sm"
-            />
-            <span className="text-gray-400">~</span>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
-              className="px-3 py-2 border rounded-lg text-sm"
-            />
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-            <Download className="w-4 h-4" />
-            리포트 다운로드
-          </button>
         </div>
       </div>
 
@@ -195,19 +178,17 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
 
-        {/* Patient Distribution */}
+        {/* Prescription Trend */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4">환자 분포</h3>
+          <h3 className="text-lg font-semibold mb-4">처방 추이</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trends?.patients || []}>
+              <LineChart data={trends.prescriptions}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={(v) => v.slice(5)} />
                 <YAxis />
                 <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="new" stroke="#00C49F" name="신환" />
-                <Line type="monotone" dataKey="returning" stroke="#0088FE" name="재진" />
+                <Line type="monotone" dataKey="count" stroke="#00C49F" name="처방 건수" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -262,20 +243,6 @@ export default function AnalyticsDashboardPage() {
               <span className="text-xl font-bold text-purple-600">
                 {todayActivity?.prescriptionsToday || 0}건
               </span>
-            </div>
-          </div>
-
-          {/* Hourly Breakdown */}
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-600 mb-3">시간대별 진료</h4>
-            <div className="h-32">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={todayActivity?.hourlyBreakdown || []}>
-                  <XAxis dataKey="hour" tickFormatter={(v) => `${v}시`} />
-                  <Tooltip />
-                  <Bar dataKey="consultations" fill="#8884D8" />
-                </BarChart>
-              </ResponsiveContainer>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -28,6 +29,16 @@ export class AuthController {
   @ApiResponse({ status: 401, description: '인증 실패' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  @Post('demo-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '체험 모드 로그인 (free 티어 데모 계정)' })
+  @ApiResponse({ status: 200, description: '데모 세션 발급 성공' })
+  async demoLogin() {
+    return this.authService.demoLogin();
   }
 
   @Public()

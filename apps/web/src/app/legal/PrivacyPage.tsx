@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { COMPANY_INFO } from '@/config/company.config';
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
@@ -22,12 +23,12 @@ export default function PrivacyPage() {
           <CardHeader>
             <CardTitle className="text-2xl">개인정보처리방침</CardTitle>
             <p className="text-sm text-muted-foreground">
-              시행일: 2024년 1월 1일 | 최종 수정: 2026년 1월 22일 (의료정보 특례 조항 추가)
+              시행일: {COMPANY_INFO.effectiveDate} | 최종 수정: {COMPANY_INFO.lastUpdated}
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
             <p className="text-gray-700 leading-relaxed">
-              주식회사 온고지신(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」
+              {COMPANY_INFO.name}(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」
               및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고 안전하게 관리하고 있습니다.
             </p>
 
@@ -166,7 +167,7 @@ export default function PrivacyPage() {
                   <li>처리정지 요구</li>
                 </ul>
               </li>
-              <li>권리 행사는 서비스 내 설정 메뉴 또는 이메일(privacy@ongojisin.ai)을 통해 하실 수 있습니다.</li>
+              <li>권리 행사는 서비스 내 설정 메뉴 또는 이메일({COMPANY_INFO.privacyEmail})을 통해 하실 수 있습니다.</li>
               <li>권리 행사 요구는 10일 이내에 처리됩니다.</li>
             </ol>
 
@@ -258,7 +259,7 @@ export default function PrivacyPage() {
                 <li><strong>이동권:</strong> 본인의 의료정보를 다른 서비스로 이전 요청할 수 있습니다.</li>
               </ul>
               <p className="text-sm text-gray-600 mt-3">
-                * 권리 행사: 서비스 내 [설정 &gt; 개인정보 관리] 또는 privacy@ongojisin.ai로 요청
+                * 권리 행사: 서비스 내 [설정 &gt; 개인정보 관리] 또는 {COMPANY_INFO.privacyEmail}로 요청
               </p>
             </div>
 
@@ -266,9 +267,9 @@ export default function PrivacyPage() {
             <div className="bg-gray-100 p-4 rounded-lg mt-3">
               <p className="text-gray-700">
                 <strong>개인정보 보호책임자</strong><br />
-                성명: 양보름<br />
+                성명: {COMPANY_INFO.privacyOfficer}<br />
                 직책: 대표<br />
-                이메일: privacy@ongojisin.ai
+                이메일: {COMPANY_INFO.privacyEmail}
               </p>
             </div>
 
@@ -284,16 +285,16 @@ export default function PrivacyPage() {
             </ul>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">부칙</h2>
-            <p className="text-gray-700">본 개인정보처리방침은 2024년 1월 1일부터 시행합니다.</p>
+            <p className="text-gray-700">본 개인정보처리방침은 {COMPANY_INFO.effectiveDate}부터 시행합니다.</p>
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>머프키치</strong><br />
-                경기도 의왕시<br />
-                대표: 양보름<br />
-                사업자등록번호: 신청 예정<br />
-                고객센터: support@ongojisin.ai<br />
-                이메일: privacy@ongojisin.ai
+                <strong>{COMPANY_INFO.name}</strong><br />
+                {COMPANY_INFO.address}<br />
+                대표: {COMPANY_INFO.ceo}<br />
+                사업자등록번호: {COMPANY_INFO.businessNumber}<br />
+                고객센터: {COMPANY_INFO.phone}<br />
+                이메일: {COMPANY_INFO.email}
               </p>
             </div>
           </CardContent>

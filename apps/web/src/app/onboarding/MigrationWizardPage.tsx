@@ -72,7 +72,7 @@ export default function MigrationWizardPage() {
       <div className="mx-auto max-w-[560px]">
         <header className="mb-12">
           <span className="text-2xl font-extrabold tracking-tight text-neutral-900">
-            온고지신
+            온고지신 AI
           </span>
         </header>
 
