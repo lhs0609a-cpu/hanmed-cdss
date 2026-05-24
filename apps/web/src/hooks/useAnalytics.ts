@@ -169,6 +169,8 @@ export function useDashboardMetrics() {
       const { data } = await api.get('/analytics/dashboard');
       return { ...mapDashboard((data?.data ?? data) as RawDashboard), _isDemo: false };
     },
+    retry: 0, // 실패 시 즉시 에러 폴백 표시 (재시도는 화면의 '다시 시도' 버튼으로)
+    staleTime: 60_000,
   });
 }
 

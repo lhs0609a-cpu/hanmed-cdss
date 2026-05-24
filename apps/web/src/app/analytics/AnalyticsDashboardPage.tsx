@@ -34,7 +34,12 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AnalyticsDashboardPage() {
-  const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    refetch: refetchMetrics,
+  } = useDashboardMetrics();
   const { data: benchmark } = useBenchmark();
   const { data: patterns } = usePrescriptionPatterns();
 
@@ -69,8 +74,30 @@ export default function AnalyticsDashboardPage() {
 
   if (metricsLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex flex-col items-center justify-center h-96 gap-3 text-gray-400">
         <RefreshCw className="w-8 h-8 animate-spin text-primary-600" />
+        <p className="text-sm">진료 통계를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (metricsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4 text-center">
+        <Activity className="w-12 h-12 text-gray-300" />
+        <div>
+          <p className="text-gray-900 font-medium">통계를 불러올 수 없습니다</p>
+          <p className="text-gray-500 text-sm mt-1">
+            네트워크 또는 서버 연결을 확인한 뒤 다시 시도해 주세요.
+          </p>
+        </div>
+        <button
+          onClick={() => refetchMetrics()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+        >
+          <RefreshCw className="w-4 h-4" />
+          다시 시도
+        </button>
       </div>
     );
   }
