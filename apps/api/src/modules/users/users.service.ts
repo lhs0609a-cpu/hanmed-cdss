@@ -17,6 +17,7 @@ interface CreateUserDto {
   clinicName?: string;
   practitionerType?: PractitionerType;
   licenseVerificationStatus?: LicenseVerificationStatus;
+  isVerified?: boolean;
   consentTerms?: boolean;
   consentPrivacy?: boolean;
   consentMarketing?: boolean;

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RecommendationService, RecommendationRequest } from './recommendation.service';
 import { LlmService } from './llm.service';
+import { AiEngineClient } from './ai-engine.client';
 import { BodyHeat, BodyStrength } from '../../../database/entities/clinical-case.entity';
 
 describe('RecommendationService', () => {
@@ -40,9 +41,17 @@ describe('RecommendationService', () => {
       generateRecommendation: jest.fn(),
     };
 
+    // AI Engine 은 항상 실패하도록 mock → 서비스가 LlmService 폴백 경로를 타게 한다.
+    // 이 스펙은 폴백(LLM) 경로 + 체열/근실도 검증 로직(경로 무관)을 검증한다.
+    // (AI Engine 주 경로 커버리지는 별도 스펙에서 추가 권장)
+    const mockAiEngine = {
+      getRecommendation: jest.fn().mockRejectedValue(new Error('AI Engine unavailable (test)')),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecommendationService,
+        { provide: AiEngineClient, useValue: mockAiEngine },
         { provide: LlmService, useValue: mockLlmService },
       ],
     }).compile();

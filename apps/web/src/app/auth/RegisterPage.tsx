@@ -102,7 +102,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white flex items-start justify-center px-5 py-12">
       <div className="w-full max-w-[440px]">
         <Link to="/" className="inline-block mb-12">
-          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신</span>
+          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신 AI</span>
         </Link>
 
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900 mb-2">

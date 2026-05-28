@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { COMPANY_INFO } from '@/config/company.config';
 
 export default function SubscriptionTermsPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function SubscriptionTermsPage() {
           <CardHeader>
             <CardTitle className="text-2xl">정기결제 이용약관</CardTitle>
             <p className="text-sm text-muted-foreground">
-              시행일: 2024년 1월 1일 | 최종 수정: 2024년 1월 1일
+              시행일: {COMPANY_INFO.effectiveDate} | 최종 수정: {COMPANY_INFO.lastUpdated}
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
@@ -36,7 +37,7 @@ export default function SubscriptionTermsPage() {
 
             <h2 className="text-lg font-semibold mt-6 mb-3">제1조 (목적)</h2>
             <p className="text-gray-700 leading-relaxed">
-              본 약관은 주식회사 온고지신(이하 "회사")이 제공하는 정기결제(자동결제) 서비스의
+              본 약관은 {COMPANY_INFO.name}(이하 "회사")이 제공하는 정기결제(자동결제) 서비스의
               이용조건 및 절차, 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
             </p>
 
@@ -220,17 +221,17 @@ export default function SubscriptionTermsPage() {
             </div>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">부칙</h2>
-            <p className="text-gray-700">본 약관은 2024년 1월 1일부터 시행합니다.</p>
+            <p className="text-gray-700">본 약관은 {COMPANY_INFO.effectiveDate}부터 시행합니다.</p>
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>주식회사 온고지신</strong><br />
-                서울특별시 강남구 테헤란로 123<br />
-                대표: 홍길동<br />
-                사업자등록번호: 123-45-67890<br />
-                통신판매업신고: 제2024-서울강남-0000호<br />
-                고객센터: 02-1234-5678<br />
-                이메일: support@ongojisin.ai
+                <strong>{COMPANY_INFO.name}</strong><br />
+                {COMPANY_INFO.address}<br />
+                대표: {COMPANY_INFO.ceo}<br />
+                사업자등록번호: {COMPANY_INFO.businessNumber}<br />
+                통신판매업신고: {COMPANY_INFO.mailOrderNumber}<br />
+                고객센터: {COMPANY_INFO.phone}<br />
+                이메일: {COMPANY_INFO.email}
               </p>
             </div>
           </CardContent>

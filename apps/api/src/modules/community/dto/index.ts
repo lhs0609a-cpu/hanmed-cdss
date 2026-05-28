@@ -153,4 +153,9 @@ export class PostQueryDto {
   @IsOptional()
   @IsString()
   tag?: string;
+
+  @ApiPropertyOptional({ description: '작성자 ID 필터 (내 글 보기)' })
+  @IsOptional()
+  @IsUUID()
+  authorId?: string;
 }

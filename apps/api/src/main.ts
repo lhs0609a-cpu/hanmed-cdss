@@ -76,30 +76,34 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger 설정
-  const config = new DocumentBuilder()
-    .setTitle('온고지신 AI API')
-    .setDescription('한의학 임상 의사결정 지원 시스템 API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('auth', '인증')
-    .addTag('users', '사용자 관리')
-    .addTag('patients', '환자 관리')
-    .addTag('cases', '치험례')
-    .addTag('prescriptions', '처방')
-    .addTag('interactions', '상호작용 검증')
-    .addTag('subscription', '구독 관리')
-    .addTag('webhook', '웹훅')
-    .build();
+  // Swagger 설정 — 운영 환경에서는 API 표면 노출을 막기 위해 비활성화.
+  if (!isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('온고지신 AI API')
+      .setDescription('한의학 임상 의사결정 지원 시스템 API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', '인증')
+      .addTag('users', '사용자 관리')
+      .addTag('patients', '환자 관리')
+      .addTag('cases', '치험례')
+      .addTag('prescriptions', '처방')
+      .addTag('interactions', '상호작용 검증')
+      .addTag('subscription', '구독 관리')
+      .addTag('webhook', '웹훅')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
   logger.log(`온고지신 AI API 서버가 포트 ${port}에서 실행 중입니다.`);
-  logger.log(`API 문서: http://localhost:${port}/api/docs`);
+  if (!isProduction) {
+    logger.log(`API 문서: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

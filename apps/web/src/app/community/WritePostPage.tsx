@@ -18,7 +18,11 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
 import { useAuthStore } from '@/stores/authStore'
+import api from '@/services/api'
+import { getErrorMessage } from '@/lib/errors'
 import type { PostType } from '../../types'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 import { isPostSafeForCommunity, anonymizePatientText } from '@/lib/patientPii'
 
 const DRAFT_STORAGE_KEY = 'hanmed_post_draft'
@@ -268,16 +272,24 @@ export default function WritePostPage() {
 
     setIsSubmitting(true)
     try {
-      // API 호출 — 비식별화된 텍스트로 전송
-      console.log('Submitting post:', {
+      // 포럼 카테고리는 슬러그라 백엔드 categoryId(UUID)로 보낼 수 없으므로
+      // 카테고리명을 태그로 보존한다. linkedCaseId 는 UUID 형식일 때만 전송.
+      const categoryName = forumCategories.find((c) => c.slug === forumCategory)?.name
+      const finalTags =
+        postType === 'forum' && categoryName && !tags.includes(categoryName)
+          ? [categoryName, ...tags]
+          : tags
+
+      const payload: Record<string, unknown> = {
         type: postType,
         title: safeTitle,
         content: safeContent,
-        tags,
         isAnonymous,
-        categoryId: forumCategory || undefined,
-        linkedCaseId: linkedCaseId || undefined,
-      })
+      }
+      if (finalTags.length) payload.tags = finalTags
+      if (linkedCaseId && UUID_RE.test(linkedCaseId)) payload.linkedCaseId = linkedCaseId
+
+      const { data: created } = await api.post<{ id: string }>('/community/posts', payload)
 
       // 성공 시 임시저장 삭제
       localStorage.removeItem(DRAFT_STORAGE_KEY)
@@ -287,15 +299,12 @@ export default function WritePostPage() {
         description: '글이 성공적으로 게시되었습니다.',
       })
 
-      // 성공 시 커뮤니티 페이지로 이동
-      setTimeout(() => {
-        navigate('/dashboard/community')
-      }, 500)
+      // 작성한 글 상세로 이동 (id 없으면 목록으로 폴백)
+      navigate(created?.id ? `/dashboard/community/post/${created.id}` : '/dashboard/community')
     } catch (error) {
-      console.error('Failed to submit post:', error)
       toast({
         title: '게시 실패',
-        description: '글 게시 중 오류가 발생했습니다.',
+        description: getErrorMessage(error),
         variant: 'destructive',
       })
       setIsSubmitting(false)

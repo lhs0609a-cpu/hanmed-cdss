@@ -82,8 +82,10 @@ describe('validateSecrets', () => {
     process.env.TOSS_SECRET_KEY = 'test_sk_realkey';
     validateSecrets(logger);
     expect(exitSpy).toHaveBeenCalledWith(1);
+    // test_ 접두사는 PLACEHOLDER_PATTERNS(/^test[-_]/i)에 먼저 걸려 placeholder 로 차단된다.
+    // 어느 경로든 메시지에는 TOSS_SECRET_KEY 가 포함되어야 한다.
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("'test_'"),
+      expect.stringContaining('TOSS_SECRET_KEY'),
     );
   });
 

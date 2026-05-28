@@ -167,9 +167,6 @@ export default function SettingsPage() {
   const { data: subscriptionInfo } = useSubscriptionInfo();
   const { data: usage } = useUsage();
 
-  // 디버깅용 콘솔 로그
-  console.log('Plans data:', plans, 'Loading:', plansLoading, 'Error:', plansError);
-
   const registerCard = useRegisterCard();
   const subscribe = useSubscribe();
   const cancelSubscription = useCancelSubscription();

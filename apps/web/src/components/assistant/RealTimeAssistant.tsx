@@ -11,6 +11,9 @@ import {
   Loader2,
   Minimize2,
   MessageSquare,
+  Send,
+  Bot,
+  User as UserIcon,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -45,8 +48,77 @@ export function RealTimeAssistant({
   const [isMinimized, setIsMinimized] = useState(false)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'tips'>('suggestions')
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'tips' | 'chat'>('suggestions')
   const debounceRef = useRef<NodeJS.Timeout>()
+
+  // 챗봇 상태 — 탭이 닫혀도 대화 내역은 유지
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+
+  // 새 메시지 도착하면 하단으로 스크롤
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [chatMessages, chatLoading])
+
+  const sendChat = async () => {
+    const text = chatInput.trim()
+    if (!text || chatLoading) return
+
+    const token = useAuthStore.getState().accessToken
+    if (!token) {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'assistant', content: '로그인이 필요한 기능입니다.' },
+      ])
+      setChatInput('')
+      return
+    }
+
+    const nextMessages = [...chatMessages, { role: 'user' as const, content: text }]
+    setChatMessages(nextMessages)
+    setChatInput('')
+    setChatLoading(true)
+
+    try {
+      const response = await fetch(`${AI_ENGINE_URL}/api/v1/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          messages: nextMessages,
+          context: {
+            chiefComplaint: chiefComplaint || undefined,
+            symptoms: symptoms.length ? symptoms : undefined,
+            constitution: constitution || undefined,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '')
+        throw new Error(errText || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const reply = data?.data?.reply ?? data?.reply ?? ''
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: reply || '(응답이 비어 있습니다)' }])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류'
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: `AI 응답 실패: ${msg}` },
+      ])
+    } finally {
+      setChatLoading(false)
+    }
+  }
 
   // 입력이 변경될 때 제안 업데이트 (debounced)
   useEffect(() => {
@@ -251,7 +323,7 @@ export function RealTimeAssistant({
           <div className="flex border-b border-gray-100">
             <button
               onClick={() => setActiveTab('suggestions')}
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'suggestions'
                   ? 'text-indigo-600 border-b-2 border-indigo-500'
                   : 'text-gray-500 hover:text-gray-700'
@@ -260,8 +332,18 @@ export function RealTimeAssistant({
               실시간 제안
             </button>
             <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'chat'
+                  ? 'text-indigo-600 border-b-2 border-indigo-500'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              챗봇
+            </button>
+            <button
               onClick={() => setActiveTab('tips')}
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'tips'
                   ? 'text-indigo-600 border-b-2 border-indigo-500'
                   : 'text-gray-500 hover:text-gray-700'
@@ -272,14 +354,15 @@ export function RealTimeAssistant({
           </div>
 
           {/* Content */}
-          <div className="max-h-80 overflow-y-auto">
-            {activeTab === 'suggestions' ? (
+          <div className="max-h-80 overflow-y-auto" ref={activeTab === 'chat' ? chatScrollRef : undefined}>
+            {activeTab === 'suggestions' && (
               <div className="p-3 space-y-2">
                 {suggestions.length === 0 ? (
                   <div className="py-8 text-center text-gray-400">
                     <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">증상을 입력하면 실시간으로</p>
-                    <p className="text-sm">처방을 추천해드립니다</p>
+                    <p className="text-sm">상담 폼에 주소증·증상을 입력하면</p>
+                    <p className="text-sm">자동으로 유사 처방을 띄워드려요</p>
+                    <p className="text-xs mt-2 text-indigo-500">자유 질문은 "챗봇" 탭으로 →</p>
                   </div>
                 ) : (
                   suggestions.map((suggestion) => (
@@ -287,7 +370,35 @@ export function RealTimeAssistant({
                   ))
                 )}
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'chat' && (
+              <div className="p-3 space-y-3">
+                {chatMessages.length === 0 && !chatLoading && (
+                  <div className="py-6 text-center text-gray-400">
+                    <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">온고지신 AI 어시스턴트와 자유 대화</p>
+                    <p className="text-xs mt-1">처방·약재·체질 무엇이든 물어보세요</p>
+                    {(chiefComplaint || symptoms.length > 0) && (
+                      <p className="text-xs mt-2 text-indigo-500">
+                        상담 폼 입력이 컨텍스트로 자동 전달됩니다
+                      </p>
+                    )}
+                  </div>
+                )}
+                {chatMessages.map((m, idx) => (
+                  <ChatBubble key={idx} message={m} />
+                ))}
+                {chatLoading && (
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    응답 생성 중...
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'tips' && (
               <div className="p-3 space-y-2">
                 {generalTips.map((tip, idx) => (
                   <div
@@ -306,6 +417,36 @@ export function RealTimeAssistant({
               </div>
             )}
           </div>
+
+          {/* Chat input — 챗봇 탭일 때만 노출 */}
+          {activeTab === 'chat' && (
+            <div className="px-3 py-2 border-t border-gray-100 bg-white">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  sendChat()
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="질문을 입력하세요..."
+                  disabled={chatLoading}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-400 disabled:bg-gray-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="p-2 bg-indigo-500 text-white rounded-lg disabled:bg-gray-300 hover:bg-indigo-600 transition-colors"
+                  title="전송"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
@@ -394,6 +535,30 @@ function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
   }
 
   return content
+}
+
+function ChatBubble({ message }: { message: { role: 'user' | 'assistant'; content: string } }) {
+  const isUser = message.role === 'user'
+  return (
+    <div className={`flex gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
+      <div
+        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+          isUser ? 'bg-indigo-100 text-indigo-600' : 'bg-purple-100 text-purple-600'
+        }`}
+      >
+        {isUser ? <UserIcon className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+      </div>
+      <div
+        className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+          isUser
+            ? 'bg-indigo-500 text-white rounded-tr-sm'
+            : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+        }`}
+      >
+        {message.content}
+      </div>
+    </div>
+  )
 }
 
 export default RealTimeAssistant

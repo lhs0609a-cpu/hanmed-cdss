@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Users,
@@ -19,159 +19,10 @@ import {
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
-import type { CommunityLevel } from '@/types/level'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
 import api from '@/services/api'
-
-// 더미 게시글 데이터
-const dummyPosts: CommunityPost[] = [
-  {
-    id: '1',
-    title: '이중탕 처방 시 복통이 심해지는 환자, 어떻게 대처하시나요?',
-    content: '소음인 환자에게 이중탕을 처방했는데 오히려 복통이 심해졌다고 합니다. 건강 용량을 줄여볼까요?',
-    type: 'qna',
-    author: {
-      id: '1',
-      name: '김한의',
-      isLicenseVerified: true,
-      subscriptionTier: 'professional',
-      contributionPoints: 234,
-      communityLevel: 'good_answerer' as CommunityLevel,
-    },
-    isAnonymous: false,
-    viewCount: 156,
-    likeCount: 12,
-    commentCount: 8,
-    bookmarkCount: 5,
-    isPinned: false,
-    isSolved: true,
-    tags: ['이중탕', '소음인', '복통'],
-    status: 'active',
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z',
-    authorId: '1',
-  },
-  {
-    id: '2',
-    title: '[케이스 토론] 만성 피로 환자 보중익기탕 처방 경험',
-    content: '52세 여성 환자, 장기간 과로로 인한 만성 피로. 보중익기탕 8주 처방 후 80% 호전...',
-    type: 'case_discussion',
-    linkedCase: {
-      id: 'LEE-2001-0128',
-      chiefComplaint: '만성 피로, 기력 저하',
-      constitution: '태음인',
-      formulaName: '보중익기탕',
-    },
-    author: {
-      id: '2',
-      name: '이전문',
-      isLicenseVerified: true,
-      subscriptionTier: 'clinic',
-      contributionPoints: 1520,
-      acceptedAnswerCount: 45,
-      communityLevel: 'expert' as CommunityLevel,
-    },
-    isAnonymous: false,
-    viewCount: 324,
-    likeCount: 28,
-    commentCount: 15,
-    bookmarkCount: 22,
-    isPinned: true,
-    isSolved: false,
-    tags: ['보중익기탕', '만성피로', '태음인'],
-    status: 'active',
-    createdAt: '2024-01-14T09:00:00Z',
-    updatedAt: '2024-01-14T09:00:00Z',
-    authorId: '2',
-  },
-  {
-    id: '3',
-    title: '반하사심탕 vs 반하백출천마탕, 현훈 치료 시 선택 기준이 궁금합니다',
-    content: '두 처방 모두 현훈에 사용되는데, 어떤 기준으로 선택하시나요?',
-    type: 'qna',
-    author: {
-      id: '3',
-      name: '익명의 한의사 #A3F2',
-      isLicenseVerified: false,
-      communityLevel: 'member' as CommunityLevel,
-    },
-    isAnonymous: true,
-    anonymousNickname: '익명의 한의사 #A3F2',
-    viewCount: 89,
-    likeCount: 5,
-    commentCount: 6,
-    bookmarkCount: 3,
-    isPinned: false,
-    isSolved: false,
-    tags: ['반하사심탕', '반하백출천마탕', '현훈'],
-    status: 'active',
-    createdAt: '2024-01-13T14:20:00Z',
-    updatedAt: '2024-01-13T14:20:00Z',
-    authorId: '3',
-  },
-  {
-    id: '4',
-    title: '본초학 세미나 후기 - 약재 감별의 중요성',
-    content: '지난 주 한의학회 본초학 세미나에 다녀왔습니다. 특히 진품과 위품 감별 부분이 유익했습니다.',
-    type: 'forum',
-    category: {
-      id: 'herbology',
-      name: '본초학',
-      slug: 'herbology',
-      postType: 'forum',
-      sortOrder: 1,
-      requiredTier: 'free',
-    },
-    author: {
-      id: '4',
-      name: '박약재',
-      isLicenseVerified: true,
-      subscriptionTier: 'professional',
-      contributionPoints: 567,
-      specialization: '본초학',
-      communityLevel: 'good_answerer' as CommunityLevel,
-    },
-    isAnonymous: false,
-    viewCount: 201,
-    likeCount: 18,
-    commentCount: 4,
-    bookmarkCount: 8,
-    isPinned: false,
-    isSolved: false,
-    tags: ['본초학', '세미나', '약재감별'],
-    status: 'active',
-    createdAt: '2024-01-12T16:45:00Z',
-    updatedAt: '2024-01-12T16:45:00Z',
-    authorId: '4',
-  },
-  {
-    id: '5',
-    title: '개원 3년차, 환자 관리 시스템 어떻게 운영하시나요?',
-    content: '전자차트 외에 환자 관리에 도움되는 팁이 있으시면 공유해주세요.',
-    type: 'general',
-    author: {
-      id: '5',
-      name: '최개원',
-      isLicenseVerified: true,
-      subscriptionTier: 'free',
-      contributionPoints: 45,
-      communityLevel: 'intern' as CommunityLevel,
-    },
-    isAnonymous: false,
-    viewCount: 178,
-    likeCount: 9,
-    commentCount: 12,
-    bookmarkCount: 6,
-    isPinned: false,
-    isSolved: false,
-    tags: ['개원', '환자관리', '운영팁'],
-    status: 'active',
-    createdAt: '2024-01-11T11:00:00Z',
-    updatedAt: '2024-01-11T11:00:00Z',
-    authorId: '5',
-  },
-]
+import { getErrorMessage } from '@/lib/errors'
 
 const postTypeConfig = {
   case_discussion: { label: '케이스 토론', icon: BookOpen, color: 'text-amber-600 bg-amber-100' },
@@ -185,17 +36,24 @@ export default function CommunityPage() {
   const location = useLocation()
   const { toast } = useToast()
   const token = useAuthStore((state) => state.accessToken)
+  const user = useAuthStore((state) => state.user)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isGuest = useAuthStore((state) => state.isGuest)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
 
+  // 현재 라우트가 "내 글"/"내 북마크" 인지 판별
+  const viewMode: 'all' | 'mine' | 'bookmarks' = location.pathname.includes('/community/my/bookmarks')
+    ? 'bookmarks'
+    : location.pathname.includes('/community/my/posts')
+      ? 'mine'
+      : 'all'
+
   // API 상태
-  const [posts, setPosts] = useState<CommunityPost[]>(dummyPosts)
-  const [loading, setLoading] = useState(false)
+  const [posts, setPosts] = useState<CommunityPost[]>([])
+  const [loading, setLoading] = useState(true)
   const [_error, setError] = useState<string | null>(null)
-  const [usingDummyData, setUsingDummyData] = useState(true)
 
   // API에서 게시글 가져오기
   useEffect(() => {
@@ -204,33 +62,28 @@ export default function CommunityPage() {
       setError(null)
 
       try {
+        // 내 북마크는 전용 엔드포인트, 그 외(전체/내 글)는 /community/posts 사용
+        const endpoint = viewMode === 'bookmarks' ? '/community/bookmarks' : '/community/posts'
         const params: Record<string, string> = {}
-        if (selectedType) params.type = selectedType
-        if (sortBy) params.sortBy = sortBy
-
-        const response = await api.get('/community/posts', { params })
-        const apiPosts = response.data?.data || response.data || []
-
-        if (Array.isArray(apiPosts) && apiPosts.length > 0) {
-          setPosts(apiPosts)
-          setUsingDummyData(false)
-        } else {
-          // API가 빈 배열 반환 시 더미 데이터 사용
-          setPosts(dummyPosts)
-          setUsingDummyData(true)
+        if (viewMode !== 'bookmarks') {
+          if (selectedType) params.type = selectedType
+          if (sortBy) params.sortBy = sortBy
+          if (viewMode === 'mine' && user?.id) params.authorId = user.id
         }
+
+        const response = await api.get(endpoint, { params })
+        const apiPosts = response.data?.data || response.data || []
+        setPosts(Array.isArray(apiPosts) ? apiPosts : [])
       } catch (err) {
-        // API 실패 시 더미 데이터로 폴백
-        console.warn('Community API not available, using dummy data:', err)
-        setPosts(dummyPosts)
-        setUsingDummyData(true)
+        setError(getErrorMessage(err))
+        setPosts([])
       } finally {
         setLoading(false)
       }
     }
 
     fetchPosts()
-  }, [selectedType, sortBy, token])
+  }, [selectedType, sortBy, token, viewMode, user?.id])
 
   // URL 경로에 따라 selectedType 설정
   useEffect(() => {
@@ -243,40 +96,27 @@ export default function CommunityPage() {
       setSelectedType('general')
     } else if (path.includes('/community/forum')) {
       setSelectedType('forum')
-    } else if (path === '/community' || path === '/community/') {
+    } else {
+      // 전체/내 글/내 북마크 — 타입 필터 없음
       setSelectedType('')
     }
   }, [location.pathname])
 
   const filteredPosts = useMemo(() => {
-    let filtered = posts.filter((post) => {
-      const matchesSearch =
+    // 타입 필터·정렬은 서버(/community/posts)에서 처리한다.
+    // 클라이언트에서는 검색어로 한 번 더 좁히고 고정 게시글만 위로 올린다.
+    const filtered = posts.filter((post) => {
+      return (
         !searchQuery ||
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.tags.some((tag) => tag.includes(searchQuery))
-      // API에서 이미 타입으로 필터링되므로 더미 데이터 사용 시에만 필터
-      const matchesType = !usingDummyData || !selectedType || post.type === selectedType
-      return matchesSearch && matchesType
+      )
     })
 
-    // 정렬 (더미 데이터 사용 시에만 클라이언트 정렬)
-    if (usingDummyData) {
-      switch (sortBy) {
-        case 'popular':
-          filtered = filtered.sort((a, b) => b.likeCount - a.likeCount)
-          break
-        case 'comments':
-          filtered = filtered.sort((a, b) => b.commentCount - a.commentCount)
-          break
-        default:
-          filtered = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      }
-    }
-
     // 고정 게시글 우선
-    return filtered.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
-  }, [posts, searchQuery, selectedType, sortBy, usingDummyData])
+    return [...filtered].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+  }, [posts, searchQuery])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -424,13 +264,6 @@ export default function CommunityPage() {
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <Loader2 className="h-12 w-12 text-teal-500 mx-auto mb-4 animate-spin" />
             <p className="text-gray-500">게시글을 불러오는 중...</p>
-          </div>
-        )}
-
-        {/* 더미 데이터 사용 안내 */}
-        {!loading && usingDummyData && (
-          <div className="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-            현재 샘플 데이터를 표시하고 있습니다. 실제 게시글은 API 연동 후 표시됩니다.
           </div>
         )}
 

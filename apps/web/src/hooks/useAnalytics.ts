@@ -30,6 +30,63 @@ export interface DashboardMetrics {
     totalReviews: number;
     ratingDistribution: { [key: number]: number };
   };
+  // 백엔드 /analytics/dashboard 원본에서 그대로 전달 — 추이/오늘 위젯 파생용
+  today?: { consultations: number; newPatients: number; prescriptions: number };
+  recentActivity?: Array<{ date: string; consultations: number; prescriptions: number }>;
+}
+
+// 백엔드 /analytics/dashboard 응답의 실제 형태
+interface RawDashboard {
+  today?: { consultations?: number; newPatients?: number; prescriptions?: number };
+  thisWeek?: { aiUsage?: number };
+  thisMonth?: {
+    consultations?: number;
+    newPatients?: number;
+    avgImprovementRate?: number;
+    aiAcceptanceRate?: number;
+  };
+  kpis?: {
+    totalPatients?: { value?: number; change?: number };
+    returnRate?: { value?: number; change?: number };
+  };
+  recentActivity?: Array<{ date: string; consultations: number; prescriptions: number }>;
+}
+
+/** 백엔드 dashboard 응답을 화면이 기대하는 DashboardMetrics 형태로 매핑 */
+function mapDashboard(raw: RawDashboard): DashboardMetrics {
+  const totalConsultations = raw.thisMonth?.consultations ?? 0;
+  const returnChange = raw.kpis?.returnRate?.change ?? 0;
+  const aiUsage = raw.thisWeek?.aiUsage ?? 0;
+  const acceptanceRate = raw.thisMonth?.aiAcceptanceRate ?? 0;
+
+  return {
+    overview: {
+      totalPatients: raw.kpis?.totalPatients?.value ?? 0,
+      totalPatientsChange: raw.kpis?.totalPatients?.change ?? 0,
+      newPatientsThisMonth: raw.thisMonth?.newPatients ?? 0,
+      newPatientsChange: 0,
+      totalConsultations,
+      totalConsultationsChange: 0,
+      avgConsultationsPerDay: Math.round(totalConsultations / 30),
+    },
+    returnRate: {
+      current: raw.kpis?.returnRate?.value ?? 0,
+      previous: (raw.kpis?.returnRate?.value ?? 0) - returnChange,
+      trend: returnChange > 0 ? 'up' : returnChange < 0 ? 'down' : 'stable',
+    },
+    aiUsage: {
+      totalRecommendations: aiUsage,
+      acceptedRecommendations: Math.round((aiUsage * acceptanceRate) / 100),
+      acceptanceRate,
+      topRecommendedFormulas: [],
+    },
+    today: {
+      consultations: raw.today?.consultations ?? 0,
+      newPatients: raw.today?.newPatients ?? 0,
+      prescriptions: raw.today?.prescriptions ?? 0,
+    },
+    recentActivity: raw.recentActivity ?? [],
+  };
 }
 
 export interface PracticeStatistics {
@@ -110,8 +167,10 @@ export function useDashboardMetrics() {
     queryKey: ['analytics-dashboard'],
     queryFn: async () => {
       const { data } = await api.get('/analytics/dashboard');
-      return { ...data.data as DashboardMetrics, _isDemo: false };
+      return { ...mapDashboard((data?.data ?? data) as RawDashboard), _isDemo: false };
     },
+    retry: 0, // 실패 시 즉시 에러 폴백 표시 (재시도는 화면의 '다시 시도' 버튼으로)
+    staleTime: 60_000,
   });
 }
 

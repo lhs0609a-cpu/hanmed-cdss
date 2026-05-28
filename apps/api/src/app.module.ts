@@ -109,6 +109,10 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
         // TypeORM 마이그레이션은 멱등이고 순서대로 적용되므로 안전.
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: true,
+        // 'each': 마이그레이션별로 트랜잭션 적용. 'all' 은 개별 마이그레이션의
+        // transaction=false 오버라이드를 거부해 부팅 자체를 막는다
+        // (ALTER TYPE ... ADD VALUE 처럼 트랜잭션 밖에서만 실행 가능한 DDL 존재).
+        migrationsTransactionMode: 'each',
       }),
     }),
 

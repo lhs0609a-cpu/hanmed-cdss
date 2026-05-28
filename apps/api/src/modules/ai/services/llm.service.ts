@@ -171,6 +171,56 @@ JSON 형식:
     }
   }
 
+  async chat(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    context?: { chiefComplaint?: string; symptoms?: string[]; constitution?: string },
+  ): Promise<string> {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'AI 챗 서비스가 설정되지 않았습니다. (OPENAI_API_KEY 필요)',
+      );
+    }
+
+    // 상담 폼 컨텍스트가 들어오면 system 메시지 뒤에 1회만 주입.
+    // 매 턴마다 다시 보내면 토큰만 낭비.
+    const contextLines: string[] = [];
+    if (context?.chiefComplaint) contextLines.push(`- 주소증: ${context.chiefComplaint}`);
+    if (context?.symptoms?.length) contextLines.push(`- 증상: ${context.symptoms.join(', ')}`);
+    if (context?.constitution) contextLines.push(`- 사상체질: ${context.constitution}`);
+
+    const systemMessages: Array<{ role: 'system'; content: string }> = [
+      { role: 'system', content: this.SYSTEM_PROMPT },
+    ];
+    if (contextLines.length) {
+      systemMessages.push({
+        role: 'system',
+        content: `## 현재 상담 폼 입력 (참고용)\n${contextLines.join('\n')}\n\n의사가 위 환자에 대해 질문할 가능성이 높습니다. 단, 사용자가 다른 주제를 묻는다면 그쪽을 우선합니다.`,
+      });
+    }
+
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        max_tokens: 1024,
+        temperature: 0.4,
+        messages: [...systemMessages, ...messages],
+      });
+      return response.choices[0]?.message?.content || '';
+    } catch (error: any) {
+      console.error('❌ LLM chat 호출 오류:', error);
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+        throw new RequestTimeoutException('AI 응답 시간이 초과되었습니다.');
+      }
+      if (error.status === 429 || error.message?.includes('rate limit')) {
+        throw new ServiceUnavailableException('AI 사용 한도에 도달했습니다.');
+      }
+      if (error.status === 401 || error.status === 403) {
+        throw new ServiceUnavailableException('AI 서비스 인증에 실패했습니다.');
+      }
+      throw new BadGatewayException(`AI 채팅 실패: ${error.message || 'unknown error'}`);
+    }
+  }
+
   async generatePatientExplanation(prompt: string, context?: string): Promise<string> {
     if (!this.client) {
       throw new ServiceUnavailableException(

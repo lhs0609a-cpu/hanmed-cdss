@@ -27,7 +27,10 @@ export default function TourGuide({ tourId, steps, onComplete }: TourGuideProps)
   // Check if tour was already completed
   useEffect(() => {
     const completedTours = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    if (!completedTours[tourId]) {
+    // 전역 환영 모달을 아직 안 본 신규 사용자에겐 페이지 투어를 띄우지 않는다
+    // (환영 모달 위에 "처음이신가요?" 가 겹쳐 뜨는 것을 방지 — 단일 온보딩 흐름).
+    const welcomeShown = localStorage.getItem('hanmed-cdss-welcome-shown')
+    if (welcomeShown && !completedTours[tourId]) {
       // First time visitor - show start button after delay
       const timer = setTimeout(() => {
         setShowStartButton(true)

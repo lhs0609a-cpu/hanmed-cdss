@@ -18,7 +18,7 @@ type LoginApiResponse = LoginResponse | TwoFactorChallenge
 const DEMO_CONFIG = {
   user: {
     id: import.meta.env.VITE_DEMO_USER_ID || 'demo-user',
-    email: import.meta.env.VITE_DEMO_EMAIL || 'demo@hanmed.com',
+    email: import.meta.env.VITE_DEMO_EMAIL || 'demo@ongojisin.ai',
     name: import.meta.env.VITE_DEMO_NAME || '체험 사용자',
     subscriptionTier: 'free' as const,
     isVerified: true,
@@ -113,7 +113,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px]">
         {/* 로고 */}
         <Link to="/" className="inline-block mb-12">
-          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신</span>
+          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신 AI</span>
         </Link>
 
         {challengeId ? (

@@ -65,6 +65,8 @@ export function WelcomeModal() {
 
   const handleClose = () => {
     localStorage.setItem(STORAGE_KEY, 'true')
+    // 환영 모달이 곧 온보딩 역할을 하므로, 중복되는 OnboardingFlow 자동 표시를 막는다.
+    localStorage.setItem('onboarding_completed', 'true')
     setIsOpen(false)
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Brain,
@@ -8,13 +8,10 @@ import {
   Sparkles,
   CheckCircle,
   ArrowRight,
-  Play,
-  Star,
   Users,
   TrendingUp,
   BookOpen,
   ChevronRight,
-  Quote,
   AlertTriangle,
   FileText,
   Target,
@@ -67,37 +64,6 @@ function AnimatedCounter({ end, duration = 2000, suffix = '' }: { end: number; d
   return <span>{count.toLocaleString()}{suffix}</span>
 }
 
-// 후기 데이터
-const testimonials = [
-  {
-    name: '김○○ 원장',
-    clinic: '서울 강남 OO한의원',
-    experience: '15년차',
-    image: null,
-    rating: 5,
-    quote: '복잡한 변증 케이스에서 AI가 제안하는 처방 옵션들이 정말 도움됩니다. 특히 가감법 추천이 실제 임상에서 바로 적용 가능해요.',
-    highlight: '진료 시간 40% 단축',
-  },
-  {
-    name: '이○○ 원장',
-    clinic: '경기 성남 OO한의원',
-    experience: '8년차',
-    image: null,
-    rating: 5,
-    quote: '환자에게 왜 이 처방인지 설명할 때, AI가 제공하는 근거 자료가 신뢰를 줍니다. 재진율이 확실히 올랐어요.',
-    highlight: '환자 재진율 25% 증가',
-  },
-  {
-    name: '박○○ 원장',
-    clinic: '부산 해운대 OO한방병원',
-    experience: '20년차',
-    image: null,
-    rating: 5,
-    quote: '40년 임상 경험이 담긴 데이터베이스라는 게 느껴집니다. 제가 모르는 처방도 배우게 되고, 확신을 갖고 처방할 수 있어요.',
-    highlight: '처방 정확도 향상',
-  },
-]
-
 // 비교 데이터
 const comparisonData = {
   before: [
@@ -118,7 +84,6 @@ const comparisonData = {
 
 export default function AdLandingPage() {
   const navigate = useNavigate()
-  const [showVideo, setShowVideo] = useState(false)
   const [, setEmail] = useState('')
 
   useUTMTracking()
@@ -172,7 +137,7 @@ export default function AdLandingPage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">
                 <Sparkles className="h-4 w-4" />
-                300명 이상의 한의사가 이미 사용 중
+                한의사를 위한 AI 임상 의사결정 지원
               </div>
 
               {/* Headline */}
@@ -206,13 +171,6 @@ export default function AdLandingPage() {
                 >
                   14일 무료 체험 시작
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button
-                  onClick={() => setShowVideo(true)}
-                  className="px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 text-lg font-semibold rounded-2xl hover:border-teal-500 hover:text-teal-600 transition-all flex items-center justify-center gap-2"
-                >
-                  <Play className="h-5 w-5" />
-                  2분 데모 보기
                 </button>
               </div>
 
@@ -523,61 +481,6 @@ export default function AdLandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              실제 사용자 후기
-            </h2>
-            <p className="text-xl text-gray-600">
-              이미 많은 한의사 선생님들이 경험하고 있습니다
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-3xl p-8 border border-gray-200 hover:shadow-xl transition-shadow"
-              >
-                {/* Rating */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-
-                {/* Quote */}
-                <div className="relative mb-6">
-                  <Quote className="absolute -top-2 -left-2 h-8 w-8 text-teal-100" />
-                  <p className="text-gray-700 leading-relaxed pl-4">
-                    {testimonial.quote}
-                  </p>
-                </div>
-
-                {/* Highlight */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium mb-6">
-                  <TrendingUp className="h-4 w-4" />
-                  {testimonial.highlight}
-                </div>
-
-                {/* Author */}
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {testimonial.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">{testimonial.clinic} · {testimonial.experience}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Preview */}
       <section className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="max-w-7xl mx-auto px-4">
@@ -649,11 +552,11 @@ export default function AdLandingPage() {
             {[
               {
                 q: 'AI가 추천하는 처방을 신뢰할 수 있나요?',
-                a: `AI는 40년 이상 임상 경험을 가진 한의사의 ${formatStatApprox(BASE_STATS.cases)} 치험례를 학습했습니다. 92%의 처방 일치율을 보이며, 최종 처방 결정은 항상 의료인의 전문적 판단에 따릅니다.`,
+                a: `AI는 한의사들이 축적해 온 ${formatStatApprox(BASE_STATS.cases)} 치험례를 학습해 처방 후보와 근거 자료를 제시합니다. AI 추천은 임상 의사결정을 돕는 보조 수단이며, 최종 처방 결정은 항상 의료인의 전문적 판단에 따릅니다.`,
               },
               {
                 q: '무료 체험 기간 동안 모든 기능을 사용할 수 있나요?',
-                a: '네, 14일 무료 체험 기간 동안 Professional 플랜의 모든 기능을 제한 없이 사용하실 수 있습니다. 카드 등록 없이 시작하며, 체험 후 자동 결제되지 않습니다.',
+                a: '네, 14일 무료 체험 기간 동안 Professional 플랜의 기능을 AI 쿼리 30건 한도로 사용하실 수 있습니다. 카드 등록 없이 시작하며, 체험 후 자동 결제되지 않습니다.',
               },
               {
                 q: '환자 데이터는 안전한가요?',
@@ -762,24 +665,6 @@ export default function AdLandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* Video Modal */}
-      {showVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="relative max-w-4xl w-full">
-            <button
-              onClick={() => setShowVideo(false)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
-            >
-              <X className="h-8 w-8" />
-            </button>
-            <div className="bg-black rounded-2xl overflow-hidden aspect-video flex items-center justify-center">
-              {/* TODO: Replace with actual video embed */}
-              <p className="text-white text-xl">데모 영상 (준비 중)</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

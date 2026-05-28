@@ -4,8 +4,10 @@ import { api } from '@/services/api'
 /**
  * 대시보드 상단 3개 카드용 통계.
  *
- * 백엔드 /analytics/dashboard-metrics 또는 /analytics/dashboard-stats 를 호출하고,
- * 실패 시 데모 데이터로 폴백한다. _isDemo 플래그로 배너 표시 여부 판단.
+ * 백엔드 /analytics/dashboard 를 호출해 실제 진료 데이터를 매핑한다.
+ * 인증 실패(게스트) 등으로 호출이 실패하면 데모 데이터로 폴백하고
+ * _isDemo 플래그로 배너 표시 여부를 판단한다.
+ * 인증된 사용자가 데이터가 없는 경우(신규 가입)에는 0 을 그대로 표시한다(_isDemo=false).
  */
 
 export interface DashboardStats {
@@ -15,16 +17,10 @@ export interface DashboardStats {
   _isDemo: boolean
 }
 
-interface RawMetricsResponse {
-  overview?: {
-    totalConsultations?: number
-    avgConsultationsPerDay?: number
-  }
-  aiUsage?: {
-    totalRecommendations?: number
-  }
-  // 일부 백엔드 응답은 { data: { ... } } 로 한 단계 래핑됨
-  data?: RawMetricsResponse
+interface DashboardData {
+  today?: { consultations?: number }
+  thisWeek?: { aiUsage?: number }
+  thisMonth?: { consultations?: number }
 }
 
 const DEMO_STATS: DashboardStats = {
@@ -34,37 +30,26 @@ const DEMO_STATS: DashboardStats = {
   _isDemo: true,
 }
 
+// 진료 1건당 평균 절약 시간(분) 가정 — 실제 시간 추적 endpoint 도입 시 교체.
+const MINUTES_SAVED_PER_CONSULTATION = 7
+
 async function fetchDashboardStats(): Promise<DashboardStats> {
-  // 우선 통합 endpoint 시도. 없으면 분석 dashboard-metrics 로 폴백.
   try {
-    const { data } = await api.get<RawMetricsResponse | { data: RawMetricsResponse }>(
-      '/analytics/dashboard-metrics',
+    const { data } = await api.get<{ success?: boolean; data?: DashboardData }>(
+      '/analytics/dashboard',
     )
-    const root = (data as { data?: RawMetricsResponse }).data ?? (data as RawMetricsResponse)
+    const root = data?.data ?? (data as unknown as DashboardData)
 
-    const monthly = root.overview?.totalConsultations
-    const ai = root.aiUsage?.totalRecommendations
-
-    // 모든 값이 비어 있으면 데모로 간주
-    if (monthly === undefined && ai === undefined) {
-      return DEMO_STATS
-    }
-
-    // todaySavedMinutes 는 임시로 진료 1건당 7분 절약 가정 — 실제 추적 endpoint
-    // (`/analytics/time-saved`) 가 생기면 그쪽으로 교체.
-    const todaySaved =
-      typeof root.overview?.avgConsultationsPerDay === 'number'
-        ? Math.round(root.overview.avgConsultationsPerDay * 7)
-        : null
+    const todayConsultations = root?.today?.consultations ?? 0
 
     return {
-      todaySavedMinutes: todaySaved,
-      monthlyConsultations: monthly ?? 0,
-      aiRecommendationsUsed: ai ?? 0,
+      todaySavedMinutes: todayConsultations * MINUTES_SAVED_PER_CONSULTATION,
+      monthlyConsultations: root?.thisMonth?.consultations ?? 0,
+      aiRecommendationsUsed: root?.thisWeek?.aiUsage ?? 0,
       _isDemo: false,
     }
   } catch (e) {
-    // 401, 404, 500 등 — 데모로 폴백
+    // 401(게스트), 500 등 — 데모로 폴백
     return DEMO_STATS
   }
 }

@@ -141,8 +141,12 @@ export default function DashboardLayout() {
   )
 
   // 온보딩 표시 여부 결정 (게스트 모드가 아닌 신규 사용자)
+  // 단일 온보딩 원칙: 전역 WelcomeModal 이 환영을 담당하므로, OnboardingFlow 는
+  // WelcomeModal 을 본 뒤에만(중복 환영 방지) 자동 노출한다. WelcomeModal 종료 시
+  // onboarding_completed 가 설정되므로 실질적으로 신규 사용자에겐 중복 표시되지 않는다.
   useEffect(() => {
-    if (shouldShowOnboarding && !isGuest) {
+    const welcomeShown = localStorage.getItem('hanmed-cdss-welcome-shown')
+    if (shouldShowOnboarding && !isGuest && welcomeShown) {
       setShowOnboarding(true)
     }
   }, [shouldShowOnboarding, isGuest])
