@@ -70,7 +70,7 @@ const categoryStyles: Record<string, { icon: React.ReactNode; color: string; bgC
   '사지': { icon: <Wind className="h-4 w-4" />, color: 'text-green-600', bgColor: 'bg-green-50' },
   '정신': { icon: <Brain className="h-4 w-4" />, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   '부인과': { icon: <Moon className="h-4 w-4" />, color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  '비뇨기': { icon: <Droplets className="h-4 w-4" />, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  '비뇨기': { icon: <Droplets className="h-4 w-4" />, color: 'text-blue-600', bgColor: 'bg-blue-50' },
 }
 
 // 빠른 증상 조합 프리셋
@@ -79,7 +79,7 @@ const quickPresets: QuickPreset[] = [
     id: 'cold',
     name: '감기',
     icon: <Thermometer className="h-5 w-5" />,
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-blue-500 to-blue-500',
     symptoms: ['발열', '오한', '두통', '인후통'],
     description: '발열, 오한, 두통 등 감기 증상',
   },
@@ -103,7 +103,7 @@ const quickPresets: QuickPreset[] = [
     id: 'fatigue',
     name: '만성피로',
     icon: <TrendingUp className="h-5 w-5" />,
-    color: 'from-green-500 to-emerald-500',
+    color: 'from-green-500 to-blue-500',
     symptoms: ['피로', '무력감', '현훈', '자한'],
     description: '기력 저하 관련 증상',
   },
@@ -1066,7 +1066,7 @@ export default function SymptomSearchPage() {
               {selectedFormula.herbs && selectedFormula.herbs.length > 0 && (
                 <div>
                   <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <Leaf className="h-5 w-5 text-emerald-500" />
+                    <Leaf className="h-5 w-5 text-blue-500" />
                     구성 약재 (君臣佐使)
                   </h3>
 

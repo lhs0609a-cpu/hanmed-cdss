@@ -8,7 +8,7 @@ interface AIReasoningTabProps {
 }
 
 const relevanceColors = {
-  high: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  high: 'bg-green-100 text-green-700 border-green-200',
   medium: 'bg-amber-100 text-amber-700 border-amber-200',
   low: 'bg-gray-100 text-gray-600 border-gray-200',
 } as const
@@ -76,7 +76,7 @@ export function AIReasoningTab({ data, isLoading }: AIReasoningTabProps) {
         <ul className="space-y-1.5">
           {data.keyPoints.map((point, i) => (
             <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+              <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
               <span>{point}</span>
             </li>
           ))}

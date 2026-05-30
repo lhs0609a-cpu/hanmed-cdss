@@ -892,14 +892,14 @@ export default function InteractionsPage() {
     if (!result) return ''
     if (result.by_severity.critical.length > 0) return 'from-red-500 to-rose-500'
     if (result.by_severity.warning.length > 0) return 'from-amber-500 to-orange-500'
-    return 'from-emerald-500 to-green-500'
+    return 'from-green-500 to-green-500'
   }
 
   const getSafetyBg = () => {
     if (!result) return ''
     if (result.by_severity.critical.length > 0) return 'bg-red-50 border-red-200'
     if (result.by_severity.warning.length > 0) return 'bg-amber-50 border-amber-200'
-    return 'bg-emerald-50 border-emerald-200'
+    return 'bg-green-50 border-green-200'
   }
 
   return (
@@ -920,7 +920,7 @@ export default function InteractionsPage() {
           {/* 한약재 입력 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl shadow-lg shadow-teal-500/20">
+              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-500 rounded-xl shadow-lg shadow-blue-500/20">
                 <Leaf className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -935,12 +935,12 @@ export default function InteractionsPage() {
                 value={newHerb}
                 onChange={(e) => setNewHerb(e.target.value)}
                 placeholder="약재명 입력 (예: 당귀, 인삼)"
-                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                 onKeyDown={(e) => e.key === 'Enter' && addHerb()}
               />
               <button
                 onClick={addHerb}
-                className="px-4 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all"
+                className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -950,13 +950,13 @@ export default function InteractionsPage() {
               {herbs.map((herb, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-teal-700 border border-teal-200 rounded-full text-sm font-medium shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-700 border border-blue-200 rounded-full text-sm font-medium shadow-sm"
                 >
                   <Leaf className="h-3.5 w-3.5" />
                   {herb}
                   <button
                     onClick={() => setHerbs(herbs.filter((_, i) => i !== index))}
-                    className="hover:bg-teal-100 rounded-full p-0.5 transition-colors"
+                    className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -1178,7 +1178,7 @@ export default function InteractionsPage() {
                   <ul className="space-y-2">
                     {result.recommendations.map((rec, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
-                        <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-2 flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
                         {rec}
                       </li>
                     ))}
@@ -1188,12 +1188,12 @@ export default function InteractionsPage() {
 
               {/* No interactions */}
               {result.total_count === 0 && (
-                <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-emerald-900 mb-2">
+                <div className="bg-green-50 rounded-2xl border border-green-200 p-8 text-center">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-green-900 mb-2">
                     상호작용이 발견되지 않았습니다
                   </h3>
-                  <p className="text-sm text-emerald-700">
+                  <p className="text-sm text-green-700">
                     입력하신 약재와 양약 간 알려진 상호작용이 없습니다.
                   </p>
                 </div>

@@ -97,13 +97,13 @@ export function ExportDialog({ trigger, defaultType = 'consultations' }: ExportD
                 onClick={() => setExportType('consultations')}
                 className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
                   exportType === 'consultations'
-                    ? 'border-teal-500 bg-teal-50'
+                    ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div
                   className={`p-2 rounded-lg ${
-                    exportType === 'consultations' ? 'bg-teal-500 text-white' : 'bg-gray-100'
+                    exportType === 'consultations' ? 'bg-blue-500 text-white' : 'bg-gray-100'
                   }`}
                 >
                   <FileText className="h-5 w-5" />
@@ -119,13 +119,13 @@ export function ExportDialog({ trigger, defaultType = 'consultations' }: ExportD
                 onClick={() => setExportType('patients')}
                 className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
                   exportType === 'patients'
-                    ? 'border-teal-500 bg-teal-50'
+                    ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div
                   className={`p-2 rounded-lg ${
-                    exportType === 'patients' ? 'bg-teal-500 text-white' : 'bg-gray-100'
+                    exportType === 'patients' ? 'bg-blue-500 text-white' : 'bg-gray-100'
                   }`}
                 >
                   <Users className="h-5 w-5" />
@@ -153,7 +153,7 @@ export function ExportDialog({ trigger, defaultType = 'consultations' }: ExportD
                   key={preset.value}
                   type="button"
                   onClick={() => setDatePreset(preset.value)}
-                  className="px-3 py-1.5 text-sm rounded-full border border-gray-200 hover:border-teal-500 hover:bg-teal-50 transition-colors"
+                  className="px-3 py-1.5 text-sm rounded-full border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
                 >
                   {preset.label}
                 </button>

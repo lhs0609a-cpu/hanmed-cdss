@@ -440,7 +440,7 @@ const schoolIcons: Record<MedicineSchool, React.ReactNode> = {
 
 const schoolColors: Record<MedicineSchool, string> = {
   classical: 'bg-amber-100 text-amber-700 border-amber-200',
-  later: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  later: 'bg-blue-100 text-blue-700 border-blue-200',
   sasang: 'bg-violet-100 text-violet-700 border-violet-200',
   hyungsang: 'bg-sky-100 text-sky-700 border-sky-200',
 }
@@ -619,9 +619,9 @@ export default function IntegratedDiagnosisPage() {
 
                 {/* Korean Medicine Patterns */}
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-emerald-50">
+                  <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-teal-600" />
+                      <Brain className="h-5 w-5 text-blue-600" />
                       한의학 변증
                     </h3>
                     <p className="text-xs text-gray-500 mt-1">해당 질환에 적용 가능한 한의학적 변증 패턴</p>
@@ -655,7 +655,7 @@ export default function IntegratedDiagnosisPage() {
                             {/* Formulas */}
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                <Pill className="h-4 w-4 text-teal-600" />
+                                <Pill className="h-4 w-4 text-blue-600" />
                                 <span className="text-sm font-medium text-gray-700">추천 처방</span>
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -723,7 +723,7 @@ export default function IntegratedDiagnosisPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleNavigateToConsultation}
-                    className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     <Activity className="h-5 w-5" />
                     AI 상담으로 이동

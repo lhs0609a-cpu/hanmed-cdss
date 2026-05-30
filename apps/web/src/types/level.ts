@@ -130,7 +130,7 @@ export const LEVEL_STYLES: Record<CommunityLevel, LevelStyle> = {
     bgColor: 'bg-green-100',
     borderColor: 'border-green-300',
     gradientFrom: 'from-green-400',
-    gradientTo: 'to-emerald-500',
+    gradientTo: 'to-blue-500',
     icon: 'Award',
   },
   expert: {

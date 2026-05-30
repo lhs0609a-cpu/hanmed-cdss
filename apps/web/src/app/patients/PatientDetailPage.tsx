@@ -404,7 +404,7 @@ export default function PatientDetailPage() {
         </button>
         <Link
           to="/dashboard/consultation"
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all"
           data-print-hide
         >
           <Brain className="h-5 w-5" />
@@ -624,7 +624,7 @@ export default function PatientDetailPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">처방</p>
                   <div className="flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-teal-500" />
+                    <Pill className="h-4 w-4 text-blue-500" />
                     <span className="text-gray-900 font-medium">{visit.prescription}</span>
                   </div>
                 </div>
@@ -722,7 +722,7 @@ export default function PatientDetailPage() {
           </div>
 
           {/* Progress Summary */}
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-2xl border border-green-100 p-6">
+          <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl border border-green-100 p-6">
             <h3 className="font-bold text-green-900 mb-4 flex items-center gap-2">
               <Toss3DIcon icon={TrendingDown} tone="green" size="sm" />
               경과 요약

@@ -153,7 +153,7 @@ export function MedicalDisclaimer({
                 type="checkbox"
                 checked={checkboxChecked}
                 onChange={(e) => setCheckboxChecked(e.target.checked)}
-                className="w-5 h-5 mt-0.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">
                 위 고지사항을 모두 읽고 이해하였으며, AI 추천 정보는 <strong>참고용</strong>이고

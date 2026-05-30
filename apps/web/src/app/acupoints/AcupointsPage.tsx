@@ -115,7 +115,7 @@ const quickPresets: QuickPreset[] = [
     id: 'shoulder',
     name: '견비통',
     icon: <Hand className="h-5 w-5" />,
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-blue-500 to-blue-500',
     description: '어깨 통증 치료 경혈',
     points: ['견우', '견료', '곡지', '외관', '합곡'],
   },
@@ -123,7 +123,7 @@ const quickPresets: QuickPreset[] = [
     id: 'lumbago',
     name: '요통',
     icon: <Wind className="h-5 w-5" />,
-    color: 'from-green-500 to-emerald-500',
+    color: 'from-green-500 to-blue-500',
     description: '허리 통증 치료 경혈',
     points: ['신수', '위중', '곤륜', '환도', '대장수'],
   },
@@ -131,7 +131,7 @@ const quickPresets: QuickPreset[] = [
     id: 'cold',
     name: '감기',
     icon: <Zap className="h-5 w-5" />,
-    color: 'from-cyan-500 to-blue-500',
+    color: 'from-blue-500 to-blue-500',
     description: '감기 증상 완화 경혈',
     points: ['합곡', '대추', '풍지', '열결', '척택'],
   },
@@ -1072,7 +1072,7 @@ export default function AcupointsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                 !selectedRegion
-                  ? 'bg-teal-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
@@ -1085,7 +1085,7 @@ export default function AcupointsPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1',
                   selectedRegion === region.id
-                    ? 'bg-teal-500 text-white'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
@@ -1431,7 +1431,7 @@ export default function AcupointsPage() {
                   {selectedPoint.techniques.map((tech, i) => (
                     <span
                       key={i}
-                      className="px-3 py-1.5 bg-teal-50 text-teal-700 text-sm rounded-lg"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-lg"
                     >
                       {tech}
                     </span>

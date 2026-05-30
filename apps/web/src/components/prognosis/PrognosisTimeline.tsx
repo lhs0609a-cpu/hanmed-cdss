@@ -132,7 +132,7 @@ export function PrognosisTimeline({ prediction, currentDay = 0 }: PrognosisTimel
             <div
               className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center ${
                 currentDay >= expectedDuration.typical
-                  ? 'bg-gradient-to-br from-green-400 to-emerald-500'
+                  ? 'bg-gradient-to-br from-green-400 to-green-500'
                   : 'bg-gray-100'
               }`}
             >

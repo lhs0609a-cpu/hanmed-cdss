@@ -333,7 +333,7 @@ export default function CaseSearchPage() {
           </div>
           <button
             onClick={() => setShowUsageLimitModal(true)}
-            className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-xs font-medium rounded-lg hover:shadow-md transition-all flex items-center gap-1"
+            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-500 text-white text-xs font-medium rounded-lg hover:shadow-md transition-all flex items-center gap-1"
           >
             <Zap className="h-3.5 w-3.5" />
             플랜 업그레이드

@@ -597,7 +597,7 @@ const schoolIcons: Record<MedicineSchool, React.ReactNode> = {
 
 const schoolColors: Record<MedicineSchool, { bg: string; border: string; text: string }> = {
   classical: { bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-800' },
-  later: { bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-800' },
+  later: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-800' },
   sasang: { bg: 'bg-violet-50', border: 'border-violet-300', text: 'text-violet-800' },
   hyungsang: { bg: 'bg-sky-50', border: 'border-sky-300', text: 'text-sky-800' },
 }

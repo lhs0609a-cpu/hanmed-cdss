@@ -393,7 +393,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-scale-in border border-gray-200">
         {/* Search Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-          <div className="p-1.5 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg">
+          <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-500 rounded-lg">
             <Command className="h-4 w-4 text-white" />
           </div>
           <input
@@ -424,7 +424,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               onClick={() => setActiveCategory(cat.key as typeof activeCategory)}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 activeCategory === cat.key
-                  ? 'bg-white text-teal-700 shadow-sm border border-gray-200'
+                  ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -554,13 +554,13 @@ function CommandButton({
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
         isSelected
-          ? 'bg-teal-50 text-teal-700 ring-1 ring-teal-200'
+          ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
           : 'hover:bg-gray-50 text-gray-700'
       }`}
     >
       <span
         className={`p-2 rounded-lg transition-colors ${
-          isSelected ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-500'
+          isSelected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
         }`}
       >
         {cmd.icon}
@@ -579,7 +579,7 @@ function CommandButton({
         </kbd>
       ) : (
         <ArrowUpRight
-          className={`h-4 w-4 ${isSelected ? 'text-teal-500' : 'text-gray-300'}`}
+          className={`h-4 w-4 ${isSelected ? 'text-blue-500' : 'text-gray-300'}`}
         />
       )}
     </button>

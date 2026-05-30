@@ -171,7 +171,7 @@ export function AIStatusIndicator({
 
   return (
     <div className={cn(
-      'flex items-center gap-1.5 text-emerald-600 text-xs font-medium',
+      'flex items-center gap-1.5 text-green-600 text-xs font-medium',
       className
     )}>
       <Info className="h-3.5 w-3.5" />
@@ -280,9 +280,9 @@ function getWarningConfig(type: AIWarningType): WarningConfig {
 function getConfidenceLevel(confidence: number) {
   if (confidence >= 0.8) {
     return {
-      bgColor: 'bg-emerald-100',
-      textColor: 'text-emerald-700',
-      borderColor: 'border-emerald-200',
+      bgColor: 'bg-green-100',
+      textColor: 'text-green-700',
+      borderColor: 'border-green-200',
       showWarning: false,
     }
   }

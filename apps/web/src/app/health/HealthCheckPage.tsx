@@ -104,7 +104,7 @@ export default function HealthCheckPage() {
   const percentage = Math.round((checkedCount / check.questions.length) * 100)
 
   const resultColorMap = {
-    low: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', bar: 'bg-emerald-400' },
+    low: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', bar: 'bg-green-400' },
     mid: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', bar: 'bg-amber-400' },
     high: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', bar: 'bg-rose-400' },
   }
@@ -288,7 +288,7 @@ export default function HealthCheckPage() {
       {/* Lifestyle Tips */}
       <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-orange-100/30 mb-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-sm">💡</span>
+          <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-sm">💡</span>
           생활 속 관리 팁
         </h3>
         <div className="space-y-4">
@@ -337,7 +337,7 @@ export default function HealthCheckPage() {
             onClick={handleCopyLink}
             className={`inline-flex items-center gap-2 px-5 py-2.5 border font-medium rounded-full text-sm transition-all ${
               copied
-                ? 'border-emerald-300 bg-emerald-50 text-emerald-600'
+                ? 'border-blue-300 bg-blue-50 text-blue-600'
                 : 'border-gray-200 text-gray-700 hover:border-orange-300 hover:text-orange-600'
             }`}
           >

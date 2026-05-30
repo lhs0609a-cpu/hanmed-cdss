@@ -229,7 +229,7 @@ Stack: ${error?.stack || 'N/A'}
         <div className="flex gap-3 justify-center mb-6">
           <button
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             다시 시도
@@ -336,7 +336,7 @@ Stack: ${error?.stack || 'N/A'}
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
                 <a
                   href="mailto:support@ongojisin.ai"
-                  className="flex items-center gap-1 hover:text-teal-600"
+                  className="flex items-center gap-1 hover:text-blue-600"
                 >
                   <ExternalLink className="w-3 h-3" />
                   고객센터 문의
@@ -345,7 +345,7 @@ Stack: ${error?.stack || 'N/A'}
                   href="https://ongojisin.ai/help"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-teal-600"
+                  className="flex items-center gap-1 hover:text-blue-600"
                 >
                   <ExternalLink className="w-3 h-3" />
                   도움말 센터
@@ -396,7 +396,7 @@ function PageErrorFallback() {
         <div className="flex gap-3 justify-center mb-6">
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
             새로고침

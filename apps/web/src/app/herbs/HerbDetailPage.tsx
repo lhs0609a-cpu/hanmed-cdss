@@ -71,7 +71,7 @@ export default function HerbDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     )
   }
@@ -83,7 +83,7 @@ export default function HerbDetailPage() {
         <p className="text-gray-500">약재를 찾을 수 없습니다</p>
         <button
           onClick={() => navigate('/dashboard/herbs')}
-          className="mt-4 text-teal-500 hover:underline"
+          className="mt-4 text-blue-500 hover:underline"
         >
           목록으로 돌아가기
         </button>

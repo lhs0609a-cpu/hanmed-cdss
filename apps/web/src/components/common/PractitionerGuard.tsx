@@ -106,7 +106,7 @@ export function LicenseBadge({ compact = false }: { compact?: boolean }) {
     return (
       <span
         data-status="success"
-        className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200"
+        className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200"
       >
         면허 인증 완료
       </span>

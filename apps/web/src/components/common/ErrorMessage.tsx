@@ -79,11 +79,11 @@ const severityConfig: Record<
   },
   success: {
     icon: CheckCircle,
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-100',
-    iconColor: 'text-emerald-500',
-    textColor: 'text-emerald-800',
-    buttonColor: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-100',
+    iconColor: 'text-green-500',
+    textColor: 'text-green-800',
+    buttonColor: 'bg-green-100 hover:bg-green-200 text-green-700',
   },
 }
 
@@ -178,7 +178,7 @@ export function ErrorMessage({
             severity === 'error' ? 'bg-red-100' :
             severity === 'warning' ? 'bg-amber-100' :
             severity === 'info' ? 'bg-blue-100' :
-            'bg-emerald-100'
+            'bg-green-100'
           )}
         >
           <Icon className={cn('w-5 h-5', config.iconColor)} />

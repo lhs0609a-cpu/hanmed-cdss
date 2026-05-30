@@ -184,7 +184,7 @@ export default function HealthCommunityPage() {
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
                           post.tab === 'tmi' ? 'bg-rose-50 text-rose-600' :
                           post.tab === 'qna' ? 'bg-blue-50 text-blue-600' :
-                          post.tab === 'check' ? 'bg-emerald-50 text-emerald-600' :
+                          post.tab === 'check' ? 'bg-blue-50 text-blue-600' :
                           post.tab === 'review' ? 'bg-purple-50 text-purple-600' :
                           'bg-gray-50 text-gray-600'
                         }`}>

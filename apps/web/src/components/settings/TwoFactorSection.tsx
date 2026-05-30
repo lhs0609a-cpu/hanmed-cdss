@@ -145,7 +145,7 @@ export function TwoFactorSection() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-teal-600" />
+          <ShieldCheck className="h-5 w-5 text-blue-600" />
           2단계 인증 (TOTP)
         </CardTitle>
         <CardDescription>

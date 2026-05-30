@@ -36,7 +36,7 @@ export default function Modal({
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
-  headerGradient = 'from-teal-500 to-emerald-500',
+  headerGradient = 'from-blue-500 to-blue-500',
   footer,
   className,
 }: ModalProps) {

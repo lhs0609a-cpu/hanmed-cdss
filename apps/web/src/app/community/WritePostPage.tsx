@@ -89,7 +89,7 @@ function LoginRequiredScreen({ isGuest }: { isGuest: boolean }) {
           <Link
             to="/login"
             state={{ from: '/dashboard/community/write' }}
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center gap-2"
           >
             <LogIn className="h-5 w-5" />
             로그인하기
@@ -97,7 +97,7 @@ function LoginRequiredScreen({ isGuest }: { isGuest: boolean }) {
         </div>
         <p className="mt-6 text-sm text-gray-500">
           아직 계정이 없으신가요?{' '}
-          <Link to="/register" className="text-teal-600 hover:underline font-medium">
+          <Link to="/register" className="text-blue-600 hover:underline font-medium">
             회원가입
           </Link>
         </p>
@@ -357,7 +357,7 @@ export default function WritePostPage() {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !title.trim() || !content.trim()}
-            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
           >
             <Send className="h-5 w-5" />
             {isSubmitting ? '게시 중...' : '게시하기'}
@@ -377,18 +377,18 @@ export default function WritePostPage() {
                 onClick={() => setPostType(option.value as PostType)}
                 className={`p-4 rounded-xl border-2 transition-all text-left ${
                   postType === option.value
-                    ? 'border-teal-500 bg-teal-50'
+                    ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <Icon
                   className={`h-6 w-6 mb-2 ${
-                    postType === option.value ? 'text-teal-500' : 'text-gray-400'
+                    postType === option.value ? 'text-blue-500' : 'text-gray-400'
                   }`}
                 />
                 <span
                   className={`block font-medium ${
-                    postType === option.value ? 'text-teal-700' : 'text-gray-700'
+                    postType === option.value ? 'text-blue-700' : 'text-gray-700'
                   }`}
                 >
                   {option.label}
@@ -406,7 +406,7 @@ export default function WritePostPage() {
             <select
               value={forumCategory}
               onChange={(e) => setForumCategory(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             >
               <option value="">분과를 선택하세요</option>
               {forumCategories.map((cat) => (
@@ -458,7 +458,7 @@ export default function WritePostPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="제목을 입력하세요"
             maxLength={200}
-            className="w-full text-xl font-bold px-0 py-2 border-0 border-b-2 border-gray-200 focus:outline-none focus:border-teal-500 transition-colors placeholder:text-gray-400 placeholder:font-normal"
+            className="w-full text-xl font-bold px-0 py-2 border-0 border-b-2 border-gray-200 focus:outline-none focus:border-blue-500 transition-colors placeholder:text-gray-400 placeholder:font-normal"
           />
           <div className="text-right text-sm text-gray-400 mt-1">{title.length}/200</div>
         </div>
@@ -474,7 +474,7 @@ export default function WritePostPage() {
 - 목록 항목
 **굵은 글씨**
 "
-            className="w-full min-h-[300px] p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none"
+            className="w-full min-h-[300px] p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none"
           />
         </div>
 
@@ -496,12 +496,12 @@ export default function WritePostPage() {
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-100 text-teal-700 rounded-full"
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full"
             >
               #{tag}
               <button
                 onClick={() => handleRemoveTag(tag)}
-                className="hover:text-teal-900 transition-colors"
+                className="hover:text-blue-900 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -515,7 +515,7 @@ export default function WritePostPage() {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
                 placeholder="태그 입력"
-                className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:border-teal-500 text-sm"
+                className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:border-blue-500 text-sm"
               />
               <button
                 onClick={handleAddTag}
@@ -537,7 +537,7 @@ export default function WritePostPage() {
             type="checkbox"
             checked={isAnonymous}
             onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="w-5 h-5 text-teal-500 border-gray-300 rounded focus:ring-teal-500"
+            className="w-5 h-5 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
           />
           <div>
             <span className="font-medium text-gray-900 flex items-center gap-2">
@@ -568,7 +568,7 @@ export default function WritePostPage() {
               <input
                 type="text"
                 placeholder="증상, 처방명, 체질로 검색..."
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
               />
               <div className="mt-4 space-y-2">
                 {/* 더미 검색 결과 */}

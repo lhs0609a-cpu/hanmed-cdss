@@ -288,7 +288,7 @@ export default function SettingsPage() {
             <CardContent>
               <div className="flex items-center gap-6">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="프로필" className="w-full h-full object-cover" />
                     ) : (
@@ -399,7 +399,7 @@ export default function SettingsPage() {
                     }
                     if (status === 'verified') {
                       return (
-                        <p className="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-md">
+                        <p className="text-[12px] text-green-700 bg-green-50 border border-green-200 px-2.5 py-1.5 rounded-md">
                           ✓ 면허 <strong>검증 완료</strong>
                         </p>
                       )
@@ -450,7 +450,7 @@ export default function SettingsPage() {
                   value={profileForm.bio}
                   onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                   placeholder="간단한 자기소개를 작성해주세요"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   rows={3}
                 />
               </div>
@@ -498,7 +498,7 @@ export default function SettingsPage() {
               <CardDescription>현재 이용 중인 요금제 정보입니다</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-100">
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl border border-blue-100">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br text-white ${planColors[currentTier]}`}>
                     {(() => {
@@ -534,7 +534,7 @@ export default function SettingsPage() {
                   {usage.aiQuery.limit !== -1 && (
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-teal-500 rounded-full transition-all"
+                        className="h-full bg-blue-500 rounded-full transition-all"
                         style={{ width: `${Math.min((usage.aiQuery.used / usage.aiQuery.limit) * 100, 100)}%` }}
                       />
                     </div>
@@ -576,7 +576,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     연간
-                    <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">2개월 무료</Badge>
+                    <Badge className="bg-blue-100 text-blue-700 text-[10px]">2개월 무료</Badge>
                   </button>
                 </div>
               </div>
@@ -584,7 +584,7 @@ export default function SettingsPage() {
             <CardContent>
               {plansLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                   <span className="ml-2 text-gray-500">요금제 정보를 불러오는 중...</span>
                 </div>
               ) : plansError ? (
@@ -607,7 +607,7 @@ export default function SettingsPage() {
                       <div
                         key={plan.tier}
                         className={`p-4 rounded-xl border-2 transition-all ${
-                          isCurrentPlan ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'
+                          isCurrentPlan ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br text-white mb-3 ${planColors[plan.tier]}`}>
@@ -622,7 +622,7 @@ export default function SettingsPage() {
                         <ul className="mt-3 space-y-1">
                           {plan.features.slice(0, 2).map((feature, idx) => (
                             <li key={idx} className="flex items-center gap-1.5 text-xs text-gray-600">
-                              <Check className="h-3 w-3 text-teal-500" />
+                              <Check className="h-3 w-3 text-blue-500" />
                               {feature}
                             </li>
                           ))}
@@ -682,7 +682,7 @@ export default function SettingsPage() {
                           onClick={() => setNotifications({ ...notifications, emailDigest: option.value as 'none' | 'daily' | 'weekly' })}
                           className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
                             notifications.emailDigest === option.value
-                              ? 'bg-teal-50 border-teal-500 text-teal-700'
+                              ? 'bg-blue-50 border-blue-500 text-blue-700'
                               : 'border-gray-200 text-gray-600 hover:border-gray-300'
                           }`}
                         >
@@ -1232,7 +1232,7 @@ function FontScaleSelector() {
             onClick={() => setFontScale(option.value as 'normal' | 'large' | 'xlarge')}
             className={`px-4 py-2 rounded-lg border transition-colors min-h-[44px] ${
               fontScale === option.value
-                ? 'bg-teal-50 border-teal-500 text-teal-700'
+                ? 'bg-blue-50 border-blue-500 text-blue-700'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
             }`}
           >
@@ -1333,7 +1333,7 @@ function BusinessInfoForm() {
       </Button>
       <p className="text-xs text-gray-500">
         ※ 결제 후 익영업일에 세금계산서가 자동 발행됩니다. 누락 시{' '}
-        <a href="mailto:support@ongojisin.ai" className="text-teal-600 underline">
+        <a href="mailto:support@ongojisin.ai" className="text-blue-600 underline">
           support@ongojisin.ai
         </a>
         로 문의해주세요.

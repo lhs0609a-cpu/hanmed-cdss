@@ -280,7 +280,7 @@ export function LoadingSpinner({ size = 'md', className }: { size?: 'sm' | 'md' 
 // 펄스 효과 (알림 등)
 export function PulseRing({ children, className, color = 'teal' }: { children: ReactNode; className?: string; color?: 'teal' | 'amber' | 'red' }) {
   const colorMap = {
-    teal: 'bg-teal-500',
+    teal: 'bg-blue-500',
     amber: 'bg-amber-500',
     red: 'bg-red-500',
   }

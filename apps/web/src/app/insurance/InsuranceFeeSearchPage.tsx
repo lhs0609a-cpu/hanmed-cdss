@@ -197,7 +197,7 @@ export default function InsuranceFeeSearchPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <DollarSign className="h-7 w-7 text-emerald-500" />
+          <DollarSign className="h-7 w-7 text-blue-500" />
           한방 수가/상병 검색
         </h1>
         <p className="mt-1 text-gray-500">
@@ -249,7 +249,7 @@ export default function InsuranceFeeSearchPage() {
             className={cn(
               'flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2',
               activeTab === 'fee'
-                ? 'bg-emerald-500 text-white shadow-sm'
+                ? 'bg-blue-500 text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100'
             )}
           >
@@ -267,7 +267,7 @@ export default function InsuranceFeeSearchPage() {
             className={cn(
               'flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2',
               activeTab === 'disease'
-                ? 'bg-emerald-500 text-white shadow-sm'
+                ? 'bg-blue-500 text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100'
             )}
           >
@@ -292,13 +292,13 @@ export default function InsuranceFeeSearchPage() {
                   ? '수가코드 또는 명칭으로 검색 (예: 침술, 추나, M0010)'
                   : '상병코드 또는 상병명으로 검색 (예: U200, 기허증)'
               }
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
           <button
             onClick={handleSearch}
             disabled={isLoading}
-            className="px-6 py-3 bg-emerald-500 text-white font-medium rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -320,7 +320,7 @@ export default function InsuranceFeeSearchPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
                   feeCategory === cat.id
-                    ? 'bg-emerald-500 text-white'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
@@ -335,12 +335,12 @@ export default function InsuranceFeeSearchPage() {
           <p className="text-sm text-gray-600">
             {activeTab === 'fee' ? (
               <>
-                <span className="font-medium text-emerald-600">Tip:</span> 침술, 뜸술, 추나 등
+                <span className="font-medium text-blue-600">Tip:</span> 침술, 뜸술, 추나 등
                 한방 진료 수가를 검색합니다. 코드(M0010)나 명칭으로 검색할 수 있습니다.
               </>
             ) : (
               <>
-                <span className="font-medium text-emerald-600">Tip:</span> 한방 상병코드(U코드)를
+                <span className="font-medium text-blue-600">Tip:</span> 한방 상병코드(U코드)를
                 검색합니다. 기허증, 혈허증 등 증상명이나 U200 같은 코드로 검색하세요.
               </>
             )}
@@ -458,7 +458,7 @@ export default function InsuranceFeeSearchPage() {
           {/* Results Header */}
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-emerald-500" />
+              <FileText className="h-5 w-5 text-blue-500" />
               <span className="font-medium text-gray-900">검색 결과</span>
               <span className="text-sm text-gray-500">
                 ({activeTab === 'fee' ? filteredFeeResults.length : diseaseResults.length}건
@@ -474,7 +474,7 @@ export default function InsuranceFeeSearchPage() {
               href="https://www.hira.or.kr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-gray-500 hover:text-emerald-600 flex items-center gap-1"
+              className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1"
             >
               심평원 바로가기
               <ExternalLink className="h-4 w-4" />
@@ -512,7 +512,7 @@ export default function InsuranceFeeSearchPage() {
                     <tr key={`${item.code}-${index}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-emerald-600">{item.code}</span>
+                          <span className="font-mono font-bold text-blue-600">{item.code}</span>
                           <button
                             onClick={() => handleCopyCode(item.code)}
                             className="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -534,7 +534,7 @@ export default function InsuranceFeeSearchPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                             {item.classificationName || item.classificationNo}
                           </span>
                         </div>
@@ -648,11 +648,11 @@ export default function InsuranceFeeSearchPage() {
       {/* Initial State */}
       {feeResults.length === 0 && diseaseResults.length === 0 && !isLoading && !error && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             {activeTab === 'fee' ? (
-              <DollarSign className="h-8 w-8 text-emerald-600" />
+              <DollarSign className="h-8 w-8 text-blue-600" />
             ) : (
-              <Activity className="h-8 w-8 text-emerald-600" />
+              <Activity className="h-8 w-8 text-blue-600" />
             )}
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -751,7 +751,7 @@ export default function InsuranceFeeSearchPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5 text-emerald-500" />
+            <DollarSign className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-gray-500">급여 수가</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">

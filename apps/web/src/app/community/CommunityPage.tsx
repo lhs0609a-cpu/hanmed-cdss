@@ -211,10 +211,10 @@ export default function CommunityPage() {
         </Link>
         <Link
           to="/dashboard/community/my/bookmarks"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-teal-300 hover:shadow-md transition-all group"
+          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all group"
         >
-          <Bookmark className="h-6 w-6 text-teal-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-teal-600">북마크</span>
+          <Bookmark className="h-6 w-6 text-blue-500 mb-2" />
+          <span className="font-medium text-gray-900 group-hover:text-blue-600">북마크</span>
           <p className="text-xs text-gray-500 mt-1">저장한 글</p>
         </Link>
       </div>
@@ -229,14 +229,14 @@ export default function CommunityPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="제목, 내용, 태그로 검색..."
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as PostType | '')}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             >
               <option value="">전체 게시판</option>
               <option value="case_discussion">케이스 토론</option>
@@ -247,7 +247,7 @@ export default function CommunityPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'latest' | 'popular' | 'comments')}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             >
               <option value="latest">최신순</option>
               <option value="popular">인기순</option>
@@ -262,7 +262,7 @@ export default function CommunityPage() {
         {/* 로딩 상태 */}
         {loading && (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Loader2 className="h-12 w-12 text-teal-500 mx-auto mb-4 animate-spin" />
+            <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
             <p className="text-gray-500">게시글을 불러오는 중...</p>
           </div>
         )}
@@ -275,7 +275,7 @@ export default function CommunityPage() {
             <Link
               key={post.id}
               to={`/dashboard/community/post/${post.id}`}
-              className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-teal-200 transition-all group"
+              className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-blue-200 transition-all group"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -299,7 +299,7 @@ export default function CommunityPage() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors line-clamp-1">
+                  <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                     {post.title}
                   </h3>
 
@@ -358,7 +358,7 @@ export default function CommunityPage() {
                   </div>
                 </div>
 
-                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0" />
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
               </div>
             </Link>
           )
@@ -371,7 +371,7 @@ export default function CommunityPage() {
             <p className="text-sm text-gray-400 mt-1">첫 번째 글을 작성해보세요!</p>
             <button
               onClick={handleWriteClick}
-              className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               글쓰기
             </button>

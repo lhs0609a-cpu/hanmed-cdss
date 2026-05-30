@@ -576,9 +576,9 @@ export default function ConsultationPage() {
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                         isActive
-                          ? 'bg-gradient-to-br from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/30'
+                          ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
                           : isCompleted
-                          ? 'bg-teal-100 text-teal-600'
+                          ? 'bg-blue-100 text-blue-600'
                           : 'bg-gray-100 text-gray-400'
                       }`}
                     >
@@ -589,7 +589,7 @@ export default function ConsultationPage() {
                       )}
                     </div>
                     <span className={`text-xs font-medium ${
-                      isActive ? 'text-teal-600' : isCompleted ? 'text-teal-500' : 'text-gray-400'
+                      isActive ? 'text-blue-600' : isCompleted ? 'text-blue-500' : 'text-gray-400'
                     }`}>
                       {step.title}
                     </span>
@@ -604,7 +604,7 @@ export default function ConsultationPage() {
                   {index < wizardSteps.length - 1 && (
                     <div className="flex-1 mx-2 h-0.5 rounded-full overflow-hidden bg-gray-200">
                       <div
-                        className={`h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500 ${
+                        className={`h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ${
                           isCompleted ? 'w-full' : 'w-0'
                         }`}
                       />
@@ -641,7 +641,7 @@ export default function ConsultationPage() {
                     id="patient-age"
                     type="text"
                     placeholder="예: 45세"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                   />
                 </div>
                 <div>
@@ -650,7 +650,7 @@ export default function ConsultationPage() {
                   </label>
                   <select
                     id="patient-gender"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
                   >
                     <option value="">선택 안함</option>
                     <option value="male">남성</option>
@@ -693,7 +693,7 @@ export default function ConsultationPage() {
                     value={newMedication}
                     onChange={(e) => setNewMedication(e.target.value)}
                     placeholder="예: 혈압약, 당뇨약..."
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addMedication()}
                   />
                   <button
@@ -727,7 +727,7 @@ export default function ConsultationPage() {
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button
                   onClick={goToNextStep}
-                  className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-500/30 transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2"
                 >
                   다음: 증상 입력
                   <ChevronRight className="h-5 w-5" />
@@ -759,7 +759,7 @@ export default function ConsultationPage() {
                   value={chiefComplaint}
                   onChange={(e) => setChiefComplaint(e.target.value)}
                   placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고 설사를 자주 합니다. 피로감이 심합니다..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none text-base"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
                   rows={5}
                 />
               </div>
@@ -778,7 +778,7 @@ export default function ConsultationPage() {
                         onClick={() => toggleSymptom(symptom)}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           isSelected
-                            ? 'bg-teal-500 text-white shadow-sm'
+                            ? 'bg-blue-500 text-white shadow-sm'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -791,18 +791,18 @@ export default function ConsultationPage() {
 
               {/* 선택된 증상 */}
               {symptoms.length > 0 && (
-                <div className="p-4 bg-teal-50 rounded-xl border border-teal-200">
-                  <p className="text-sm font-medium text-teal-800 mb-2">선택된 증상 ({symptoms.length}개)</p>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <p className="text-sm font-medium text-blue-800 mb-2">선택된 증상 ({symptoms.length}개)</p>
                   <div className="flex flex-wrap gap-2">
                     {symptoms.map((symptom, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-teal-700 border border-teal-300 rounded-full text-sm font-medium"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-blue-700 border border-blue-300 rounded-full text-sm font-medium"
                       >
                         {symptom.name}
                         <button
                           onClick={() => removeSymptom(index)}
-                          className="hover:bg-teal-100 rounded-full p-0.5 transition-colors"
+                          className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -824,12 +824,12 @@ export default function ConsultationPage() {
                     value={newSymptom}
                     onChange={(e) => setNewSymptom(e.target.value)}
                     placeholder="증상 입력 후 Enter"
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
                   />
                   <button
                     onClick={() => addSymptom()}
-                    className="px-4 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors"
+                    className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
@@ -848,7 +848,7 @@ export default function ConsultationPage() {
                 <button
                   onClick={goToNextStep}
                   disabled={!chiefComplaint.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 >
                   <Sparkles className="h-5 w-5" />
                   AI 분석 시작
@@ -872,9 +872,9 @@ export default function ConsultationPage() {
                 {isLoading ? (
                   <div className="space-y-6">
                     <div className="relative w-24 h-24 mx-auto">
-                      <div className="absolute inset-0 border-4 border-teal-200 rounded-full" />
-                      <div className="absolute inset-0 border-4 border-teal-500 rounded-full border-t-transparent animate-spin" />
-                      <Brain className="absolute inset-0 m-auto h-10 w-10 text-teal-500" />
+                      <div className="absolute inset-0 border-4 border-blue-200 rounded-full" />
+                      <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin" />
+                      <Brain className="absolute inset-0 m-auto h-10 w-10 text-blue-500" />
                     </div>
                     <div className="space-y-2">
                       <p className="text-lg font-semibold text-gray-900">AI가 분석 중입니다...</p>
@@ -886,17 +886,17 @@ export default function ConsultationPage() {
                         <span>잠시만 기다려주세요</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 animate-pulse" style={{ width: '70%' }} />
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse" style={{ width: '70%' }} />
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <CheckCircle className="h-16 w-16 mx-auto text-emerald-500" />
+                    <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
                     <p className="text-lg font-semibold text-gray-900">분석이 완료되었습니다!</p>
                     <button
                       onClick={() => setWizardStep(4)}
-                      className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-500/30 transition-all flex items-center gap-2 mx-auto"
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2 mx-auto"
                     >
                       결과 확인하기
                       <ChevronRight className="h-5 w-5" />
@@ -984,7 +984,7 @@ export default function ConsultationPage() {
                     key={index}
                     className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
                       index === 0
-                        ? 'border-teal-300 bg-teal-50/50'
+                        ? 'border-blue-300 bg-blue-50/50'
                         : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                     onClick={() => openDetailModal(rec)}
@@ -992,7 +992,7 @@ export default function ConsultationPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {index === 0 && (
-                          <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded">
+                          <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded">
                             BEST
                           </span>
                         )}
@@ -1000,7 +1000,7 @@ export default function ConsultationPage() {
                       </div>
                       <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
                         rec.confidence_score >= 0.9
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-green-100 text-green-700'
                           : rec.confidence_score >= 0.7
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-gray-100 text-gray-700'
@@ -1032,7 +1032,7 @@ export default function ConsultationPage() {
                 <button
                   onClick={() => recommendations[0] && handleSelectFormula(recommendations[0])}
                   disabled={recommendations.length === 0}
-                  className="px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 >
                   <CheckCircle className="h-5 w-5" />
                   최우선 처방 선택
@@ -1050,7 +1050,7 @@ export default function ConsultationPage() {
             {quickMode ? (
               <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl shadow-lg shadow-teal-500/20">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -1069,7 +1069,7 @@ export default function ConsultationPage() {
                 onChange={(e) => setChiefComplaint(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="예: 65세 남자, 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고 설사를 자주 합니다. 피로감이 심합니다..."
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none text-base"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
                 rows={5}
                 autoFocus
                 aria-describedby="chief-complaint-hint"
@@ -1090,9 +1090,9 @@ export default function ConsultationPage() {
                         onClick={() => toggleSymptom(symptom)}
                         aria-pressed={isSelected}
                         aria-label={`${symptom} ${isSelected ? '선택됨' : '선택안됨'}`}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                           isSelected
-                            ? 'bg-teal-500 text-white shadow-sm'
+                            ? 'bg-blue-500 text-white shadow-sm'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -1111,13 +1111,13 @@ export default function ConsultationPage() {
                       <span
                         key={index}
                         role="listitem"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs font-medium"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium"
                       >
                         {symptom.name}
                         <button
                           onClick={() => removeSymptom(index)}
                           aria-label={`${symptom.name} 증상 제거`}
-                          className="hover:bg-teal-200 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                          className="hover:bg-blue-200 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         >
                           <X className="h-3 w-3" aria-hidden="true" />
                         </button>
@@ -1157,7 +1157,7 @@ export default function ConsultationPage() {
                 disabled={isLoading || !chiefComplaint.trim()}
                 aria-busy={isLoading}
                 aria-label={isLoading ? 'AI 분석 진행 중' : 'AI 처방 추천 분석 시작, Enter 키로도 실행 가능'}
-                className="w-full mt-4 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:ring-offset-2"
+                className="w-full mt-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               >
                 {isLoading ? (
                   <>
@@ -1187,8 +1187,8 @@ export default function ConsultationPage() {
               {/* Chief Complaint */}
               <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-teal-100 rounded-xl">
-                    <User className="h-5 w-5 text-teal-600" />
+                  <div className="p-2 bg-blue-100 rounded-xl">
+                    <User className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <h2 className="font-bold text-gray-900">주소증</h2>
@@ -1201,7 +1201,7 @@ export default function ConsultationPage() {
                   value={chiefComplaint}
                   onChange={(e) => setChiefComplaint(e.target.value)}
                   placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none"
                   rows={4}
                   aria-describedby="chief-complaint-detail-hint"
                 />
@@ -1228,7 +1228,7 @@ export default function ConsultationPage() {
                     value={newSymptom}
                     onChange={(e) => setNewSymptom(e.target.value)}
                     placeholder="증상 입력 후 Enter"
-                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
                     aria-describedby="new-symptom-hint"
                   />
@@ -1236,7 +1236,7 @@ export default function ConsultationPage() {
                   <button
                     onClick={() => addSymptom()}
                     aria-label="증상 추가"
-                    className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   >
                     <Plus className="h-5 w-5" aria-hidden="true" />
                   </button>
@@ -1247,13 +1247,13 @@ export default function ConsultationPage() {
                     <span
                       key={index}
                       role="listitem"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-sm font-medium"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-medium"
                     >
                       {symptom.name}
                       <button
                         onClick={() => removeSymptom(index)}
                         aria-label={`${symptom.name} 증상 삭제`}
-                        className="hover:bg-teal-200 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                        className="hover:bg-blue-200 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
@@ -1285,7 +1285,7 @@ export default function ConsultationPage() {
                       value={constitution}
                       onChange={(e) => setConstitution(e.target.value)}
                       aria-describedby="constitution-hint"
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all appearance-none"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
                     >
                       <option value="">미상 / 선택 안함</option>
                       <option value="태양인">태양인</option>
@@ -1305,7 +1305,7 @@ export default function ConsultationPage() {
                         value={newMedication}
                         onChange={(e) => setNewMedication(e.target.value)}
                         placeholder="양약 추가"
-                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                         onKeyDown={(e) => e.key === 'Enter' && addMedication()}
                         aria-describedby="medication-hint"
                       />
@@ -1346,7 +1346,7 @@ export default function ConsultationPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <button
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-teal-500/50"
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
               aria-expanded={showAdvancedOptions}
               aria-controls="advanced-options-panel"
             >
@@ -1393,8 +1393,8 @@ export default function ConsultationPage() {
                       onClick={() => setPreferredSchool('later')}
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'later'
-                          ? 'bg-emerald-600 text-white border-emerald-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-emerald-50'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
                       }`}
                     >
                       <Book className="h-4 w-4" />
@@ -1428,7 +1428,7 @@ export default function ConsultationPage() {
                       id="palgang-checkbox"
                       checked={includePalGang}
                       onChange={(e) => setIncludePalGang(e.target.checked)}
-                      className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       aria-describedby="palgang-desc"
                     />
                     <div>
@@ -1442,7 +1442,7 @@ export default function ConsultationPage() {
                       id="byeongyang-checkbox"
                       checked={includeByeongYang}
                       onChange={(e) => setIncludeByeongYang(e.target.checked)}
-                      className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       aria-describedby="byeongyang-desc"
                     />
                     <div>
@@ -1464,7 +1464,7 @@ export default function ConsultationPage() {
                 disabled={isLoading || !chiefComplaint.trim()}
                 aria-busy={isLoading}
                 aria-label={isLoading ? 'AI 분석 진행 중' : 'AI 처방 추천 분석 시작'}
-                className="w-full py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-2xl font-semibold hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:ring-offset-2"
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-semibold hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               >
                 {isLoading ? (
                   <>
@@ -1519,7 +1519,7 @@ export default function ConsultationPage() {
               {analysis && (
                 <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-gray-200 p-6">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl shadow-lg shadow-teal-500/20">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
                       <Brain className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
@@ -1557,7 +1557,7 @@ export default function ConsultationPage() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    <CheckCircle className="h-5 w-5 text-blue-500" />
                     추천 처방 <span className="text-xs font-normal text-gray-500 ml-1">(참고용)</span>
                   </h2>
                   <span className="text-xs text-gray-500">{recommendations.length}개의 처방 추천</span>
@@ -1569,7 +1569,7 @@ export default function ConsultationPage() {
                       key={index}
                       className={`group p-5 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
                         index === 0
-                          ? 'border-teal-200 bg-teal-50/50 hover:shadow-teal-500/10'
+                          ? 'border-blue-200 bg-blue-50/50 hover:shadow-blue-500/10'
                           : 'border-gray-100 hover:border-gray-200'
                       }`}
                     >
@@ -1577,7 +1577,7 @@ export default function ConsultationPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             {index === 0 && (
-                              <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded-md">
+                              <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-md">
                                 BEST
                               </span>
                             )}
@@ -1586,7 +1586,7 @@ export default function ConsultationPage() {
                         </div>
                         <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
                           rec.confidence_score >= 0.9
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-green-100 text-green-700'
                             : rec.confidence_score >= 0.7
                             ? 'bg-amber-100 text-amber-700'
                             : 'bg-gray-100 text-gray-700'
@@ -1648,7 +1648,7 @@ export default function ConsultationPage() {
                       <div className="mt-4 flex flex-wrap items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleSelectFormula(rec)}
-                          className="flex-1 min-w-[120px] py-2 px-4 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                          className="flex-1 min-w-[120px] py-2 px-4 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
                         >
                           이 처방 선택
                         </button>
@@ -1803,11 +1803,11 @@ export default function ConsultationPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[70vh] overflow-hidden">
             {/* 모달 헤더 */}
-            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 px-6 py-4 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">{selectedFormula.formula_name}</h2>
-                  <p className="text-teal-100 text-sm">
+                  <p className="text-blue-100 text-sm">
                     {formulaDetails[selectedFormula.formula_name]?.source || '출전 미상'}
                   </p>
                 </div>
@@ -1834,7 +1834,7 @@ export default function ConsultationPage() {
               {/* 구성 약재 */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Beaker className="h-5 w-5 text-teal-500" />
+                  <Beaker className="h-5 w-5 text-blue-500" />
                   구성 약재
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1897,12 +1897,12 @@ export default function ConsultationPage() {
                   {/* 현대 임상 응용 */}
                   <div>
                     <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-emerald-500" />
+                      <BookOpen className="h-5 w-5 text-blue-500" />
                       현대 임상 응용
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {formulaDetails[selectedFormula.formula_name].modernUsage.map((usage, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                        <span key={i} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm">
                           {usage}
                         </span>
                       ))}
@@ -1938,10 +1938,10 @@ export default function ConsultationPage() {
               {/* AI 추천 근거 */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-teal-500" />
+                  <Sparkles className="h-5 w-5 text-blue-500" />
                   AI 추천 근거
                 </h3>
-                <p className="text-gray-700 bg-teal-50 p-4 rounded-xl leading-relaxed">
+                <p className="text-gray-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
                   {selectedFormula.rationale}
                 </p>
               </div>
@@ -1960,7 +1960,7 @@ export default function ConsultationPage() {
                   setShowDetailModal(false)
                   handleSelectFormula(selectedFormula)
                 }}
-                className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
               >
                 이 처방 선택
               </button>
@@ -1974,12 +1974,12 @@ export default function ConsultationPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 bg-teal-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-teal-500" />
+              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-blue-500" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">처방 선택 확인</h2>
               <p className="text-gray-500 mt-2">
-                <span className="font-bold text-teal-600">{selectedForSelect.formula_name}</span>을(를)
+                <span className="font-bold text-blue-600">{selectedForSelect.formula_name}</span>을(를)
                 <br />선택하시겠습니까?
               </p>
             </div>
@@ -2004,7 +2004,7 @@ export default function ConsultationPage() {
               </button>
               <button
                 onClick={confirmSelectFormula}
-                className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
               >
                 확인
               </button>

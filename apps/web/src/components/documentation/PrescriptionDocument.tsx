@@ -216,12 +216,12 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[70vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-teal-500 to-emerald-500">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-500">
           <div className="flex items-center gap-3 text-white">
             <FileText className="h-6 w-6" />
             <div>
               <h2 className="font-bold text-lg">처방 근거 문서화</h2>
-              <p className="text-sm text-teal-100">진료 기록 및 처방 근거서</p>
+              <p className="text-sm text-blue-100">진료 기록 및 처방 근거서</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
               <Calendar className="h-4 w-4" />
               <span>작성일: {formatDate(currentDate)}</span>
             </div>
-            <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-medium">
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
               AI 자동 생성
             </span>
           </div>
@@ -330,41 +330,41 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
           )}
 
           {/* Prescription */}
-          <div className="bg-teal-50 rounded-xl p-5">
+          <div className="bg-blue-50 rounded-xl p-5">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Pill className="h-5 w-5 text-teal-500" />
+              <Pill className="h-5 w-5 text-blue-500" />
               처방
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-lg text-teal-800">
+                  <span className="font-bold text-lg text-blue-800">
                     {data.prescription.formulaName}
                   </span>
                   {data.prescription.formulaHanja && (
-                    <span className="ml-2 text-teal-600">
+                    <span className="ml-2 text-blue-600">
                       ({data.prescription.formulaHanja})
                     </span>
                   )}
                 </div>
                 {data.prescription.confidence && (
-                  <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                     신뢰도 {(data.prescription.confidence * 100).toFixed(0)}%
                   </span>
                 )}
               </div>
 
               <div>
-                <span className="text-sm text-teal-600 font-medium">구성 약재</span>
+                <span className="text-sm text-blue-600 font-medium">구성 약재</span>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
                   {data.prescription.herbs.map((herb, idx) => (
                     <div
                       key={idx}
-                      className="px-3 py-2 bg-white rounded-lg border border-teal-200 text-sm"
+                      className="px-3 py-2 bg-white rounded-lg border border-blue-200 text-sm"
                     >
                       <span className="font-medium text-gray-800">{herb.name}</span>
                       <span className="text-gray-500 ml-1">{herb.amount}</span>
-                      <span className="block text-xs text-teal-600 mt-0.5">{herb.role}</span>
+                      <span className="block text-xs text-blue-600 mt-0.5">{herb.role}</span>
                     </div>
                   ))}
                 </div>
@@ -416,7 +416,7 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
           </button>
           <button
             onClick={handlePrint}
-            className="flex-1 py-3 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
           >
             <Printer className="h-5 w-5" />
             인쇄하기

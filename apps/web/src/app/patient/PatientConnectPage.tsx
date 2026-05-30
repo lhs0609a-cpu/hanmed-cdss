@@ -56,7 +56,7 @@ export default function PatientConnectPage() {
   return (
     <div className="px-5 pt-10 pb-24 max-w-md mx-auto space-y-8">
       <header className="space-y-2">
-        <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
           <Building2 className="w-6 h-6" />
         </div>
         <h1 className="text-2xl font-bold">한의원 연결</h1>
@@ -71,13 +71,13 @@ export default function PatientConnectPage() {
           placeholder="예: 4F3K"
           inputMode="text"
           maxLength={6}
-          className="w-full text-center text-2xl tracking-[0.4em] font-mono uppercase rounded-xl border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none py-4"
+          className="w-full text-center text-2xl tracking-[0.4em] font-mono uppercase rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none py-4"
         />
         {error && <p className="text-sm text-red-600 text-center">{error}</p>}
         <button
           type="submit"
           disabled={submitting}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-medium py-3.5 disabled:opacity-50 min-h-[48px]"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium py-3.5 disabled:opacity-50 min-h-[48px]"
         >
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           연결하기

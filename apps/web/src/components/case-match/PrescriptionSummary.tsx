@@ -30,7 +30,7 @@ interface PrescriptionSummaryProps {
 const GRADE_RANK: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 }
 const GRADE_COLORS = {
   S: 'bg-purple-100 text-purple-700 border-purple-200',
-  A: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  A: 'bg-green-100 text-green-700 border-green-200',
   B: 'bg-blue-100 text-blue-700 border-blue-200',
   C: 'bg-amber-100 text-amber-700 border-amber-200',
   D: 'bg-gray-100 text-gray-600 border-gray-200',
@@ -138,7 +138,7 @@ export function PrescriptionSummary({ results, className }: PrescriptionSummaryP
                 {topPrescription.count}건의 유사 사례
               </span>
               <span className="flex items-center gap-1">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <TrendingUp className="h-4 w-4 text-blue-500" />
                 매칭 {topPrescriptionPercent}% 점유
               </span>
             </div>

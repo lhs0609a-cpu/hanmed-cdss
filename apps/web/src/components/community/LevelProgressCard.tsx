@@ -65,10 +65,10 @@ export function LevelProgressCard({
         ) : (
           <>
             {/* Next Level Info */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl">
               <div>
                 <p className="text-sm text-gray-600">다음 레벨</p>
-                <p className="text-lg font-bold text-teal-700 flex items-center gap-2">
+                <p className="text-lg font-bold text-blue-700 flex items-center gap-2">
                   {nextLevel.name}
                   <ChevronRight className="h-5 w-5" />
                 </p>
@@ -82,7 +82,7 @@ export function LevelProgressCard({
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="flex items-center gap-2 text-gray-600">
-                    <TrendingUp className="h-4 w-4 text-teal-500" />
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
                     포인트
                   </span>
                   <span className="font-medium text-gray-900">
@@ -91,7 +91,7 @@ export function LevelProgressCard({
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500 ease-out"
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${Math.min(pointsProgress, 100)}%` }}
                   />
                 </div>

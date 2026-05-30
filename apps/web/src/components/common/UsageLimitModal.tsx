@@ -85,7 +85,7 @@ export function UsageLimitModal({
                     ? 'bg-gradient-to-r from-red-500 to-orange-500'
                     : usagePercent >= 80
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500'
-                    : 'bg-gradient-to-r from-teal-500 to-emerald-500'
+                    : 'bg-gradient-to-r from-blue-500 to-blue-500'
                 )}
                 style={{ width: `${usagePercent}%` }}
               />
@@ -116,11 +116,11 @@ export function UsageLimitModal({
           <div className="space-y-3">
             <p className="text-sm font-medium text-gray-700">업그레이드 시 혜택</p>
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg border border-teal-200">
-                <Zap className="h-5 w-5 text-teal-600 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <Zap className="h-5 w-5 text-blue-600 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-teal-900">Professional 플랜</p>
-                  <p className="text-xs text-teal-700">AI 쿼리 300회/월 + 초과 시 건당 300원</p>
+                  <p className="text-sm font-medium text-blue-900">Professional 플랜</p>
+                  <p className="text-xs text-blue-700">AI 쿼리 300회/월 + 초과 시 건당 300원</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
@@ -159,7 +159,7 @@ export function UsageLimitModal({
           </button>
           <Link
             to="/dashboard/subscription"
-            className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg hover:shadow-teal-500/30 transition-all font-medium flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium flex items-center justify-center gap-2"
             onClick={onClose}
           >
             플랜 업그레이드

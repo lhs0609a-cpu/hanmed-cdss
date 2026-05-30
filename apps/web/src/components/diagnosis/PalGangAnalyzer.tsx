@@ -148,7 +148,7 @@ export function PalGangAnalyzer({
       case 'coldHeat':
         return 'text-orange-600 bg-orange-50 border-orange-200'
       case 'deficiencyExcess':
-        return 'text-teal-600 bg-teal-50 border-teal-200'
+        return 'text-blue-600 bg-blue-50 border-blue-200'
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200'
     }
@@ -255,7 +255,7 @@ export function PalGangAnalyzer({
       </div>
 
       {/* Summary */}
-      <div className="p-4 bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl border border-teal-200">
+      <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl border border-blue-200">
         <h3 className="text-sm font-medium text-gray-500 mb-2">종합 변증</h3>
         <p className="text-lg font-bold text-gray-900">{getSummary() || '변증을 선택해주세요'}</p>
       </div>
@@ -274,7 +274,7 @@ export function PalGangSummary({ analysis, className }: PalGangSummaryProps) {
     { label: '음양', value: analysis.yinYang?.label, color: 'bg-purple-100 text-purple-800' },
     { label: '표리', value: analysis.interiorExterior?.label, color: 'bg-blue-100 text-blue-800' },
     { label: '한열', value: analysis.coldHeat?.label, color: 'bg-orange-100 text-orange-800' },
-    { label: '허실', value: analysis.deficiencyExcess?.label, color: 'bg-teal-100 text-teal-800' },
+    { label: '허실', value: analysis.deficiencyExcess?.label, color: 'bg-blue-100 text-blue-800' },
   ]
 
   return (
@@ -383,7 +383,7 @@ export function PalGangDiagram({ analysis, className }: PalGangDiagramProps) {
           y="63"
           textAnchor="middle"
           fontSize={fontSizeFor(deficiencyLabel)}
-          className="font-medium fill-teal-700"
+          className="font-medium fill-blue-700"
         >
           {deficiencyLabel}
         </text>

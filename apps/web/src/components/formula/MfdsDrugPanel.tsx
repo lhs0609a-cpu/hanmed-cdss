@@ -197,7 +197,7 @@ function ProductDetail({ itemSeq }: { itemSeq: string }) {
 
       {/* 성분 */}
       {ingredients.length > 0 && (
-        <Section title="성분 / 분량" icon={<Pill className="h-4 w-4 text-emerald-600" />}>
+        <Section title="성분 / 분량" icon={<Pill className="h-4 w-4 text-blue-600" />}>
           <ul className="space-y-1 text-gray-700">
             {ingredients.map((ing, i) => (
               <li key={i} className="flex flex-wrap gap-x-2">
@@ -383,7 +383,7 @@ function DurSafetyCheck({ itemSeq }: { itemSeq: string }) {
   if (isError) return null
   if (!data || data.totalCount === 0) {
     return (
-      <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 text-xs text-emerald-700 flex items-center gap-2">
+      <div className="rounded-lg border border-green-100 bg-green-50/40 p-3 text-xs text-green-700 flex items-center gap-2">
         <ShieldCheck className="h-3.5 w-3.5" />
         식약처 DUR 등록된 금기·주의사항이 없습니다.
       </div>

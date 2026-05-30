@@ -604,7 +604,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <span className="font-bold text-xl text-gray-900">온고지신 AI</span>
@@ -623,7 +623,7 @@ export default function LandingPage() {
                 <Button variant="ghost" className="text-gray-600">로그인</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 shadow-lg shadow-teal-500/25 btn-press">
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25 btn-press">
                   무료로 시작하기
                 </Button>
               </Link>
@@ -651,7 +651,7 @@ export default function LandingPage() {
                     <Button variant="outline" className="w-full">로그인</Button>
                   </Link>
                   <Link to="/register" className="flex-1">
-                    <Button className="w-full bg-gradient-to-r from-teal-500 to-emerald-600">시작하기</Button>
+                    <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600">시작하기</Button>
                   </Link>
                 </div>
               </div>
@@ -781,7 +781,7 @@ export default function LandingPage() {
                       <Badge variant="secondary" className={`text-xs ${
                         feature.badge === 'AI' ? 'bg-purple-100 text-purple-700' :
                         feature.badge === 'HOT' ? 'bg-orange-100 text-orange-700' :
-                        'bg-teal-100 text-teal-700'
+                        'bg-blue-100 text-blue-700'
                       }`}>
                         {feature.badge}
                       </Badge>
@@ -799,7 +799,7 @@ export default function LandingPage() {
       <section id="demo" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
         <div ref={demoAnim.ref} className={`max-w-4xl mx-auto ${demoAnim.isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-teal-100 text-teal-700 hover:bg-teal-100">라이브 데모</Badge>
+            <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-100">라이브 데모</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               지금 바로 체험해보세요
             </h2>
@@ -809,7 +809,7 @@ export default function LandingPage() {
           </div>
 
           <Card className="overflow-hidden shadow-2xl border-0">
-            <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-4">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-600 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -829,13 +829,13 @@ export default function LandingPage() {
                     onChange={(e) => setDemoSymptom(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleDemoSubmit()}
                     placeholder="환자 증상을 입력하세요 (예: 소화불량, 피로감, 식욕부진)"
-                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all bg-white"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white"
                   />
                 </div>
                 <Button
                   onClick={handleDemoSubmit}
                   disabled={isDemoLoading || !demoSymptom.trim()}
-                  className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 px-6 btn-press"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 px-6 btn-press"
                 >
                   {isDemoLoading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -851,7 +851,7 @@ export default function LandingPage() {
                   <button
                     key={symptom}
                     onClick={() => setDemoSymptom(symptom)}
-                    className="px-3 py-1.5 text-sm rounded-full bg-white border border-gray-200 text-gray-600 hover:border-teal-500 hover:text-teal-600 transition-colors"
+                    className="px-3 py-1.5 text-sm rounded-full bg-white border border-gray-200 text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
                   >
                     {symptom}
                   </button>
@@ -867,9 +867,9 @@ export default function LandingPage() {
                         <Zap className="w-5 h-5 text-amber-500" />
                         <span className="font-semibold text-gray-900">AI 추천 처방</span>
                       </div>
-                      <h3 className="text-xl font-bold text-teal-600">{demoResult.formula}</h3>
+                      <h3 className="text-xl font-bold text-blue-600">{demoResult.formula}</h3>
                     </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                       <TrendingUp className="w-4 h-4" />
                       <span className="text-sm font-semibold">{demoResult.confidence}% 일치</span>
                     </div>
@@ -883,7 +883,7 @@ export default function LandingPage() {
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <Link to="/register">
-                      <Button className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 btn-press">
+                      <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 btn-press">
                         전체 분석 결과 보기
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
@@ -906,7 +906,7 @@ export default function LandingPage() {
 
               {isDemoLoading && (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 mx-auto mb-3 border-3 border-teal-200 border-t-teal-500 rounded-full animate-spin" />
+                  <div className="w-12 h-12 mx-auto mb-3 border-3 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
                   <p className="text-gray-500">AI가 분석 중입니다...</p>
                 </div>
               )}
@@ -939,7 +939,7 @@ export default function LandingPage() {
                   <ul className="space-y-3">
                     {target.benefits.map((benefit, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-gray-600">
-                        <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{benefit}</span>
                       </li>
                     ))}
@@ -971,7 +971,7 @@ export default function LandingPage() {
               <button
                 onClick={() => setIsAnnual(!isAnnual)}
                 className={`relative w-14 h-7 rounded-full transition-colors ${
-                  isAnnual ? 'bg-teal-500' : 'bg-gray-300'
+                  isAnnual ? 'bg-blue-500' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -984,7 +984,7 @@ export default function LandingPage() {
                 연결제
               </span>
               {isAnnual && (
-                <Badge className="bg-emerald-100 text-emerald-700 animate-bounce-in">
+                <Badge className="bg-blue-100 text-blue-700 animate-bounce-in">
                   17% 할인
                 </Badge>
               )}
@@ -997,13 +997,13 @@ export default function LandingPage() {
                 key={index}
                 className={`relative hover-lift ${
                   plan.highlighted
-                    ? 'border-2 border-teal-500 shadow-2xl shadow-teal-500/20 scale-105'
+                    ? 'border-2 border-blue-500 shadow-2xl shadow-blue-500/20 scale-105'
                     : 'border-gray-100'
                 }`}
               >
                 {plan.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white shadow-lg">
+                    <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
                       추천
                     </Badge>
                   </div>
@@ -1021,7 +1021,7 @@ export default function LandingPage() {
                         <div className="text-sm text-gray-400 mt-1">
                           월 ₩{plan.annualMonthlyPrice.toLocaleString()} 상당
                         </div>
-                        <div className="text-xs text-emerald-600 mt-1 font-medium">
+                        <div className="text-xs text-blue-600 mt-1 font-medium">
                           연 ₩{((plan.monthlyPrice * 12) - plan.annualPrice).toLocaleString()} 절약
                         </div>
                       </>
@@ -1047,7 +1047,7 @@ export default function LandingPage() {
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-gray-600">
-                        <CheckCircle2 className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                         <span className="text-sm">{feature}</span>
                       </li>
                     ))}
@@ -1056,7 +1056,7 @@ export default function LandingPage() {
                     <Button
                       className={`w-full btn-press ${
                         plan.highlighted
-                          ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 shadow-lg shadow-teal-500/25'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/25'
                           : ''
                       }`}
                       variant={plan.highlighted ? 'default' : 'outline'}
@@ -1096,7 +1096,7 @@ export default function LandingPage() {
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     faqCategory === category
-                      ? 'bg-teal-500 text-white shadow-md'
+                      ? 'bg-blue-500 text-white shadow-md'
                       : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                   }`}
                 >
@@ -1178,7 +1178,7 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-teal-600 to-emerald-600 relative overflow-hidden">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-white rounded-full blur-3xl" />
@@ -1187,14 +1187,14 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             지금 바로 시작하세요
           </h2>
-          <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
             무료로 가입하고 한의학 임상의 새로운 경험을 만나보세요.
             <br />
             언제든 플랜을 업그레이드할 수 있습니다.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
-              <Button size="lg" className="w-full sm:w-auto bg-white text-teal-600 hover:bg-gray-100 text-lg px-8 py-6 shadow-xl btn-press group">
+              <Button size="lg" className="w-full sm:w-auto bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6 shadow-xl btn-press group">
                 무료로 시작하기
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -1214,7 +1214,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <span className="font-bold text-xl text-white">온고지신 AI</span>

@@ -125,7 +125,7 @@ export default function HerbsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Leaf className="h-7 w-7 text-teal-500" />
+          <Leaf className="h-7 w-7 text-blue-500" />
           약재 검색
         </h1>
         <p className="mt-1 text-gray-500">
@@ -145,12 +145,12 @@ export default function HerbsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="약재명, 효능으로 검색..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
               />
             </div>
             <button
               onClick={handleSearch}
-              className="px-6 py-3 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors font-medium"
+              className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium"
             >
               검색
             </button>
@@ -170,7 +170,7 @@ export default function HerbsPage() {
               }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 selectedCategory === category
-                  ? 'bg-teal-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -204,7 +204,7 @@ export default function HerbsPage() {
       {/* Results */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </div>
       ) : herbs.length === 0 ? (
         <div className="text-center py-20">
@@ -218,19 +218,19 @@ export default function HerbsPage() {
               <Link
                 key={herb.id}
                 to={`/herbs/${herb.id}`}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:border-teal-200 transition-all"
+                className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Leaf className="h-5 w-5 text-teal-500" />
+                    <Leaf className="h-5 w-5 text-blue-500" />
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-teal-600 transition-colors">
+                      <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {herb.standardName}
                       </h3>
                       <p className="text-sm text-gray-500">{herb.hanjaName}</p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-teal-50 text-teal-600 text-xs font-medium rounded-lg">
+                  <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg">
                     {herb.category}
                   </span>
                 </div>
@@ -273,7 +273,7 @@ export default function HerbsPage() {
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center text-sm font-medium text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="mt-4 flex items-center text-sm font-medium text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                   상세 보기
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </div>

@@ -138,7 +138,7 @@ export function SwipeableCard({
         <div className={cn(
           'absolute inset-y-0 left-0 flex items-center px-4 transition-opacity',
           showLeftAction ? 'opacity-100' : 'opacity-0',
-          rightAction.color || 'bg-emerald-500'
+          rightAction.color || 'bg-blue-500'
         )}>
           {rightAction.icon}
           <span className="ml-2 text-sm font-medium text-white">{rightAction.label}</span>
@@ -202,7 +202,7 @@ export function TouchFriendlyButton({
   )
 
   const variantStyles = {
-    primary: 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30',
+    primary: 'bg-gradient-to-r from-blue-500 to-blue-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30',
     secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100',
     danger: 'bg-red-500 text-white hover:bg-red-600',
@@ -335,7 +335,7 @@ export function SwipeCarousel({
               className={cn(
                 'h-2 rounded-full transition-all min-w-[16px]',
                 index === currentIndex
-                  ? 'w-6 bg-teal-500'
+                  ? 'w-6 bg-blue-500'
                   : 'w-2 bg-gray-300 hover:bg-gray-400'
               )}
               aria-label={`${index + 1}번 슬라이드로 이동`}
@@ -411,7 +411,7 @@ export function PullToRefresh({ children, onRefresh, className }: PullToRefreshP
       >
         <div
           className={cn(
-            'w-8 h-8 rounded-full border-2 border-teal-500 border-t-transparent',
+            'w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent',
             isRefreshing && 'animate-spin'
           )}
           style={{

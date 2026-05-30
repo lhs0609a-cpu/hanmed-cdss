@@ -341,7 +341,7 @@ export default function StatisticsDashboardPage() {
                 {Object.entries(outcomeDistribution).map(([outcome, count]) => {
                   const colors: Record<string, string> = {
                     '완치': 'bg-green-500',
-                    '호전': 'bg-emerald-400',
+                    '호전': 'bg-blue-400',
                     '진행중': 'bg-blue-400',
                     '무효': 'bg-gray-400',
                     '미정': 'bg-gray-300',
@@ -410,7 +410,7 @@ export default function StatisticsDashboardPage() {
           {Object.keys(monthlyTrend).length > 1 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-teal-500" />
+                <TrendingUp className="h-5 w-5 text-blue-500" />
                 월별 추이
               </h2>
               <div className="flex items-end gap-2 h-40">
@@ -421,7 +421,7 @@ export default function StatisticsDashboardPage() {
                     <div key={month} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-xs font-medium text-gray-900">{count}</span>
                       <div
-                        className="w-full bg-gradient-to-t from-teal-500 to-teal-400 rounded-t-lg transition-all"
+                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all"
                         style={{ height: `${heightPercent}%`, minHeight: '8px' }}
                       />
                       <span className="text-[10px] text-gray-500 truncate w-full text-center">

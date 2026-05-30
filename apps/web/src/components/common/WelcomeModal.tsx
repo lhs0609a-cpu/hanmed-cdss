@@ -25,7 +25,7 @@ const features: Feature[] = [
     icon: Search,
     title: `${formatStatNumber(BASE_STATS.cases)} 치험례 검색`,
     description: '40년 임상 경험이 담긴 치험례 데이터베이스를 검색하세요.',
-    color: 'from-teal-500 to-emerald-500',
+    color: 'from-blue-500 to-blue-500',
   },
   {
     icon: AlertTriangle,
@@ -37,7 +37,7 @@ const features: Feature[] = [
     icon: Stethoscope,
     title: '변증 진단 지원',
     description: '사상체질, 장부변증 등 다양한 진단 도구를 제공합니다.',
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-blue-500 to-blue-500',
   },
 ]
 
@@ -104,7 +104,7 @@ export function WelcomeModal() {
         {currentStep === 0 && (
           <div className="p-8">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-blue-500 rounded-2xl flex items-center justify-center">
                 <span className="text-4xl font-bold text-white">온</span>
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">
@@ -139,7 +139,7 @@ export function WelcomeModal() {
               </button>
               <button
                 onClick={() => setCurrentStep(1)}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl hover:shadow-lg transition-all font-medium flex items-center justify-center gap-2"
               >
                 시작하기
                 <ArrowRight className="h-4 w-4" />

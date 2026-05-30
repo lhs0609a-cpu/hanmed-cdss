@@ -280,7 +280,7 @@ export default function SubscriptionPage() {
 
       {/* Trial Status Banner */}
       {trialStatus?.isTrialing && (
-        <Card className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
+        <Card className="bg-gradient-to-r from-blue-500 to-blue-500 text-white border-0">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -289,7 +289,7 @@ export default function SubscriptionPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">무료 체험 중</h3>
-                  <p className="text-emerald-100 text-sm">
+                  <p className="text-blue-100 text-sm">
                     Professional 플랜 체험 중입니다.
                     <span className="font-semibold ml-1">
                       {trialStatus.daysRemaining}일 남음
@@ -303,7 +303,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-emerald-100">체험 종료일</p>
+                <p className="text-sm text-blue-100">체험 종료일</p>
                 <p className="font-semibold">
                   {trialStatus.trialEndsAt
                     ? formatKRDate(trialStatus.trialEndsAt)
@@ -337,7 +337,7 @@ export default function SubscriptionPage() {
             }`}
           >
             연간 결제
-            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
               2개월 무료
             </Badge>
           </button>
@@ -346,7 +346,7 @@ export default function SubscriptionPage() {
 
       {/* Current Usage */}
       {usage && (
-        <Card className="bg-gradient-to-r from-teal-50 to-emerald-50 border-teal-100">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-50 border-blue-100">
           <CardContent className="pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               이번 달 사용량
@@ -371,7 +371,7 @@ export default function SubscriptionPage() {
                 {usage.aiQuery.limit !== -1 && (
                   <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-teal-500 rounded-full transition-all"
+                      className="h-full bg-blue-500 rounded-full transition-all"
                       style={{
                         width: `${Math.min(
                           (usage.aiQuery.used / usage.aiQuery.limit) * 100,
@@ -474,7 +474,7 @@ export default function SubscriptionPage() {
                 <ul className="space-y-3">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-teal-500 flex-shrink-0 mt-0.5" />
+                      <Check className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
                       <span className="text-sm text-gray-600">{feature}</span>
                     </li>
                   ))}
@@ -582,7 +582,7 @@ export default function SubscriptionPage() {
       <div className="text-center text-sm text-gray-500">
         <p>
           구독에 대한 문의사항이 있으시면{' '}
-          <a href="mailto:support@ongojisin.ai" className="text-teal-600 hover:underline">
+          <a href="mailto:support@ongojisin.ai" className="text-blue-600 hover:underline">
             support@ongojisin.ai
           </a>
           로 연락해주세요.
@@ -592,22 +592,22 @@ export default function SubscriptionPage() {
       {/* Legal Links */}
       <div className="border-t pt-6">
         <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
-          <Link to="/terms" className="hover:text-teal-600 flex items-center gap-1">
+          <Link to="/terms" className="hover:text-blue-600 flex items-center gap-1">
             이용약관
             <ExternalLink className="h-3 w-3" />
           </Link>
           <span className="text-gray-300">|</span>
-          <Link to="/privacy" className="hover:text-teal-600 flex items-center gap-1">
+          <Link to="/privacy" className="hover:text-blue-600 flex items-center gap-1">
             개인정보처리방침
             <ExternalLink className="h-3 w-3" />
           </Link>
           <span className="text-gray-300">|</span>
-          <Link to="/subscription-terms" className="hover:text-teal-600 flex items-center gap-1">
+          <Link to="/subscription-terms" className="hover:text-blue-600 flex items-center gap-1">
             정기결제 약관
             <ExternalLink className="h-3 w-3" />
           </Link>
           <span className="text-gray-300">|</span>
-          <Link to="/refund-policy" className="hover:text-teal-600 flex items-center gap-1">
+          <Link to="/refund-policy" className="hover:text-blue-600 flex items-center gap-1">
             환불정책
             <ExternalLink className="h-3 w-3" />
           </Link>
@@ -699,15 +699,15 @@ export default function SubscriptionPage() {
                 onCheckedChange={(checked: boolean | 'indeterminate') => setAgreedToTerms(checked === true)}
               />
               <label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
-                <Link to="/subscription-terms" target="_blank" className="text-teal-600 hover:underline">
+                <Link to="/subscription-terms" target="_blank" className="text-blue-600 hover:underline">
                   정기결제 약관
                 </Link>
                 ,{' '}
-                <Link to="/refund-policy" target="_blank" className="text-teal-600 hover:underline">
+                <Link to="/refund-policy" target="_blank" className="text-blue-600 hover:underline">
                   환불정책
                 </Link>
                 ,{' '}
-                <Link to="/privacy" target="_blank" className="text-teal-600 hover:underline">
+                <Link to="/privacy" target="_blank" className="text-blue-600 hover:underline">
                   개인정보처리방침
                 </Link>
                 에 동의합니다.
@@ -805,7 +805,7 @@ export default function SubscriptionPage() {
                   <div className="flex flex-wrap gap-3">
                     <a
                       href="mailto:support@ongojisin.ai"
-                      className="inline-flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700"
+                      className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                     >
                       <Mail className="h-4 w-4" />
                       support@ongojisin.ai
@@ -819,7 +819,7 @@ export default function SubscriptionPage() {
             <AlertDialogCancel className="sm:flex-1">닫기</AlertDialogCancel>
             {paymentError?.retryable && (
               <Button
-                className="sm:flex-1 bg-teal-600 hover:bg-teal-700"
+                className="sm:flex-1 bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   setShowPaymentErrorDialog(false);
                   if (selectedTier) {
@@ -856,23 +856,23 @@ export default function SubscriptionPage() {
               <div className="space-y-4">
                 {/* Usage Statistics */}
                 {usage && (
-                  <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-100 mt-4">
-                    <p className="text-sm font-medium text-teal-800 mb-3">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-50 rounded-xl p-4 border border-blue-100 mt-4">
+                    <p className="text-sm font-medium text-blue-800 mb-3">
                       지금까지 온고지신 AI와 함께한 성과
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-white/60 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-teal-600">{usage.aiQuery.used}건</p>
+                        <p className="text-2xl font-bold text-blue-600">{usage.aiQuery.used}건</p>
                         <p className="text-xs text-gray-600">AI 분석 수행</p>
                       </div>
                       <div className="bg-white/60 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-teal-600">
+                        <p className="text-2xl font-bold text-blue-600">
                           {Math.round((usage.aiQuery.used || 0) * 5 / 60)}시간
                         </p>
                         <p className="text-xs text-gray-600">예상 절약 시간</p>
                       </div>
                     </div>
-                    <p className="text-xs text-teal-600 mt-3 text-center">
+                    <p className="text-xs text-blue-600 mt-3 text-center">
                       * AI 분석 1건당 평균 5분 절약 기준
                     </p>
                   </div>
@@ -919,7 +919,7 @@ export default function SubscriptionPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogCancel className="w-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:from-teal-600 hover:to-emerald-600 border-0">
+            <AlertDialogCancel className="w-full bg-gradient-to-r from-blue-500 to-blue-500 text-white hover:from-blue-600 hover:to-blue-600 border-0">
               30% 할인 받고 유지하기
             </AlertDialogCancel>
             <div className="flex gap-2 w-full">

@@ -96,8 +96,8 @@ export default function ByeongYangTablePage() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-100 rounded-lg">
-                <BookOpen className="h-6 w-6 text-teal-600" />
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BookOpen className="h-6 w-6 text-blue-600" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
@@ -150,7 +150,7 @@ export default function ByeongYangTablePage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="병명 또는 변증 검색..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div className="flex gap-2">
@@ -261,8 +261,8 @@ export default function ByeongYangTablePage() {
                                 key={pattern.id}
                                 onClick={() => handlePatternClick(disease, pattern)}
                                 className={cn(
-                                  'w-full px-4 py-3 flex items-center justify-between hover:bg-teal-50 transition-colors text-left',
-                                  selectedPattern?.id === pattern.id && 'bg-teal-50'
+                                  'w-full px-4 py-3 flex items-center justify-between hover:bg-blue-50 transition-colors text-left',
+                                  selectedPattern?.id === pattern.id && 'bg-blue-50'
                                 )}
                               >
                                 <div>
@@ -319,7 +319,7 @@ export default function ByeongYangTablePage() {
                       {/* Symptoms */}
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <Activity className="h-4 w-4 text-teal-600" />
+                          <Activity className="h-4 w-4 text-blue-600" />
                           <h4 className="font-medium text-gray-900">주요 증상</h4>
                         </div>
                         <div className="space-y-1">
@@ -328,17 +328,17 @@ export default function ByeongYangTablePage() {
                               key={idx}
                               className={cn(
                                 'px-3 py-2 rounded-lg text-sm',
-                                symptom.isKey ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50'
+                                symptom.isKey ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
                               )}
                             >
-                              <span className={symptom.isKey ? 'font-medium text-teal-800' : 'text-gray-700'}>
+                              <span className={symptom.isKey ? 'font-medium text-blue-800' : 'text-gray-700'}>
                                 {symptom.name}
                               </span>
                               {symptom.specifics && (
                                 <span className="text-gray-500 ml-1">- {symptom.specifics}</span>
                               )}
                               {symptom.isKey && (
-                                <span className="ml-2 text-xs text-teal-600">(핵심)</span>
+                                <span className="ml-2 text-xs text-blue-600">(핵심)</span>
                               )}
                             </div>
                           ))}

@@ -233,7 +233,7 @@ export default function PostDetailPage() {
           {/* Author Info */}
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
                 {post.author?.name?.[0] || '?'}
               </div>
               <div>
@@ -297,7 +297,7 @@ export default function PostDetailPage() {
             <button
               onClick={handleToggleBookmark}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
-                isBookmarked ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                isBookmarked ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               <Bookmark className={`h-5 w-5 ${isBookmarked ? 'fill-current' : ''}`} />
@@ -328,7 +328,7 @@ export default function PostDetailPage() {
       <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-teal-500" />
+            <MessageCircle className="h-5 w-5 text-blue-500" />
             댓글 {post.commentCount}
           </h2>
         </div>
@@ -354,14 +354,14 @@ export default function PostDetailPage() {
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder={isAuthenticated ? '댓글을 입력하세요...' : '로그인 후 댓글을 작성할 수 있습니다.'}
                 disabled={!isAuthenticated}
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all resize-none disabled:opacity-60"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none disabled:opacity-60"
                 rows={3}
               />
               <div className="mt-2 flex justify-end">
                 <button
                   onClick={handleSubmitComment}
                   disabled={!commentText.trim() || isSubmitting || !isAuthenticated}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -400,7 +400,7 @@ export default function PostDetailPage() {
                   )}
 
                   <div className="flex gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
                       {comment.author?.name?.[0] || '?'}
                     </div>
                     <div className="flex-1">
@@ -449,7 +449,7 @@ export default function PostDetailPage() {
                         </span>
                         <button
                           onClick={() => setReplyTo(comment.id)}
-                          className="flex items-center gap-1 text-gray-500 hover:text-teal-600 transition-colors"
+                          className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
                         >
                           <Reply className="h-4 w-4" />
                           <span>답글</span>

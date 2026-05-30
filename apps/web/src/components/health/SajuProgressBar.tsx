@@ -40,7 +40,7 @@ export default function SajuProgressBar({
         <motion.div
           className={`h-full rounded-full ${
             isCompleted
-              ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+              ? 'bg-gradient-to-r from-green-400 to-green-500'
               : 'bg-gradient-to-r from-orange-400 to-rose-400'
           }`}
           initial={{ width: 0 }}
@@ -60,7 +60,7 @@ export default function SajuProgressBar({
       )}
 
       {isCompleted && (
-        <p className="mt-3 text-xs text-emerald-600 font-medium">
+        <p className="mt-3 text-xs text-green-600 font-medium">
           모든 섹션이 완성되었습니다
         </p>
       )}

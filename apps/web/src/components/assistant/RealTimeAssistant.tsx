@@ -471,10 +471,10 @@ function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
     },
     case: {
       icon: BookOpen,
-      bg: 'bg-emerald-50',
-      border: 'border-emerald-100',
-      iconColor: 'text-emerald-500',
-      titleColor: 'text-emerald-700',
+      bg: 'bg-blue-50',
+      border: 'border-blue-100',
+      iconColor: 'text-blue-500',
+      titleColor: 'text-blue-700',
     },
     warning: {
       icon: AlertTriangle,

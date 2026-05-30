@@ -102,7 +102,7 @@ export function AnalysisProgress({
         aria-live="polite"
         aria-label={`AI 분석 진행 중: ${currentStepLabel}`}
       >
-        <Loader2 className="h-5 w-5 animate-spin text-teal-500" aria-hidden="true" />
+        <Loader2 className="h-5 w-5 animate-spin text-blue-500" aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <div
             className="h-1.5 bg-gray-200 rounded-full overflow-hidden"
@@ -113,7 +113,7 @@ export function AnalysisProgress({
             aria-label="AI 분석 진행률"
           >
             <div
-              className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-300"
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -136,8 +136,8 @@ export function AnalysisProgress({
       aria-busy="true"
     >
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-teal-100 rounded-xl animate-pulse" aria-hidden="true">
-          <Brain className="h-6 w-6 text-teal-600" />
+        <div className="p-2 bg-blue-100 rounded-xl animate-pulse" aria-hidden="true">
+          <Brain className="h-6 w-6 text-blue-600" />
         </div>
         <div>
           <h3 className="font-bold text-gray-900" id="analysis-title">AI 분석 중</h3>
@@ -159,7 +159,7 @@ export function AnalysisProgress({
           aria-valuetext={`${Math.round(progress)}% 완료, 현재 단계: ${currentStepLabel}`}
         >
           <div
-            className="h-full bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 rounded-full transition-all duration-300 animate-pulse"
+            className="h-full bg-gradient-to-r from-blue-500 via-blue-500 to-blue-500 rounded-full transition-all duration-300 animate-pulse"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -183,8 +183,8 @@ export function AnalysisProgress({
               key={step.id}
               className={cn(
                 'flex items-center gap-3 p-3 rounded-xl transition-all',
-                isComplete && 'bg-emerald-50',
-                isCurrent && 'bg-teal-50 animate-pulse',
+                isComplete && 'bg-green-50',
+                isCurrent && 'bg-blue-50 animate-pulse',
                 !isComplete && !isCurrent && 'opacity-50'
               )}
               aria-current={isCurrent ? 'step' : undefined}
@@ -193,8 +193,8 @@ export function AnalysisProgress({
               <div
                 className={cn(
                   'p-2 rounded-lg',
-                  isComplete && 'bg-emerald-100 text-emerald-600',
-                  isCurrent && 'bg-teal-100 text-teal-600',
+                  isComplete && 'bg-green-100 text-green-600',
+                  isCurrent && 'bg-blue-100 text-blue-600',
                   !isComplete && !isCurrent && 'bg-gray-100 text-gray-400'
                 )}
                 aria-hidden="true"
@@ -210,18 +210,18 @@ export function AnalysisProgress({
               <span
                 className={cn(
                   'text-sm font-medium',
-                  isComplete && 'text-emerald-700',
-                  isCurrent && 'text-teal-700',
+                  isComplete && 'text-green-700',
+                  isCurrent && 'text-blue-700',
                   !isComplete && !isCurrent && 'text-gray-400'
                 )}
               >
                 {step.label}
               </span>
               {isComplete && (
-                <span className="ml-auto text-xs text-emerald-600" aria-hidden="true">완료</span>
+                <span className="ml-auto text-xs text-green-600" aria-hidden="true">완료</span>
               )}
               {isCurrent && (
-                <span className="ml-auto text-xs text-teal-500" aria-hidden="true">진행 중...</span>
+                <span className="ml-auto text-xs text-blue-500" aria-hidden="true">진행 중...</span>
               )}
             </li>
           )

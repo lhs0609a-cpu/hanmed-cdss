@@ -699,7 +699,7 @@ export default function ConstitutionPage() {
           </h3>
           <div className="flex flex-wrap gap-2">
             {result.recommendedHerbs.map((herb, i) => (
-              <span key={i} className="px-3 py-2 bg-teal-50 text-teal-700 text-sm font-medium rounded-xl">
+              <span key={i} className="px-3 py-2 bg-blue-50 text-blue-700 text-sm font-medium rounded-xl">
                 {herb}
               </span>
             ))}

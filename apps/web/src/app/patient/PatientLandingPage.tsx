@@ -13,7 +13,7 @@ export default function PatientLandingPage() {
   return (
     <div className="px-5 pt-12 pb-24 max-w-md mx-auto space-y-8">
       <header className="text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center mb-4">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-500 flex items-center justify-center mb-4">
           <span className="text-white font-bold text-xl">온</span>
         </div>
         <h1 className="text-2xl font-bold">우리 한의원, 손 안에</h1>
@@ -25,10 +25,10 @@ export default function PatientLandingPage() {
       <section className="space-y-3">
         <Link
           to="/patient/connect"
-          className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-teal-400 transition-colors p-4 bg-white shadow-sm"
+          className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-blue-400 transition-colors p-4 bg-white shadow-sm"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
@@ -43,15 +43,15 @@ export default function PatientLandingPage() {
           <p className="text-xs text-gray-500 mb-3">앱에서 할 수 있는 일</p>
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
-              <Calendar className="w-4 h-4 text-teal-500 mt-0.5" />
+              <Calendar className="w-4 h-4 text-blue-500 mt-0.5" />
               다음 진료 예약 확인 / 변경
             </li>
             <li className="flex items-start gap-2">
-              <Pill className="w-4 h-4 text-teal-500 mt-0.5" />
+              <Pill className="w-4 h-4 text-blue-500 mt-0.5" />
               처방 한약 복용 일정 안내
             </li>
             <li className="flex items-start gap-2">
-              <Bell className="w-4 h-4 text-teal-500 mt-0.5" />
+              <Bell className="w-4 h-4 text-blue-500 mt-0.5" />
               복약/예약 푸시 알림
             </li>
           </ul>

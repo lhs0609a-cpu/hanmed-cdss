@@ -416,7 +416,7 @@ export default function UnifiedSearchPage() {
       case 'case':
         return <BookOpen className="h-4 w-4 text-amber-600" />
       case 'byeongyang':
-        return <Activity className="h-4 w-4 text-teal-600" />
+        return <Activity className="h-4 w-4 text-blue-600" />
       case 'byeongyak':
         return <Grid3X3 className="h-4 w-4 text-pink-600" />
       case 'pattern':
@@ -432,7 +432,7 @@ export default function UnifiedSearchPage() {
       case 'case':
         return 'bg-amber-100 text-amber-800'
       case 'byeongyang':
-        return 'bg-teal-100 text-teal-800'
+        return 'bg-blue-100 text-blue-800'
       case 'byeongyak':
         return 'bg-pink-100 text-pink-800'
       case 'pattern':
@@ -1008,7 +1008,7 @@ function PatternDetail({ pattern, disease }: { pattern: ByeongYangPattern; disea
               key={idx}
               className={cn(
                 'px-3 py-2 rounded-lg text-sm',
-                symptom.isKey ? 'bg-teal-50 border border-teal-200 font-medium' : 'bg-gray-50'
+                symptom.isKey ? 'bg-blue-50 border border-blue-200 font-medium' : 'bg-gray-50'
               )}
             >
               {symptom.name}

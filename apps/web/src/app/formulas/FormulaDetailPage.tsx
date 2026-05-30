@@ -264,7 +264,7 @@ export default function FormulaDetailPage() {
           {/* 구성 약재 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Leaf className="h-5 w-5 text-teal-500" />
+              <Leaf className="h-5 w-5 text-blue-500" />
               구성 약재
             </h2>
 
@@ -300,7 +300,7 @@ export default function FormulaDetailPage() {
                             <div>
                               <Link
                                 to={`/herbs/${herb.id}`}
-                                className="font-medium text-gray-900 hover:text-teal-600"
+                                className="font-medium text-gray-900 hover:text-blue-600"
                               >
                                 {herb.hanja ? (
                                   <HanjaTooltip
@@ -420,10 +420,10 @@ export default function FormulaDetailPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-emerald-500" />
+            <FileText className="h-5 w-5 text-blue-500" />
             관련 치험례
             {relatedCases.length > 0 && (
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                 {relatedCases.length}건
               </span>
             )}
@@ -431,7 +431,7 @@ export default function FormulaDetailPage() {
           {relatedCases.length > 4 && (
             <button
               onClick={() => setShowAllCases(!showAllCases)}
-              className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
             >
               {showAllCases ? '접기' : '전체보기'}
               <ChevronRight className={`h-4 w-4 transition-transform ${showAllCases ? 'rotate-90' : ''}`} />
@@ -441,7 +441,7 @@ export default function FormulaDetailPage() {
 
         {casesLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
             <span className="ml-2 text-gray-500">치험례 검색 중...</span>
           </div>
         ) : relatedCases.length > 0 ? (
@@ -450,13 +450,13 @@ export default function FormulaDetailPage() {
               <Link
                 key={caseItem.id}
                 to={`/cases/${caseItem.id}`}
-                className="block p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl hover:shadow-md hover:border-emerald-200 transition-all group"
+                className="block p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl hover:shadow-md hover:border-blue-200 transition-all group"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-gray-900 group-hover:text-emerald-600 line-clamp-1">
+                  <h3 className="font-medium text-gray-900 group-hover:text-blue-600 line-clamp-1">
                     {caseItem.title || caseItem.chiefComplaint}
                   </h3>
-                  <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-emerald-500 flex-shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
                 </div>
 
                 {/* 환자 정보 */}
@@ -514,7 +514,7 @@ export default function FormulaDetailPage() {
             <p className="text-gray-500 mb-2">이 처방과 관련된 치험례가 없습니다</p>
             <Link
               to={`/cases?search=${encodeURIComponent(formula.name)}`}
-              className="text-sm text-emerald-600 hover:underline"
+              className="text-sm text-blue-600 hover:underline"
             >
               치험례 검색에서 찾아보기
             </Link>
@@ -525,7 +525,7 @@ export default function FormulaDetailPage() {
           <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
             <Link
               to={`/cases?search=${encodeURIComponent(formula.name)}`}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors font-medium text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
             >
               <FileText className="h-4 w-4" />
               "{formula.name}" 치험례 전체 검색
