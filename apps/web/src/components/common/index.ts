@@ -87,6 +87,14 @@ export {
 // Usage Limit Modal
 export { UsageLimitModal } from './UsageLimitModal'
 
+// Feature Gate (티어 게이팅)
+export {
+  FeatureGate,
+  FeatureGateAction,
+  UpgradePromptDialog,
+} from './FeatureGate'
+export type { FeatureGateProps } from './FeatureGate'
+
 // Medical Term Tooltips & Glossary
 export {
   TermTooltip,

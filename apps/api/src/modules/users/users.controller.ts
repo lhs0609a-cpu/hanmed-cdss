@@ -4,14 +4,43 @@ import {
   Delete,
   Get,
   HttpCode,
+  Patch,
   Post,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { UsersService } from './users.service';
 import { DeleteAccountDto } from '../auth/dto';
+
+class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  clinicName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  licenseNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  specialization?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  bio?: string;
+}
 
 @ApiTags('users')
 @Controller('users')
@@ -30,17 +59,38 @@ export class UsersController {
       name: user?.name,
       licenseNumber: user?.licenseNumber,
       clinicName: user?.clinicName,
+      specialization: user?.specialization,
+      bio: user?.bio,
       practitionerType: user?.practitionerType,
       isLicenseVerified: user?.isLicenseVerified,
       licenseVerificationStatus: user?.licenseVerificationStatus,
       licenseRejectionReason: user?.licenseRejectionReason,
       subscriptionTier: user?.subscriptionTier,
       contributionPoints: user?.contributionPoints,
+      postCount: user?.postCount,
+      commentCount: user?.commentCount,
+      acceptedAnswerCount: user?.acceptedAnswerCount,
       isVerified: user?.isVerified,
       role: user?.role,
       status: user?.status,
       deletionScheduledFor: user?.deletionScheduledFor,
       createdAt: user?.createdAt,
+    };
+  }
+
+  @Patch('me')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '본인 프로필 수정' })
+  async updateProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
+    const user = await this.usersService.updateProfile(req.user.id, dto);
+    return {
+      id: user.id,
+      name: user.name,
+      clinicName: user.clinicName,
+      licenseNumber: user.licenseNumber,
+      specialization: user.specialization,
+      bio: user.bio,
     };
   }
 

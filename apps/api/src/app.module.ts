@@ -17,6 +17,8 @@ import { HerbsModule } from './modules/herbs/herbs.module';
 import { CombosModule } from './modules/combos/combos.module';
 import { CommunityModule } from './modules/community/community.module';
 import { TossPaymentsModule } from './modules/toss-payments/toss-payments.module';
+import { PartnersModule } from './modules/partners/partners.module';
+import { PublicDataModule } from './modules/public-data/public-data.module';
 import { PatientAuthModule } from './modules/patient-auth/patient-auth.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
@@ -143,6 +145,8 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     CombosModule,
     CommunityModule,
     TossPaymentsModule,
+    PartnersModule,
+    PublicDataModule,
 
     // 환자 앱 모듈
     PatientAuthModule,

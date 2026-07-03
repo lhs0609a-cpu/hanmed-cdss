@@ -179,8 +179,12 @@ export class KakaoBizService {
   }
 
   /**
-   * 외부 프로바이더 호출 — 인터페이스 정의만 두고 실제 구현은 어댑터에서.
-   * Aligo/Solapi/BizTalk 등은 모두 비슷한 REST 형태로, 운영 시 1개를 어댑터로 활성.
+   * 외부 프로바이더 호출 — 실제 발송 어댑터(Aligo/Solapi/BizTalk)는 벤더 계약·승인 템플릿·
+   * 서명 방식이 각각 달라 별도 어댑터 모듈로 붙인다.
+   *
+   * ⚠️ 어댑터가 없는 상태에서 성공(messageId)을 반환하면 "보냈다고 착각"하는 조용한 실패가 된다.
+   * 따라서 미구현 상태에서는 반드시 throw 하여 send()가 status:'rejected' 를 돌려주도록 한다.
+   * (isConfigured()=false 인 경우는 상위 send()에서 mock 경로로 처리됨)
    */
   private async dispatch(_args: {
     provider: string;
@@ -190,7 +194,9 @@ export class KakaoBizService {
     body: string;
     reference?: { kind: string; id: string };
   }): Promise<string> {
-    // TODO: 어댑터 모듈 활성화. 현 단계에서는 큐 enqueue 만 가정.
-    return `queued_${Date.now()}`;
+    throw new Error(
+      `카카오 알림톡 발송 어댑터가 아직 연동되지 않았습니다 (provider=${_args.provider}). ` +
+        `벤더 어댑터 구현 후 활성화하세요.`,
+    );
   }
 }

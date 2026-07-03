@@ -4,6 +4,7 @@ import { useSEO, PAGE_SEO } from '@/hooks/useSEO';
 import { BASE_STATS, formatStatNumber } from '@/config/stats.config';
 import {
   usePlans,
+  usePlansAndAddons,
   useSubscriptionInfo,
   useUsage,
   useRegisterCard,
@@ -12,6 +13,9 @@ import {
   useCancelSubscriptionImmediately,
   useTrialStatus,
   useStartFreeTrial,
+  useAddons,
+  useSubscribeAddon,
+  useCancelAddon,
 } from '@/hooks/useSubscription';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,9 +84,13 @@ export default function SubscriptionPage() {
   });
 
   const { data: plans, isLoading: plansLoading } = usePlans();
+  const { data: plansAndAddons } = usePlansAndAddons();
   const { data: subscriptionInfo } = useSubscriptionInfo();
   const { data: usage } = useUsage();
   const { data: trialStatus } = useTrialStatus();
+  const { data: userAddons } = useAddons();
+  const subscribeAddon = useSubscribeAddon();
+  const cancelAddon = useCancelAddon();
 
   const registerCard = useRegisterCard();
   const subscribe = useSubscribe();
@@ -412,6 +420,8 @@ export default function SubscriptionPage() {
               ? Math.round(plan.yearlyPrice / 12)
               : plan.monthlyPrice;
 
+          const isRecommended = plan.recommended || plan.tier === 'professional';
+
           return (
             <Card
               key={plan.tier}
@@ -419,12 +429,12 @@ export default function SubscriptionPage() {
                 'relative overflow-hidden transition-colors ' +
                 (isCurrentPlan
                   ? 'border-primary'
-                  : plan.tier === 'professional'
-                    ? 'border-neutral-900'
+                  : isRecommended
+                    ? 'border-neutral-900 ring-1 ring-neutral-900/10'
                     : '')
               }
             >
-              {plan.tier === 'professional' && !isCurrentPlan && (
+              {isRecommended && !isCurrentPlan && (
                 <div className="absolute top-0 right-0 bg-neutral-900 text-white text-[11px] font-semibold px-2.5 py-1 rounded-bl-md">
                   추천
                 </div>
@@ -447,6 +457,11 @@ export default function SubscriptionPage() {
                   <p className="text-[13px] text-neutral-500 mt-1">
                     {plan.description}
                   </p>
+                  {plan.tagline && (
+                    <p className="text-[12px] text-blue-700 mt-1 font-medium">
+                      {plan.tagline}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -505,6 +520,146 @@ export default function SubscriptionPage() {
           );
         })}
       </div>
+
+      {/* Add-on 섹션 — 보험청구 등 부가서비스 */}
+      {plansAndAddons?.addons && plansAndAddons.addons.length > 0 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-neutral-900">부가서비스</h2>
+            <p className="text-sm text-neutral-500 mt-1">
+              구독에 얹어 추가할 수 있는 운영 부가 도구
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {plansAndAddons.addons.map((addon) => {
+              const includedInCurrentTier = addon.includedInTiers.includes(currentTier);
+              const userHasAddon = !!userAddons?.find(
+                (a) => a.addonKey === addon.key && a.status === 'active'
+              );
+              const monthly =
+                billingInterval === 'yearly'
+                  ? Math.round(addon.yearlyPrice / 12)
+                  : addon.monthlyPrice;
+
+              return (
+                <Card
+                  key={addon.key}
+                  className={
+                    'relative overflow-hidden ' +
+                    (includedInCurrentTier || userHasAddon ? 'border-primary' : '')
+                  }
+                >
+                  {includedInCurrentTier && (
+                    <div className="absolute top-0 right-0 bg-primary text-white text-[11px] font-semibold px-2.5 py-1 rounded-bl-md">
+                      현재 플랜 포함
+                    </div>
+                  )}
+                  {!includedInCurrentTier && userHasAddon && (
+                    <div className="absolute top-0 right-0 bg-primary text-white text-[11px] font-semibold px-2.5 py-1 rounded-bl-md">
+                      이용 중
+                    </div>
+                  )}
+                  <CardContent className="pt-8 space-y-5">
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 mb-2">
+                        <Sparkles className="h-3 w-3" />
+                        Add-on
+                      </div>
+                      <h3 className="text-lg font-bold text-neutral-900">
+                        {addon.name}
+                      </h3>
+                      <p className="text-[13px] text-neutral-500 mt-1">
+                        {addon.description}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[28px] font-extrabold tabular text-neutral-900 tracking-tight">
+                          {formatKRW(monthly)}
+                        </span>
+                        <span className="text-[14px] text-neutral-500">/월</span>
+                      </div>
+                      <p className="mt-1 text-[12px] text-neutral-500">
+                        부가세 별도 · 결제액 월{' '}
+                        <span className="font-semibold text-neutral-700 tabular">
+                          {formatKRW(withVat(monthly))}
+                        </span>
+                      </p>
+                      {billingInterval === 'yearly' && (
+                        <p className="text-[13px] text-primary mt-1 font-medium">
+                          연 {formatKRW(addon.yearlyPrice)} · 2개월 무료
+                        </p>
+                      )}
+                    </div>
+
+                    <ul className="space-y-2">
+                      {addon.features.map((f, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-gray-600">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {includedInCurrentTier ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        현재 플랜에 포함되어 있습니다
+                      </Button>
+                    ) : userHasAddon ? (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          cancelAddon.mutate(
+                            { addonKey: addon.key },
+                            {
+                              onSuccess: () =>
+                                toast.success('부가서비스 해지 예약이 완료되었습니다.'),
+                              onError: (e: Error) =>
+                                toast.error(e.message || '해지에 실패했습니다.'),
+                            }
+                          )
+                        }
+                        disabled={cancelAddon.isPending}
+                      >
+                        해지하기
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (!hasBillingKey) {
+                            toast.error(
+                              '먼저 결제 카드를 등록해 주세요. (요금제 하단)'
+                            );
+                            return;
+                          }
+                          subscribeAddon.mutate(
+                            { addonKey: addon.key, interval: billingInterval },
+                            {
+                              onSuccess: () =>
+                                toast.success('부가서비스가 추가되었습니다.'),
+                              onError: (e: Error) =>
+                                toast.error(e.message || '구독에 실패했습니다.'),
+                            }
+                          );
+                        }}
+                        disabled={subscribeAddon.isPending}
+                      >
+                        {subscribeAddon.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        구독에 추가
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Current Subscription Info */}
       {subscriptionInfo?.subscription && (

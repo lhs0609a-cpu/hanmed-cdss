@@ -34,6 +34,8 @@ const RULES: SecretRule[] = [
   { name: 'REFRESH_TOKEN_SECRET', minLength: 32, productionOnly: true },
   { name: 'ENCRYPTION_KEY', minLength: 64, productionOnly: true }, // 32바이트 hex = 64자
   { name: 'INTERNAL_API_KEY', minLength: 16, productionOnly: true },
+  // 미설정 시 이메일(비밀번호 재설정 등) 링크가 localhost 로 폴백되어 깨진다.
+  { name: 'FRONTEND_URL', productionOnly: true },
   {
     name: 'TOSS_SECRET_KEY',
     productionOnly: true,

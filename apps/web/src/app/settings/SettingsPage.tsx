@@ -77,7 +77,7 @@ const planColors: Record<string, string> = {
 };
 
 export default function SettingsPage() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState('profile');
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [showCardModal, setShowCardModal] = useState(false);
@@ -123,9 +123,30 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveProfile = () => {
-    // TODO: API 호출로 프로필 저장
-    toast.success('프로필이 저장되었습니다.');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const res = await api.patch('/users/me', {
+        name: profileForm.name,
+        clinicName: profileForm.clinicName,
+        licenseNumber: profileForm.licenseNumber,
+        specialization: profileForm.specialty,
+        bio: profileForm.bio,
+      });
+      // 로컬 인증 스토어의 사용자 정보도 갱신 (헤더/프로필 표시 동기화)
+      updateUser({
+        name: res.data?.name ?? profileForm.name,
+        clinicName: res.data?.clinicName ?? profileForm.clinicName,
+        licenseNumber: res.data?.licenseNumber ?? profileForm.licenseNumber,
+      });
+      toast.success('프로필이 저장되었습니다.');
+    } catch {
+      toast.error('프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   // 알림 설정
@@ -484,7 +505,10 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile}>프로필 저장</Button>
+              <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+                {isSavingProfile && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                프로필 저장
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

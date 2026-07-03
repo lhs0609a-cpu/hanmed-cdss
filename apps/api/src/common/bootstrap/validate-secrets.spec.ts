@@ -14,6 +14,7 @@ describe('validateSecrets', () => {
     REFRESH_TOKEN_SECRET: 'b'.repeat(64),
     ENCRYPTION_KEY: 'c'.repeat(64),
     INTERNAL_API_KEY: 'd'.repeat(32),
+    FRONTEND_URL: 'https://ongojisin.co.kr',
     TOSS_SECRET_KEY: 'live_sk_abcdef',
   };
 

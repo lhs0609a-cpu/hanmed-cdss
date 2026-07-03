@@ -1,5 +1,6 @@
 export * from './enums';
 export * from './user.entity';
+export * from './plan-features';
 export * from './clinical-case.entity';
 export * from './herb.entity';
 export * from './drug-herb-interaction.entity';
@@ -20,9 +21,14 @@ export * from './report.entity';
 
 // Subscription entities
 export * from './subscription.entity';
+export * from './subscription-addon.entity';
 export * from './usage-tracking.entity';
 export * from './payment.entity';
 export * from './refund.entity';
+
+// Partner (B2B2C revenue) entities
+export * from './partner.entity';
+export * from './partner-impression.entity';
 
 // Admin entities
 export * from './admin-audit-log.entity';

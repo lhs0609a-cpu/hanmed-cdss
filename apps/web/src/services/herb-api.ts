@@ -18,24 +18,12 @@ import type {
   TraditionalPrescriptionItem,
   IntegratedHerbInfo,
 } from '@/types'
+import { fetchPublicData } from './public-data-proxy'
 
-// 환경변수에서 API 키 가져오기
-const PUBLIC_DATA_API_KEY = import.meta.env.VITE_PUBLIC_DATA_API_KEY || ''
-
-// API 엔드포인트
-const API_ENDPOINTS = {
-  // 식약처 생약 약재정보
-  MFDS_HERB: 'https://apis.data.go.kr/1471057/HerbMdntfService/getMdntfList',
-  // 지식재산처 한국전통 약재정보
-  KIPO_HERB_SEARCH: 'https://apis.data.go.kr/1430000/MatInfoService/getMatInfoList',
-  KIPO_HERB_DETAIL: 'https://apis.data.go.kr/1430000/MatInfoService/getMatInfoDetail',
-  // 지식재산처 한국전통 처방정보
-  KIPO_PRESC_SEARCH: 'https://apis.data.go.kr/1430000/PreInfoService/getPreInfoList',
-  KIPO_PRESC_DETAIL: 'https://apis.data.go.kr/1430000/PreInfoService/getPreInfoDetail',
-}
-
-// 기존 MFDS API 엔드포인트 (하위호환)
-const API_ENDPOINT = API_ENDPOINTS.MFDS_HERB
+// 데모(하드코딩) 약재 데이터는 개발 환경에서만 폴백으로 사용한다.
+// 프로덕션에서는 API 오류 시 조작된 데모 대신 빈 결과로 노출.
+// (serviceKey 는 백엔드 프록시가 주입 — public-data-proxy.ts)
+const ALLOW_DEMO_FALLBACK = import.meta.env.DEV
 
 /**
  * 생약 약재 검색
@@ -48,14 +36,8 @@ export async function searchHerbMedicine(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: HerbSearchResult[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다. 데모 데이터를 반환합니다.')
-    return getDemoHerbData(herbName)
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
       type: 'json',
@@ -66,7 +48,8 @@ export async function searchHerbMedicine(
       params.append('herb_nm', herbName.trim())
     }
 
-    const response = await fetch(`${API_ENDPOINT}?${params}`)
+    const response = await fetchPublicData('MFDS_HERB', params)
+    if (!response.ok) throw new Error(`프록시 오류 (${response.status})`)
     const data = await response.json()
 
     // API 응답 구조 확인
@@ -108,7 +91,8 @@ export async function searchHerbMedicine(
     }
   } catch (error) {
     console.error('생약 약재 검색 API 오류:', error)
-    return getDemoHerbData(herbName)
+    if (ALLOW_DEMO_FALLBACK) return getDemoHerbData(herbName)
+    return { items: [], totalCount: 0 }
   }
 }
 
@@ -131,22 +115,16 @@ export async function getHerbMedicineList(
 export async function getHerbMedicineDetail(
   herbId: string
 ): Promise<HerbSearchResult | null> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    const demoData = getDemoHerbData('')
-    return demoData.items.find(item => item.herbId === herbId) || null
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: '1',
       numOfRows: '1',
       herb_id: herbId,
       type: 'json',
     })
 
-    const response = await fetch(`${API_ENDPOINT}?${params}`)
+    const response = await fetchPublicData('MFDS_HERB', params)
+    if (!response.ok) throw new Error(`프록시 오류 (${response.status})`)
     const data = await response.json()
 
     const body = data.body || data.response?.body
@@ -376,14 +354,8 @@ export async function searchTraditionalHerb(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: TraditionalHerbItem[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return getDemoTraditionalHerbData(keyword)
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
     })
@@ -392,7 +364,7 @@ export async function searchTraditionalHerb(
       params.append('searchWrd', keyword.trim())
     }
 
-    const response = await fetch(`${API_ENDPOINTS.KIPO_HERB_SEARCH}?${params}`)
+    const response = await fetchPublicData('KIPO_HERB_SEARCH', params)
     const text = await response.text()
 
     // XML 파싱
@@ -402,7 +374,8 @@ export async function searchTraditionalHerb(
     const resultCode = xmlDoc.querySelector('resultCode')?.textContent
     if (resultCode !== '00') {
       console.warn('API 응답 코드:', resultCode)
-      return getDemoTraditionalHerbData(keyword)
+      if (ALLOW_DEMO_FALLBACK) return getDemoTraditionalHerbData(keyword)
+      return { items: [], totalCount: 0 }
     }
 
     const items: TraditionalHerbItem[] = []
@@ -430,7 +403,8 @@ export async function searchTraditionalHerb(
     return { items, totalCount }
   } catch (error) {
     console.error('한국전통 약재 검색 API 오류:', error)
-    return getDemoTraditionalHerbData(keyword)
+    if (ALLOW_DEMO_FALLBACK) return getDemoTraditionalHerbData(keyword)
+    return { items: [], totalCount: 0 }
   }
 }
 
@@ -441,17 +415,12 @@ export async function searchTraditionalHerb(
 export async function getTraditionalHerbDetail(
   cntntsNo: string
 ): Promise<TraditionalHerbItem | null> {
-  if (!PUBLIC_DATA_API_KEY) {
-    return null
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       cntntsNo: cntntsNo,
     })
 
-    const response = await fetch(`${API_ENDPOINTS.KIPO_HERB_DETAIL}?${params}`)
+    const response = await fetchPublicData('KIPO_HERB_DETAIL', params)
     const text = await response.text()
 
     const parser = new DOMParser()
@@ -495,14 +464,8 @@ export async function searchTraditionalPrescription(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: TraditionalPrescriptionItem[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return getDemoTraditionalPrescriptionData(keyword)
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
     })
@@ -511,7 +474,7 @@ export async function searchTraditionalPrescription(
       params.append('searchWrd', keyword.trim())
     }
 
-    const response = await fetch(`${API_ENDPOINTS.KIPO_PRESC_SEARCH}?${params}`)
+    const response = await fetchPublicData('KIPO_PRESC_SEARCH', params)
     const text = await response.text()
 
     const parser = new DOMParser()
@@ -520,7 +483,8 @@ export async function searchTraditionalPrescription(
     const resultCode = xmlDoc.querySelector('resultCode')?.textContent
     if (resultCode !== '00') {
       console.warn('API 응답 코드:', resultCode)
-      return getDemoTraditionalPrescriptionData(keyword)
+      if (ALLOW_DEMO_FALLBACK) return getDemoTraditionalPrescriptionData(keyword)
+      return { items: [], totalCount: 0 }
     }
 
     const items: TraditionalPrescriptionItem[] = []
@@ -545,7 +509,8 @@ export async function searchTraditionalPrescription(
     return { items, totalCount }
   } catch (error) {
     console.error('한국전통 처방 검색 API 오류:', error)
-    return getDemoTraditionalPrescriptionData(keyword)
+    if (ALLOW_DEMO_FALLBACK) return getDemoTraditionalPrescriptionData(keyword)
+    return { items: [], totalCount: 0 }
   }
 }
 
@@ -556,17 +521,12 @@ export async function searchTraditionalPrescription(
 export async function getTraditionalPrescriptionDetail(
   cntntsNo: string
 ): Promise<TraditionalPrescriptionItem | null> {
-  if (!PUBLIC_DATA_API_KEY) {
-    return null
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       cntntsNo: cntntsNo,
     })
 
-    const response = await fetch(`${API_ENDPOINTS.KIPO_PRESC_DETAIL}?${params}`)
+    const response = await fetchPublicData('KIPO_PRESC_DETAIL', params)
     const text = await response.text()
 
     const parser = new DOMParser()
