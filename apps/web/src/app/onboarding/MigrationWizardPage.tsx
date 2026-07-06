@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Upload, CheckCircle2, AlertTriangle, ChevronRight, Database, X } from 'lucide-react'
-import { ADAPTERS, importFromEmr, type EmrSource, type ImportReport } from '@/lib/emrAdapter'
+import { importAuto, type ImportReport } from '@/lib/emrAdapter'
 import { useAuthStore } from '@/stores/authStore'
 
 const MIGRATION_DONE_KEY = 'ongojisin:migration:done:v1'
-
-const SOURCE_LABELS: Record<EmrSource, { label: string; subtitle: string }> = {
-  'hanmed-chart': { label: '한의차트', subtitle: '환자 내보내기 CSV' },
-  'doctor-palette': { label: '닥터팔레트', subtitle: '환자 목록 CSV' },
-  jasen: { label: '자생 EMR', subtitle: '환자 export CSV' },
-  highmedi: { label: '하이메디', subtitle: '환자 목록 CSV' },
-  'csv-generic': { label: '일반 CSV', subtitle: 'name, birth_date, phone …' },
-}
 
 export function markMigrationDone(): void {
   try {
@@ -33,7 +25,6 @@ export function isMigrationDone(): boolean {
 export default function MigrationWizardPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user) as { name?: string } | null
-  const [source, setSource] = useState<EmrSource>('hanmed-chart')
   const [file, setFile] = useState<File | null>(null)
   const [report, setReport] = useState<ImportReport | null>(null)
   const [isImporting, setIsImporting] = useState(false)
@@ -49,7 +40,7 @@ export default function MigrationWizardPage() {
     setFile(f)
     setIsImporting(true)
     try {
-      const r = await importFromEmr(source, f)
+      const r = await importAuto(f)
       setReport(r)
       setStep('preview')
     } finally {
@@ -82,54 +73,24 @@ export default function MigrationWizardPage() {
         <p className="text-[15px] text-neutral-600 mb-10">
           이전에 사용하시던 차트의 환자 정보를 5분 안에 옮겨드릴게요.
           <br />
-          진료를 시작하기 전 한 번만 하면 됩니다.
+          어떤 EMR이든 내보낸 CSV 파일만 넣으면 자동으로 분석합니다.
         </p>
 
         {step === 'pick' && (
           <div className="space-y-8">
             <section>
-              <p className="text-[13px] font-medium text-neutral-500 mb-3">1 / 2</p>
-              <h2 className="text-lg font-bold text-neutral-900 mb-4">어디서 가져오시나요?</h2>
-              <div className="space-y-2">
-                {(Object.keys(ADAPTERS) as EmrSource[]).map((s) => {
-                  const info = SOURCE_LABELS[s]
-                  const selected = source === s
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => setSource(s)}
-                      className={
-                        'w-full flex items-center justify-between rounded-md border px-4 h-14 text-left transition-colors ' +
-                        (selected
-                          ? 'border-primary bg-brand-50/50'
-                          : 'border-neutral-200 hover:border-neutral-300 bg-white')
-                      }
-                    >
-                      <div>
-                        <div className="font-semibold text-neutral-900">{info.label}</div>
-                        <div className="text-[12px] text-neutral-500">{info.subtitle}</div>
-                      </div>
-                      {selected && (
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
-
-            <section>
-              <p className="text-[13px] font-medium text-neutral-500 mb-3">2 / 2</p>
-              <h2 className="text-lg font-bold text-neutral-900 mb-4">파일 업로드</h2>
+              <h2 className="text-lg font-bold text-neutral-900 mb-2">환자 파일 넣기</h2>
+              <p className="text-[13px] text-neutral-500 mb-4">
+                한의차트·닥터팔레트·자생·하이메디 등 어디서 내보낸 CSV든 컬럼을 알아서 인식해요.
+                출처를 고를 필요 없이 파일만 넣으세요.
+              </p>
               <label
                 className="flex flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-200 hover:border-primary cursor-pointer bg-neutral-50 transition-colors py-12 text-center"
                 htmlFor="emr-file"
               >
                 <Upload className="w-8 h-8 text-neutral-400 mb-3" />
-                <p className="font-medium text-neutral-900">CSV 파일을 선택하세요</p>
-                <p className="text-[12px] text-neutral-500 mt-1">최대 50MB</p>
+                <p className="font-medium text-neutral-900">CSV 파일을 여기에 넣으세요</p>
+                <p className="text-[12px] text-neutral-500 mt-1">넣으면 형식을 자동 감지 · 최대 50MB</p>
                 <input
                   id="emr-file"
                   type="file"
@@ -209,7 +170,7 @@ export default function MigrationWizardPage() {
                 onClick={() => setStep('pick')}
                 className="flex-1 h-14 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-semibold rounded-md transition-colors"
               >
-                다시 선택
+                다른 파일
               </button>
               <button
                 onClick={confirmImport}
