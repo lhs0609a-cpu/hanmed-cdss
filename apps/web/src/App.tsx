@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { lazyWithReload as lazy } from '@/lib/lazyWithReload'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Toaster } from '@/components/ui/toaster'
