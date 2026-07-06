@@ -40,9 +40,10 @@ export function getErrorMessage(error: unknown): string {
         break
     }
 
-    // 네트워크 에러
+    // 응답을 아예 못 받은 경우 — 대부분 API 서버 미기동/다운/CORS 이며
+    // 사용자 인터넷 문제가 아니다. 오해를 줄이는 문구로 안내한다.
     if (axiosError.code === 'NETWORK_ERROR' || !axiosError.response) {
-      return '네트워크 연결을 확인해주세요.'
+      return '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'
     }
   }
 
