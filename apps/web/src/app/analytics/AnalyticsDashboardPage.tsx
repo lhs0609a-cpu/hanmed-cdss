@@ -121,7 +121,7 @@ export default function AnalyticsDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <Toss3DIcon icon={Users} tone="blue" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor(metrics?.overview?.totalPatientsChange || 0)}`}>
@@ -134,7 +134,7 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <Toss3DIcon icon={TrendingUp} tone="green" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor((metrics?.returnRate?.current || 0) - (metrics?.returnRate?.previous || 0))}`}>
@@ -147,7 +147,7 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <Toss3DIcon icon={Target} tone="purple" size="lg" />
             <span className="text-sm font-medium text-green-600">
@@ -160,7 +160,7 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-6">
           <div className="flex items-center justify-between">
             <Toss3DIcon icon={Activity} tone="amber" size="lg" />
             <span className={`text-sm font-medium ${getChangeColor(metrics?.overview?.totalConsultationsChange || 0)}`}>
@@ -177,7 +177,7 @@ export default function AnalyticsDashboardPage() {
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Consultation Trend */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">진료 추이</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +206,7 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Prescription Trend */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">처방 추이</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -225,7 +225,7 @@ export default function AnalyticsDashboardPage() {
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Formulas */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-2">
+        <div className="surface-card rounded-2xl p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold mb-4">자주 사용하는 처방 TOP 10</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +241,7 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Today's Activity */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">오늘의 활동</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -277,7 +277,7 @@ export default function AnalyticsDashboardPage() {
 
       {/* Benchmark Section */}
       {benchmark && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-6">
             <Toss3DIcon icon={Award} tone="amber" size="sm" />
             <h3 className="text-lg font-semibold">전국 벤치마크 비교</h3>
@@ -331,7 +331,7 @@ export default function AnalyticsDashboardPage() {
       {/* Prescription Patterns */}
       {patterns && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="text-lg font-semibold mb-4">진료 시간대 패턴</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -346,7 +346,7 @@ export default function AnalyticsDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="text-lg font-semibold mb-4">환자 연령 분포</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">

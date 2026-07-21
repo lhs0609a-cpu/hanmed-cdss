@@ -528,7 +528,7 @@ export default function IntegratedDiagnosisPage() {
       </div>
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="glass-surface border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="mb-4">
             <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
@@ -558,7 +558,7 @@ export default function IntegratedDiagnosisPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ICD-10 Code List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden sticky top-32">
+            <div className="surface-card rounded-2xl overflow-hidden sticky top-32">
               <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <h3 className="font-medium text-gray-900 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-blue-500" />
@@ -597,7 +597,7 @@ export default function IntegratedDiagnosisPage() {
             {integrationData ? (
               <div className="space-y-4">
                 {/* Selected Code Header */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="glass-tile rounded-2xl p-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -618,7 +618,7 @@ export default function IntegratedDiagnosisPage() {
                 </div>
 
                 {/* Korean Medicine Patterns */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="surface-card rounded-2xl overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                       <Brain className="h-5 w-5 text-blue-600" />
@@ -704,7 +704,7 @@ export default function IntegratedDiagnosisPage() {
                 </div>
 
                 {/* Evidence & References */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="surface-card rounded-2xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="h-5 w-5 text-blue-500" />
                     <h3 className="font-bold text-gray-900">근거 문헌</h3>
@@ -738,7 +738,7 @@ export default function IntegratedDiagnosisPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <div className="surface-card rounded-2xl p-12 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
                   <Stethoscope className="h-8 w-8 text-gray-300" />
                 </div>

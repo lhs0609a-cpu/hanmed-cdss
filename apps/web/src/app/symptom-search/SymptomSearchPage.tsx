@@ -551,7 +551,7 @@ export default function SymptomSearchPage() {
 
       {/* Quick Presets */}
       {!showResults && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="h-5 w-5 text-amber-500" />
             <h2 className="font-bold text-gray-900">빠른 증상 조합</h2>
@@ -580,7 +580,7 @@ export default function SymptomSearchPage() {
       )}
 
       {/* Selected Symptoms with Real-time Preview */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -705,7 +705,7 @@ export default function SymptomSearchPage() {
 
       {/* Symptom Selection */}
       {!showResults && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           {/* Quick Search */}
           <div className="mb-6">
             <div className="relative">
@@ -862,7 +862,7 @@ export default function SymptomSearchPage() {
           </div>
 
           {results.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="surface-card rounded-2xl p-12 text-center">
               <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">선택한 증상에 맞는 처방을 찾지 못했습니다</p>
               <button
@@ -878,8 +878,8 @@ export default function SymptomSearchPage() {
                 <div
                   key={formula.id}
                   className={cn(
-                    'bg-white rounded-2xl shadow-sm border p-6 transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-300',
-                    index === 0 ? 'border-indigo-200 ring-2 ring-indigo-100' : 'border-gray-100'
+                    'surface-card rounded-2xl p-6 transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-300',
+                    index === 0 ? 'border-indigo-200 ring-2 ring-indigo-100' : ''
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
@@ -980,7 +980,7 @@ export default function SymptomSearchPage() {
           onClick={() => setSelectedFormula(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+            className="glass-surface border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

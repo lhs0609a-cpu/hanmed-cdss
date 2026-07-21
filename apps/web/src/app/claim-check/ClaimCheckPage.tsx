@@ -360,7 +360,7 @@ export default function ClaimCheckPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Code Search */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="surface-card rounded-2xl p-4">
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setSearchType('diagnosis')}
@@ -425,7 +425,7 @@ export default function ClaimCheckPage() {
         {/* Right: Claim Items & Validation */}
         <div className="lg:col-span-2 space-y-4">
           {/* Claim Items */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900">청구 내역</h3>
               {claimItems.length > 0 && (
@@ -555,7 +555,7 @@ export default function ClaimCheckPage() {
 
           {/* Validation Result */}
           {validationResult && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="surface-card rounded-2xl overflow-hidden">
               {/* Risk Header */}
               <div
                 className={cn(

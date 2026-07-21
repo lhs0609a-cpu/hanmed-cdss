@@ -1151,7 +1151,7 @@ export default function ClassicsPage() {
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex gap-2 mb-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -1211,7 +1211,7 @@ export default function ClassicsPage() {
           </div>
 
           {searchResults.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="surface-card rounded-2xl p-12 text-center">
               <ScrollText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">검색 결과가 없습니다</p>
             </div>
@@ -1220,7 +1220,7 @@ export default function ClassicsPage() {
               {searchResults.map((passage) => (
                 <div
                   key={passage.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+                  className="surface-card rounded-2xl p-6"
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <BookMarked className="h-5 w-5 text-amber-500" />
@@ -1275,7 +1275,7 @@ export default function ClassicsPage() {
           {filteredClassics.map((book) => (
             <div
               key={book.id}
-              className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer"
+              className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer"
               onClick={() => setSelectedBook(book)}
             >
               <div className="flex items-start justify-between mb-3">
@@ -1322,7 +1322,7 @@ export default function ClassicsPage() {
       {/* Book Detail Modal */}
       {selectedBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto p-6">
+          <div className="glass-surface border rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

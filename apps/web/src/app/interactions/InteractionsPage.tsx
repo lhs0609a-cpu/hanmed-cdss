@@ -918,7 +918,7 @@ export default function InteractionsPage() {
         {/* Input Section */}
         <div className="space-y-4">
           {/* 한약재 입력 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-500 rounded-xl shadow-lg shadow-blue-500/20">
                 <Leaf className="h-5 w-5 text-white" />
@@ -972,7 +972,7 @@ export default function InteractionsPage() {
           </div>
 
           {/* 양약 입력 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20">
@@ -1110,7 +1110,7 @@ export default function InteractionsPage() {
 
               {/* Critical Interactions */}
               {result.by_severity.critical.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="surface-card rounded-2xl overflow-hidden">
                   <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-5 py-3 font-semibold flex items-center gap-2">
                     <AlertOctagon className="h-5 w-5" />
                     병용 금기 ({result.by_severity.critical.length}건)
@@ -1140,7 +1140,7 @@ export default function InteractionsPage() {
 
               {/* Warning Interactions */}
               {result.by_severity.warning.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="surface-card rounded-2xl overflow-hidden">
                   <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-3 font-semibold flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     주의 필요 ({result.by_severity.warning.length}건)
@@ -1170,7 +1170,7 @@ export default function InteractionsPage() {
 
               {/* Recommendations */}
               {result.recommendations.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="surface-card rounded-2xl p-6">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <FileText className="h-5 w-5 text-gray-400" />
                     종합 권고사항

@@ -134,7 +134,7 @@ export default function HerbsPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 flex gap-2">
             <div className="flex-1 relative">
@@ -218,7 +218,7 @@ export default function HerbsPage() {
               <Link
                 key={herb.id}
                 to={`/herbs/${herb.id}`}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:border-blue-200 transition-all"
+                className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">

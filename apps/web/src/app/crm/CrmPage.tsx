@@ -106,7 +106,7 @@ export default function CrmPage() {
 
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">활성 캠페인</p>
             <Target className="w-5 h-5 text-green-500" />
@@ -114,7 +114,7 @@ export default function CrmPage() {
           <p className="text-2xl font-bold mt-2">{dashboard?.activeCampaigns || 0}개</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 발송 메시지</p>
             <Mail className="w-5 h-5 text-blue-500" />
@@ -122,7 +122,7 @@ export default function CrmPage() {
           <p className="text-2xl font-bold mt-2">{formatNumber(dashboard?.totalMessages || 0)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">전환율</p>
             <TrendingUp className="w-5 h-5 text-purple-500" />
@@ -130,7 +130,7 @@ export default function CrmPage() {
           <p className="text-2xl font-bold mt-2">{(dashboard?.conversionRate || 0).toFixed(1)}%</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">등록 세그먼트</p>
             <Users className="w-5 h-5 text-amber-500" />
@@ -141,7 +141,7 @@ export default function CrmPage() {
 
       {/* Top Segments */}
       {dashboard?.topSegments && dashboard.topSegments.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">주요 세그먼트</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {dashboard.topSegments.map((segment, index) => (
@@ -180,7 +180,7 @@ export default function CrmPage() {
 
       {/* Campaigns Tab */}
       {activeTab === 'campaigns' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-400" />
@@ -277,7 +277,7 @@ export default function CrmPage() {
 
       {/* Automation Tab */}
       {activeTab === 'automation' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium">자동 메시지 설정</h3>
             <button className="flex items-center gap-2 px-3 py-2 text-primary-600 hover:bg-primary-50 rounded-lg">
@@ -357,7 +357,7 @@ export default function CrmPage() {
 
       {/* Segments Tab */}
       {activeTab === 'segments' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium">환자 세그먼트</h3>
             <button className="flex items-center gap-2 px-3 py-2 text-primary-600 hover:bg-primary-50 rounded-lg">
@@ -402,7 +402,7 @@ export default function CrmPage() {
 
       {/* Recent Activity */}
       {dashboard?.recentActivity && dashboard.recentActivity.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="text-lg font-semibold mb-4">최근 활동</h3>
           <div className="space-y-3">
             {dashboard.recentActivity.slice(0, 5).map((activity) => (

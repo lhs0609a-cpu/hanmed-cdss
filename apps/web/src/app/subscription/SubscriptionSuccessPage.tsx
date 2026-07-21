@@ -16,7 +16,7 @@ export default function SubscriptionSuccessPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <Card className="max-w-md w-full">
+      <Card variant="tile" className="max-w-md w-full rounded-2xl">
         <CardContent className="pt-8 pb-8 text-center">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="h-10 w-10 text-green-600" />
@@ -30,7 +30,7 @@ export default function SubscriptionSuccessPage() {
           </p>
 
           <div className="space-y-3">
-            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button asChild variant="gradient" className="w-full">
               <Link to="/dashboard/consultation">
                 <Sparkles className="mr-2 h-4 w-4" />
                 AI 진료 시작하기

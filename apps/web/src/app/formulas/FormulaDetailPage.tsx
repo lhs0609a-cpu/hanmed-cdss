@@ -245,7 +245,7 @@ export default function FormulaDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* 주치 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-blue-500" />
               주치 (적응증)
@@ -262,7 +262,7 @@ export default function FormulaDetailPage() {
           </div>
 
           {/* 구성 약재 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Leaf className="h-5 w-5 text-blue-500" />
               구성 약재
@@ -330,7 +330,7 @@ export default function FormulaDetailPage() {
 
           {/* 가감법 */}
           {formula.modifications && formula.modifications.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <RefreshCw className="h-5 w-5 text-amber-500" />
                 가감법
@@ -378,7 +378,7 @@ export default function FormulaDetailPage() {
           )}
 
           {/* Actions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3">
+          <div className="surface-card rounded-2xl p-6 space-y-3">
             <Link
               to={`/combo?formula=${encodeURIComponent(formula.id)}`}
               className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
@@ -397,7 +397,7 @@ export default function FormulaDetailPage() {
           </div>
 
           {/* 약재 목록 요약 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-3">약재 요약</h3>
             <div className="flex flex-wrap gap-2">
               {formula.herbs.map((herb) => {
@@ -417,7 +417,7 @@ export default function FormulaDetailPage() {
       </div>
 
       {/* 관련 치험례 섹션 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
+      <div className="surface-card rounded-2xl p-6 mt-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-500" />

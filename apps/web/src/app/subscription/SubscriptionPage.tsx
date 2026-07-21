@@ -425,8 +425,9 @@ export default function SubscriptionPage() {
           return (
             <Card
               key={plan.tier}
+              variant={isRecommended && !isCurrentPlan ? 'tile' : 'default'}
               className={
-                'relative overflow-hidden transition-colors ' +
+                'relative overflow-hidden rounded-2xl transition-colors ' +
                 (isCurrentPlan
                   ? 'border-primary'
                   : isRecommended
@@ -505,6 +506,7 @@ export default function SubscriptionPage() {
                   </Button>
                 ) : (
                   <Button
+                    variant={isRecommended && !isCurrentPlan && plan.tier !== 'free' ? 'gradient' : 'default'}
                     className="w-full"
                     onClick={() => handleSubscribe(plan.tier)}
                     disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan}

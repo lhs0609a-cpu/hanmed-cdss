@@ -172,8 +172,8 @@ function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+      <div className="relative glass-surface border rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-auto">
+        <div className="sticky top-0 glass-surface-strong border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="h-5 w-5 text-gray-500" />
@@ -1303,7 +1303,7 @@ export default function AdminContentPage() {
       </div>
 
       {/* 탭 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="surface-card rounded-2xl">
         <div className="border-b border-gray-100">
           <nav className="flex -mb-px">
             {tabs.map((tab) => {

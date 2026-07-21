@@ -92,7 +92,7 @@ export default function ByeongYangTablePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="glass-surface border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -213,13 +213,13 @@ export default function ByeongYangTablePage() {
               {/* Disease List */}
               <div className="lg:col-span-2 space-y-4">
                 {filteredData.length === 0 ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
+                  <div className="surface-card rounded-2xl p-8 text-center">
                     <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">검색 결과가 없습니다.</p>
                   </div>
                 ) : (
                   filteredData.map((disease) => (
-                    <div key={disease.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div key={disease.id} className="surface-card rounded-2xl overflow-hidden">
                       {/* Disease Header */}
                       <button
                         onClick={() => toggleDisease(disease.id)}
@@ -300,7 +300,7 @@ export default function ByeongYangTablePage() {
               {/* Detail Panel */}
               <div className="lg:col-span-1">
                 {selectedPattern && selectedDisease ? (
-                  <div className="bg-white rounded-xl border border-gray-200 sticky top-32">
+                  <div className="surface-card rounded-2xl sticky top-32">
                     {/* Detail Header */}
                     <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                       <div>
@@ -433,7 +433,7 @@ export default function ByeongYangTablePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center sticky top-32">
+                  <div className="surface-card rounded-2xl p-8 text-center sticky top-32">
                     <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">
                       좌측에서 병증을 선택하면<br />
@@ -446,23 +446,23 @@ export default function ByeongYangTablePage() {
 
             {/* Stats */}
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-center">
+              <div className="glass-tile rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-gray-900">{BYEONGYANG_DATA.length}</div>
                 <div className="text-sm text-gray-500">등록된 병증</div>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-center">
+              <div className="glass-tile rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-gray-900">
                   {BYEONGYANG_DATA.reduce((acc, d) => acc + d.patterns.length, 0)}
                 </div>
                 <div className="text-sm text-gray-500">변증 패턴</div>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-center">
+              <div className="glass-tile rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">
                   {getByeongYangByCategory('external').length}
                 </div>
                 <div className="text-sm text-gray-500">외감병</div>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-center">
+              <div className="glass-tile rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-amber-600">
                   {getByeongYangByCategory('internal').length}
                 </div>
@@ -483,7 +483,7 @@ export default function ByeongYangTablePage() {
 function ByeongyakTableView({ table }: { table: ByeongYakTable | null }) {
   if (!table) {
     return (
-      <div className="bg-white rounded-xl p-8 text-center">
+      <div className="surface-card rounded-2xl p-8 text-center">
         <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
         <p className="text-gray-500">병약도표를 선택해주세요.</p>
       </div>
@@ -499,7 +499,7 @@ function ByeongyakTableView({ table }: { table: ByeongYakTable | null }) {
   return (
     <div className="space-y-6">
       {/* 테이블 헤더 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-pink-100 rounded-lg">
             <Grid3X3 className="h-5 w-5 text-pink-600" />
@@ -514,7 +514,7 @@ function ByeongyakTableView({ table }: { table: ByeongYakTable | null }) {
       </div>
 
       {/* 메인 테이블 */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead>

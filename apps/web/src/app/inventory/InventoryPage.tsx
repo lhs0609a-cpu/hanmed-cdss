@@ -108,7 +108,7 @@ export default function InventoryPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 품목</p>
             <Package className="w-5 h-5 text-blue-500" />
@@ -116,7 +116,7 @@ export default function InventoryPage() {
           <p className="text-2xl font-bold mt-2">{summary?.totalItems || 0}종</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">재고 부족</p>
             <TrendingDown className="w-5 h-5 text-red-500" />
@@ -124,7 +124,7 @@ export default function InventoryPage() {
           <p className="text-2xl font-bold mt-2 text-red-600">{summary?.lowStockCount || 0}종</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">유통기한 임박</p>
             <Clock className="w-5 h-5 text-yellow-500" />
@@ -132,7 +132,7 @@ export default function InventoryPage() {
           <p className="text-2xl font-bold mt-2 text-yellow-600">{summary?.expiringCount || 0}종</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 재고 가치</p>
             <TrendingUp className="w-5 h-5 text-green-500" />
@@ -140,7 +140,7 @@ export default function InventoryPage() {
           <p className="text-2xl font-bold mt-2">{formatCurrency(summary?.totalValue || 0)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">미처리 알림</p>
             <Bell className="w-5 h-5 text-amber-500" />
@@ -212,7 +212,7 @@ export default function InventoryPage() {
 
       {/* Inventory Tab */}
       {activeTab === 'inventory' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1">
               <div className="relative flex-1 max-w-md">
@@ -327,7 +327,7 @@ export default function InventoryPage() {
 
       {/* Orders Tab */}
       {activeTab === 'orders' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b">
             <h3 className="font-medium">발주서 목록</h3>
           </div>
@@ -398,7 +398,7 @@ export default function InventoryPage() {
           {suppliers?.map((supplier) => (
             <div
               key={supplier.id}
-              className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:border-primary-300 transition-colors cursor-pointer"
+              className="surface-card rounded-2xl p-5 hover:border-primary-300 transition-colors cursor-pointer"
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -445,7 +445,7 @@ export default function InventoryPage() {
 
       {/* Alerts Tab */}
       {activeTab === 'alerts' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="surface-card rounded-2xl">
           <div className="divide-y">
             {alerts?.map((alert) => (
               <div key={alert.id} className="p-4 hover:bg-gray-50">
@@ -498,7 +498,7 @@ export default function InventoryPage() {
       {/* Price History Modal */}
       {selectedHerbId && priceHistory && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl m-4">
+          <div className="glass-surface border rounded-2xl shadow-xl w-full max-w-2xl m-4">
             <div className="p-4 border-b flex items-center justify-between">
               <h3 className="font-semibold">가격 추이</h3>
               <button

@@ -617,7 +617,7 @@ export default function PulseDiagnosisPage() {
         {/* Left Column - Pulse Positions */}
         <div className="lg:col-span-2 space-y-6">
           {/* Pulse Position Grid */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <User className="h-5 w-5 text-gray-500" />
               육부위 맥진
@@ -716,7 +716,7 @@ export default function PulseDiagnosisPage() {
 
           {/* Pulse Type Selection */}
           {selectedPosition && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4">
                 {positions.find((p) => p.id === selectedPosition)?.name} 맥상 선택
               </h2>
@@ -783,7 +783,7 @@ export default function PulseDiagnosisPage() {
           )}
 
           {/* Overall Notes */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <FileText className="h-5 w-5 text-gray-500" />
               종합 소견
@@ -809,14 +809,14 @@ export default function PulseDiagnosisPage() {
 
           {/* Analysis Result */}
           {analysis && (
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 맥진 분석 결과
               </h2>
 
               {/* Main Pattern */}
-              <div className="p-4 bg-white rounded-xl mb-4">
+              <div className="glass-tile rounded-2xl p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-500">변증 패턴</span>
                   <span className={cn(
@@ -903,7 +903,7 @@ export default function PulseDiagnosisPage() {
         {/* Right Column - Pulse Info */}
         <div className="space-y-4">
           {/* Quick Reference */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Info className="h-5 w-5 text-blue-500" />
               맥상 정보
@@ -990,7 +990,7 @@ export default function PulseDiagnosisPage() {
           </div>
 
           {/* Saved Records History */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="w-full flex items-center justify-between"

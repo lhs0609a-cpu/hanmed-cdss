@@ -63,7 +63,7 @@ function LoginRequiredScreen({ isGuest }: { isGuest: boolean }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+      <div className="surface-card rounded-2xl p-8 text-center">
         <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="h-8 w-8 text-amber-600" />
         </div>
@@ -366,7 +366,7 @@ export default function WritePostPage() {
       </div>
 
       {/* Post Type Selection */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="surface-card rounded-2xl p-6">
         <h3 className="font-medium text-gray-900 mb-4">게시판 선택</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {postTypeOptions.map((option) => {
@@ -449,7 +449,7 @@ export default function WritePostPage() {
       </div>
 
       {/* Post Content */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <div className="surface-card rounded-2xl p-6 space-y-4">
         {/* Title */}
         <div>
           <input
@@ -490,7 +490,7 @@ export default function WritePostPage() {
       </div>
 
       {/* Tags */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="surface-card rounded-2xl p-6">
         <h3 className="font-medium text-gray-900 mb-4">태그 (최대 5개)</h3>
         <div className="flex flex-wrap gap-2 mb-3">
           {tags.map((tag) => (
@@ -530,7 +530,7 @@ export default function WritePostPage() {
       </div>
 
       {/* Options */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="surface-card rounded-2xl p-6">
         <h3 className="font-medium text-gray-900 mb-4">옵션</h3>
         <label className="flex items-center gap-3 cursor-pointer">
           <input
@@ -554,7 +554,7 @@ export default function WritePostPage() {
       {/* Case Search Modal */}
       {showCaseSearch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+          <div className="glass-surface border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">치험례 검색</h3>
               <button

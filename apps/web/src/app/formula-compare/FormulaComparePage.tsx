@@ -473,7 +473,7 @@ export default function FormulaComparePage() {
               <div
                 key={formula.id}
                 className={cn(
-                  'bg-white rounded-2xl shadow-sm border p-6',
+                  'surface-card rounded-2xl p-6',
                   index === 0 ? 'border-indigo-200' : 'border-purple-200'
                 )}
               >
@@ -511,7 +511,7 @@ export default function FormulaComparePage() {
           </div>
 
           {/* Detailed Comparison */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="surface-card rounded-2xl overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">상세 비교</h3>
             </div>
@@ -603,7 +603,7 @@ export default function FormulaComparePage() {
           </div>
 
           {/* Herb Comparison */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-4">구성 약물 비교</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {selectedPair.formulas.map((formula, index) => (
@@ -700,7 +700,7 @@ export default function FormulaComparePage() {
                     setSelectedPair(pair)
                     setExpandedSections(pair.differences.map((d) => d.category))
                   }}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:border-indigo-200 transition-all group"
+                  className="surface-card rounded-2xl p-6 text-left hover:shadow-lg hover:border-indigo-200 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -731,7 +731,7 @@ export default function FormulaComparePage() {
               {filteredFormulas.map((formula) => (
                 <div
                   key={formula.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
+                  className="surface-card rounded-2xl p-5"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>

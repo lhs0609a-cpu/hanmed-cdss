@@ -207,7 +207,7 @@ export default function FormulasPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1 flex gap-2">
@@ -278,7 +278,7 @@ export default function FormulasPage() {
 
       {/* MFDS results panel */}
       {mfdsEnabled && submittedQuery && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Pill className="h-5 w-5 text-blue-500" />
@@ -368,7 +368,7 @@ export default function FormulasPage() {
               <Link
                 key={formula.id}
                 to={`/formulas/${formula.id}`}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:border-blue-200 transition-all"
+                className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>

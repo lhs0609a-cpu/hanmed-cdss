@@ -123,7 +123,7 @@ export default function HerbDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* 성미귀경 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">성미귀경</h2>
 
             <div className="grid grid-cols-3 gap-4">
@@ -149,7 +149,7 @@ export default function HerbDetailPage() {
           </div>
 
           {/* 효능 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="text-xl">💪</span>
               효능
@@ -158,7 +158,7 @@ export default function HerbDetailPage() {
           </div>
 
           {/* 주요 성분 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Beaker className="h-5 w-5 text-indigo-500" />
               주요 성분
@@ -227,7 +227,7 @@ export default function HerbDetailPage() {
 
           {/* 포함된 처방 */}
           {herb.containedIn.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-blue-500" />
                 포함된 처방
@@ -274,7 +274,7 @@ export default function HerbDetailPage() {
           )}
 
           {/* Actions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <Link
               to="/dashboard/interactions"
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
@@ -285,7 +285,7 @@ export default function HerbDetailPage() {
           </div>
 
           {/* 성미귀경 요약 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-3">한눈에 보기</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">

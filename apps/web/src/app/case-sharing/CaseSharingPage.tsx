@@ -92,7 +92,7 @@ export default function CaseSharingPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 케이스</p>
             <BookOpen className="w-5 h-5 text-blue-500" />
@@ -100,7 +100,7 @@ export default function CaseSharingPage() {
           <p className="text-2xl font-bold mt-2">{statistics?.totalCases || 0}건</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">공개 케이스</p>
             <Share2 className="w-5 h-5 text-green-500" />
@@ -108,7 +108,7 @@ export default function CaseSharingPage() {
           <p className="text-2xl font-bold mt-2">{statistics?.publishedCases || 0}건</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 댓글</p>
             <MessageCircle className="w-5 h-5 text-purple-500" />
@@ -116,7 +116,7 @@ export default function CaseSharingPage() {
           <p className="text-2xl font-bold mt-2">{statistics?.totalComments || 0}개</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">등록 전문가</p>
             <GraduationCap className="w-5 h-5 text-amber-500" />
@@ -156,7 +156,7 @@ export default function CaseSharingPage() {
           {/* Filters Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Search */}
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="surface-card rounded-2xl p-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -170,7 +170,7 @@ export default function CaseSharingPage() {
             </div>
 
             {/* Category Filter */}
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="surface-card rounded-2xl p-4">
               <h4 className="font-medium mb-3">카테고리</h4>
               <div className="space-y-2">
                 {Object.entries(categoryLabels).map(([key, label]) => (
@@ -189,7 +189,7 @@ export default function CaseSharingPage() {
             </div>
 
             {/* Difficulty Filter */}
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="surface-card rounded-2xl p-4">
               <h4 className="font-medium mb-3">난이도</h4>
               <div className="space-y-2">
                 {Object.entries(difficultyLabels).map(([key, { label }]) => (
@@ -210,7 +210,7 @@ export default function CaseSharingPage() {
             </div>
 
             {/* Popular Tags */}
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="surface-card rounded-2xl p-4">
               <h4 className="font-medium mb-3">인기 태그</h4>
               <div className="flex flex-wrap gap-2">
                 {popularTags?.slice(0, 15).map((tag) => (
@@ -241,7 +241,7 @@ export default function CaseSharingPage() {
                 {cases.map((caseItem) => (
                   <div
                     key={caseItem.id}
-                    className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:border-primary-200 transition-colors cursor-pointer"
+                    className="surface-card rounded-2xl p-5 hover:border-primary-200 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -361,7 +361,7 @@ export default function CaseSharingPage() {
           {featuredCases?.map((caseItem) => (
             <div
               key={caseItem.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+              className="surface-card rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             >
               <div className="p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -409,7 +409,7 @@ export default function CaseSharingPage() {
           {experts?.map((expert) => (
             <div
               key={expert.id}
-              className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:border-primary-200 transition-colors"
+              className="surface-card rounded-2xl p-5 hover:border-primary-200 transition-colors"
             >
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
@@ -467,7 +467,7 @@ export default function CaseSharingPage() {
 
       {/* My Cases Tab */}
       {activeTab === 'my' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+        <div className="surface-card rounded-2xl p-8 text-center">
           <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">아직 작성한 케이스가 없습니다</h3>
           <p className="text-gray-500 mt-2">첫 번째 케이스를 공유해보세요</p>

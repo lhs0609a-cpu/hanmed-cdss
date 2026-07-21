@@ -467,7 +467,7 @@ ${soapNote.plan}
         {/* Recording Section */}
         <div className="space-y-4">
           {/* Recording Controls */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="text-center">
               {/* Timer Display */}
               <div className="mb-6">
@@ -508,7 +508,7 @@ ${soapNote.plan}
                       'w-20 h-20 rounded-full flex items-center justify-center transition-all',
                       micPermission === 'denied'
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-blue-500 to-blue-500 text-white hover:shadow-lg hover:shadow-blue-500/30'
+                        : 'accent-gradient accent-glow text-white hover:brightness-[1.06]'
                     )}
                   >
                     <Mic className="h-8 w-8" />
@@ -544,7 +544,7 @@ ${soapNote.plan}
           </div>
 
           {/* Transcript */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-gray-400" />
@@ -591,7 +591,7 @@ ${soapNote.plan}
 
         {/* SOAP Note Section */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="surface-card rounded-2xl overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-500" />
@@ -692,7 +692,7 @@ ${soapNote.plan}
 
           {/* Saved Sessions */}
           {savedSessions.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="surface-card rounded-2xl p-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-gray-400" />
                 최근 기록
@@ -749,7 +749,7 @@ ${soapNote.plan}
       {/* Prescription Modal */}
       {showPrescriptionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg mx-4 glass-surface border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

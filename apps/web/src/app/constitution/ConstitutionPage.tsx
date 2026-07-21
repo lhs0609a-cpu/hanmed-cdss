@@ -529,7 +529,7 @@ export default function ConstitutionPage() {
         </div>
 
         {/* 확률 분포 차트 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Toss3DIcon icon={BarChart3} tone="purple" size="sm" />
             체질 확률 분포
@@ -597,7 +597,7 @@ export default function ConstitutionPage() {
         </div>
 
         {/* Result Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="glass-tile rounded-2xl p-8">
           <div className="text-center mb-8">
             <div className="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-4">
               주 체질 일치도 {result.percentage}%
@@ -662,7 +662,7 @@ export default function ConstitutionPage() {
         </div>
 
         {/* 음식 추천 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Toss3DIcon icon={Utensils} tone="orange" size="sm" />
             음식 가이드
@@ -692,7 +692,7 @@ export default function ConstitutionPage() {
         </div>
 
         {/* 추천 한약재 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Toss3DIcon icon={Activity} tone="teal" size="sm" />
             체질에 맞는 한약재
@@ -746,7 +746,7 @@ export default function ConstitutionPage() {
       </div>
 
       {/* Progress */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-600">
             질문 {currentStep + 1} / {questions.length}
@@ -764,7 +764,7 @@ export default function ConstitutionPage() {
       </div>
 
       {/* Question Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div className="surface-card rounded-2xl p-8">
         <div className="mb-2 flex items-center gap-2">
           <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
             {currentQuestion.category}

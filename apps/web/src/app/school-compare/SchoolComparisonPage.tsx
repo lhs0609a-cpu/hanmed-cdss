@@ -632,7 +632,7 @@ export default function SchoolComparisonPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="glass-surface border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -669,7 +669,7 @@ export default function SchoolComparisonPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Symptom List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden sticky top-32">
+            <div className="surface-card rounded-2xl overflow-hidden sticky top-32">
               <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                 <h3 className="font-medium text-gray-900">증상 목록</h3>
               </div>
@@ -699,7 +699,7 @@ export default function SchoolComparisonPage() {
             {selectedData ? (
               <div className="space-y-4">
                 {/* Selected Symptom Header */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="surface-card rounded-2xl p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-100 rounded-lg">
                       <Info className="h-5 w-5 text-purple-600" />
@@ -719,7 +719,7 @@ export default function SchoolComparisonPage() {
                     <div
                       key={approach.school}
                       className={cn(
-                        'rounded-xl border-2 overflow-hidden',
+                        'rounded-2xl border-2 overflow-hidden',
                         schoolColors[approach.school].bg,
                         schoolColors[approach.school].border
                       )}
@@ -808,7 +808,7 @@ export default function SchoolComparisonPage() {
                 </div>
 
                 {/* Comparison Summary */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="surface-card rounded-2xl p-4">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <ArrowRight className="h-5 w-5 text-purple-600" />
                     학파별 접근 비교 요약
@@ -844,7 +844,7 @@ export default function SchoolComparisonPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <div className="surface-card rounded-2xl p-8 text-center">
                 <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">좌측에서 증상을 선택해주세요.</p>
               </div>
@@ -860,7 +860,7 @@ export default function SchoolComparisonPage() {
               <div
                 key={school}
                 className={cn(
-                  'rounded-xl border-2 p-4',
+                  'rounded-2xl border-2 p-4',
                   schoolColors[school].bg,
                   schoolColors[school].border
                 )}

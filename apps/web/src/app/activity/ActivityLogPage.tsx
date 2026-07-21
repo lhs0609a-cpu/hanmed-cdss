@@ -321,25 +321,25 @@ export default function ActivityLogPage() {
 
       {/* Statistics Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-blue-600">24</p>
             <p className="text-sm text-gray-500">이번 주 진료</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-purple-600">18</p>
             <p className="text-sm text-gray-500">생성된 처방</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-amber-600">45</p>
             <p className="text-sm text-gray-500">검색 횟수</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-blue-600">7</p>
             <p className="text-sm text-gray-500">로그인 횟수</p>

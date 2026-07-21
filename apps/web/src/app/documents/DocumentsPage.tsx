@@ -533,7 +533,7 @@ export default function DocumentsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Form */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-violet-100 rounded-xl">
                   <selectedTemplate.icon className="h-6 w-6 text-violet-600" />
@@ -583,7 +583,7 @@ export default function DocumentsPage() {
             </div>
 
             {/* Preview */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-900">미리보기</h3>
                 <div className="flex gap-2">
@@ -641,7 +641,7 @@ export default function DocumentsPage() {
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplate(template)}
-                  className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:border-violet-200 transition-all"
+                  className="group surface-card rounded-2xl p-6 text-left hover:shadow-lg hover:border-violet-200 transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 bg-violet-100 rounded-xl group-hover:bg-violet-200 transition-colors">

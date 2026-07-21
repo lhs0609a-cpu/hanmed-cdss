@@ -158,7 +158,7 @@ export default function PostDetailPage() {
   if (error || !post) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className="surface-card rounded-2xl p-8 text-center">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-amber-600" />
           </div>
@@ -212,7 +212,7 @@ export default function PostDetailPage() {
       </button>
 
       {/* Post Content */}
-      <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <article className="surface-card rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-gray-100">
           {/* Badges */}
@@ -325,7 +325,7 @@ export default function PostDetailPage() {
       </article>
 
       {/* Comments Section */}
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <section className="surface-card rounded-2xl overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-blue-500" />

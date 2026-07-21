@@ -173,20 +173,20 @@ export default function MyCasesPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: '전체', value: stats.total, color: 'bg-gray-100 text-gray-700' },
-          { label: '호전/완치', value: stats.completed, color: 'bg-green-100 text-green-700' },
-          { label: '진행중', value: stats.inProgress, color: 'bg-blue-100 text-blue-700' },
-          { label: '즐겨찾기', value: stats.starred, color: 'bg-amber-100 text-amber-700' },
+          { label: '전체', value: stats.total, accent: 'text-neutral-700 dark:text-neutral-200' },
+          { label: '호전/완치', value: stats.completed, accent: 'text-green-600' },
+          { label: '진행중', value: stats.inProgress, accent: 'text-blue-600' },
+          { label: '즐겨찾기', value: stats.starred, accent: 'text-amber-600' },
         ].map((stat) => (
-          <div key={stat.label} className={`p-4 rounded-xl ${stat.color}`}>
-            <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-sm">{stat.label}</p>
+          <div key={stat.label} className="glass-tile rounded-2xl p-4">
+            <p className={`text-2xl font-bold ${stat.accent}`}>{stat.value}</p>
+            <p className="text-sm text-neutral-500">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -232,7 +232,7 @@ export default function MyCasesPage() {
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
         </div>
       ) : filteredCases.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+        <div className="surface-card rounded-2xl p-12 text-center">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {cases.length === 0 ? '아직 기록된 치험례가 없습니다' : '검색 결과가 없습니다'}
@@ -257,7 +257,7 @@ export default function MyCasesPage() {
           {filteredCases.map((caseItem) => (
             <div
               key={caseItem.id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all group"
+              className="surface-card rounded-2xl p-5 hover:shadow-md transition-all group"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
@@ -426,7 +426,7 @@ function AddCaseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="glass-surface border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-bold text-lg text-gray-900">새 치험례 추가</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">

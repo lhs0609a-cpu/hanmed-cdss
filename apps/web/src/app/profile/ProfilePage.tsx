@@ -130,7 +130,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {/* Banner */}
         <div className="h-24 bg-gradient-to-r from-blue-500 to-blue-500" />
 
@@ -234,7 +234,7 @@ export default function ProfilePage() {
       )}
 
       {activeTab === 'activity' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="surface-card rounded-2xl">
           <div className="p-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">최근 활동</h3>
           </div>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
       )}
 
       {/* Level Perks */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+      <div className="surface-card rounded-2xl">
         <div className="p-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-900">레벨별 혜택</h3>
         </div>
