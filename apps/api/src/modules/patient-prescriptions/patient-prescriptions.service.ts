@@ -77,11 +77,13 @@ export class PatientPrescriptionsService {
     const savedResult = await this.prescriptionRepository.save(prescription);
     const saved = Array.isArray(savedResult) ? savedResult[0] : savedResult;
 
-    // 진료 기록에 연결
+    // 진료 기록에 연결 — clinicId 로 스코프해 타 한의원 레코드 덮어쓰기(교차테넌트 쓰기) 차단.
+    // 대상 record 가 다른 한의원 소유면 매칭 0건으로 no-op 처리된다.
     if (dto.recordId && saved?.id) {
-      await this.recordRepository.update(dto.recordId, {
-        prescriptionId: saved.id,
-      });
+      await this.recordRepository.update(
+        { id: dto.recordId, clinicId },
+        { prescriptionId: saved.id },
+      );
     }
 
     return saved;

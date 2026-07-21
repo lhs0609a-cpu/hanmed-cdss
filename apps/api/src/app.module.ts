@@ -117,10 +117,15 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
         // 로컬이 기존 스키마를 가진 DB(운영 등)에 connect-only 로 붙어야 할 때
         // .env 에서 DB_SYNCHRONIZE=false / DB_MIGRATIONS_RUN=false 로 끌 수 있다.
         // (환경변수 미설정 시 프로덕션 동작 불변)
+        // 프로덕션에서는 env 값과 무관하게 synchronize 를 강제 차단한다.
+        // (엔티티↔DB 드리프트 상황에서 자동 ALTER 가 운영 데이터를 파괴할 수 있어
+        //  connect-only 탈출구는 'OFF' 방향으로만 열어둔다.)
         synchronize:
-          configService.get('DB_SYNCHRONIZE') !== undefined
-            ? configService.get('DB_SYNCHRONIZE') === 'true'
-            : configService.get('NODE_ENV') === 'development',
+          configService.get('NODE_ENV') === 'production'
+            ? false
+            : configService.get('DB_SYNCHRONIZE') !== undefined
+              ? configService.get('DB_SYNCHRONIZE') === 'true'
+              : configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         // 부팅 시 미실행 마이그레이션 자동 적용 — 운영 사고 재발 방지.
         // entity 가 요구하는 컬럼이 DB 에 없어 로그인이 폭발하는 일이 다시는 없도록.
