@@ -73,6 +73,7 @@ export interface DrugInteractionInfo {
 @Entity('patient_prescriptions')
 @Index(['patientId'])
 @Index(['practitionerId'])
+@Index(['clinicId'])
 @Index(['status'])
 export class PatientPrescription {
   @PrimaryGeneratedColumn('uuid')
@@ -84,6 +85,10 @@ export class PatientPrescription {
   @ManyToOne(() => PatientAccount)
   @JoinColumn({ name: 'patientId' })
   patient: PatientAccount;
+
+  // 소유 한의원 — 테넌트 격리 기준. create 시 세팅되며 update 는 이 값으로 필터한다.
+  @Column({ nullable: true })
+  clinicId: string;
 
   @Column({ nullable: true })
   practitionerId: string;

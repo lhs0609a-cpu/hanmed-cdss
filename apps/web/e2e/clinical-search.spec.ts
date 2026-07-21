@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test'
 
 async function enterDemo(page: Page) {
   await page.goto('/login')
-  await page.getByRole('button', { name: /데모 계정으로 체험하기/i }).click()
+  await page.getByRole('button', { name: /데모 계정으로 체험/i }).click()
   await expect(page).toHaveURL(/dashboard/, { timeout: 15000 })
 }
 

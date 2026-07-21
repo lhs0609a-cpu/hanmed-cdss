@@ -64,6 +64,7 @@ export class PatientPrescriptionsService {
 
     const prescription = this.prescriptionRepository.create({
       ...dto,
+      clinicId, // 소유 한의원 저장 — 이전엔 인자로 받고도 저장하지 않아 테넌트 격리 불가였음
       herbsDetail: enrichedHerbs,
       drugInteractions: interactions,
       scientificEvidence,
@@ -86,10 +87,14 @@ export class PatientPrescriptionsService {
     return saved;
   }
 
-  // 처방 수정
-  async update(prescriptionId: string, dto: UpdatePrescriptionDto) {
+  // 처방 수정 — clinicId 로 소유 한의원을 강제해 타 한의원 처방 수정을 차단(IDOR)
+  async update(
+    prescriptionId: string,
+    clinicId: string,
+    dto: UpdatePrescriptionDto,
+  ) {
     const prescription = await this.prescriptionRepository.findOne({
-      where: { id: prescriptionId },
+      where: { id: prescriptionId, clinicId },
     });
 
     if (!prescription) {

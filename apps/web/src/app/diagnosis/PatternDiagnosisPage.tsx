@@ -1023,7 +1023,7 @@ export default function PatternDiagnosisPage() {
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div className="glass-surface rounded-2xl p-4 sticky top-2 z-20">
         <div className="flex items-center justify-between overflow-x-auto">
           {[
             { key: 'constitution', label: '체열/근실도', icon: Dumbbell },
@@ -1068,7 +1068,7 @@ export default function PatternDiagnosisPage() {
                 <strong>이종대 선생님 기준:</strong>{' '}
                 <TermTooltip term="체열">체열</TermTooltip>(몸이 차가운지/더운지)과{' '}
                 <TermTooltip term="근실도">근실도</TermTooltip>(기운이 약한지/튼튼한지)는 처방 선택의 핵심입니다.
-                이 두 가지만 정확히 파악하면 치료 확률 50% 이상, 부작용 최소화!
+                두 축을 먼저 파악하면 변증 후보를 좁히는 데 도움이 됩니다.
               </p>
             </div>
           </div>
@@ -1097,7 +1097,7 @@ export default function PatternDiagnosisPage() {
           {symptomCategories.map((category) => (
             <div
               key={category.id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+              className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6"
             >
               <div className="flex items-center gap-3 mb-4">
                 <Toss3DIcon
@@ -1162,7 +1162,7 @@ export default function PatternDiagnosisPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
             <h3 className="font-bold text-gray-900 mb-4">맥상 선택 <span className="text-sm font-normal text-gray-400">(복수 선택 가능)</span></h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {pulseTypes.map((pulse) => (
@@ -1227,7 +1227,7 @@ export default function PatternDiagnosisPage() {
           {tongueFeatures.map((feature) => (
             <div
               key={feature.category}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+              className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6"
             >
               <h3 className="font-bold text-gray-900 mb-4">{feature.category}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1295,7 +1295,7 @@ export default function PatternDiagnosisPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 팔강변증 분석기 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
               <PalGangAnalyzer
                 initialAnalysis={palGangAnalysis || undefined}
                 onAnalysisChange={(analysis) => setPalGangAnalysis(analysis)}
@@ -1303,7 +1303,7 @@ export default function PatternDiagnosisPage() {
             </div>
 
             {/* 팔강변증 다이어그램 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">팔강변증 시각화</h3>
               {palGangAnalysis ? (
                 <PalGangDiagram analysis={palGangAnalysis} />
@@ -1325,7 +1325,7 @@ export default function PatternDiagnosisPage() {
             <button
               onClick={analyzePatterns}
               disabled={analyzing}
-              className="inline-flex items-center gap-2 h-12 px-6 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white rounded-md font-semibold transition-colors active:scale-[0.99]"
+              className="accent-gradient accent-glow inline-flex items-center gap-2 h-12 px-6 hover:opacity-95 disabled:opacity-40 text-white rounded-md font-semibold transition-opacity active:scale-[0.99]"
             >
               {analyzing ? (
                 <>
@@ -1380,6 +1380,16 @@ export default function PatternDiagnosisPage() {
                   <div className="px-2.5 py-1 bg-white/10 rounded-sm text-[12px] font-semibold tabular">
                     일치도 {results[0].confidence}%
                   </div>
+                </div>
+                {/* 신뢰도 시각화 막대 (장식용) */}
+                <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${results[0].confidence}%`,
+                      background: 'linear-gradient(90deg, #3182F6 0%, #7856FF 100%)',
+                    }}
+                  />
                 </div>
                 <p className="text-neutral-300 text-[14px] leading-relaxed mb-4">{results[0].description}</p>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -1445,7 +1455,7 @@ export default function PatternDiagnosisPage() {
           <PrescriptionDisclaimer />
 
           {/* Recommended Formulas */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Toss3DIcon icon={Pill} tone="indigo" size="sm" />
               추천 처방 <span className="text-xs font-normal text-gray-500">(참고용)</span>
@@ -1468,7 +1478,7 @@ export default function PatternDiagnosisPage() {
           </div>
 
           {/* Similar Cases — AI 임베딩 매칭으로 6,454건 치험례 중 상위 5건 */}
-          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-neutral-900 flex items-center gap-2">
                 비슷한 치험례
@@ -1549,7 +1559,7 @@ export default function PatternDiagnosisPage() {
 
           {/* Other Possible Patterns */}
           {results.length > 1 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Toss3DIcon icon={AlertCircle} tone="amber" size="sm" />
                 감별 변증
@@ -1558,22 +1568,34 @@ export default function PatternDiagnosisPage() {
                 {results.slice(1).map((result) => (
                   <div
                     key={result.pattern}
-                    className="p-4 bg-gray-50 rounded-xl flex items-center justify-between"
+                    className="p-4 bg-white rounded-xl border border-neutral-200 shadow-[var(--shadow-1)]"
                   >
-                    <div>
-                      <p className="font-bold text-gray-900">
-                        {result.pattern} ({result.hanja})
-                      </p>
-                      <p className="text-sm text-gray-500">{result.description}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-gray-900">
+                          {result.pattern} ({result.hanja})
+                        </p>
+                        <p className="text-sm text-gray-500">{result.description}</p>
+                      </div>
+                      <span
+                        className={cn(
+                          'px-3 py-1 rounded-full text-sm font-medium',
+                          getConfidenceColor(result.confidence)
+                        )}
+                      >
+                        {result.confidence}%
+                      </span>
                     </div>
-                    <span
-                      className={cn(
-                        'px-3 py-1 rounded-full text-sm font-medium',
-                        getConfidenceColor(result.confidence)
-                      )}
-                    >
-                      {result.confidence}%
-                    </span>
+                    {/* 신뢰도 시각화 막대 (장식용) */}
+                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${result.confidence}%`,
+                          background: 'linear-gradient(90deg, #3182F6 0%, #7856FF 100%)',
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1582,7 +1604,7 @@ export default function PatternDiagnosisPage() {
 
           {/* 체열/근실도 결과 */}
           {bodyConstitution && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Dumbbell className="h-5 w-5 text-indigo-500" />
                 체열/근실도 평가 결과
@@ -1628,7 +1650,7 @@ export default function PatternDiagnosisPage() {
           )}
 
           {palGangAnalysis && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Scale className="h-5 w-5 text-slate-600" />
                 팔강변증 분석

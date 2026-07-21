@@ -310,7 +310,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading || !allRequiredConsentsChecked || !licenseValid}
-            className="w-full h-14 mt-2 bg-primary hover:bg-brand-600 disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-colors active:scale-[0.99] flex items-center justify-center gap-2"
+            className="w-full h-14 mt-2 accent-gradient accent-glow disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-all active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

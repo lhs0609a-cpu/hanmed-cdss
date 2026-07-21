@@ -197,7 +197,7 @@ export default function DashboardLayout() {
       </a>
 
       {/* Mobile header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass border-b border-white/20">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-surface border-b">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -219,7 +219,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-300 ease-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 glass-surface border-r transform transition-all duration-300 ease-out lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isMinimized ? 'lg:w-20' : 'lg:w-72'
         )}
@@ -515,7 +515,7 @@ export default function DashboardLayout() {
           className="mt-8 border-t border-neutral-200 bg-white/80 px-4 py-3 text-[11px] leading-relaxed text-neutral-500 lg:px-8"
         >
           <p className="max-w-7xl mx-auto">
-            본 서비스는 임상 보조 도구이며, 의료기기 인증 신청 진행 중입니다.
+            본 서비스는 임상 보조 도구이며 의료기기가 아닙니다.
             최종 진단 · 처방은 한의사의 판단에 따릅니다.
             <span className="ml-2 text-neutral-400">
               © {new Date().getFullYear()} 온고지신
@@ -529,7 +529,7 @@ export default function DashboardLayout() {
 
       {/* Mobile Bottom Navigation */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 safe-area-bottom"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-surface border-t safe-area-bottom"
         aria-label="모바일 하단 메뉴"
       >
         <div className="flex items-center justify-around px-2 py-1">

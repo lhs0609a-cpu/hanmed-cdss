@@ -497,19 +497,19 @@ export default function AdLandingPage() {
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8 text-white text-center">
                 <p className="text-lg font-medium mb-2">가장 인기 있는</p>
-                <h3 className="text-3xl font-bold">Professional 플랜</h3>
+                <h3 className="text-3xl font-bold">Pro 플랜</h3>
               </div>
               <div className="p-8">
                 <div className="text-center mb-8">
                   <p className="text-5xl font-bold text-gray-900">
-                    월 99,000<span className="text-xl font-normal text-gray-500">원</span>
+                    월 49,000<span className="text-xl font-normal text-gray-500">원</span>
                   </p>
-                  <p className="text-gray-500 mt-2">연간 결제 시 월 82,500원 (2개월 무료)</p>
+                  <p className="text-gray-500 mt-2">연간 결제 시 월 40,833원 (2개월 무료)</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   {[
-                    'AI 쿼리 월 300회',
+                    'AI 쿼리 월 1,000회',
                     `${formatStatNumber(BASE_STATS.cases)} 치험례 검색`,
                     '한약-양약 상호작용 검사',
                     '처방 근거 문서화',

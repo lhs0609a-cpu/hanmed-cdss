@@ -138,44 +138,44 @@ export default function InsurancePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">총 청구건수</p>
             <FileText className="w-5 h-5 text-gray-400" />
           </div>
-          <p className="text-2xl font-bold mt-2">{summary?.totalClaims || 0}건</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums mt-2">{summary?.totalClaims || 0}건</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">청구금액</p>
             <TrendingUp className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="text-2xl font-bold mt-2">{formatCurrency(summary?.totalAmount || 0)}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums mt-2">{formatCurrency(summary?.totalAmount || 0)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">대기중</p>
             <Clock className="w-5 h-5 text-yellow-500" />
           </div>
-          <p className="text-2xl font-bold mt-2">{formatCurrency(summary?.pendingAmount || 0)}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums mt-2">{formatCurrency(summary?.pendingAmount || 0)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">승인금액</p>
             <CheckCircle className="w-5 h-5 text-green-500" />
           </div>
-          <p className="text-2xl font-bold mt-2">{formatCurrency(summary?.approvedAmount || 0)}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums mt-2">{formatCurrency(summary?.approvedAmount || 0)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center justify-between">
             <p className="text-gray-500 text-sm">거절금액</p>
             <XCircle className="w-5 h-5 text-red-500" />
           </div>
-          <p className="text-2xl font-bold mt-2">{formatCurrency(summary?.rejectedAmount || 0)}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums mt-2">{formatCurrency(summary?.rejectedAmount || 0)}</p>
         </div>
       </div>
 
@@ -227,7 +227,7 @@ export default function InsurancePage() {
               <button
                 onClick={handleSubmitSelected}
                 disabled={submitClaimsMutation.isPending}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50"
+                className="accent-gradient accent-glow px-4 py-2 text-white rounded-md flex items-center gap-2 disabled:opacity-50"
               >
                 {submitClaimsMutation.isPending ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />

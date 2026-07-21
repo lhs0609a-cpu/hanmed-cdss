@@ -236,7 +236,7 @@ export default function InsuranceFeeSearchPage() {
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1.5">
+      <div className="glass-surface rounded-2xl p-1.5">
         <div className="flex">
           <button
             onClick={() => {
@@ -298,7 +298,7 @@ export default function InsuranceFeeSearchPage() {
           <button
             onClick={handleSearch}
             disabled={isLoading}
-            className="px-6 py-3 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="accent-gradient accent-glow px-6 py-3 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -749,39 +749,39 @@ export default function InsuranceFeeSearchPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-gray-500">급여 수가</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {filteredFeeResults.filter((f) => f.payType === 'covered').length}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <BadgeX className="h-5 w-5 text-red-500" />
             <span className="text-sm text-gray-500">비급여 수가</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {filteredFeeResults.filter((f) => f.payType === 'uncovered').length}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <Activity className="h-5 w-5 text-purple-500" />
             <span className="text-sm text-gray-500">한방 상병</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {diseaseResults.filter((d) => d.mdTpCd === '2').length}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-gray-500">전체 결과</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {activeTab === 'fee' ? feeTotalCount : diseaseTotalCount}
           </p>
         </div>

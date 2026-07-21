@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import {
   Plus,
   X,
@@ -46,7 +45,6 @@ import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
 import { RealTimeAssistant } from '@/components/assistant/RealTimeAssistant'
 import { PrescriptionDocument } from '@/components/documentation/PrescriptionDocument'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
-import { SimilarPatientStats, RecommendationStatHighlight } from '@/components/consultation'
 import { printPrescription } from '@/lib/prescriptionPrint'
 import { useAuthStore } from '@/stores/authStore'
 import { Printer } from 'lucide-react'
@@ -555,7 +553,7 @@ export default function ConsultationPage() {
 
       {/* 마법사 모드: 진행 표시기 */}
       {inputMode === 'wizard' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-surface rounded-2xl border p-4 shadow-[var(--shadow-2)]">
           <div className="flex items-center justify-between">
             {wizardSteps.map((step, index) => {
               const Icon = step.icon
@@ -727,7 +725,7 @@ export default function ConsultationPage() {
               <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button
                   onClick={goToNextStep}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2"
+                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 transition-all flex items-center gap-2"
                 >
                   다음: 증상 입력
                   <ChevronRight className="h-5 w-5" />
@@ -848,7 +846,7 @@ export default function ConsultationPage() {
                 <button
                   onClick={goToNextStep}
                   disabled={!chiefComplaint.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 >
                   <Sparkles className="h-5 w-5" />
                   AI 분석 시작
@@ -864,7 +862,7 @@ export default function ConsultationPage() {
                 <Toss3DIcon icon={Stethoscope} tone="purple" size="xl" className="animate-pulse" />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">AI 분석 중</h2>
-                  <p className="text-sm text-gray-500">{formatStatNumber(BASE_STATS.cases)}의 치험례를 분석하고 있습니다</p>
+                  <p className="text-sm text-gray-500">등록된 치험례를 분석하고 있습니다</p>
                 </div>
               </div>
 
@@ -896,7 +894,7 @@ export default function ConsultationPage() {
                     <p className="text-lg font-semibold text-gray-900">분석이 완료되었습니다!</p>
                     <button
                       onClick={() => setWizardStep(4)}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2 mx-auto"
+                      className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 transition-all flex items-center gap-2 mx-auto"
                     >
                       결과 확인하기
                       <ChevronRight className="h-5 w-5" />
@@ -1032,7 +1030,7 @@ export default function ConsultationPage() {
                 <button
                   onClick={() => recommendations[0] && handleSelectFormula(recommendations[0])}
                   disabled={recommendations.length === 0}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 >
                   <CheckCircle className="h-5 w-5" />
                   최우선 처방 선택
@@ -1157,7 +1155,7 @@ export default function ConsultationPage() {
                 disabled={isLoading || !chiefComplaint.trim()}
                 aria-busy={isLoading}
                 aria-label={isLoading ? 'AI 분석 진행 중' : 'AI 처방 추천 분석 시작, Enter 키로도 실행 가능'}
-                className="w-full mt-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+                className="w-full mt-4 py-4 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               >
                 {isLoading ? (
                   <>
@@ -1464,7 +1462,7 @@ export default function ConsultationPage() {
                 disabled={isLoading || !chiefComplaint.trim()}
                 aria-busy={isLoading}
                 aria-label={isLoading ? 'AI 분석 진행 중' : 'AI 처방 추천 분석 시작'}
-                className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-semibold hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+                className="w-full py-4 accent-gradient accent-glow text-white rounded-2xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               >
                 {isLoading ? (
                   <>
@@ -1504,7 +1502,7 @@ export default function ConsultationPage() {
                 />
                 <div className="text-[13px] text-amber-900 leading-relaxed">
                   <p className="font-semibold">
-                    본 서비스는 임상 보조 도구이며, 의료기기 인증 신청 진행 중입니다.
+                    본 서비스는 임상 보조 도구이며 의료기기가 아닙니다.
                   </p>
                   <p className="mt-0.5">
                     AI 추천은 참고용이며, 최종 진단 · 처방은 한의사의 판단에 따릅니다.
@@ -1530,25 +1528,10 @@ export default function ConsultationPage() {
                 </div>
               )}
 
-              {/* 유사 환자 통계 - 신뢰도 강화 */}
-              <SimilarPatientStats
-                totalCases={similarCases.length > 0 ? Math.max(similarCases.length * 150, 450) : 6000}
-                avgConfidence={Math.round(
-                  recommendations.length > 0
-                    ? (recommendations.reduce((sum, r) => sum + r.confidence_score, 0) / recommendations.length) * 100
-                    : 85
-                )}
-                topFormulas={recommendations.slice(0, 3).map(r => r.formula_name)}
-                patientDemographics={{
-                  ageRange: '40-65세',
-                  genderRatio: { male: 45, female: 55 },
-                }}
-                treatmentOutcomes={{
-                  improved: 78,
-                  maintained: 15,
-                  noChange: 7,
-                }}
-              />
+              {/* 유사 환자 통계 블록 제거:
+                  치료결과(호전 78% 등)·인구통계·총건수가 모두 하드코딩/공식 생성값이라
+                  실제 집계 데이터가 아니었음. 한의사가 실측 아웃컴으로 오인할 위험이 커서
+                  실 데이터 파이프라인 연동 전까지 노출하지 않음. */}
 
               {/* 처방 전 필수 확인 사항 */}
               <PrescriptionDisclaimer />
@@ -1634,15 +1617,9 @@ export default function ConsultationPage() {
                         <p className="text-sm text-gray-600 leading-relaxed">{rec.rationale}</p>
                       </div>
 
-                      {/* Similar Patient Stat Highlight */}
-                      {index < 2 && (
-                        <RecommendationStatHighlight
-                          matchedPatients={Math.round(120 + (1 - index * 0.3) * 80)}
-                          successRate={Math.round(75 + rec.confidence_score * 15)}
-                          avgTreatmentDays={Math.round(14 + index * 3)}
-                          formulaName={rec.formula_name.split('(')[0]}
-                        />
-                      )}
+                      {/* 유사환자 성공률/치료일 통계는 실제 아웃컴 데이터가 확보되기 전까지
+                          제거함 — confidence_score 로부터 공식으로 생성한 수치라 임상 근거가 없고,
+                          한의사가 실측 성과로 오인할 위험이 있음. 실 데이터 연동 시 복원. */}
 
                       {/* Action buttons — 처방 카드 위에 마우스 올리면 노출 */}
                       <div className="mt-4 flex flex-wrap items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1789,7 +1766,7 @@ export default function ConsultationPage() {
                 </h3>
                 <p className="text-gray-500 max-w-sm mx-auto">
                   환자의 주소증과 증상을 입력하면<br />
-                  {formatStatNumber(BASE_STATS.cases)}의 치험례를 분석하여 최적의 처방을 추천합니다
+                  등록된 치험례를 분석하여 처방 후보를 추천합니다
                 </p>
               </div>
             </div>
@@ -1960,7 +1937,7 @@ export default function ConsultationPage() {
                   setShowDetailModal(false)
                   handleSelectFormula(selectedFormula)
                 }}
-                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                className="flex-1 py-3 accent-gradient accent-glow text-white rounded-xl hover:brightness-105 transition-all font-medium"
               >
                 이 처방 선택
               </button>
@@ -2004,7 +1981,7 @@ export default function ConsultationPage() {
               </button>
               <button
                 onClick={confirmSelectFormula}
-                className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                className="flex-1 py-3 accent-gradient accent-glow text-white rounded-xl hover:brightness-105 transition-all font-medium"
               >
                 확인
               </button>

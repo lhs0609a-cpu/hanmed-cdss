@@ -968,7 +968,7 @@ export default function PatientDetailPage() {
 
       {/* 인쇄 전용 푸터 — 의료기기/면책 고지 */}
       <div className="print-only print-footer-disclaimer">
-        본 차트는 임상 보조 출력물이며, 본 서비스는 의료기기가 아닙니다 (의료기기 인증 신청 진행 중).
+        본 차트는 임상 보조 출력물이며, 본 서비스는 의료기기가 아닙니다.
         최종 진단 · 처방은 한의사의 판단에 따릅니다.
       </div>
     </div>

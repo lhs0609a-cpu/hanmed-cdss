@@ -96,29 +96,29 @@ export default function SubscriptionTermsPage() {
                     <td className="border border-gray-300 px-4 py-2">Free (무료)</td>
                     <td className="border border-gray-300 px-4 py-2">0원</td>
                     <td className="border border-gray-300 px-4 py-2">0원</td>
-                    <td className="border border-gray-300 px-4 py-2">30건/월</td>
+                    <td className="border border-gray-300 px-4 py-2">50건/월</td>
                     <td className="border border-gray-300 px-4 py-2">초과 불가</td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 px-4 py-2">Basic (기본)</td>
                     <td className="border border-gray-300 px-4 py-2">19,900원</td>
                     <td className="border border-gray-300 px-4 py-2">199,000원</td>
-                    <td className="border border-gray-300 px-4 py-2">100건/월</td>
-                    <td className="border border-gray-300 px-4 py-2">400원/건</td>
+                    <td className="border border-gray-300 px-4 py-2">200건/월</td>
+                    <td className="border border-gray-300 px-4 py-2">200원/건</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 px-4 py-2">Professional (전문가)</td>
-                    <td className="border border-gray-300 px-4 py-2">99,000원</td>
-                    <td className="border border-gray-300 px-4 py-2">990,000원</td>
-                    <td className="border border-gray-300 px-4 py-2">300건/월</td>
-                    <td className="border border-gray-300 px-4 py-2">300원/건</td>
+                    <td className="border border-gray-300 px-4 py-2">Pro (전문가)</td>
+                    <td className="border border-gray-300 px-4 py-2">49,000원</td>
+                    <td className="border border-gray-300 px-4 py-2">490,000원</td>
+                    <td className="border border-gray-300 px-4 py-2">1,000건/월</td>
+                    <td className="border border-gray-300 px-4 py-2">100원/건</td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 px-4 py-2">Clinic (클리닉)</td>
-                    <td className="border border-gray-300 px-4 py-2">299,000원</td>
-                    <td className="border border-gray-300 px-4 py-2">2,990,000원</td>
-                    <td className="border border-gray-300 px-4 py-2">1,500건/월 (Fair Use)</td>
-                    <td className="border border-gray-300 px-4 py-2">200원/건</td>
+                    <td className="border border-gray-300 px-4 py-2">149,000원</td>
+                    <td className="border border-gray-300 px-4 py-2">1,490,000원</td>
+                    <td className="border border-gray-300 px-4 py-2">5,000건/월 (Fair Use)</td>
+                    <td className="border border-gray-300 px-4 py-2">80원/건</td>
                   </tr>
                 </tbody>
               </table>

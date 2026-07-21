@@ -109,11 +109,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-5 py-12">
-      <div className="w-full max-w-[400px]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white px-5 py-12">
+      {/* 라이트 메시 배경 — 랜딩의 3D 무드를 아주 옅게만 가져온다.
+          로그인은 입력 정확도가 중요한 화면이라 대비를 해치지 않는 선에서 멈춘다. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: [
+            'radial-gradient(55% 45% at 15% 10%, rgba(49,130,246,0.10), transparent 62%)',
+            'radial-gradient(45% 40% at 88% 20%, rgba(120,86,255,0.08), transparent 64%)',
+            'radial-gradient(60% 50% at 50% 100%, rgba(49,130,246,0.07), transparent 66%)',
+          ].join(','),
+        }}
+      />
+
+      <div className="relative w-full max-w-[400px]">
         {/* 로고 */}
-        <Link to="/" className="inline-block mb-12">
-          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신 AI</span>
+        <Link to="/" className="mb-10 inline-flex items-center gap-2.5">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-black text-white"
+            style={{ background: 'linear-gradient(135deg, #3182F6, #7856FF)' }}
+          >
+            온
+          </span>
+          <span className="text-2xl font-extrabold tracking-tight text-neutral-900">
+            온고지신 AI
+          </span>
         </Link>
 
         {challengeId ? (
@@ -152,7 +174,7 @@ export default function LoginPage() {
                   isLoading ||
                   (totpCode.length !== 6 && totpCode.replace(/-/g, '').length !== 8)
                 }
-                className="w-full h-14 bg-primary hover:bg-brand-600 disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-colors active:scale-[0.99] flex items-center justify-center gap-2"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-md text-[16px] font-semibold text-white accent-gradient accent-glow transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] disabled:opacity-40 disabled:shadow-none"
               >
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 {isLoading ? '확인 중' : '확인'}
@@ -235,7 +257,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 bg-primary hover:bg-brand-600 disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-colors active:scale-[0.99] flex items-center justify-center gap-2"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-md text-[16px] font-semibold text-white accent-gradient accent-glow transition-[filter,transform] hover:brightness-[1.05] active:scale-[0.99] disabled:opacity-40 disabled:shadow-none"
               >
                 {isLoading ? (
                   <>

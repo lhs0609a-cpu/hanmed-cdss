@@ -13,6 +13,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { PatientRecordsService } from './patient-records.service';
 import { PatientAuthGuard } from '../patient-auth/guards/patient-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { PractitionerRolesGuard } from '../auth/guards/practitioner-role.guard';
+import { RequirePermission } from '../auth/guards/require-role.decorator';
+import { Permission } from '../auth/permissions';
 import {
   CreatePatientRecordDto,
   UpdatePatientRecordDto,
@@ -49,7 +52,8 @@ export class PatientRecordsController {
   // ===== 의료진용 엔드포인트 =====
 
   @Post('clinic/:clinicId')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_WRITE)
   @ApiBearerAuth()
   @ApiOperation({ summary: '진료 기록 생성 (의료진용)' })
   @ApiResponse({ status: 201, description: '생성 성공' })
@@ -62,7 +66,8 @@ export class PatientRecordsController {
   }
 
   @Patch('clinic/:clinicId/:id')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_WRITE)
   @ApiBearerAuth()
   @ApiOperation({ summary: '진료 기록 수정 (의료진용)' })
   @ApiResponse({ status: 200, description: '수정 성공' })
@@ -76,7 +81,8 @@ export class PatientRecordsController {
   }
 
   @Post('clinic/:clinicId/:id/share')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_WRITE)
   @ApiBearerAuth()
   @ApiOperation({ summary: '환자에게 기록 공유 (의료진용)' })
   @ApiResponse({ status: 200, description: '공유 성공' })
@@ -95,7 +101,8 @@ export class PatientRecordsController {
   }
 
   @Get('clinic/:clinicId')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: '한의원 진료 기록 목록 (의료진용)' })
   @ApiResponse({ status: 200, description: '조회 성공' })
@@ -107,7 +114,8 @@ export class PatientRecordsController {
   }
 
   @Get('clinic/:clinicId/:id/share-link')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: '공유 링크 생성 (의료진용)' })
   @ApiResponse({ status: 200, description: '링크 생성 성공' })
@@ -119,7 +127,8 @@ export class PatientRecordsController {
   }
 
   @Post('clinic/:clinicId/:id/send-sms')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'SMS로 공유 링크 발송 (의료진용)' })
   @ApiResponse({ status: 200, description: '발송 성공' })
@@ -138,7 +147,8 @@ export class PatientRecordsController {
   }
 
   @Post('clinic/:clinicId/:id/send-kakao')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.CHART_READ)
   @ApiBearerAuth()
   @ApiOperation({ summary: '카카오톡으로 공유 링크 발송 (의료진용)' })
   @ApiResponse({ status: 200, description: '발송 성공' })

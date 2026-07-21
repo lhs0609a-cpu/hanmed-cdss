@@ -275,7 +275,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-5 sticky top-0 z-20 glass-surface rounded-xl">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">프로필</span>
@@ -505,7 +505,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+              <Button variant="gradient" onClick={handleSaveProfile} disabled={isSavingProfile}>
                 {isSavingProfile && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 프로필 저장
               </Button>
@@ -826,7 +826,7 @@ export default function SettingsPage() {
                   onCheckedChange={(checked) => setNotifications({ ...notifications, updates: checked })}
                 />
               </div>
-              <Button className="mt-4">알림 설정 저장</Button>
+              <Button variant="gradient" className="mt-4">알림 설정 저장</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1000,7 +1000,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Button className="w-full">접근성 설정 저장</Button>
+          <Button variant="gradient" className="w-full">접근성 설정 저장</Button>
 
           {/* 데이터 다운로드 / 사업자 정보 / 회원탈퇴 — 신규 섹션 */}
           <Card>
@@ -1095,7 +1095,7 @@ export default function SettingsPage() {
                 <Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
                 <Input id="confirmPassword" type="password" />
               </div>
-              <Button>비밀번호 변경</Button>
+              <Button variant="gradient">비밀번호 변경</Button>
             </CardContent>
           </Card>
 
@@ -1187,6 +1187,7 @@ export default function SettingsPage() {
               취소
             </Button>
             <Button
+              variant="gradient"
               onClick={handleRegisterCard}
               disabled={registerCard.isPending || !cardForm.cardNumber || !cardForm.expirationMonth || !cardForm.expirationYear || !cardForm.cardPassword || !cardForm.customerIdentityNumber}
             >
@@ -1351,7 +1352,7 @@ function BusinessInfoForm() {
           />
         </div>
       </div>
-      <Button onClick={onSubmit} disabled={saving}>
+      <Button variant="outline" onClick={onSubmit} disabled={saving}>
         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
         사업자 정보 저장
       </Button>

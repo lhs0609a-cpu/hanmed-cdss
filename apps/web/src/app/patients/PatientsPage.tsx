@@ -328,7 +328,7 @@ export default function PatientsPage() {
           <button
             data-tour="add-patient"
             onClick={() => setShowNewPatientModal(true)}
-            className="inline-flex items-center gap-2 h-11 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-[14px] font-semibold rounded-md transition-colors active:scale-[0.99]"
+            className="inline-flex items-center gap-2 h-11 px-5 accent-gradient accent-glow text-white text-[14px] font-semibold rounded-md transition-all active:scale-[0.99]"
           >
             <Plus className="h-4 w-4" />
             새 환자 등록
@@ -338,26 +338,26 @@ export default function PatientsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <p className="text-sm text-gray-500">전체 환자</p>
-          <p className="text-2xl font-bold text-gray-900">{patients.length}</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-gray-900">{patients.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <p className="text-sm text-gray-500">활성 환자</p>
-          <p className="text-2xl font-bold text-green-600">{patients.filter((p) => p.status === 'active').length}</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-green-600">{patients.filter((p) => p.status === 'active').length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <p className="text-sm text-gray-500">이번 달 방문</p>
-          <p className="text-2xl font-bold text-blue-600">24</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-blue-600">24</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <p className="text-sm text-gray-500">오늘 예약</p>
-          <p className="text-2xl font-bold text-purple-600">5</p>
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-purple-600">5</p>
         </div>
       </div>
 
       {/* Search & Filter */}
-      <div data-tour="search-patients" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div data-tour="search-patients" className="glass-surface rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -403,7 +403,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Patient List */}
-      <div data-tour="patient-list" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div data-tour="patient-list" className="surface-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">

@@ -590,7 +590,7 @@ export default function CasesPage() {
       {isUsingMockData && (
         <div className="mb-2 p-3 bg-neutral-50 border border-neutral-200 rounded-xl flex items-center gap-2 text-[12px]">
           <span className="text-neutral-700 font-medium">샘플 데이터 표시 중</span>
-          <span className="text-neutral-500">API 서버 연결 대기 — 실제 7,000+건이 DB에 있습니다.</span>
+          <span className="text-neutral-500">API 서버 연결 대기 — 연결되면 실제 치험례 데이터가 표시됩니다.</span>
         </div>
       )}
 
@@ -606,7 +606,7 @@ export default function CasesPage() {
       {/* 중복 데모 모드 배너 제거 — 상단에 이미 표시됨 */}
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <div className="glass-surface sticky top-4 z-20 rounded-2xl border shadow-[var(--shadow-2)] p-6 space-y-4">
         {/* Search Category Filter - Pills */}
         <SearchCategoryFilter
           selectedCategory={searchCategory}
@@ -623,13 +623,13 @@ export default function CasesPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={DEFAULT_SEARCH_CATEGORIES.find(c => c.id === searchCategory)?.placeholder || '검색어 입력...'}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
             />
           </div>
           <select
             value={selectedConstitution}
             onChange={(e) => setSelectedConstitution(e.target.value)}
-            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all"
+            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
           >
             <option value="">전체 체질</option>
             <option value="태양인">태양인</option>
@@ -640,7 +640,7 @@ export default function CasesPage() {
           <select
             value={selectedOutcome}
             onChange={(e) => setSelectedOutcome(e.target.value)}
-            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all"
+            className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
           >
             <option value="">전체 결과</option>
             <option value="완치">완치</option>
@@ -715,7 +715,7 @@ export default function CasesPage() {
         {/* 로딩 상태 */}
         {loading && (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Loader2 className="h-12 w-12 text-amber-500 mx-auto mb-4 animate-spin" />
+            <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
             <p className="text-gray-500">치험례를 불러오는 중...</p>
           </div>
         )}
@@ -756,7 +756,7 @@ export default function CasesPage() {
               key={caseItem.id}
               type="button"
               onClick={() => openDetailModal(caseItem)}
-              className="w-full text-left bg-white rounded-2xl border border-neutral-200 p-5 hover:border-neutral-300 hover:shadow-soft transition-all group"
+              className="w-full text-left bg-white rounded-2xl border border-neutral-200 shadow-[var(--shadow-2)] p-5 hover:border-neutral-300 hover:shadow-[var(--shadow-3)] hover:-translate-y-0.5 transition-all group"
             >
               {/* 헤더: 처방명 + 결과 배지 + AI 매칭 % */}
               <div className="flex items-start justify-between gap-3">
@@ -871,7 +871,7 @@ export default function CasesPage() {
                     onClick={() => handlePageChange(pageNum)}
                     className={`w-10 h-10 rounded-lg font-medium ${
                       currentPage === pageNum
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-primary text-white'
                         : 'bg-white border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
@@ -1086,7 +1086,7 @@ export default function CasesPage() {
                 </button>
                 <Link
                   to={`/dashboard/consultation?formula=${encodeURIComponent(formulaName || '')}`}
-                  className="flex-1 h-11 leading-[44px] bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-colors font-semibold text-[14px] text-center"
+                  className="flex-1 h-11 leading-[44px] accent-gradient accent-glow rounded-xl transition-all font-semibold text-[14px] text-center"
                 >
                   이 처방으로 진료 시작
                 </Link>

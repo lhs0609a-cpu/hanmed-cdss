@@ -13,6 +13,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { PatientPrescriptionsService } from './patient-prescriptions.service';
 import { PatientAuthGuard } from '../patient-auth/guards/patient-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { PractitionerRolesGuard } from '../auth/guards/practitioner-role.guard';
+import { RequirePermission } from '../auth/guards/require-role.decorator';
+import { Permission } from '../auth/permissions';
 import {
   CreatePrescriptionDto,
   UpdatePrescriptionDto,
@@ -75,7 +78,8 @@ export class PatientPrescriptionsController {
   // ===== 의료진용 엔드포인트 =====
 
   @Post('clinic/:clinicId')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.PRESCRIPTION_WRITE)
   @ApiBearerAuth()
   @ApiOperation({ summary: '처방 생성 (의료진용)' })
   @ApiResponse({ status: 201, description: '생성 성공' })
@@ -86,12 +90,19 @@ export class PatientPrescriptionsController {
     return this.prescriptionsService.create(clinicId, dto);
   }
 
-  @Patch(':id')
-  @UseGuards(AuthGuard('jwt'))
+  // 라우트를 clinic 스코프로 변경 — PractitionerRolesGuard 가 URL 의 clinicId 로
+  // 소속을 검증하고, 서비스가 clinicId 로 처방을 필터해 타 한의원 처방 수정을 차단(IDOR).
+  @Patch('clinic/:clinicId/:id')
+  @UseGuards(AuthGuard('jwt'), PractitionerRolesGuard)
+  @RequirePermission(Permission.PRESCRIPTION_WRITE)
   @ApiBearerAuth()
   @ApiOperation({ summary: '처방 수정 (의료진용)' })
   @ApiResponse({ status: 200, description: '수정 성공' })
-  async update(@Param('id') id: string, @Body() dto: UpdatePrescriptionDto) {
-    return this.prescriptionsService.update(id, dto);
+  async update(
+    @Param('clinicId') clinicId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdatePrescriptionDto,
+  ) {
+    return this.prescriptionsService.update(id, clinicId, dto);
   }
 }

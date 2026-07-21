@@ -21,11 +21,11 @@ const TIME_SAVED_PER_SEARCH = 5 // minutes per AI search (분석 시간 + 문헌
 const AVERAGE_CONSULTATION_VALUE = 20000 // KRW (원) - 한의원 평균 진료비
 const ADDITIONAL_PATIENTS_PER_HOUR = 2 // patients that can be seen with saved time
 
-// 실제 요금제와 일치 (2024.02 수익성 최적화)
+// 실제 요금제와 일치 — 단일 진실 공급원은 백엔드 toss-payments.service.ts (PLAN_PRICES)
 const plans = [
-  { name: 'Basic', price: 19900, queries: 100 },
-  { name: 'Professional', price: 99000, queries: 300 },
-  { name: 'Clinic', price: 299000, queries: 1500 }, // 마진 개선: ₩199,000 → ₩299,000
+  { name: 'Basic', price: 19900, queries: 200 },
+  { name: 'Pro', price: 49000, queries: 1000 },
+  { name: 'Clinic', price: 149000, queries: 5000 },
 ]
 
 export function ROICalculator({ compact = false }: ROICalculatorProps) {

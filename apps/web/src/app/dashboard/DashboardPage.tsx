@@ -70,22 +70,34 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      {/* 큰 CTA — 새 진료 시작 1개만 */}
+      {/* 큰 CTA — 새 진료 시작 1개만.
+          앱 내부는 라이트 기반이지만 이 카드만 액센트 그라디언트로 한 단계 띄운다.
+          (하루에 가장 많이 누르는 단일 동작) */}
       <Link
         to="/dashboard/consultation"
-        className="group block bg-neutral-900 hover:bg-neutral-800 text-white rounded-2xl p-7 transition-colors"
+        className="group relative block overflow-hidden rounded-2xl p-7 text-white accent-gradient accent-glow transition-[transform,filter] duration-200 hover:-translate-y-0.5 hover:brightness-[1.04]"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
+        {/* 유리 광택 — 좌상단 하이라이트 */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-16 -top-24 h-56 w-56 rounded-full"
+          style={{
+            background:
+              'radial-gradient(circle at center, rgba(255,255,255,0.30), transparent 68%)',
+            filter: 'blur(8px)',
+          }}
+        />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Toss3DIcon icon={Stethoscope} tone="teal" size="sm" />
-              <span className="text-[13px] font-medium text-white/70">진료 시작</span>
+              <span className="text-[13px] font-medium text-white/75">진료 시작</span>
             </div>
             <p className="mt-2 text-[22px] font-bold tracking-tight">
               증상 입력하고 처방 후보 받기
             </p>
-            <p className="mt-1 text-[13px] text-white/70">
-              평균 3초 안에 6,000+ 치험례에서 유사 사례를 찾아드려요.
+            <p className="mt-1 text-[13px] text-white/75">
+              변증 후보와 유사 치험례를 근거와 함께 정리해 드립니다.
             </p>
           </div>
           <ArrowRight className="h-6 w-6 flex-shrink-0 transition-transform group-hover:translate-x-1" />
@@ -104,7 +116,9 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+        {/* 목록은 불투명 흰 표면 유지 — 환자명/시각을 읽는 곳이라 가독성 우선.
+            글래스는 셸(사이드바·헤더)과 강조 CTA 에만 쓴다. */}
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[var(--shadow-2)]">
           {recentQuery.isLoading ? (
             <div className="p-10 text-center text-[13px] text-neutral-500">불러오는 중…</div>
           ) : recent.length === 0 ? (
