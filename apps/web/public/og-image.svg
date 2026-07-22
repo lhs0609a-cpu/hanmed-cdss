@@ -1,9 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f766e"/>
-      <stop offset="100%" stop-color="#14b8a6"/>
+      <stop offset="0%" stop-color="#0A1633"/>
+      <stop offset="55%" stop-color="#122152"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
     </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3182F6"/>
+      <stop offset="50%" stop-color="#4B74FF"/>
+      <stop offset="100%" stop-color="#7856FF"/>
+    </linearGradient>
+    <radialGradient id="markhl" cx="30%" cy="10%" r="75%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="66%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
@@ -12,15 +23,17 @@
 
   <rect width="1200" height="630" fill="url(#bg)"/>
 
-  <!-- 배경 한자 워터마크 -->
+  <!-- 배경 한자 워터마크 (온고지신 溫故知新) -->
   <text x="1180" y="600" font-family="'Noto Serif KR', serif" font-weight="700" font-size="520"
-        text-anchor="end" fill="#ffffff" opacity="0.06">溫故知新</text>
+        text-anchor="end" fill="#ffffff" opacity="0.05">溫故知新</text>
 
-  <!-- 브랜드 마크 -->
-  <g transform="translate(80, 90)">
-    <rect width="96" height="96" rx="22" fill="#ffffff" opacity="0.95"/>
-    <text x="48" y="68" font-family="'Noto Serif KR', serif" font-weight="700" font-size="56"
-          text-anchor="middle" fill="#0f766e">溫</text>
+  <!-- 브랜드 마크: 3D 블루 스쿼클 + 온 -->
+  <g transform="translate(80, 88)">
+    <rect width="96" height="96" rx="26" fill="url(#mark)"/>
+    <rect width="96" height="96" rx="26" fill="url(#markhl)"/>
+    <rect x="0.5" y="0.5" width="95" height="95" rx="25.5" fill="none" stroke="#ffffff" stroke-opacity="0.20" stroke-width="1"/>
+    <text x="48" y="66" font-family="-apple-system, 'Noto Sans KR', sans-serif" font-weight="900" font-size="50"
+          text-anchor="middle" fill="#ffffff">온</text>
   </g>
 
   <!-- 제품명 -->

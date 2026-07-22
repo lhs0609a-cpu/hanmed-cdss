@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
+import { LogoMark } from './Logo'
 
 const STORAGE_KEY = 'hanmed-cdss-welcome-shown'
 
@@ -104,8 +105,8 @@ export function WelcomeModal() {
         {currentStep === 0 && (
           <div className="p-8">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-blue-500 rounded-2xl flex items-center justify-center">
-                <span className="text-4xl font-bold text-white">온</span>
+              <div className="mb-6">
+                <LogoMark size={80} />
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">
                 {user?.name}님, 환영합니다!

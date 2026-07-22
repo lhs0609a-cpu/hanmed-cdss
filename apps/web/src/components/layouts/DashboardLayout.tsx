@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { performLogout } from '@/services/auth-api'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
-import { ThemeToggle } from '@/components/common'
+import { ThemeToggle, LogoMark } from '@/components/common'
 import { SessionWarningDialog } from '@/components/common/SessionWarningDialog'
 import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
 import { useState, useEffect, useMemo } from 'react'
@@ -208,6 +208,7 @@ export default function DashboardLayout() {
             <Menu className="h-5 w-5 text-gray-700" aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
+            <LogoMark size={26} />
             <span className="font-extrabold text-[17px] tracking-tight text-neutral-900">온고지신</span>
           </div>
           <div className="flex items-center gap-1">
@@ -228,14 +229,13 @@ export default function DashboardLayout() {
           {/* Logo & Toggle */}
           <div className={cn('flex items-center justify-between px-4 py-4', isMinimized && 'lg:px-2 lg:justify-center')}>
             <div className={cn('flex items-center gap-2', isMinimized && 'lg:hidden')}>
+              <LogoMark size={28} />
               <h1 className="font-extrabold text-[18px] tracking-tight text-neutral-900">온고지신</h1>
             </div>
 
             {/* Mini logo for minimized state — 첫 글자 한 자만 */}
             <div className={cn('hidden', isMinimized && 'lg:flex')}>
-              <div className="w-9 h-9 rounded-md bg-neutral-900 flex items-center justify-center text-white text-[14px] font-extrabold">
-                온
-              </div>
+              <LogoMark size={36} />
             </div>
 
             {/* Close button (mobile) */}

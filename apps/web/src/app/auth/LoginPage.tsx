@@ -7,6 +7,7 @@ import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { isMigrationDone } from '@/app/onboarding/MigrationWizardPage'
 import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
+import { LogoMark } from '@/components/common'
 
 interface TwoFactorChallenge {
   twoFactorRequired: true
@@ -127,12 +128,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-[400px]">
         {/* 로고 */}
         <Link to="/" className="mb-10 inline-flex items-center gap-2.5">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #3182F6, #7856FF)' }}
-          >
-            온
-          </span>
+          <LogoMark size={32} />
           <span className="text-2xl font-extrabold tracking-tight text-neutral-900">
             온고지신 AI
           </span>

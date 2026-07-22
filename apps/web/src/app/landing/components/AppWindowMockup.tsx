@@ -7,6 +7,8 @@
  * 내용은 실제 화면 구조(좌측 내비 · 변증 결과 · 처방 후보 · 삭감 점검)를 따른다.
  */
 
+import { LogoMark } from '@/components/common'
+
 function TrafficLights() {
   return (
     <div className="flex items-center gap-1.5">
@@ -71,12 +73,7 @@ export function AppWindowMockup() {
         {/* 좌측 내비 */}
         <aside className="hidden w-40 shrink-0 border-r border-white/10 p-3 sm:block">
           <div className="mb-4 flex items-center gap-2 px-1">
-            <div
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-black text-white"
-              style={{ background: 'linear-gradient(135deg, #3182F6, #7856FF)' }}
-            >
-              온
-            </div>
+            <LogoMark size={24} />
             <span className="text-[12px] font-bold text-white/90">온고지신</span>
           </div>
           <nav className="space-y-0.5">

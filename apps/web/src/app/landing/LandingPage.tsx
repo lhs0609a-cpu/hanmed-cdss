@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
 import { ArrowRight, Check, ChevronDown, Menu, X } from 'lucide-react'
+import { LogoMark } from '@/components/common'
 import {
   MockupPatternDiagnosis,
   MockupCaseSearch,
@@ -228,12 +229,7 @@ export default function LandingPage() {
         >
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
             <Link to="/" className="flex items-center gap-2.5">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-black"
-                style={{ background: 'linear-gradient(135deg, #3182F6, #7856FF)' }}
-              >
-                온
-              </div>
+              <LogoMark size={32} />
               <span className="text-[16px] font-bold tracking-tight">온고지신 AI</span>
             </Link>
 
@@ -695,12 +691,7 @@ export default function LandingPage() {
           <div className="flex flex-col justify-between gap-10 md:flex-row">
             <div className="max-w-sm">
               <div className="flex items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-black"
-                  style={{ background: 'linear-gradient(135deg, #3182F6, #7856FF)' }}
-                >
-                  온
-                </div>
+                <LogoMark size={32} />
                 <span className="text-[16px] font-bold tracking-tight">온고지신 AI</span>
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-white/40">

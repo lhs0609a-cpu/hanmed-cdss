@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Calendar, Pill, Bell, Building2, ChevronRight } from 'lucide-react'
+import { LogoMark } from '@/components/common'
 
 /**
  * 환자 앱 랜딩 — 한의원 코드 입력 → 해당 한의원 환자 흐름 진입.
@@ -13,8 +14,8 @@ export default function PatientLandingPage() {
   return (
     <div className="px-5 pt-12 pb-24 max-w-md mx-auto space-y-8">
       <header className="text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-500 flex items-center justify-center mb-4">
-          <span className="text-white font-bold text-xl">온</span>
+        <div className="mb-4">
+          <LogoMark size={64} />
         </div>
         <h1 className="text-2xl font-bold">우리 한의원, 손 안에</h1>
         <p className="mt-2 text-sm text-gray-600">
