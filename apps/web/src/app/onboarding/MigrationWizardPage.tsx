@@ -71,9 +71,12 @@ export default function MigrationWizardPage() {
           {user?.name ? `${user.name} 원장님,` : '환영합니다.'}
         </h1>
         <p className="text-[15px] text-neutral-600 mb-10">
-          이전에 사용하시던 차트의 환자 정보를 5분 안에 옮겨드릴게요.
+          이전에 쓰시던 차트의 CSV를 넣으면, 어떤 EMR이든 컬럼을 자동 인식해
           <br />
-          어떤 EMR이든 내보낸 CSV 파일만 넣으면 자동으로 분석합니다.
+          환자·진료 규모를 미리 분석해 보여드려요.
+          <span className="block mt-2 text-[13px] text-neutral-400">
+            ※ 실제 환자 데이터 이관·저장 기능은 준비 중이에요. 지금은 분석 미리보기만 제공됩니다.
+          </span>
         </p>
 
         {step === 'pick' && (
@@ -176,7 +179,7 @@ export default function MigrationWizardPage() {
                 onClick={confirmImport}
                 className="flex-[2] h-14 bg-primary hover:bg-brand-600 text-white font-semibold rounded-md transition-colors active:scale-[0.99]"
               >
-                {report.patientsImported}명 가져오기
+                분석 확인하고 계속
               </button>
             </div>
           </div>
@@ -188,11 +191,13 @@ export default function MigrationWizardPage() {
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-neutral-900">완료!</h2>
+              <h2 className="text-2xl font-bold text-neutral-900">분석 완료</h2>
               <p className="text-[15px] text-neutral-600">
-                {report?.patientsImported ?? 0}명의 환자 정보가 옮겨졌습니다.
+                CSV에서 환자 {report?.patientsImported ?? 0}명을 인식했어요.
                 <br />
-                지금부터 새 진료는 여기서 기록하세요.
+                실제 데이터 이관·저장 기능은 곧 제공될 예정이라,
+                <br />
+                지금은 새 진료부터 바로 시작해 보세요.
               </p>
             </div>
             <button

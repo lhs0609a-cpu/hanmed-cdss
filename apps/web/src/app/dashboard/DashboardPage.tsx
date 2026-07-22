@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { Stethoscope, BookOpen, ArrowRight, ChevronRight } from 'lucide-react'
+import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 /**
@@ -125,7 +125,14 @@ export default function DashboardPage() {
             <div className="p-10 text-center">
               <BookOpen className="h-7 w-7 mx-auto mb-3 text-neutral-300" aria-hidden="true" />
               <p className="text-[14px] font-medium text-neutral-700">아직 진료 기록이 없습니다</p>
-              <p className="text-[12px] text-neutral-500 mt-1">위 버튼으로 첫 진료를 시작해보세요</p>
+              <p className="text-[12px] text-neutral-500 mt-1">환자 데이터 없이 먼저 체험해볼 수 있어요</p>
+              <Link
+                to="/dashboard/consultation?demo=1"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors"
+              >
+                <Zap className="h-4 w-4" aria-hidden="true" />
+                예시 케이스로 30초 체험
+              </Link>
             </div>
           ) : (
             <ul className="divide-y divide-neutral-100">

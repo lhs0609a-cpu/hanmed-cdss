@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/useToast'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import {
@@ -39,6 +39,7 @@ import { logError } from '@/lib/errors'
 import { ErrorMessage } from '@/components/common'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { CaseMatchListItem } from '@/components/case-match'
+import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import type { MatchedCase } from '@/types/case-search'
 import { transformCaseSearchResponse } from '@/types/case-search'
 import { HanjaTooltip, useHanjaSettings } from '@/components/hanja'
@@ -209,18 +210,35 @@ const COMMON_SYMPTOMS = [
 
 const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
 
+// 신규 사용자 "30초 체험"용 예시 케이스 — 비위기허 소화불량 (아하 경로가 잘 살아나는 대표 증례)
+const EXAMPLE_CASE = {
+  age: '45세',
+  gender: 'male',
+  constitution: '태음인',
+  chiefComplaint: '3개월 전부터 소화가 잘 안 되고 식후 더부룩하며 오후만 되면 기력이 없습니다.',
+  symptoms: [
+    { name: '소화불량', severity: 6 },
+    { name: '피로', severity: 6 },
+    { name: '식욕부진', severity: 5 },
+  ] as Symptom[],
+}
+
 export default function ConsultationPage() {
   useSEO(PAGE_SEO.consultation)
 
   const { showHanja } = useHanjaSettings()
   const { toast } = useToast()
   const currentUser = useAuthStore((state) => state.user)
+  const [searchParams] = useSearchParams()
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
   const [constitution, setConstitution] = useState('')
   const [currentMedications, setCurrentMedications] = useState<string[]>([])
   const [newMedication, setNewMedication] = useState('')
+  // 환자 기본 정보 — 이전엔 input이 state에 연결돼 있지 않아 값이 유실되던 버그. 이제 캡처한다.
+  const [patientAge, setPatientAge] = useState('')
+  const [patientGender, setPatientGender] = useState('')
 
   // 고급 옵션
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
@@ -339,21 +357,24 @@ export default function ConsultationPage() {
     setCurrentMedications(currentMedications.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = async () => {
-    if (!chiefComplaint.trim()) {
-      setError('주소증을 입력해주세요.')
-      return
-    }
-
+  const runRecommend = async (payload: {
+    chiefComplaint: string
+    symptoms: Symptom[]
+    constitution?: string
+    currentMedications?: string[]
+  }) => {
     setError('')
     setIsLoading(true)
 
     try {
       const response = await api.post('/prescriptions/recommend', {
-        chiefComplaint,
-        symptoms,
-        constitution: constitution || undefined,
-        currentMedications: currentMedications.length > 0 ? currentMedications : undefined,
+        chiefComplaint: payload.chiefComplaint,
+        symptoms: payload.symptoms,
+        constitution: payload.constitution || undefined,
+        currentMedications:
+          payload.currentMedications && payload.currentMedications.length > 0
+            ? payload.currentMedications
+            : undefined,
       })
 
       setRecommendations(response.data.data?.recommendations || response.data.recommendations || [])
@@ -365,6 +386,43 @@ export default function ConsultationPage() {
       setIsLoading(false)
     }
   }
+
+  const handleSubmit = async () => {
+    if (!chiefComplaint.trim()) {
+      setError('주소증을 입력해주세요.')
+      return
+    }
+    await runRecommend({ chiefComplaint, symptoms, constitution, currentMedications })
+  }
+
+  /**
+   * 예시 케이스 30초 체험 — 신규 사용자가 자기 데이터를 입력하지 않아도
+   * 첫 아하 모먼트(변증 → 처방 후보 → 유사환자 통계 → 설명자료)를 즉시 경험하게 한다.
+   */
+  const runExampleCase = () => {
+    setInputMode('wizard')
+    setPatientAge(EXAMPLE_CASE.age)
+    setPatientGender(EXAMPLE_CASE.gender)
+    setConstitution(EXAMPLE_CASE.constitution)
+    setChiefComplaint(EXAMPLE_CASE.chiefComplaint)
+    setSymptoms(EXAMPLE_CASE.symptoms)
+    setCurrentMedications([])
+    setWizardStep(3)
+    void runRecommend({
+      chiefComplaint: EXAMPLE_CASE.chiefComplaint,
+      symptoms: EXAMPLE_CASE.symptoms,
+      constitution: EXAMPLE_CASE.constitution,
+    })
+  }
+
+  // ?demo=1 로 진입하면 예시 진료를 자동 실행 (대시보드 빈 상태 CTA에서 연결)
+  useEffect(() => {
+    if (searchParams.get('demo') === '1') {
+      runExampleCase()
+    }
+    // 최초 마운트 시 1회만 실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const openDetailModal = (rec: Recommendation) => {
     setSelectedFormula(rec)
@@ -621,12 +679,21 @@ export default function ConsultationPage() {
           {/* 단계 1: 환자 정보 */}
           {wizardStep === 1 && (
             <div className="space-y-6" data-tour="patient-info">
-              <div className="flex items-center gap-3 mb-6">
-                <Toss3DIcon icon={User} tone="teal" size="xl" />
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">환자 정보 입력</h2>
-                  <p className="text-sm text-gray-500">진료 시작을 위한 기본 정보를 입력해주세요</p>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <Toss3DIcon icon={User} tone="teal" size="xl" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">환자 정보 입력</h2>
+                    <p className="text-sm text-gray-500">진료 시작을 위한 기본 정보를 입력해주세요</p>
+                  </div>
                 </div>
+                <button
+                  onClick={runExampleCase}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors"
+                >
+                  <Zap className="h-4 w-4" aria-hidden="true" />
+                  예시로 30초 체험
+                </button>
               </div>
 
               {/* 환자 기본 정보 */}
@@ -638,6 +705,8 @@ export default function ConsultationPage() {
                   <input
                     id="patient-age"
                     type="text"
+                    value={patientAge}
+                    onChange={(e) => setPatientAge(e.target.value)}
                     placeholder="예: 45세"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                   />
@@ -648,6 +717,8 @@ export default function ConsultationPage() {
                   </label>
                   <select
                     id="patient-gender"
+                    value={patientGender}
+                    onChange={(e) => setPatientGender(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
                   >
                     <option value="">선택 안함</option>
@@ -1011,6 +1082,29 @@ export default function ConsultationPage() {
                 ))}
               </div>
 
+              {/* 유사 환자 성공 통계 — 내 치험례 기반 (데이터 없으면 컴포넌트가 자동 숨김) */}
+              {recommendations.length > 0 && (
+                <SimilarCaseSuccessCard
+                  chiefComplaint={chiefComplaint}
+                  symptoms={symptoms}
+                  diagnosis={analysis || undefined}
+                />
+              )}
+
+              {/* 환자 설명자료 · 진료 근거서 — 최우선 처방 기준으로 즉시 생성 */}
+              {recommendations.length > 0 && (
+                <button
+                  onClick={() => {
+                    setDocumentFormula(recommendations[0])
+                    setShowDocumentModal(true)
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-white border-2 border-blue-200 text-blue-700 rounded-xl font-semibold hover:bg-blue-50 hover:border-blue-300 transition-all"
+                >
+                  <FileText className="h-5 w-5" />
+                  환자 설명자료 · 진료 근거서 만들기
+                </button>
+              )}
+
               {/* 네비게이션 */}
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <button
@@ -1021,6 +1115,8 @@ export default function ConsultationPage() {
                     setChiefComplaint('')
                     setSymptoms([])
                     setConstitution('')
+                    setPatientAge('')
+                    setPatientGender('')
                   }}
                   className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
                 >
@@ -2020,6 +2116,8 @@ export default function ConsultationPage() {
           }}
           data={{
             patient: {
+              age: patientAge ? parseInt(patientAge, 10) || undefined : undefined,
+              gender: patientGender === 'male' ? 'M' : patientGender === 'female' ? 'F' : undefined,
               constitution: constitution || undefined,
             },
             chiefComplaint,
