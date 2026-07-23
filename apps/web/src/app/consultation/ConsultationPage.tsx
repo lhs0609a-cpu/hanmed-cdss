@@ -277,6 +277,9 @@ export default function ConsultationPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const totalWizardSteps = 4
 
+  // 예시(데모)로 진입했는지 — 결과 화면에서 "내 환자로 입력" 핸드오프 배너를 띄우는 플래그
+  const [isDemoRun, setIsDemoRun] = useState(searchParams.get('demo') === '1')
+
   // 문서화 모달
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [documentFormula, setDocumentFormula] = useState<Recommendation | null>(null)
@@ -415,7 +418,7 @@ export default function ConsultationPage() {
     })
   }
 
-  // ?demo=1 로 진입하면 예시 진료를 자동 실행 (대시보드 빈 상태 CTA에서 연결)
+  // ?demo=1 로 진입하면 예시 진료를 자동 실행 (신규 사용자 첫 화면 = 이미 풀린 결과)
   useEffect(() => {
     if (searchParams.get('demo') === '1') {
       runExampleCase()
@@ -423,6 +426,24 @@ export default function ConsultationPage() {
     // 최초 마운트 시 1회만 실행
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /**
+   * 예시 결과를 본 뒤 자신의 환자로 새 진료 시작 — 입력을 비우고 1단계로 되돌린다.
+   * 아하(예시) → 액티베이션(내 환자 입력)으로 넘어가는 핵심 핸드오프.
+   */
+  const startMyPatient = () => {
+    setIsDemoRun(false)
+    setWizardStep(1)
+    setRecommendations([])
+    setAnalysis('')
+    setChiefComplaint('')
+    setSymptoms([])
+    setConstitution('')
+    setCurrentMedications([])
+    setPatientAge('')
+    setPatientGender('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const openDetailModal = (rec: Recommendation) => {
     setSelectedFormula(rec)
@@ -1002,6 +1023,31 @@ export default function ConsultationPage() {
           {/* 단계 4: 처방 확인 - 결과 영역에서 표시 */}
           {wizardStep === 4 && (
             <div className="space-y-6" data-tour="result-area">
+              {/* 데모 핸드오프 — 예시임을 정직하게 알리고, 곧바로 내 환자 입력으로 넘긴다.
+                  (첫 화면에서 이미 풀린 결과를 본 직후의 액티베이션 지점) */}
+              {isDemoRun && recommendations.length > 0 && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <Zap className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    <div>
+                      <p className="text-[15px] font-bold text-blue-900">
+                        예시 증례입니다 — 아래는 실제 AI 분석 결과예요
+                      </p>
+                      <p className="text-[13px] text-blue-800 mt-0.5">
+                        방금 보신 흐름 그대로, 이제 선생님 환자의 증상을 넣어보세요.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={startMyPatient}
+                    className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[14px] font-semibold text-white accent-gradient accent-glow hover:brightness-105 transition-all"
+                  >
+                    내 환자 증상 입력
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 mb-6">
                 <Toss3DIcon icon={FileCheck} tone="mint" size="xl" />
                 <div>
@@ -1108,16 +1154,7 @@ export default function ConsultationPage() {
               {/* 네비게이션 */}
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <button
-                  onClick={() => {
-                    setWizardStep(1)
-                    setRecommendations([])
-                    setAnalysis('')
-                    setChiefComplaint('')
-                    setSymptoms([])
-                    setConstitution('')
-                    setPatientAge('')
-                    setPatientGender('')
-                  }}
+                  onClick={startMyPatient}
                   className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
                 >
                   <Plus className="h-5 w-5" />

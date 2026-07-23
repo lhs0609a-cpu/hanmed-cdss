@@ -90,7 +90,9 @@ export default function RegisterPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-      navigate('/welcome/migration')
+      // 가입 직후 곧장 대시보드로 → 신규 사용자는 예시 진료(아하 모먼트)가 첫 화면.
+      // CSV 마이그레이션(미리보기 전용)은 첫 관문에서 강등했다.
+      navigate('/dashboard')
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {

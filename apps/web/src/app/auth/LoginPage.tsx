@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { isMigrationDone } from '@/app/onboarding/MigrationWizardPage'
 import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
 import { LogoMark } from '@/components/common'
@@ -40,7 +39,9 @@ export default function LoginPage() {
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [totpCode, setTotpCode] = useState('')
 
-  const goNext = () => navigate(isMigrationDone() ? '/dashboard' : '/welcome/migration')
+  // 로그인 직후엔 곧장 대시보드로. 신규 사용자는 대시보드가 예시 진료(아하 모먼트)로
+  // 넘겨준다. CSV 마이그레이션은 미리보기 전용이라 첫 관문에 두지 않는다(설정에서 접근).
+  const goNext = () => navigate('/dashboard')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

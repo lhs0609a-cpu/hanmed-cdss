@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Sparkles, Stethoscope, Search, AlertTriangle, ArrowRight, Check } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
 import { LogoMark } from './Logo'
@@ -46,11 +46,16 @@ export function WelcomeModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const navigate = useNavigate()
+  const location = useLocation()
   const user = useAuthStore((state) => state.user)
 
   useEffect(() => {
     // 로그인된 사용자에게만 표시
     if (!user) return
+
+    // 첫 아하 모먼트(예시 진료 결과)를 모달로 가리지 않는다 — 진료 화면에선 자동 노출 보류.
+    // 가치를 먼저 체감한 뒤, 다른 화면으로 이동할 때 안내/전환 유도가 뜬다.
+    if (location.pathname.startsWith('/dashboard/consultation')) return
 
     // 이미 본 경우 표시하지 않음
     const hasShown = localStorage.getItem(STORAGE_KEY)
@@ -62,7 +67,7 @@ export function WelcomeModal() {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [user])
+  }, [user, location.pathname])
 
   const handleClose = () => {
     localStorage.setItem(STORAGE_KEY, 'true')

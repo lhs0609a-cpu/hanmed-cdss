@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -59,6 +59,14 @@ export default function DashboardPage() {
 
   const recentQuery = useRecentActivities()
   const recent = recentQuery.data ?? []
+
+  // 첫 화면 = 핵심 기능(이미 풀린 결과). 아직 진료 기록이 없는 신규 한의사에게는
+  // 빈 대시보드 대신, 예시 증례가 분석 완료된 상태의 진료 화면을 첫 화면으로 보여준다.
+  // "보는 순간 가치 체감 → 곧바로 내 환자 입력"으로 이탈을 막는다.
+  // (실제 진료가 1건이라도 쌓이면 아래의 일반 대시보드로 자동 전환)
+  if (!recentQuery.isLoading && recent.length === 0) {
+    return <Navigate to="/dashboard/consultation?demo=1" replace />
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
