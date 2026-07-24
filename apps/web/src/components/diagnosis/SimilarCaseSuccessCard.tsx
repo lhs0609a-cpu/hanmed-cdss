@@ -23,7 +23,8 @@ interface SimilarCaseStats {
     noChange: number
     worsened: number
   }
-  averageTreatmentDuration: string
+  /** 치험례에 치료 기간 필드가 없는 경우 null — 화면에서 해당 블록을 숨긴다. */
+  averageTreatmentDuration: string | null
   topSuccessfulFormulas: Array<{
     formulaName: string
     caseCount: number
@@ -72,8 +73,11 @@ export function SimilarCaseSuccessCard({
           bodyStrength,
         })
 
-        if (response.data.success) {
-          setStats(response.data.data)
+        // api 인터셉터가 { success, data } 한 겹을 이미 벗긴다.
+        // 서비스가 한 번 더 감싸는 엔드포인트도 있어 양쪽 형태를 모두 받는다.
+        const payload = (response.data?.data ?? response.data) as SimilarCaseStats | undefined
+        if (payload && typeof payload.totalSimilarCases === 'number') {
+          setStats(payload)
         }
       } catch (err) {
         console.error('유사 케이스 통계 로드 실패:', err)
@@ -155,14 +159,18 @@ export function SimilarCaseSuccessCard({
               </span>
             </div>
           </div>
-          <div className="w-px h-16 bg-white/20" />
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-blue-200" />
-              <span className="text-blue-100 text-sm">평균 치료 기간</span>
-            </div>
-            <span className="text-2xl font-bold">{stats.averageTreatmentDuration}</span>
-          </div>
+          {stats.averageTreatmentDuration && (
+            <>
+              <div className="w-px h-16 bg-white/20" />
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-5 w-5 text-blue-200" />
+                  <span className="text-blue-100 text-sm">평균 치료 기간</span>
+                </div>
+                <span className="text-2xl font-bold">{stats.averageTreatmentDuration}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

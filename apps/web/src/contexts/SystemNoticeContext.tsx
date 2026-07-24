@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import { AlertTriangle, Info, X } from 'lucide-react'
 import api from '@/services/api'
 
@@ -56,19 +56,34 @@ export function SystemNoticeProvider({ children }: { children: ReactNode }) {
   const [notices, setNotices] = useState<SystemNotice[]>([])
   const [dismissed, setDismissed] = useState<Record<string, number>>(loadDismissed)
 
+  // 백엔드에 /notices 가 아직 없는 배포(404)에서는 폴링을 멈춘다.
+  // 안 그러면 모든 페이지 진입마다 404 가 쌓여 콘솔·네트워크 로그를 오염시키고,
+  // 진짜 오류를 찾기 어렵게 만든다. 백엔드가 배포되면 다음 로드부터 자동 복구.
+  const unsupported = useRef(false)
+
   const refetch = useCallback(async () => {
+    if (unsupported.current) return
     try {
       const res = await api.get<SystemNotice[]>('/notices', { params: { audience: 'app' } })
       const items = Array.isArray(res.data) ? res.data : []
       setNotices(items)
-    } catch {
-      // 백엔드 미배포 환경에서는 조용히 무시 (UI 동작은 유지).
+    } catch (err) {
+      if ((err as { response?: { status?: number } })?.response?.status === 404) {
+        unsupported.current = true
+      }
+      // 그 외 일시적 오류는 조용히 무시 (UI 동작은 유지).
     }
   }, [])
 
   useEffect(() => {
     refetch()
-    const t = setInterval(refetch, POLL_INTERVAL_MS)
+    const t = setInterval(() => {
+      if (unsupported.current) {
+        clearInterval(t)
+        return
+      }
+      refetch()
+    }, POLL_INTERVAL_MS)
     return () => clearInterval(t)
   }, [refetch])
 

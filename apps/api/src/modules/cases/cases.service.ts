@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import OpenAI from 'openai';
-import { ClinicalCase } from '../../database/entities/clinical-case.entity';
+import {
+  ClinicalCase,
+  TreatmentOutcome,
+} from '../../database/entities/clinical-case.entity';
 import { CacheService } from '../cache/cache.service';
 
 const CACHE_PREFIX = 'cases';
@@ -176,6 +179,167 @@ export class CasesService {
       ttl: SIMILAR_CACHE_TTL,
     });
     return result;
+  }
+
+  /**
+   * 유사 치험례 성공률 통계 — 진료 결과 화면의 "유사 환자들은 어떻게 됐나" 카드용.
+   *
+   * 1) 임베딩 검색으로 유사 치험례를 최대 50건 모으고,
+   * 2) 임베딩이 없거나 OPENAI_API_KEY 가 없는 환경에서는 주소증·증상 텍스트 매칭으로 폴백한다.
+   * 3) 모인 치험례의 treatmentOutcome 분포로 성공률(완치+호전)을 집계한다.
+   *
+   * 데이터에 없는 값은 만들어 내지 않는다 — 치험례에 치료 기간 필드가 없으므로
+   * averageTreatmentDuration 은 null 로 돌려주고 화면에서 숨긴다.
+   */
+  async getSimilarSuccessStats(input: {
+    chiefComplaint: string;
+    symptoms?: Array<{ name: string; severity?: number }>;
+    diagnosis?: string;
+    constitution?: string;
+  }) {
+    const symptomNames = (input.symptoms || [])
+      .map((s) => (typeof s === 'string' ? s : s?.name))
+      .filter(Boolean) as string[];
+
+    const query = [input.chiefComplaint, ...symptomNames, input.diagnosis]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const empty = {
+      totalSimilarCases: 0,
+      successRate: 0,
+      outcomeBreakdown: { cured: 0, improved: 0, noChange: 0, worsened: 0 },
+      averageTreatmentDuration: null as string | null,
+      topSuccessfulFormulas: [] as Array<{
+        formulaName: string;
+        caseCount: number;
+        successRate: number;
+      }>,
+      confidenceLevel: 'low' as 'high' | 'medium' | 'low',
+      matchCriteria: [] as string[],
+    };
+
+    if (!query) return empty;
+
+    const matchCriteria: string[] = [];
+    let cases: ClinicalCase[] = [];
+
+    // 1) AI 유사도 검색 우선
+    // searchSimilar 는 캐시 히트 시 unknown 을 돌려주므로 필요한 필드만 좁혀서 읽는다.
+    const similar = (await this.searchSimilar({
+      query,
+      topK: 50,
+      threshold: 0.3,
+      constitution: input.constitution,
+    })) as { results?: Array<{ id: string }> } | undefined;
+    const ids = (similar?.results || []).map((r) => r.id);
+    if (ids.length > 0) {
+      cases = await this.casesRepository
+        .createQueryBuilder('c')
+        .where('c.id IN (:...ids)', { ids })
+        .getMany();
+      matchCriteria.push('AI 임베딩 유사도 매칭');
+    }
+
+    // 2) 폴백 — 임베딩 미구축/키 미설정 환경에서도 실제 통계를 보여준다.
+    if (cases.length === 0) {
+      const qb = this.casesRepository.createQueryBuilder('c');
+      const terms = [input.chiefComplaint, ...symptomNames].filter(Boolean);
+      terms.forEach((term, i) => {
+        const param = `t${i}`;
+        const clause = `(c.chiefComplaint ILIKE :${param} OR c.presentIllness ILIKE :${param} OR c.patternDiagnosis ILIKE :${param})`;
+        if (i === 0) qb.where(clause, { [param]: `%${term}%` });
+        else qb.orWhere(clause, { [param]: `%${term}%` });
+      });
+      if (input.constitution) {
+        qb.andWhere('c.patientConstitution = :constitution', {
+          constitution: input.constitution,
+        });
+      }
+      cases = await qb.take(50).getMany();
+      if (cases.length > 0) matchCriteria.push('주소증·증상 텍스트 매칭');
+    }
+
+    if (cases.length === 0) return empty;
+
+    if (input.constitution) matchCriteria.push(`체질 일치 (${input.constitution})`);
+    if (symptomNames.length > 0) {
+      matchCriteria.push(`증상 ${symptomNames.length}개 기준`);
+    }
+
+    const outcomeBreakdown = { cured: 0, improved: 0, noChange: 0, worsened: 0 };
+    for (const c of cases) {
+      switch (c.treatmentOutcome) {
+        case TreatmentOutcome.CURED:
+          outcomeBreakdown.cured += 1;
+          break;
+        case TreatmentOutcome.IMPROVED:
+          outcomeBreakdown.improved += 1;
+          break;
+        case TreatmentOutcome.NO_CHANGE:
+          outcomeBreakdown.noChange += 1;
+          break;
+        case TreatmentOutcome.WORSENED:
+          outcomeBreakdown.worsened += 1;
+          break;
+        default:
+          break; // 결과 미기록 케이스는 분모에서 제외
+      }
+    }
+
+    const withOutcome =
+      outcomeBreakdown.cured +
+      outcomeBreakdown.improved +
+      outcomeBreakdown.noChange +
+      outcomeBreakdown.worsened;
+
+    if (withOutcome === 0) return { ...empty, totalSimilarCases: 0 };
+
+    const successRate = Math.round(
+      ((outcomeBreakdown.cured + outcomeBreakdown.improved) / withOutcome) * 100,
+    );
+
+    // 처방별 집계 — 첫 번째 처방(주 처방)만 센다.
+    const byFormula = new Map<string, { total: number; success: number }>();
+    for (const c of cases) {
+      const name = Array.isArray(c.herbalFormulas)
+        ? c.herbalFormulas[0]?.formulaName
+        : undefined;
+      if (!name) continue;
+      const entry = byFormula.get(name) || { total: 0, success: 0 };
+      entry.total += 1;
+      if (
+        c.treatmentOutcome === TreatmentOutcome.CURED ||
+        c.treatmentOutcome === TreatmentOutcome.IMPROVED
+      ) {
+        entry.success += 1;
+      }
+      byFormula.set(name, entry);
+    }
+
+    const topSuccessfulFormulas = [...byFormula.entries()]
+      .map(([formulaName, v]) => ({
+        formulaName,
+        caseCount: v.total,
+        successRate: Math.round((v.success / v.total) * 100),
+      }))
+      .sort((a, b) => b.caseCount - a.caseCount || b.successRate - a.successRate)
+      .slice(0, 5);
+
+    // 표본 수 기반 신뢰도 — 임상 해석을 과대평가하지 않도록 보수적으로 둔다.
+    const confidenceLevel: 'high' | 'medium' | 'low' =
+      withOutcome >= 30 ? 'high' : withOutcome >= 10 ? 'medium' : 'low';
+
+    return {
+      totalSimilarCases: withOutcome,
+      successRate,
+      outcomeBreakdown,
+      averageTreatmentDuration: null,
+      topSuccessfulFormulas,
+      confidenceLevel,
+      matchCriteria,
+    };
   }
 
   async findAll(

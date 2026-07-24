@@ -29,9 +29,30 @@ import {
   useDashboardMetrics,
   useBenchmark,
   usePrescriptionPatterns,
+  type BenchmarkMetrics,
 } from '@/hooks/useAnalytics';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+
+// 벤치마크에 표시할 지표 — 백엔드 BenchmarkMetrics 키와 정확히 일치해야 한다.
+const BENCHMARK_METRICS: Array<{
+  key: keyof BenchmarkMetrics;
+  label: string;
+  unit: string;
+}> = [
+  { key: 'returnRate', label: '재방문율', unit: '%' },
+  { key: 'avgImprovementRate', label: '호전율', unit: '%' },
+  { key: 'aiAcceptanceRate', label: 'AI 채택율', unit: '%' },
+  { key: 'avgConsultationsPerDay', label: '일 평균 진료', unit: '건' },
+];
+
+function EmptyPanel({ message }: { message: string }) {
+  return (
+    <div className="h-64 flex items-center justify-center text-center px-4">
+      <p className="text-sm text-gray-500">{message}</p>
+    </div>
+  );
+}
 
 export default function AnalyticsDashboardPage() {
   const {
@@ -54,7 +75,7 @@ export default function AnalyticsDashboardPage() {
       count: d.prescriptions,
     })),
   };
-  const topFormulas = patterns?.prescriptionPatterns?.mostUsedFormulas ?? [];
+  const topFormulas = patterns?.topFormulas ?? [];
   const todayActivity = {
     consultationsToday: metrics?.today?.consultations ?? 0,
     patientsToday: metrics?.today?.newPatients ?? 0,
@@ -275,99 +296,141 @@ export default function AnalyticsDashboardPage() {
         </div>
       </div>
 
-      {/* Benchmark Section */}
-      {benchmark && (
+      {/* Benchmark Section — 백엔드 계약: myMetrics / nationalAverage / percentile(스칼라) */}
+      {benchmark?.myMetrics && benchmark?.nationalAverage && (
         <div className="surface-card rounded-2xl p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Toss3DIcon icon={Award} tone="amber" size="sm" />
-            <h3 className="text-lg font-semibold">전국 벤치마크 비교</h3>
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <Toss3DIcon icon={Award} tone="amber" size="sm" />
+              <h3 className="text-lg font-semibold">전국 벤치마크 비교</h3>
+            </div>
+            <span className="text-sm text-gray-500">
+              전국 상위{' '}
+              <strong className="text-blue-600">
+                {(100 - (benchmark.percentile ?? 0)).toFixed(0)}%
+              </strong>
+            </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {[
-              { label: '재방문율', key: 'returnRate', unit: '%' },
-              { label: '호전율', key: 'avgImprovementRate', unit: '%' },
-              { label: 'AI 채택율', key: 'aiAcceptanceRate', unit: '%' },
-              { label: '월간 환자수', key: 'patientsPerMonth', unit: '명' },
-              { label: '일 평균 진료', key: 'consultationsPerDay', unit: '건' },
-            ].map((item) => (
-              <div key={item.key} className="text-center">
-                <div className="relative w-24 h-24 mx-auto">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="#E5E7EB"
-                      strokeWidth="8"
-                      fill="none"
-                    />
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="40"
-                      stroke="#0088FE"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={`${(benchmark.percentile[item.key as keyof typeof benchmark.percentile] / 100) * 251.2} 251.2`}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-lg font-bold">
-                      {benchmark.percentile[item.key as keyof typeof benchmark.percentile]}%
-                    </span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {BENCHMARK_METRICS.map((item) => {
+              const mine = benchmark.myMetrics[item.key] ?? 0
+              const avg = benchmark.nationalAverage[item.key] ?? 0
+              // 전국 평균 대비 비율(0~150%)을 게이지로 — 평균이 0이면 게이지 없음
+              const ratio = avg > 0 ? Math.min((mine / avg) * 100, 150) : 0
+              return (
+                <div key={item.key} className="text-center">
+                  <div className="relative w-24 h-24 mx-auto">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="48" cy="48" r="40" stroke="#E5E7EB" strokeWidth="8" fill="none" />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="40"
+                        stroke={mine >= avg ? '#00C49F' : '#0088FE'}
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={`${(Math.min(ratio, 100) / 100) * 251.2} 251.2`}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-lg font-bold">
+                        {mine.toFixed(1)}
+                        <span className="text-xs font-normal text-gray-500">{item.unit}</span>
+                      </span>
+                    </div>
                   </div>
+                  <p className="mt-2 text-sm font-medium text-gray-700">{item.label}</p>
+                  <p className="text-xs text-gray-500">
+                    전국 평균 {avg.toFixed(1)}
+                    {item.unit}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm font-medium text-gray-700">{item.label}</p>
-                <p className="text-xs text-gray-500">
-                  나: {benchmark.myMetrics[item.key as keyof typeof benchmark.myMetrics].toFixed(1)}{item.unit} /
-                  평균: {benchmark.nationalAvg[item.key as keyof typeof benchmark.nationalAvg].toFixed(1)}{item.unit}
-                </p>
-              </div>
-            ))}
+              )
+            })}
           </div>
+
+          {(benchmark.strengths?.length > 0 || benchmark.areasForImprovement?.length > 0) && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {benchmark.strengths?.length > 0 && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                  <p className="text-sm font-semibold text-emerald-900 mb-1">강점</p>
+                  <ul className="text-[13px] text-emerald-800 list-disc list-inside space-y-0.5">
+                    {benchmark.strengths.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {benchmark.areasForImprovement?.length > 0 && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                  <p className="text-sm font-semibold text-amber-900 mb-1">개선 포인트</p>
+                  <ul className="text-[13px] text-amber-800 list-disc list-inside space-y-0.5">
+                    {benchmark.areasForImprovement.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Prescription Patterns */}
+      {/* Prescription Patterns — 백엔드 계약: topFormulas / constitutionDistribution / monthlyTrend */}
       {patterns && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="surface-card rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-4">진료 시간대 패턴</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={patterns.consultationPatterns.busyHours}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" tickFormatter={(v) => `${v}시`} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="avgPatients" fill="#00C49F" name="평균 환자수" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">자주 보는 증상</h3>
+            {patterns.topSymptoms?.length ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={patterns.topSymptoms}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(v: number, _n, p) => [
+                        `${v}건`,
+                        `주 처방: ${p?.payload?.topFormula ?? '-'}`,
+                      ]}
+                    />
+                    <Bar dataKey="count" fill="#00C49F" name="진료 건수" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyPanel message="아직 진료 기록이 없습니다. 진료를 저장하면 여기에 집계됩니다." />
+            )}
           </div>
 
           <div className="surface-card rounded-2xl p-6">
-            <h3 className="text-lg font-semibold mb-4">환자 연령 분포</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={patterns.patientDemographics.ageDistribution}
-                    dataKey="count"
-                    nameKey="range"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({ range, percentage }) => `${range}: ${percentage.toFixed(1)}%`}
-                  >
-                    {patterns.patientDemographics.ageDistribution.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">환자 체질 분포</h3>
+            {patterns.constitutionDistribution?.length ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={patterns.constitutionDistribution}
+                      dataKey="count"
+                      nameKey="constitution"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label={({ constitution, percentage }) =>
+                        `${constitution}: ${(percentage ?? 0).toFixed(1)}%`
+                      }
+                    >
+                      {patterns.constitutionDistribution.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <EmptyPanel message="체질을 입력한 진료가 쌓이면 분포가 표시됩니다." />
+            )}
           </div>
         </div>
       )}

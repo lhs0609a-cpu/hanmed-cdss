@@ -197,14 +197,19 @@ export class SearchCasesDto {
   @IsArray()
   tags?: string[];
 
+  // 쿼리스트링은 항상 문자열로 들어온다. @Type 없이 @IsNumber 만 걸면
+  // 전역 ValidationPipe(transform:true, implicit conversion 미사용)가 변환하지 못해
+  // ?page=1&limit=20 같은 정상 요청도 400 으로 떨어진다.
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   page?: number;
 
   @ApiPropertyOptional({ default: 20 })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)

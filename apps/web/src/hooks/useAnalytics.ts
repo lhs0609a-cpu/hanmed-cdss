@@ -110,48 +110,51 @@ export interface PracticeStatistics {
   };
 }
 
-export interface BenchmarkData {
-  myMetrics: {
-    returnRate: number;
-    avgImprovementRate: number;
-    aiAcceptanceRate: number;
-    patientsPerMonth: number;
-    consultationsPerDay: number;
-  };
-  nationalAvg: {
-    returnRate: number;
-    avgImprovementRate: number;
-    aiAcceptanceRate: number;
-    patientsPerMonth: number;
-    consultationsPerDay: number;
-  };
-  percentile: {
-    returnRate: number;
-    avgImprovementRate: number;
-    aiAcceptanceRate: number;
-    patientsPerMonth: number;
-    consultationsPerDay: number;
-  };
+// 백엔드 practice-analytics.service.ts 의 BenchmarkData 와 1:1 로 맞춘다.
+// (과거엔 nationalAvg / percentile:object 로 잘못 선언돼 있어 화면이 크래시했다)
+export interface BenchmarkMetrics {
+  avgConsultationsPerDay: number;
+  returnRate: number;
+  avgImprovementRate: number;
+  aiAcceptanceRate: number;
 }
 
+export interface BenchmarkData {
+  myMetrics: BenchmarkMetrics;
+  nationalAverage: BenchmarkMetrics;
+  /** 전국 대비 백분위 — 단일 스칼라 값 */
+  percentile: number;
+  strengths: string[];
+  areasForImprovement: string[];
+}
+
+// 백엔드 practice-analytics.service.ts 의 PatternAnalysis 와 1:1.
 export interface PatternAnalysis {
-  prescriptionPatterns: {
-    mostUsedFormulas: Array<{ formulaId: string; name: string; count: number; avgDosage: string }>;
-    commonModifications: Array<{ original: string; modified: string; frequency: number }>;
-    symptomFormulaCorrelation: Array<{ symptom: string; formulas: string[]; effectiveness: number }>;
-  };
-  consultationPatterns: {
-    busyDays: Array<{ dayOfWeek: number; avgPatients: number }>;
-    busyHours: Array<{ hour: number; avgPatients: number }>;
-    avgDuration: number;
-    peakSeasons: Array<{ month: number; patientCount: number }>;
-  };
-  patientDemographics: {
-    ageDistribution: Array<{ range: string; count: number; percentage: number }>;
-    genderDistribution: { male: number; female: number };
-    constitutionDistribution: Array<{ constitution: string; count: number }>;
-    topConditions: Array<{ condition: string; count: number }>;
-  };
+  topFormulas: Array<{
+    rank: number;
+    name: string;
+    count: number;
+    percentage: number;
+    avgSuccessRate: number;
+  }>;
+  topSymptoms: Array<{
+    rank: number;
+    name: string;
+    count: number;
+    percentage: number;
+    topFormula: string;
+  }>;
+  constitutionDistribution: Array<{
+    constitution: string;
+    count: number;
+    percentage: number;
+  }>;
+  monthlyTrend: Array<{
+    month: string;
+    consultations: number;
+    prescriptions: number;
+    newPatients: number;
+  }>;
 }
 
 export interface TrendData {

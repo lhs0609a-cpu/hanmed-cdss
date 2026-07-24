@@ -112,6 +112,27 @@ export class CasesController {
     });
   }
 
+  @Post('similar-success-stats')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '유사 치험례 성공률 통계',
+    description:
+      '주소증·증상으로 유사 치험례를 모아 치료 결과 분포와 성공률(완치+호전), 상위 처방을 집계한다.' +
+      ' 진료 결과 화면의 "유사 환자 통계" 카드가 사용한다.',
+  })
+  async getSimilarSuccessStats(
+    @Body()
+    body: {
+      chiefComplaint: string;
+      symptoms?: Array<{ name: string; severity?: number }>;
+      diagnosis?: string;
+      constitution?: string;
+    },
+  ) {
+    return this.casesService.getSimilarSuccessStats(body);
+  }
+
   @Post('search-similar')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
