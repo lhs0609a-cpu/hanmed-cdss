@@ -1,3 +1,7 @@
 # Grounding 화이트리스트 디렉토리.
 # formulas.json / herbs.json 을 여기에 넣어 GroundingService 가 fallback 대신 사용하게 한다.
-# 미존재 시 grounding.py 의 FALLBACK_FORMULAS / FALLBACK_HERBS (24+34개) 가 사용됨.
+# 미존재 시 grounding.py 의 FALLBACK_FORMULAS / FALLBACK_HERBS (23+34개) 가 사용됨.
+#
+# 이 파일들은 저장소 안의 한의학 데이터에서 생성한다(수기 편집하지 말 것):
+#   python apps/ai-engine/scripts/build_grounding_whitelist.py
+# 커버리지 회귀는 tests/test_grounding_whitelist_coverage.py 가 지킨다.
