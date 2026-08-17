@@ -312,7 +312,7 @@ export default function DosageCalculatorPage() {
         {/* Left Column - Input */}
         <div className="lg:col-span-2 space-y-6">
           {/* Patient Type */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">환자 유형</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {Object.entries(patientTypeInfo).map(([type, info]) => {
@@ -345,7 +345,7 @@ export default function DosageCalculatorPage() {
           </div>
 
           {/* Patient Details */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">환자 정보</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(patientType === 'child' || patientType === 'infant') && (
@@ -412,7 +412,7 @@ export default function DosageCalculatorPage() {
           </div>
 
           {/* Herb Selection */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">약재 선택</h2>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
               {commonHerbs.map((herb) => (
@@ -474,7 +474,7 @@ export default function DosageCalculatorPage() {
         {/* Right Column - Result */}
         <div className="space-y-4">
           {/* Calculation Result */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Calculator className="h-5 w-5 text-blue-500" />
               계산 결과
@@ -482,7 +482,7 @@ export default function DosageCalculatorPage() {
 
             {calculateDosage && selectedHerb ? (
               <div className="space-y-4">
-                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+                <div className="glass-tile rounded-2xl text-center p-6">
                   <p className="text-sm text-blue-600 mb-1">권장 용량</p>
                   <p className="text-4xl font-bold text-blue-700">
                     {calculateDosage.adjustedDose}
@@ -530,7 +530,7 @@ export default function DosageCalculatorPage() {
 
           {/* Herb Info */}
           {selectedHerb && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h3 className="font-bold text-gray-900 mb-4">{selectedHerb.name} 정보</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -576,7 +576,7 @@ export default function DosageCalculatorPage() {
           )}
 
           {/* Disclaimer */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="surface-card rounded-2xl p-4">
             <p className="text-xs text-gray-500 leading-relaxed">
               <Info className="inline h-4 w-4 mr-1" />
               이 계산기는 참고용이며, 실제 처방은 반드시 전문 한의사의 진단과 판단에 따라야 합니다.

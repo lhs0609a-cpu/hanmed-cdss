@@ -39,7 +39,7 @@ export class DrugHerbInteraction {
   drugAtcCode: string; // ATC 분류 코드
 
   @ManyToOne(() => Herb)
-  @JoinColumn({ name: 'herb_id' })
+  @JoinColumn({ name: 'herbId' })
   herb: Herb;
 
   @Column('uuid')

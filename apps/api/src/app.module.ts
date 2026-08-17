@@ -9,6 +9,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
+import { PractitionerPatientsModule } from './modules/practitioner-patients/practitioner-patients.module';
 import { CasesModule } from './modules/cases/cases.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -17,6 +18,8 @@ import { HerbsModule } from './modules/herbs/herbs.module';
 import { CombosModule } from './modules/combos/combos.module';
 import { CommunityModule } from './modules/community/community.module';
 import { TossPaymentsModule } from './modules/toss-payments/toss-payments.module';
+import { PartnersModule } from './modules/partners/partners.module';
+import { PublicDataModule } from './modules/public-data/public-data.module';
 import { PatientAuthModule } from './modules/patient-auth/patient-auth.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
@@ -101,14 +104,35 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
+        // Supabase Session Pooler(IPv4)는 기본 CA 번들에 없는 인증서 체인을 제시해
+        // 'self-signed certificate in certificate chain' 으로 연결이 막힌다.
+        // 풀러 호스트에 한해 검증을 완화한다(연결은 여전히 TLS 암호화됨).
+        // 직접연결(db.<ref>.supabase.co) 등 그 외 호스트는 기존 동작 유지.
+        ssl: (configService.get<string>('DATABASE_URL') || '').includes(
+          'pooler.supabase.com',
+        )
+          ? { rejectUnauthorized: false }
+          : undefined,
         autoLoadEntities: true,
-        synchronize: configService.get('NODE_ENV') === 'development',
+        // synchronize/migrationsRun 은 기본적으로 기존 동작을 유지하되,
+        // 로컬이 기존 스키마를 가진 DB(운영 등)에 connect-only 로 붙어야 할 때
+        // .env 에서 DB_SYNCHRONIZE=false / DB_MIGRATIONS_RUN=false 로 끌 수 있다.
+        // (환경변수 미설정 시 프로덕션 동작 불변)
+        // 프로덕션에서는 env 값과 무관하게 synchronize 를 강제 차단한다.
+        // (엔티티↔DB 드리프트 상황에서 자동 ALTER 가 운영 데이터를 파괴할 수 있어
+        //  connect-only 탈출구는 'OFF' 방향으로만 열어둔다.)
+        synchronize:
+          configService.get('NODE_ENV') === 'production'
+            ? false
+            : configService.get('DB_SYNCHRONIZE') !== undefined
+              ? configService.get('DB_SYNCHRONIZE') === 'true'
+              : configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         // 부팅 시 미실행 마이그레이션 자동 적용 — 운영 사고 재발 방지.
         // entity 가 요구하는 컬럼이 DB 에 없어 로그인이 폭발하는 일이 다시는 없도록.
         // TypeORM 마이그레이션은 멱등이고 순서대로 적용되므로 안전.
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-        migrationsRun: true,
+        migrationsRun: configService.get('DB_MIGRATIONS_RUN') !== 'false',
         // 'each': 마이그레이션별로 트랜잭션 적용. 'all' 은 개별 마이그레이션의
         // transaction=false 오버라이드를 거부해 부팅 자체를 막는다
         // (ALTER TYPE ... ADD VALUE 처럼 트랜잭션 밖에서만 실행 가능한 DDL 존재).
@@ -135,6 +159,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     AuthModule,
     UsersModule,
     PatientsModule,
+    PractitionerPatientsModule,
     CasesModule,
     PrescriptionsModule,
     InteractionsModule,
@@ -143,6 +168,8 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     CombosModule,
     CommunityModule,
     TossPaymentsModule,
+    PartnersModule,
+    PublicDataModule,
 
     // 환자 앱 모듈
     PatientAuthModule,

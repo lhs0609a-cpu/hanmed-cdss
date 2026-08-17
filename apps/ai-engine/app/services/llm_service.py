@@ -131,6 +131,7 @@ class LLMService:
         similar_cases: Optional[List[Dict]] = None,
         current_medications: Optional[List[str]] = None,
         *,
+        top_k: int = 3,
         user_id: Optional[str] = None,
     ) -> Dict:
         """처방 추론 후보 생성.
@@ -157,8 +158,10 @@ class LLMService:
 
         # 개인화: 본인 처방 스타일 hint 와 캐시 키에 user_id 포함 (다른 한의사와 결과 분리).
         style_hint = self._personalization.style_hint(user_id or "")
+        # 캐시 키에 top_k 를 섞는다 — 안 그러면 후보 1개짜리 캐시가
+        # 3개를 요청한 다음 진료에 그대로 재사용된다.
         cache_key = self._cache_key(
-            sanitized_patient,
+            {**sanitized_patient, "_top_k": top_k},
             sanitized_meds,
             similar_cases,
             personal_token=user_id if style_hint else None,
@@ -168,7 +171,7 @@ class LLMService:
             logger.info("LLM cache hit (key=%s, user=%s)", cache_key[:12], user_id or "-")
             return {**cached, "cache_hit": True}
 
-        user_prompt = self._compose_user_prompt(sanitized_patient, sanitized_meds, similar_cases)
+        user_prompt = self._compose_user_prompt(sanitized_patient, sanitized_meds, similar_cases, top_k)
         system_prompt = self.SYSTEM_PROMPT
         if style_hint:
             system_prompt = f"{system_prompt}\n\n{style_hint}"
@@ -236,6 +239,7 @@ class LLMService:
         patient_info: Dict,
         medications: List[str],
         similar_cases: Optional[List[Dict]],
+        top_k: int = 3,
     ) -> str:
         symptoms_text = ", ".join([s["name"] for s in patient_info.get("symptoms", []) if s.get("name")])
         meds_text = ", ".join(medications) if medications else "없음"
@@ -267,6 +271,12 @@ class LLMService:
             f"- 복용 중 양약: {meds_text}\n"
             f"{cases_block}"
             "## 요청\n"
+            # top_k 를 프롬프트에 넣지 않아 모델이 늘 1개만 돌려줬고,
+            # 결과 화면의 "다른 후보" 블록이 영영 뜨지 않았다.
+            f"서로 다른 처방 후보를 {max(1, min(5, top_k))}개 제시하세요. "
+            "1순위만 내고 끝내지 마세요 — 한의사는 대안을 비교해서 고릅니다. "
+            "confidence_score 내림차순으로 정렬하고, 각 후보의 rationale 에 "
+            "1순위 대신 이 처방을 택할 감별점을 적으세요.\n"
             "위 정보를 바탕으로 다음 JSON 만 출력하세요. 추가 텍스트 금지.\n"
             "{\n"
             '  "recommendations": [\n'

@@ -270,7 +270,7 @@ export function SpotlightProvider({ children }: { children: React.ReactNode }) {
             style={tooltipStyle}
           >
             {/* 헤더 */}
-            <div className="bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-3 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-500 px-4 py-3 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
@@ -310,7 +310,7 @@ export function SpotlightProvider({ children }: { children: React.ReactNode }) {
                     currentTarget.action?.onClick()
                     goNext()
                   }}
-                  className="mt-4 w-full py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
+                  className="mt-4 w-full py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
                 >
                   {currentTarget.action.label}
                 </button>
@@ -327,7 +327,7 @@ export function SpotlightProvider({ children }: { children: React.ReactNode }) {
                       key={index}
                       className={cn(
                         'w-2 h-2 rounded-full transition-colors',
-                        index === currentIndex ? 'bg-teal-500' : 'bg-gray-300'
+                        index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
                       )}
                     />
                   ))}
@@ -346,7 +346,7 @@ export function SpotlightProvider({ children }: { children: React.ReactNode }) {
                   )}
                   <button
                     onClick={goNext}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-teal-500 hover:bg-teal-600 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
                   >
                     {currentIndex < sequence.targets.length - 1 ? (
                       <>

@@ -43,7 +43,7 @@ function ProgressRing({
   progress,
   size = 100,
   strokeWidth = 8,
-  color = 'stroke-emerald-500',
+  color = 'stroke-blue-500',
   children
 }: {
   progress: number
@@ -167,7 +167,7 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
         unit: '분',
         icon: Clock,
         description: `분석 ${aiUsed}건 x 5분 절약`,
-        color: 'from-emerald-500 to-teal-500',
+        color: 'from-blue-500 to-blue-500',
       },
       {
         id: 'cases_viewed',
@@ -185,7 +185,7 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
         unit: `/ ${usage?.aiQuery.limit || 50}`,
         icon: Target,
         description: '이번 달 AI 분석 사용량',
-        color: 'from-blue-500 to-cyan-500',
+        color: 'from-blue-500 to-blue-500',
       },
     ]
 
@@ -251,7 +251,7 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
                 </span>
               )}
               {usageProgress >= 80 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                   <Trophy className="h-3 w-3" />
                   파워 유저
                 </span>
@@ -267,14 +267,14 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
         </div>
 
         {/* Value Summary Mini */}
-        <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl">
+        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-emerald-100 rounded-lg">
-              <Award className="h-4 w-4 text-emerald-600" />
+            <div className="p-1.5 bg-blue-100 rounded-lg">
+              <Award className="h-4 w-4 text-blue-600" />
             </div>
-            <span className="text-sm text-emerald-800">이번 달 절약 가치</span>
+            <span className="text-sm text-blue-800">이번 달 절약 가치</span>
           </div>
-          <span className="text-lg font-bold text-emerald-600">
+          <span className="text-lg font-bold text-blue-600">
             {formatCurrency(calculateTotalValue(metrics))}
           </span>
         </div>
@@ -336,13 +336,13 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
                   <TrendingUp
                     className={cn(
                       'h-3 w-3',
-                      metric.trend.isPositive ? 'text-emerald-500' : 'text-red-500'
+                      metric.trend.isPositive ? 'text-green-500' : 'text-red-500'
                     )}
                   />
                   <span
                     className={cn(
                       'text-xs font-medium',
-                      metric.trend.isPositive ? 'text-emerald-600' : 'text-red-600'
+                      metric.trend.isPositive ? 'text-green-600' : 'text-red-600'
                     )}
                   >
                     {metric.trend.isPositive ? '+' : '-'}{metric.trend.value}% 지난달 대비
@@ -464,8 +464,8 @@ export function ValueMetricsDashboard({ className, compact = false }: ValueMetri
           to="/dashboard/case-search"
           className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all"
         >
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-emerald-600" />
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <BookOpen className="h-5 w-5 text-blue-600" />
           </div>
           <div>
             <p className="font-medium text-gray-900">치험례 검색</p>

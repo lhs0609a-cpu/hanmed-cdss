@@ -90,7 +90,9 @@ export default function RegisterPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-      navigate('/welcome/migration')
+      // 가입 직후 곧장 대시보드로 → 신규 사용자는 예시 진료(아하 모먼트)가 첫 화면.
+      // CSV 마이그레이션(미리보기 전용)은 첫 관문에서 강등했다.
+      navigate('/dashboard')
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -310,7 +312,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading || !allRequiredConsentsChecked || !licenseValid}
-            className="w-full h-14 mt-2 bg-primary hover:bg-brand-600 disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-colors active:scale-[0.99] flex items-center justify-center gap-2"
+            className="w-full h-14 mt-2 accent-gradient accent-glow disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-all active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

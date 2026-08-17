@@ -23,7 +23,7 @@ export function Toaster() {
             'bg-white border border-neutral-200 shadow-soft rounded-xl px-4 py-3 min-w-[320px]',
           title: 'text-neutral-900 font-semibold text-[14px]',
           description: 'text-neutral-600 text-[12px] mt-0.5 leading-relaxed',
-          success: 'border-l-4 border-l-emerald-500',
+          success: 'border-l-4 border-l-green-500',
           error: 'border-l-4 border-l-red-500',
           warning: 'border-l-4 border-l-amber-500',
           info: 'border-l-4 border-l-blue-500',
@@ -36,7 +36,7 @@ export function Toaster() {
         },
       }}
       icons={{
-        success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        success: <CheckCircle className="w-5 h-5 text-green-500" />,
         error: <XCircle className="w-5 h-5 text-red-500" />,
         warning: <AlertTriangle className="w-5 h-5 text-amber-500" />,
         info: <Info className="w-5 h-5 text-blue-500" />,

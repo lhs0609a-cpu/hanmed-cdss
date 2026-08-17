@@ -226,7 +226,7 @@ export default function ComboPage() {
         {/* Input Section */}
         <div className="space-y-4">
           {/* 선택된 처방 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <h2 className="font-bold text-gray-900 mb-4">선택된 처방</h2>
 
             <div className="space-y-3 mb-4">
@@ -351,7 +351,7 @@ export default function ComboPage() {
           )}
 
           {/* 계산 기록 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="w-full flex items-center justify-between"
@@ -396,7 +396,7 @@ export default function ComboPage() {
                                 {entry.formulas.map(f => f.name).join(' + ')}
                               </p>
                               {entry.result.isKnownCombo && (
-                                <p className="text-xs text-emerald-600 mt-0.5">
+                                <p className="text-xs text-green-600 mt-0.5">
                                   = {entry.result.knownName}
                                 </p>
                               )}
@@ -468,24 +468,18 @@ export default function ComboPage() {
           {result ? (
             <>
               {/* 알려진 합방 여부 */}
-              <div
-                className={`rounded-2xl border-2 p-6 ${
-                  result.isKnownCombo
-                    ? 'bg-emerald-50 border-emerald-200'
-                    : 'bg-gray-50 border-gray-200'
-                }`}
-              >
+              <div className="glass-tile rounded-2xl p-6">
                 <div className="flex items-center gap-3">
                   {result.isKnownCombo ? (
-                    <CheckCircle className="h-8 w-8 text-emerald-500" />
+                    <CheckCircle className="h-8 w-8 text-green-500" />
                   ) : (
                     <Calculator className="h-8 w-8 text-gray-400" />
                   )}
                   <div>
                     {result.isKnownCombo ? (
                       <>
-                        <p className="text-sm text-emerald-600">알려진 합방입니다</p>
-                        <p className="text-xl font-bold text-emerald-900">
+                        <p className="text-sm text-green-600">알려진 합방입니다</p>
+                        <p className="text-xl font-bold text-green-900">
                           {result.knownName} {result.knownHanja}
                         </p>
                       </>
@@ -501,7 +495,7 @@ export default function ComboPage() {
                 </div>
 
                 {result.indication && (
-                  <p className="mt-3 text-sm text-emerald-700 bg-emerald-100 rounded-lg p-3">
+                  <p className="mt-3 text-sm text-green-700 bg-green-100 rounded-lg p-3">
                     <span className="font-medium">적응증:</span> {result.indication}
                   </p>
                 )}
@@ -529,9 +523,9 @@ export default function ComboPage() {
               )}
 
               {/* 총 구성 약재 */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="surface-card rounded-2xl p-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-teal-500" />
+                  <Leaf className="h-5 w-5 text-blue-500" />
                   총 구성 약재 ({result.totalHerbs.length}종)
                 </h3>
 

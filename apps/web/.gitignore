@@ -1,1 +1,5 @@
 .vercel
+
+# Playwright 실행 산출물 (스크린샷·트레이스·리포트)
+test-results/
+playwright-report/

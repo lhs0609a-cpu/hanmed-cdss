@@ -13,23 +13,23 @@ function SearchIllustration({ className }: { className?: string }) {
       <circle cx="100" cy="80" r="45" className="fill-gray-50" />
 
       {/* 돋보기 */}
-      <circle cx="90" cy="75" r="25" className="stroke-teal-500" strokeWidth="4" fill="none" />
-      <line x1="108" y1="93" x2="125" y2="110" className="stroke-teal-500" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="90" cy="75" r="25" className="stroke-blue-500" strokeWidth="4" fill="none" />
+      <line x1="108" y1="93" x2="125" y2="110" className="stroke-blue-500" strokeWidth="4" strokeLinecap="round" />
 
       {/* 물음표 */}
       <path
         d="M85 70 Q85 60 95 60 Q105 60 105 70 Q105 75 95 78 L95 82"
-        className="stroke-teal-400"
+        className="stroke-blue-400"
         strokeWidth="3"
         strokeLinecap="round"
         fill="none"
       />
-      <circle cx="95" cy="88" r="2" className="fill-teal-400" />
+      <circle cx="95" cy="88" r="2" className="fill-blue-400" />
 
       {/* 장식 점들 - 애니메이션 */}
-      <circle cx="140" cy="50" r="3" className="fill-teal-300 animate-pulse" />
-      <circle cx="55" cy="55" r="2" className="fill-emerald-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
-      <circle cx="150" cy="90" r="2" className="fill-teal-200 animate-pulse" style={{ animationDelay: '1s' }} />
+      <circle cx="140" cy="50" r="3" className="fill-blue-300 animate-pulse" />
+      <circle cx="55" cy="55" r="2" className="fill-blue-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <circle cx="150" cy="90" r="2" className="fill-blue-200 animate-pulse" style={{ animationDelay: '1s' }} />
     </svg>
   )
 }
@@ -53,13 +53,13 @@ function NoDataIllustration({ className }: { className?: string }) {
       <line x1="90" y1="85" x2="115" y2="85" className="stroke-gray-200" strokeWidth="2" strokeLinecap="round" />
 
       {/* + 아이콘 */}
-      <circle cx="145" cy="95" r="15" className="fill-teal-500" />
+      <circle cx="145" cy="95" r="15" className="fill-blue-500" />
       <line x1="145" y1="88" x2="145" y2="102" className="stroke-white" strokeWidth="2.5" strokeLinecap="round" />
       <line x1="138" y1="95" x2="152" y2="95" className="stroke-white" strokeWidth="2.5" strokeLinecap="round" />
 
       {/* 장식 */}
-      <circle cx="55" cy="60" r="3" className="fill-teal-300 animate-pulse" />
-      <circle cx="155" cy="45" r="2" className="fill-emerald-300 animate-pulse" style={{ animationDelay: '0.3s' }} />
+      <circle cx="55" cy="60" r="3" className="fill-blue-300 animate-pulse" />
+      <circle cx="155" cy="45" r="2" className="fill-blue-300 animate-pulse" style={{ animationDelay: '0.3s' }} />
     </svg>
   )
 }
@@ -72,8 +72,8 @@ function NoPatientsIllustration({ className }: { className?: string }) {
       <circle cx="100" cy="80" r="60" className="fill-gray-100" />
 
       {/* 중앙 사람 */}
-      <circle cx="100" cy="60" r="18" className="fill-teal-100 stroke-teal-400" strokeWidth="2" />
-      <path d="M70 110 Q70 90 100 90 Q130 90 130 110" className="fill-teal-100 stroke-teal-400" strokeWidth="2" />
+      <circle cx="100" cy="60" r="18" className="fill-blue-100 stroke-blue-400" strokeWidth="2" />
+      <path d="M70 110 Q70 90 100 90 Q130 90 130 110" className="fill-blue-100 stroke-blue-400" strokeWidth="2" />
 
       {/* 왼쪽 점선 사람 */}
       <circle cx="55" cy="70" r="10" className="stroke-gray-300" strokeWidth="2" strokeDasharray="4 2" fill="none" />
@@ -84,7 +84,7 @@ function NoPatientsIllustration({ className }: { className?: string }) {
       <path d="M130 100 Q130 88 145 88 Q160 88 160 100" className="stroke-gray-300" strokeWidth="2" strokeDasharray="4 2" fill="none" />
 
       {/* + 버튼 */}
-      <circle cx="100" cy="135" r="12" className="fill-teal-500" />
+      <circle cx="100" cy="135" r="12" className="fill-blue-500" />
       <line x1="100" y1="129" x2="100" y2="141" className="stroke-white" strokeWidth="2" strokeLinecap="round" />
       <line x1="94" y1="135" x2="106" y2="135" className="stroke-white" strokeWidth="2" strokeLinecap="round" />
     </svg>
@@ -99,8 +99,8 @@ function NoCasesIllustration({ className }: { className?: string }) {
       <circle cx="100" cy="80" r="60" className="fill-gray-100" />
 
       {/* 책 아이콘 */}
-      <path d="M60 50 L100 60 L140 50 L140 110 L100 120 L60 110 Z" className="fill-white stroke-teal-400" strokeWidth="2" />
-      <line x1="100" y1="60" x2="100" y2="120" className="stroke-teal-400" strokeWidth="2" />
+      <path d="M60 50 L100 60 L140 50 L140 110 L100 120 L60 110 Z" className="fill-white stroke-blue-400" strokeWidth="2" />
+      <line x1="100" y1="60" x2="100" y2="120" className="stroke-blue-400" strokeWidth="2" />
 
       {/* 왼쪽 페이지 텍스트 */}
       <line x1="70" y1="70" x2="90" y2="73" className="stroke-gray-200" strokeWidth="2" strokeLinecap="round" />
@@ -117,8 +117,8 @@ function NoCasesIllustration({ className }: { className?: string }) {
       <path d="M145 38 L147 43 L152 45 L147 47 L145 52 L143 47 L138 45 L143 43 Z" className="fill-amber-500" />
 
       {/* 장식 */}
-      <circle cx="50" cy="70" r="3" className="fill-teal-300 animate-pulse" />
-      <circle cx="155" cy="100" r="2" className="fill-emerald-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <circle cx="50" cy="70" r="3" className="fill-blue-300 animate-pulse" />
+      <circle cx="155" cy="100" r="2" className="fill-blue-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
     </svg>
   )
 }
@@ -159,18 +159,18 @@ function EmptyBoxIllustration({ className }: { className?: string }) {
       <circle cx="100" cy="80" r="60" className="fill-gray-100" />
 
       {/* 상자 */}
-      <path d="M60 70 L100 50 L140 70 L140 110 L100 130 L60 110 Z" className="fill-white stroke-teal-400" strokeWidth="2" />
-      <path d="M60 70 L100 90 L140 70" className="stroke-teal-400" strokeWidth="2" fill="none" />
-      <line x1="100" y1="90" x2="100" y2="130" className="stroke-teal-400" strokeWidth="2" />
+      <path d="M60 70 L100 50 L140 70 L140 110 L100 130 L60 110 Z" className="fill-white stroke-blue-400" strokeWidth="2" />
+      <path d="M60 70 L100 90 L140 70" className="stroke-blue-400" strokeWidth="2" fill="none" />
+      <line x1="100" y1="90" x2="100" y2="130" className="stroke-blue-400" strokeWidth="2" />
 
       {/* 상자 열린 뚜껑 */}
-      <path d="M60 70 L100 50 L100 35 L70 50 Z" className="fill-teal-100 stroke-teal-400" strokeWidth="2" />
-      <path d="M140 70 L100 50 L100 35 L130 50 Z" className="fill-teal-50 stroke-teal-400" strokeWidth="2" />
+      <path d="M60 70 L100 50 L100 35 L70 50 Z" className="fill-blue-100 stroke-blue-400" strokeWidth="2" />
+      <path d="M140 70 L100 50 L100 35 L130 50 Z" className="fill-blue-50 stroke-blue-400" strokeWidth="2" />
 
       {/* 별 장식 */}
       <path d="M70 45 L72 49 L76 50 L73 53 L74 57 L70 55 L66 57 L67 53 L64 50 L68 49 Z" className="fill-amber-400 animate-pulse" />
-      <path d="M130 55 L131 58 L134 58 L132 60 L133 63 L130 61 L127 63 L128 60 L126 58 L129 58 Z" className="fill-teal-400 animate-pulse" style={{ animationDelay: '0.3s' }} />
-      <path d="M100 25 L101 27 L103 27 L102 29 L102 31 L100 30 L98 31 L98 29 L97 27 L99 27 Z" className="fill-emerald-400 animate-pulse" style={{ animationDelay: '0.6s' }} />
+      <path d="M130 55 L131 58 L134 58 L132 60 L133 63 L130 61 L127 63 L128 60 L126 58 L129 58 Z" className="fill-blue-400 animate-pulse" style={{ animationDelay: '0.3s' }} />
+      <path d="M100 25 L101 27 L103 27 L102 29 L102 31 L100 30 L98 31 L98 29 L97 27 L99 27 Z" className="fill-blue-400 animate-pulse" style={{ animationDelay: '0.6s' }} />
     </svg>
   )
 }

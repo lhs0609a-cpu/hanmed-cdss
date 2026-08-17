@@ -29,7 +29,7 @@ function StatCard({
   color: string
 }) {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="glass-tile rounded-2xl p-5">
       <div className="flex items-center gap-4">
         <div className={cn('p-3 rounded-xl', color)}>
           <Icon className="h-5 w-5" />
@@ -176,7 +176,7 @@ export default function AdminSubscriptionsPage() {
       )}
 
       {/* 필터 */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex gap-2 flex-wrap">
           {['', 'free', 'basic', 'professional', 'clinic'].map((tier) => (
             <button
@@ -205,7 +205,7 @@ export default function AdminSubscriptionsPage() {
       </div>
 
       {/* 사용자 목록 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

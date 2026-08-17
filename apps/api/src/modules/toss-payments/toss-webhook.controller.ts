@@ -2,11 +2,14 @@ import {
   Controller,
   Post,
   Body,
+  Req,
   HttpCode,
   Logger,
   Headers,
   BadRequestException,
+  RawBodyRequest,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -67,6 +70,7 @@ export class TossWebhookController {
   @ApiExcludeEndpoint()
   @ApiOperation({ summary: '토스페이먼츠 웹훅 엔드포인트' })
   async handleTossWebhook(
+    @Req() req: RawBodyRequest<Request>,
     @Body() payload: TossWebhookPayload,
     @Headers('tosspayments-webhook-signature') signature?: string,
     @Headers('tosspayments-webhook-transmission-time') transmissionTime?: string,
@@ -87,8 +91,17 @@ export class TossWebhookController {
       throw new BadRequestException('Webhook transmission time out of range');
     }
 
+    // 서명은 반드시 수신 원본 바이트(rawBody)로 검증해야 한다.
+    // @Body() 를 다시 JSON.stringify 하면 키 순서·공백·유니코드 이스케이프가
+    // 토스가 서명한 원본과 달라져 정상 웹훅이 전부 거부된다. (main.ts: rawBody: true)
+    if (!req.rawBody) {
+      this.logger.error('Webhook rawBody unavailable — rawBody 파싱이 비활성화됨');
+      throw new BadRequestException('Webhook raw body unavailable');
+    }
+    const rawBody = req.rawBody.toString('utf8');
+
     const isValid = this.verifyWebhookSignature(
-      JSON.stringify(payload),
+      rawBody,
       transmissionTime,
       signature,
     );

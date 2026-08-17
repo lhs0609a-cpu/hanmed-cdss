@@ -416,7 +416,7 @@ export default function UnifiedSearchPage() {
       case 'case':
         return <BookOpen className="h-4 w-4 text-amber-600" />
       case 'byeongyang':
-        return <Activity className="h-4 w-4 text-teal-600" />
+        return <Activity className="h-4 w-4 text-blue-600" />
       case 'byeongyak':
         return <Grid3X3 className="h-4 w-4 text-pink-600" />
       case 'pattern':
@@ -432,7 +432,7 @@ export default function UnifiedSearchPage() {
       case 'case':
         return 'bg-amber-100 text-amber-800'
       case 'byeongyang':
-        return 'bg-teal-100 text-teal-800'
+        return 'bg-blue-100 text-blue-800'
       case 'byeongyak':
         return 'bg-pink-100 text-pink-800'
       case 'pattern':
@@ -459,7 +459,7 @@ export default function UnifiedSearchPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Compact Header with Search */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+      <div className="glass-surface border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4">
           {/* Search Bar - 핵심 */}
           <div className="relative">
@@ -620,7 +620,7 @@ export default function UnifiedSearchPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
                 to="/dashboard/case-search"
-                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="surface-card rounded-2xl p-4 hover:shadow-soft transition-all group"
               >
                 <div className="mb-3 group-hover:scale-[1.02] transition-transform">
                   <MockupCaseSearch size="sm" />
@@ -631,7 +631,7 @@ export default function UnifiedSearchPage() {
 
               <Link
                 to="/dashboard/consultation"
-                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="surface-card rounded-2xl p-4 hover:shadow-soft transition-all group"
               >
                 <div className="mb-3 group-hover:scale-[1.02] transition-transform">
                   <MockupPatternDiagnosis size="sm" />
@@ -642,7 +642,7 @@ export default function UnifiedSearchPage() {
 
               <Link
                 to="/dashboard/interactions"
-                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="surface-card rounded-2xl p-4 hover:shadow-soft transition-all group"
               >
                 <div className="mb-3 group-hover:scale-[1.02] transition-transform">
                   <MockupInteraction size="sm" />
@@ -653,7 +653,7 @@ export default function UnifiedSearchPage() {
 
               <Link
                 to="/dashboard/formulas"
-                className="bg-white rounded-xl p-4 border border-neutral-200 hover:border-neutral-300 hover:shadow-soft transition-all group"
+                className="surface-card rounded-2xl p-4 hover:shadow-soft transition-all group"
               >
                 <div className="mb-3 group-hover:scale-[1.02] transition-transform">
                   <MockupFormulaSearch size="sm" />
@@ -669,7 +669,7 @@ export default function UnifiedSearchPage() {
             {/* Results List */}
             <div ref={resultsRef} className="lg:col-span-3 space-y-2">
               {allResults.length === 0 && !caseLoading ? (
-                <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
+                <div className="surface-card rounded-2xl p-12 text-center">
                   <Search className="h-16 w-16 text-gray-200 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">"{searchQuery}"에 대한 결과가 없습니다</p>
                   <p className="text-gray-400 text-sm mt-2">다른 검색어를 시도해보세요</p>
@@ -684,7 +684,7 @@ export default function UnifiedSearchPage() {
                       setSelectedIndex(idx)
                     }}
                     className={cn(
-                      'w-full bg-white rounded-xl p-4 border-2 transition-all text-left group',
+                      'w-full surface-card rounded-2xl p-4 border-2 transition-all text-left group',
                       selectedIndex === idx
                         ? 'border-indigo-500 bg-indigo-50/50 shadow-md'
                         : selectedResult?.id === result.id
@@ -748,7 +748,7 @@ export default function UnifiedSearchPage() {
             <div className="lg:col-span-2">
               <div className="sticky top-32">
                 {selectedResult ? (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+                  <div className="surface-card rounded-2xl overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {getTypeIcon(selectedResult.type)}
@@ -796,7 +796,7 @@ export default function UnifiedSearchPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-8 text-center">
+                  <div className="surface-card rounded-2xl p-8 text-center">
                     <Layers className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">
                       결과를 선택하면<br />상세 정보가 표시됩니다
@@ -1008,7 +1008,7 @@ function PatternDetail({ pattern, disease }: { pattern: ByeongYangPattern; disea
               key={idx}
               className={cn(
                 'px-3 py-2 rounded-lg text-sm',
-                symptom.isKey ? 'bg-teal-50 border border-teal-200 font-medium' : 'bg-gray-50'
+                symptom.isKey ? 'bg-blue-50 border border-blue-200 font-medium' : 'bg-gray-50'
               )}
             >
               {symptom.name}

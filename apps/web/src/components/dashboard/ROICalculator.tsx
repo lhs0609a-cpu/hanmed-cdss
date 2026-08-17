@@ -21,11 +21,11 @@ const TIME_SAVED_PER_SEARCH = 5 // minutes per AI search (분석 시간 + 문헌
 const AVERAGE_CONSULTATION_VALUE = 20000 // KRW (원) - 한의원 평균 진료비
 const ADDITIONAL_PATIENTS_PER_HOUR = 2 // patients that can be seen with saved time
 
-// 실제 요금제와 일치 (2024.02 수익성 최적화)
+// 실제 요금제와 일치 — 단일 진실 공급원은 백엔드 toss-payments.service.ts (PLAN_PRICES)
 const plans = [
-  { name: 'Basic', price: 19900, queries: 100 },
-  { name: 'Professional', price: 99000, queries: 300 },
-  { name: 'Clinic', price: 299000, queries: 1500 }, // 마진 개선: ₩199,000 → ₩299,000
+  { name: 'Basic', price: 19900, queries: 200 },
+  { name: 'Pro', price: 49000, queries: 1000 },
+  { name: 'Clinic', price: 149000, queries: 5000 },
 ]
 
 export function ROICalculator({ compact = false }: ROICalculatorProps) {
@@ -58,8 +58,8 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 bg-emerald-100 rounded-xl">
-            <Calculator className="h-5 w-5 text-emerald-600" />
+          <div className="p-2 bg-blue-100 rounded-xl">
+            <Calculator className="h-5 w-5 text-blue-600" />
           </div>
           <h3 className="font-bold text-gray-900">ROI 계산기</h3>
         </div>
@@ -74,11 +74,11 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
               step={10}
               value={monthlySearches}
               onChange={(e) => setMonthlySearches(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>10회</span>
-              <span className="font-semibold text-emerald-600">{monthlySearches}회</span>
+              <span className="font-semibold text-blue-600">{monthlySearches}회</span>
               <span>500회</span>
             </div>
           </div>
@@ -90,9 +90,9 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                 {calculations.hoursSaved.toFixed(1)}시간
               </div>
             </div>
-            <div className="p-3 bg-emerald-50 rounded-xl">
+            <div className="p-3 bg-blue-50 rounded-xl">
               <div className="text-xs text-gray-500">추가 수익 효과</div>
-              <div className="text-lg font-bold text-emerald-600">
+              <div className="text-lg font-bold text-blue-600">
                 +{calculations.additionalRevenue.toLocaleString()}원
               </div>
             </div>
@@ -139,11 +139,11 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                 step={10}
                 value={monthlySearches}
                 onChange={(e) => setMonthlySearches(parseInt(e.target.value))}
-                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
               <div className="flex justify-between text-sm text-gray-500 mt-2">
                 <span>10회</span>
-                <span className="text-lg font-bold text-emerald-600">{monthlySearches}회/월</span>
+                <span className="text-lg font-bold text-blue-600">{monthlySearches}회/월</span>
                 <span>500회</span>
               </div>
             </div>
@@ -160,7 +160,7 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                     className={cn(
                       'w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all',
                       selectedPlan === idx
-                        ? 'border-emerald-500 bg-emerald-50'
+                        ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
@@ -168,7 +168,7 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                       <div className={cn(
                         'w-5 h-5 rounded-full border-2 flex items-center justify-center',
                         selectedPlan === idx
-                          ? 'border-emerald-500 bg-emerald-500'
+                          ? 'border-blue-500 bg-blue-500'
                           : 'border-gray-300'
                       )}>
                         {selectedPlan === idx && <CheckCircle2 className="h-3 w-3 text-white" />}
@@ -232,14 +232,14 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                 </div>
               </div>
 
-              <div className="p-5 bg-emerald-50 rounded-2xl">
+              <div className="p-5 bg-blue-50 rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm text-emerald-600">추가 수익 효과</span>
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm text-blue-600">추가 수익 효과</span>
                 </div>
-                <div className="text-3xl font-bold text-emerald-600">
+                <div className="text-3xl font-bold text-blue-600">
                   +{calculations.additionalRevenue.toLocaleString()}
-                  <span className="text-lg font-normal text-emerald-500">원</span>
+                  <span className="text-lg font-normal text-blue-500">원</span>
                 </div>
               </div>
 
@@ -270,7 +270,7 @@ export function ROICalculator({ compact = false }: ROICalculatorProps) {
                   <span className="block font-semibold tabular">+{calculations.additionalRevenue.toLocaleString()}원</span>
                 </div>
                 <div>
-                  <span className="text-emerald-100">구독 비용</span>
+                  <span className="text-blue-100">구독 비용</span>
                   <span className="block font-semibold">-{calculations.monthlyCost.toLocaleString()}원</span>
                 </div>
               </div>

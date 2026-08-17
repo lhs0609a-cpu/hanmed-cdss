@@ -39,7 +39,7 @@ function StatCard({
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="glass-tile rounded-2xl p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-gray-500 font-medium">{title}</p>
@@ -78,7 +78,7 @@ function SubscriptionChart({ data }: { data: DashboardStats['subscriptionsByTier
   ]
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="surface-card rounded-2xl p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">구독 분포</h3>
       <div className="space-y-3">
         {tiers.map((tier) => {
@@ -108,7 +108,7 @@ function SubscriptionChart({ data }: { data: DashboardStats['subscriptionsByTier
 // 최근 활동 목록
 function RecentActivities({ activities }: { activities: DashboardData['recentActivities'] }) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="surface-card rounded-2xl p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">최근 관리자 활동</h3>
       <div className="space-y-3">
         {activities.length === 0 ? (
@@ -143,7 +143,7 @@ function DailySignupsChart({ data }: { data: DashboardData['dailySignups'] }) {
   const last7Days = data.slice(-7)
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="surface-card rounded-2xl p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">일별 가입자 (최근 7일)</h3>
       <div className="flex items-end justify-between gap-2 h-32">
         {last7Days.map((day) => {

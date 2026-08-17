@@ -148,7 +148,7 @@ export function AdverseReactionReport({
         </p>
         <button
           onClick={onClose}
-          className="px-6 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600 transition-colors"
+          className="px-6 py-2 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
         >
           닫기
         </button>
@@ -209,7 +209,7 @@ export function AdverseReactionReport({
                   value={formData.formulaName || ''}
                   onChange={(e) => setFormData({ ...formData, formulaName: e.target.value })}
                   placeholder="예: 이중탕, 보중익기탕"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -220,7 +220,7 @@ export function AdverseReactionReport({
                     value={formData.patientAge || ''}
                     onChange={(e) => setFormData({ ...formData, patientAge: parseInt(e.target.value) })}
                     placeholder="세"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -228,7 +228,7 @@ export function AdverseReactionReport({
                   <select
                     value={formData.patientGender || ''}
                     onChange={(e) => setFormData({ ...formData, patientGender: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">선택</option>
                     <option value="male">남성</option>
@@ -264,7 +264,7 @@ export function AdverseReactionReport({
                     className={cn(
                       'p-3 rounded-lg border-2 text-left transition-all',
                       formData.reactionType === type.id
-                        ? 'border-teal-500 bg-teal-50'
+                        ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
@@ -338,7 +338,7 @@ export function AdverseReactionReport({
                     className={cn(
                       'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
                       formData.symptoms?.includes(symptom)
-                        ? 'bg-teal-500 text-white'
+                        ? 'bg-blue-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     )}
                   >
@@ -351,7 +351,7 @@ export function AdverseReactionReport({
                 onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
                 placeholder="추가 증상이나 상세 내용을 기술해 주세요..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           )}
@@ -383,7 +383,7 @@ export function AdverseReactionReport({
                       className={cn(
                         'p-2 rounded-lg border-2 text-sm transition-all',
                         formData.onsetTime === time.id
-                          ? 'border-teal-500 bg-teal-50 text-teal-700'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
                           : 'border-gray-200 hover:border-gray-300'
                       )}
                     >
@@ -402,7 +402,7 @@ export function AdverseReactionReport({
                       className={cn(
                         'p-2 rounded-lg border-2 text-sm transition-all',
                         formData.outcome === outcome.id
-                          ? 'border-teal-500 bg-teal-50 text-teal-700'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
                           : 'border-gray-200 hover:border-gray-300'
                       )}
                     >

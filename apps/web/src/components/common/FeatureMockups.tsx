@@ -70,10 +70,10 @@ export function MockupClaimCheck({ size = 'md' }: MockupProps) {
         12%
       </p>
       <div className="mt-2 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-        <div className="h-full w-[12%] bg-emerald-500 rounded-full" />
+        <div className="h-full w-[12%] bg-green-500 rounded-full" />
       </div>
       <div className="mt-2 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
         <span className="text-[10px] text-neutral-600 font-medium">안전 — 청구 가능</span>
       </div>
     </div>

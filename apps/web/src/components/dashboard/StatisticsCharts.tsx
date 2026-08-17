@@ -62,7 +62,7 @@ export function MonthlyConsultationChart() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-teal-500" />
+          <TrendingUp className="h-5 w-5 text-blue-500" />
           월별 진료 현황
         </CardTitle>
       </CardHeader>

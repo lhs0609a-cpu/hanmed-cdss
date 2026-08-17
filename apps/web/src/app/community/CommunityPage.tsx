@@ -179,7 +179,7 @@ export default function CommunityPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Link
           to="/dashboard/community/cases"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-amber-300 hover:shadow-md transition-all group"
+          className="surface-card rounded-2xl p-4 hover:border-amber-300 hover:shadow-md transition-all group"
         >
           <BookOpen className="h-6 w-6 text-amber-500 mb-2" />
           <span className="font-medium text-gray-900 group-hover:text-amber-600">케이스 토론</span>
@@ -187,7 +187,7 @@ export default function CommunityPage() {
         </Link>
         <Link
           to="/dashboard/community/qna"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all group"
+          className="surface-card rounded-2xl p-4 hover:border-blue-300 hover:shadow-md transition-all group"
         >
           <HelpCircle className="h-6 w-6 text-blue-500 mb-2" />
           <span className="font-medium text-gray-900 group-hover:text-blue-600">Q&A</span>
@@ -195,7 +195,7 @@ export default function CommunityPage() {
         </Link>
         <Link
           to="/dashboard/community/general"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group"
+          className="surface-card rounded-2xl p-4 hover:border-gray-300 hover:shadow-md transition-all group"
         >
           <MessageSquare className="h-6 w-6 text-gray-500 mb-2" />
           <span className="font-medium text-gray-900 group-hover:text-gray-600">종합 게시판</span>
@@ -203,7 +203,7 @@ export default function CommunityPage() {
         </Link>
         <Link
           to="/dashboard/community/forum"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-purple-300 hover:shadow-md transition-all group"
+          className="surface-card rounded-2xl p-4 hover:border-purple-300 hover:shadow-md transition-all group"
         >
           <Users className="h-6 w-6 text-purple-500 mb-2" />
           <span className="font-medium text-gray-900 group-hover:text-purple-600">전문 포럼</span>
@@ -211,16 +211,16 @@ export default function CommunityPage() {
         </Link>
         <Link
           to="/dashboard/community/my/bookmarks"
-          className="p-4 bg-white rounded-xl border border-gray-100 hover:border-teal-300 hover:shadow-md transition-all group"
+          className="surface-card rounded-2xl p-4 hover:border-blue-300 hover:shadow-md transition-all group"
         >
-          <Bookmark className="h-6 w-6 text-teal-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-teal-600">북마크</span>
+          <Bookmark className="h-6 w-6 text-blue-500 mb-2" />
+          <span className="font-medium text-gray-900 group-hover:text-blue-600">북마크</span>
           <p className="text-xs text-gray-500 mt-1">저장한 글</p>
         </Link>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -229,14 +229,14 @@ export default function CommunityPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="제목, 내용, 태그로 검색..."
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as PostType | '')}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             >
               <option value="">전체 게시판</option>
               <option value="case_discussion">케이스 토론</option>
@@ -247,7 +247,7 @@ export default function CommunityPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'latest' | 'popular' | 'comments')}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all"
+              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
             >
               <option value="latest">최신순</option>
               <option value="popular">인기순</option>
@@ -261,8 +261,8 @@ export default function CommunityPage() {
       <div className="space-y-4">
         {/* 로딩 상태 */}
         {loading && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <Loader2 className="h-12 w-12 text-teal-500 mx-auto mb-4 animate-spin" />
+          <div className="text-center py-16 surface-card rounded-2xl">
+            <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
             <p className="text-gray-500">게시글을 불러오는 중...</p>
           </div>
         )}
@@ -275,7 +275,7 @@ export default function CommunityPage() {
             <Link
               key={post.id}
               to={`/dashboard/community/post/${post.id}`}
-              className="block bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:border-teal-200 transition-all group"
+              className="block surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all group"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -299,7 +299,7 @@ export default function CommunityPage() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors line-clamp-1">
+                  <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                     {post.title}
                   </h3>
 
@@ -358,20 +358,20 @@ export default function CommunityPage() {
                   </div>
                 </div>
 
-                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-teal-500 transition-colors flex-shrink-0" />
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
               </div>
             </Link>
           )
         })}
 
         {!loading && filteredPosts.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+          <div className="text-center py-16 surface-card rounded-2xl">
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">게시글이 없습니다</p>
             <p className="text-sm text-gray-400 mt-1">첫 번째 글을 작성해보세요!</p>
             <button
               onClick={handleWriteClick}
-              className="mt-4 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               글쓰기
             </button>

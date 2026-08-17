@@ -23,7 +23,8 @@ interface SimilarCaseStats {
     noChange: number
     worsened: number
   }
-  averageTreatmentDuration: string
+  /** 치험례에 치료 기간 필드가 없는 경우 null — 화면에서 해당 블록을 숨긴다. */
+  averageTreatmentDuration: string | null
   topSuccessfulFormulas: Array<{
     formulaName: string
     caseCount: number
@@ -72,8 +73,11 @@ export function SimilarCaseSuccessCard({
           bodyStrength,
         })
 
-        if (response.data.success) {
-          setStats(response.data.data)
+        // api 인터셉터가 { success, data } 한 겹을 이미 벗긴다.
+        // 서비스가 한 번 더 감싸는 엔드포인트도 있어 양쪽 형태를 모두 받는다.
+        const payload = (response.data?.data ?? response.data) as SimilarCaseStats | undefined
+        if (payload && typeof payload.totalSimilarCases === 'number') {
+          setStats(payload)
         }
       } catch (err) {
         console.error('유사 케이스 통계 로드 실패:', err)
@@ -88,12 +92,12 @@ export function SimilarCaseSuccessCard({
 
   if (loading) {
     return (
-      <div className={cn('bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-6', className)}>
+      <div className={cn('bg-gradient-to-br from-blue-50 to-blue-50 rounded-2xl border border-blue-100 p-6', className)}>
         <div className="flex items-center gap-3 animate-pulse">
-          <div className="w-12 h-12 bg-emerald-200 rounded-full" />
+          <div className="w-12 h-12 bg-blue-200 rounded-full" />
           <div className="flex-1">
-            <div className="h-4 bg-emerald-200 rounded w-3/4 mb-2" />
-            <div className="h-3 bg-emerald-100 rounded w-1/2" />
+            <div className="h-4 bg-blue-200 rounded w-3/4 mb-2" />
+            <div className="h-3 bg-blue-100 rounded w-1/2" />
           </div>
         </div>
       </div>
@@ -122,17 +126,17 @@ export function SimilarCaseSuccessCard({
   return (
     <div className={cn('overflow-hidden rounded-2xl border', className)}>
       {/* Main Header - 킬러 피처 핵심 */}
-      <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white">
+      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
               <Users className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-emerald-100 text-sm font-medium mb-1">유사 환자 데이터 분석</p>
+              <p className="text-blue-100 text-sm font-medium mb-1">유사 환자 데이터 분석</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold">{stats.totalSimilarCases}</span>
-                <span className="text-emerald-100">명의 유사 환자</span>
+                <span className="text-blue-100">명의 유사 환자</span>
               </div>
             </div>
           </div>
@@ -145,24 +149,28 @@ export function SimilarCaseSuccessCard({
         <div className="mt-6 flex items-center gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-5 w-5 text-emerald-200" />
-              <span className="text-emerald-100 text-sm">치료 성공률</span>
+              <TrendingUp className="h-5 w-5 text-blue-200" />
+              <span className="text-blue-100 text-sm">치료 성공률</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl font-bold">{stats.successRate}%</span>
-              <span className="text-emerald-200 text-sm">
+              <span className="text-blue-200 text-sm">
                 (완치 + 호전)
               </span>
             </div>
           </div>
-          <div className="w-px h-16 bg-white/20" />
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-emerald-200" />
-              <span className="text-emerald-100 text-sm">평균 치료 기간</span>
-            </div>
-            <span className="text-2xl font-bold">{stats.averageTreatmentDuration}</span>
-          </div>
+          {stats.averageTreatmentDuration && (
+            <>
+              <div className="w-px h-16 bg-white/20" />
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-5 w-5 text-blue-200" />
+                  <span className="text-blue-100 text-sm">평균 치료 기간</span>
+                </div>
+                <span className="text-2xl font-bold">{stats.averageTreatmentDuration}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -182,7 +190,7 @@ export function SimilarCaseSuccessCard({
           )}
           {stats.outcomeBreakdown.improved > 0 && (
             <div
-              className="bg-emerald-400 transition-all"
+              className="bg-green-400 transition-all"
               style={{ width: `${(stats.outcomeBreakdown.improved / totalOutcome) * 100}%` }}
               title={`호전: ${stats.outcomeBreakdown.improved}명`}
             />
@@ -208,7 +216,7 @@ export function SimilarCaseSuccessCard({
             완치 {stats.outcomeBreakdown.cured}명
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="w-2 h-2 rounded-full bg-green-400" />
             호전 {stats.outcomeBreakdown.improved}명
           </div>
           <div className="flex items-center gap-1">
@@ -248,7 +256,7 @@ export function SimilarCaseSuccessCard({
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-gray-500">{formula.caseCount}건</span>
-                  <span className="font-medium text-emerald-600">
+                  <span className="font-medium text-green-600">
                     <CheckCircle2 className="h-3 w-3 inline mr-1" />
                     {formula.successRate}%
                   </span>
@@ -323,7 +331,7 @@ export function SimilarCaseSuccessBadge({
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium transition-colors"
+      className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-sm font-medium transition-colors"
     >
       <Sparkles className="h-3.5 w-3.5" />
       유사 환자 {totalCases}명 중 {successRate}% 성공

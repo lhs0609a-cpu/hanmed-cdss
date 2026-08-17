@@ -25,14 +25,14 @@ interface DurCheckResultProps {
 export default function DurCheckResult({ result, className }: DurCheckResultProps) {
   if (!result.hasDurInfo && result.totalCount === 0) {
     return (
-      <div className={cn('bg-emerald-50 rounded-xl border border-emerald-200 p-6', className)}>
+      <div className={cn('bg-green-50 rounded-xl border border-green-200 p-6', className)}>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-emerald-100 rounded-lg">
-            <CheckCircle className="h-6 w-6 text-emerald-600" />
+          <div className="p-2 bg-green-100 rounded-lg">
+            <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-emerald-900">DUR 정보 없음</h3>
-            <p className="text-sm text-emerald-700">
+            <h3 className="font-semibold text-green-900">DUR 정보 없음</h3>
+            <p className="text-sm text-green-700">
               입력된 의약품에 대한 DUR 주의 정보가 없습니다.
             </p>
           </div>
@@ -244,7 +244,7 @@ export default function DurCheckResult({ result, className }: DurCheckResultProp
       {/* 효능군중복 */}
       {result.duplicateEfficacy.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 py-3 flex items-center gap-2">
+          <div className="bg-blue-600 text-white px-4 py-3 flex items-center gap-2">
             <Layers className="h-5 w-5" />
             <span className="font-semibold">
               효능군중복 ({result.duplicateEfficacy.length}건)
@@ -254,7 +254,7 @@ export default function DurCheckResult({ result, className }: DurCheckResultProp
             {result.duplicateEfficacy.map((item, idx) => (
               <div
                 key={idx}
-                className="p-3 bg-teal-50 rounded-lg border border-teal-100"
+                className="p-3 bg-blue-50 rounded-lg border border-blue-100"
               >
                 <p className="font-medium text-gray-900">{item.ITEM_NAME}</p>
                 <p className="text-sm text-gray-600 mt-1">

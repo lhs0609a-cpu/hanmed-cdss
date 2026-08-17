@@ -33,7 +33,7 @@ export default function Loader({
       aria-live="polite"
       aria-label={text || '로딩 중'}
     >
-      <Loader2 className={cn('animate-spin text-teal-500', sizeClasses[size])} aria-hidden="true" />
+      <Loader2 className={cn('animate-spin text-blue-500', sizeClasses[size])} aria-hidden="true" />
       {text && (
         <p className={cn('text-gray-500', textSizeClasses[size])}>{text}</p>
       )}

@@ -18,7 +18,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { ErrorMessage, UsageLimitModal } from '@/components/common'
 import { useUsage, useSubscriptionInfo } from '@/hooks/useSubscription'
 import { cn } from '@/lib/utils'
-import { BASE_STATS, formatStatNumber } from '@/config/stats.config'
+import { BASE_STATS } from '@/config/stats.config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -293,7 +293,7 @@ export default function CaseSearchPage() {
           치험례 검색
         </h1>
         <p className="mt-1 text-[14px] text-neutral-500">
-          환자 증상을 입력하면 {formatStatNumber(BASE_STATS.cases)}건의 치험례에서 유사 사례를 찾아드립니다.
+          환자 증상을 입력하면 등록된 치험례에서 유사 사례를 찾아드립니다.
         </p>
       </div>
 
@@ -333,7 +333,7 @@ export default function CaseSearchPage() {
           </div>
           <button
             onClick={() => setShowUsageLimitModal(true)}
-            className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-xs font-medium rounded-lg hover:shadow-md transition-all flex items-center gap-1"
+            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-500 text-white text-xs font-medium rounded-lg hover:shadow-md transition-all flex items-center gap-1"
           >
             <Zap className="h-3.5 w-3.5" />
             플랜 업그레이드
@@ -486,8 +486,8 @@ export default function CaseSearchPage() {
                           className={cn(
                             'px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1',
                             isSelected
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 border'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border'
                           )}
                         >
                           {isSelected ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -514,8 +514,8 @@ export default function CaseSearchPage() {
                                 className={cn(
                                   'px-2 py-1 rounded text-xs font-medium transition-all',
                                   isSelected
-                                    ? 'bg-indigo-100 text-indigo-700'
-                                    : 'bg-white text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 border'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 border'
                                 )}
                               >
                                 {symptom}
@@ -545,7 +545,7 @@ export default function CaseSearchPage() {
             <Button
               onClick={handleSearch}
               disabled={isSearching || !chiefComplaint.trim()}
-              className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+              className="flex-1 accent-gradient accent-glow"
             >
               {isSearching ? (
                 <>
@@ -596,7 +596,7 @@ export default function CaseSearchPage() {
               서버 연결 중 문제가 발생하여 예시 데이터를 표시합니다
             </p>
             <p className="text-xs text-blue-700 mt-0.5">
-              실제 {formatStatNumber(BASE_STATS.cases)} 치험례는 서버 연결 시 검색 가능합니다
+              실제 치험례는 서버 연결 시 검색 가능합니다
             </p>
           </div>
         </div>
@@ -607,7 +607,7 @@ export default function CaseSearchPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-indigo-500" />
+              <BookOpen className="h-5 w-5 text-primary" />
               검색 결과 ({searchResult.totalFound}건)
             </h2>
             <div className="flex items-center gap-4 text-sm text-gray-500">

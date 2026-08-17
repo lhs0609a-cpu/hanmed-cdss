@@ -74,6 +74,36 @@ export class UsersService {
     await this.usersRepository.update(userId, { passwordHash });
   }
 
+  /**
+   * 사용자 본인 프로필 수정 — 화이트리스트 필드만 반영.
+   * (면허 인증 상태·역할·구독 등 권한/결제 관련 필드는 여기서 변경 불가)
+   */
+  async updateProfile(
+    userId: string,
+    payload: {
+      name?: string;
+      clinicName?: string | null;
+      licenseNumber?: string | null;
+      specialization?: string | null;
+      bio?: string | null;
+    },
+  ): Promise<User> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    const updates: Partial<User> = {};
+    if (payload.name !== undefined) updates.name = payload.name;
+    if (payload.clinicName !== undefined) updates.clinicName = payload.clinicName;
+    if (payload.licenseNumber !== undefined) updates.licenseNumber = payload.licenseNumber;
+    if (payload.specialization !== undefined) updates.specialization = payload.specialization;
+    if (payload.bio !== undefined) updates.bio = payload.bio;
+
+    if (Object.keys(updates).length > 0) {
+      await this.usersRepository.update(userId, updates);
+    }
+    return this.findById(userId) as Promise<User>;
+  }
+
   async updateTwoFactor(
     userId: string,
     payload: {

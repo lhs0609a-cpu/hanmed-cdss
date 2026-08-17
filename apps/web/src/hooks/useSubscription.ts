@@ -1,9 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import { useSubscriptionStore, Plan, SubscriptionInfo, Usage } from '@/stores/subscriptionStore';
+import {
+  useSubscriptionStore,
+  Plan,
+  PlanAddon,
+  SubscriptionInfo,
+  Usage,
+} from '@/stores/subscriptionStore';
 
 interface PlansResponse {
   plans: Plan[];
+  addons?: PlanAddon[];
 }
 
 interface RegisterCardDto {
@@ -29,9 +36,6 @@ export function usePlans() {
       const { data } = await api.get<PlansResponse | Plan[]>('/subscription/plans');
 
       // API 응답 구조가 다를 수 있으므로 방어적으로 처리
-      // 1. data가 배열인 경우: data 자체가 plans
-      // 2. data.plans가 있는 경우: 래핑된 응답
-      // 3. 그 외: 빈 배열 반환
       let plans: Plan[];
       if (Array.isArray(data)) {
         plans = data;
@@ -46,6 +50,80 @@ export function usePlans() {
       return plans;
     },
     staleTime: 1000 * 60 * 60, // 1시간
+  });
+}
+
+// Plans + addons 한 번에 조회 (SubscriptionPage용)
+export function usePlansAndAddons() {
+  return useQuery({
+    queryKey: ['plans-and-addons'],
+    queryFn: async () => {
+      const { data } = await api.get<PlansResponse>('/subscription/plans');
+      return {
+        plans: data?.plans ?? [],
+        addons: data?.addons ?? [],
+      };
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
+// ========== 부가서비스(Add-on) ==========
+
+export interface SubscriptionAddonRecord {
+  id: string;
+  addonKey: string;
+  status: string;
+  billingInterval: 'monthly' | 'yearly';
+  unitPrice: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAt: string | null;
+}
+
+export function useAddons() {
+  return useQuery({
+    queryKey: ['subscription-addons'],
+    queryFn: async () => {
+      const { data } = await api.get<{ addons: SubscriptionAddonRecord[] }>(
+        '/subscription/addons'
+      );
+      return data?.addons ?? [];
+    },
+  });
+}
+
+export function useSubscribeAddon() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: { addonKey: string; interval: 'monthly' | 'yearly' }) => {
+      const { data } = await api.post<{ success: boolean; addon: SubscriptionAddonRecord }>(
+        '/subscription/addons',
+        dto
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscription-addons'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
+    },
+  });
+}
+
+export function useCancelAddon() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { addonKey: string; immediate?: boolean }) => {
+      const qs = params.immediate ? '?immediate=true' : '';
+      const { data } = await api.delete<{ success: boolean; addon: SubscriptionAddonRecord }>(
+        `/subscription/addons/${params.addonKey}${qs}`
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscription-addons'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription-info'] });
+    },
   });
 }
 

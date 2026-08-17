@@ -418,7 +418,7 @@ export default function RedFlagPage() {
 
           {/* Symptom List */}
           {activeCategory && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h3 className="font-bold text-gray-900 mb-4">
                 {symptomCategories.find((c) => c.id === activeCategory)?.name} 증상 선택
               </h3>
@@ -461,7 +461,7 @@ export default function RedFlagPage() {
 
           {/* Selected Symptoms */}
           {selectedSymptoms.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h3 className="font-bold text-gray-900 mb-4">
                 선택된 증상 ({selectedSymptoms.length}개)
               </h3>
@@ -532,7 +532,7 @@ export default function RedFlagPage() {
                 {detectedFlags.map((flag) => (
                   <div
                     key={flag.id}
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                    className="surface-card rounded-2xl overflow-hidden"
                   >
                     <div
                       className={cn(

@@ -115,7 +115,7 @@ const quickPresets: QuickPreset[] = [
     id: 'shoulder',
     name: '견비통',
     icon: <Hand className="h-5 w-5" />,
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-blue-500 to-blue-500',
     description: '어깨 통증 치료 경혈',
     points: ['견우', '견료', '곡지', '외관', '합곡'],
   },
@@ -123,7 +123,7 @@ const quickPresets: QuickPreset[] = [
     id: 'lumbago',
     name: '요통',
     icon: <Wind className="h-5 w-5" />,
-    color: 'from-green-500 to-emerald-500',
+    color: 'from-green-500 to-blue-500',
     description: '허리 통증 치료 경혈',
     points: ['신수', '위중', '곤륜', '환도', '대장수'],
   },
@@ -131,7 +131,7 @@ const quickPresets: QuickPreset[] = [
     id: 'cold',
     name: '감기',
     icon: <Zap className="h-5 w-5" />,
-    color: 'from-cyan-500 to-blue-500',
+    color: 'from-blue-500 to-blue-500',
     description: '감기 증상 완화 경혈',
     points: ['합곡', '대추', '풍지', '열결', '척택'],
   },
@@ -957,7 +957,7 @@ export default function AcupointsPage() {
       </div>
 
       {/* Quick Presets */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-amber-500" />
           <h2 className="font-bold text-gray-900">빠른 증상별 경혈 조합</h2>
@@ -989,7 +989,7 @@ export default function AcupointsPage() {
 
       {/* Recent & Favorites Bar */}
       {(recentPointsList.length > 0 || favorites.length > 0) && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div className="surface-card rounded-2xl p-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* 최근 본 경혈 */}
             {recentPointsList.length > 0 && (
@@ -1045,7 +1045,7 @@ export default function AcupointsPage() {
       )}
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="surface-card rounded-2xl p-6">
         {/* Search Bar */}
         <div className="flex gap-2 mb-4">
           <div className="flex-1 relative">
@@ -1072,7 +1072,7 @@ export default function AcupointsPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                 !selectedRegion
-                  ? 'bg-teal-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
@@ -1085,7 +1085,7 @@ export default function AcupointsPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1',
                   selectedRegion === region.id
-                    ? 'bg-teal-500 text-white'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
@@ -1261,7 +1261,7 @@ export default function AcupointsPage() {
                 <button
                   onClick={() => handleSelectPoint(point)}
                   className={cn(
-                    'w-full text-left bg-white rounded-xl shadow-sm border p-4 transition-all hover:shadow-md',
+                    'w-full text-left surface-card rounded-2xl p-4 transition-all hover:shadow-md',
                     selectedPoint?.id === point.id && !compareMode
                       ? 'border-rose-500 ring-2 ring-rose-500/20'
                       : isCompareSelected
@@ -1313,7 +1313,7 @@ export default function AcupointsPage() {
 
                 {/* 호버 미리보기 툴팁 */}
                 {hoveredPoint?.id === point.id && !compareMode && (
-                  <div className="absolute left-full ml-2 top-0 z-10 w-64 bg-white rounded-xl shadow-lg border border-gray-200 p-4 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="absolute left-full ml-2 top-0 z-10 w-64 glass-surface border rounded-xl shadow-lg p-4 animate-in fade-in slide-in-from-left-2 duration-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Target className="h-4 w-4 text-blue-500" />
                       <p className="text-sm font-medium text-gray-900">취혈 위치</p>
@@ -1346,7 +1346,7 @@ export default function AcupointsPage() {
         {/* Point Detail */}
         <div className="lg:sticky lg:top-4 h-fit">
           {selectedPoint && !compareMode ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6 animate-in fade-in duration-300">
+            <div className="surface-card rounded-2xl p-6 space-y-6 animate-in fade-in duration-300">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div>
@@ -1431,7 +1431,7 @@ export default function AcupointsPage() {
                   {selectedPoint.techniques.map((tech, i) => (
                     <span
                       key={i}
-                      className="px-3 py-1.5 bg-teal-50 text-teal-700 text-sm rounded-lg"
+                      className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-lg"
                     >
                       {tech}
                     </span>
@@ -1474,7 +1474,7 @@ export default function AcupointsPage() {
               )}
             </div>
           ) : !compareMode ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="surface-card rounded-2xl p-12 text-center">
               <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">경혈을 선택하면 상세 정보가 표시됩니다</p>
               <p className="text-sm text-gray-400 mt-2">

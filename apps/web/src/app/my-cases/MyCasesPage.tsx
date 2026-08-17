@@ -170,23 +170,35 @@ export default function MyCasesPage() {
         </div>
       </div>
 
+      {/* 저장 위치 고지 — 이 화면의 데이터는 아직 서버로 가지 않는다.
+          환자 명부·진료 기록은 서버로 옮겼지만 치험례는 필드 구조가 달라 다음 단계다.
+          그 사실을 숨기면 한의사가 축적한 임상 기록을 브라우저 청소 한 번에 잃는다. */}
+      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+        <p className="text-[13px] leading-relaxed text-amber-800">
+          <strong>이 기기에만 저장됩니다.</strong> 내 치험례는 아직 서버에 동기화되지 않아
+          다른 PC에서는 보이지 않고, 브라우저 데이터를 지우면 사라집니다. 중요한 기록은
+          내보내기(⤓)로 따로 보관해 주세요. 서버 저장은 준비 중입니다.
+        </p>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: '전체', value: stats.total, color: 'bg-gray-100 text-gray-700' },
-          { label: '호전/완치', value: stats.completed, color: 'bg-green-100 text-green-700' },
-          { label: '진행중', value: stats.inProgress, color: 'bg-blue-100 text-blue-700' },
-          { label: '즐겨찾기', value: stats.starred, color: 'bg-amber-100 text-amber-700' },
+          { label: '전체', value: stats.total, accent: 'text-neutral-700 dark:text-neutral-200' },
+          { label: '호전/완치', value: stats.completed, accent: 'text-green-600' },
+          { label: '진행중', value: stats.inProgress, accent: 'text-blue-600' },
+          { label: '즐겨찾기', value: stats.starred, accent: 'text-amber-600' },
         ].map((stat) => (
-          <div key={stat.label} className={`p-4 rounded-xl ${stat.color}`}>
-            <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-sm">{stat.label}</p>
+          <div key={stat.label} className="glass-tile rounded-2xl p-4">
+            <p className={`text-2xl font-bold ${stat.accent}`}>{stat.value}</p>
+            <p className="text-sm text-neutral-500">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -232,7 +244,7 @@ export default function MyCasesPage() {
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
         </div>
       ) : filteredCases.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+        <div className="surface-card rounded-2xl p-12 text-center">
           <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {cases.length === 0 ? '아직 기록된 치험례가 없습니다' : '검색 결과가 없습니다'}
@@ -257,7 +269,7 @@ export default function MyCasesPage() {
           {filteredCases.map((caseItem) => (
             <div
               key={caseItem.id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all group"
+              className="surface-card rounded-2xl p-5 hover:shadow-md transition-all group"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
@@ -320,7 +332,7 @@ export default function MyCasesPage() {
                     caseItem.outcome === '완치'
                       ? 'bg-green-100 text-green-700'
                       : caseItem.outcome === '호전'
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-green-100 text-green-700'
                       : caseItem.outcome === '진행중'
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-gray-100 text-gray-700'
@@ -426,7 +438,7 @@ function AddCaseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="glass-surface border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-bold text-lg text-gray-900">새 치험례 추가</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">

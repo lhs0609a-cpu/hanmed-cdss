@@ -42,10 +42,10 @@ interface ActivityItem {
 // 활동 유형별 아이콘 및 색상
 const activityConfig: Record<ActivityType, { icon: typeof Activity; color: string; bgColor: string }> = {
   login: { icon: LogIn, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  consultation: { icon: Stethoscope, color: 'text-teal-600', bgColor: 'bg-teal-100' },
+  consultation: { icon: Stethoscope, color: 'text-blue-600', bgColor: 'bg-blue-100' },
   prescription: { icon: Pill, color: 'text-purple-600', bgColor: 'bg-purple-100' },
   search: { icon: Search, color: 'text-amber-600', bgColor: 'bg-amber-100' },
-  case_view: { icon: BookOpen, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
+  case_view: { icon: BookOpen, color: 'text-blue-600', bgColor: 'bg-blue-100' },
   settings: { icon: Settings, color: 'text-gray-600', bgColor: 'bg-gray-100' },
   export: { icon: Download, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
   payment: { icon: CreditCard, color: 'text-rose-600', bgColor: 'bg-rose-100' },
@@ -210,7 +210,7 @@ export default function ActivityLogPage() {
                   onClick={() => setFilter(option.value)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                     filter === option.value
-                      ? 'bg-teal-50 border-teal-500 text-teal-700 dark:bg-teal-900/30 dark:border-teal-500 dark:text-teal-300'
+                      ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:border-blue-500 dark:text-blue-300'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400'
                   }`}
                 >
@@ -321,25 +321,25 @@ export default function ActivityLogPage() {
 
       {/* Statistics Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-teal-600">24</p>
+            <p className="text-2xl font-bold text-blue-600">24</p>
             <p className="text-sm text-gray-500">이번 주 진료</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-purple-600">18</p>
             <p className="text-sm text-gray-500">생성된 처방</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-amber-600">45</p>
             <p className="text-sm text-gray-500">검색 횟수</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card variant="tile" className="rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-blue-600">7</p>
             <p className="text-sm text-gray-500">로그인 횟수</p>

@@ -218,7 +218,7 @@ export default function StatisticsDashboardPage() {
 
       {/* No Data State */}
       {cases.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+        <div className="surface-card rounded-2xl p-12 text-center">
           <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             아직 통계 데이터가 없습니다
@@ -234,7 +234,7 @@ export default function StatisticsDashboardPage() {
             {statCards.map((stat, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
+                className="glass-tile rounded-2xl p-5"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className={`p-2.5 ${stat.color} rounded-xl text-white`}>
@@ -257,7 +257,7 @@ export default function StatisticsDashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top Formulas */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Pill className="h-5 w-5 text-purple-500" />
                 자주 사용한 처방
@@ -295,7 +295,7 @@ export default function StatisticsDashboardPage() {
             </div>
 
             {/* Top Symptoms */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-blue-500" />
                 주요 호소 증상
@@ -332,7 +332,7 @@ export default function StatisticsDashboardPage() {
             </div>
 
             {/* Outcome Distribution */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Target className="h-5 w-5 text-green-500" />
                 치료 결과 분포
@@ -341,7 +341,7 @@ export default function StatisticsDashboardPage() {
                 {Object.entries(outcomeDistribution).map(([outcome, count]) => {
                   const colors: Record<string, string> = {
                     '완치': 'bg-green-500',
-                    '호전': 'bg-emerald-400',
+                    '호전': 'bg-blue-400',
                     '진행중': 'bg-blue-400',
                     '무효': 'bg-gray-400',
                     '미정': 'bg-gray-300',
@@ -361,7 +361,7 @@ export default function StatisticsDashboardPage() {
             </div>
 
             {/* Patient Demographics */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Users className="h-5 w-5 text-amber-500" />
                 환자 분포
@@ -408,9 +408,9 @@ export default function StatisticsDashboardPage() {
 
           {/* Monthly Trend */}
           {Object.keys(monthlyTrend).length > 1 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="surface-card rounded-2xl p-6">
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-teal-500" />
+                <TrendingUp className="h-5 w-5 text-blue-500" />
                 월별 추이
               </h2>
               <div className="flex items-end gap-2 h-40">
@@ -421,7 +421,7 @@ export default function StatisticsDashboardPage() {
                     <div key={month} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-xs font-medium text-gray-900">{count}</span>
                       <div
-                        className="w-full bg-gradient-to-t from-teal-500 to-teal-400 rounded-t-lg transition-all"
+                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all"
                         style={{ height: `${heightPercent}%`, minHeight: '8px' }}
                       />
                       <span className="text-[10px] text-gray-500 truncate w-full text-center">

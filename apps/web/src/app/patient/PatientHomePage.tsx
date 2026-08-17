@@ -76,13 +76,13 @@ export default function PatientHomePage() {
       {/* 다음 예약 */}
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-          <Calendar className="w-4 h-4 text-teal-600" />
+          <Calendar className="w-4 h-4 text-blue-600" />
           다음 진료 예약
         </h2>
         {appointments.length === 0 ? (
           <Link
             to="/patient/appointments"
-            className="block rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 hover:border-teal-400"
+            className="block rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 hover:border-blue-400"
           >
             예약된 진료가 없습니다. 예약하기 →
           </Link>
@@ -91,7 +91,7 @@ export default function PatientHomePage() {
             <Link
               key={a.id}
               to={`/patient/appointments/${a.id}`}
-              className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-teal-400 p-4 bg-white"
+              className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-blue-400 p-4 bg-white"
             >
               <div>
                 <div className="font-semibold">{a.date}</div>
@@ -106,7 +106,7 @@ export default function PatientHomePage() {
       {/* 복용 중인 처방 */}
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-          <Pill className="w-4 h-4 text-teal-600" />
+          <Pill className="w-4 h-4 text-blue-600" />
           복용 중인 처방
         </h2>
         {prescriptions.length === 0 ? (
@@ -118,7 +118,7 @@ export default function PatientHomePage() {
             <Link
               key={p.id}
               to={`/patient/prescriptions/${p.id}`}
-              className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-teal-400 p-4 bg-white"
+              className="flex items-center justify-between rounded-xl border border-gray-200 hover:border-blue-400 p-4 bg-white"
             >
               <div>
                 <div className="font-semibold">{p.formula}</div>
@@ -136,17 +136,17 @@ export default function PatientHomePage() {
       <section className="grid grid-cols-2 gap-3">
         <Link
           to="/patient/notifications"
-          className="rounded-xl border border-gray-200 p-4 bg-white hover:border-teal-400"
+          className="rounded-xl border border-gray-200 p-4 bg-white hover:border-blue-400"
         >
-          <Bell className="w-5 h-5 text-teal-600" />
+          <Bell className="w-5 h-5 text-blue-600" />
           <div className="mt-2 font-semibold text-sm">알림 설정</div>
           <div className="text-xs text-gray-500 mt-0.5">예약·복약 알림</div>
         </Link>
         <a
           href="tel:"
-          className="rounded-xl border border-gray-200 p-4 bg-white hover:border-teal-400"
+          className="rounded-xl border border-gray-200 p-4 bg-white hover:border-blue-400"
         >
-          <Phone className="w-5 h-5 text-teal-600" />
+          <Phone className="w-5 h-5 text-blue-600" />
           <div className="mt-2 font-semibold text-sm">한의원 연락</div>
           <div className="text-xs text-gray-500 mt-0.5">{clinic.clinicName}</div>
         </a>

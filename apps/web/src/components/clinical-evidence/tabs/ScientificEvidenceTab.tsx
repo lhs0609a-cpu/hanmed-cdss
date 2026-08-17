@@ -8,7 +8,7 @@ interface ScientificEvidenceTabProps {
 }
 
 const levelColors = {
-  A: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+  A: 'bg-green-100 text-green-700 border-green-300',
   B: 'bg-blue-100 text-blue-700 border-blue-300',
   C: 'bg-amber-100 text-amber-700 border-amber-300',
   D: 'bg-gray-100 text-gray-600 border-gray-300',
@@ -46,7 +46,7 @@ export function ScientificEvidenceTab({ data, isLoading }: ScientificEvidenceTab
         <ul className="space-y-1">
           {data.pharmacologicalActions.map((action, i) => (
             <li key={i} className="text-xs text-gray-700 flex items-start gap-1.5">
-              <span className="text-teal-500 mt-0.5">•</span>
+              <span className="text-blue-500 mt-0.5">•</span>
               {action}
             </li>
           ))}
@@ -62,7 +62,7 @@ export function ScientificEvidenceTab({ data, isLoading }: ScientificEvidenceTab
         <div className="space-y-2">
           {data.activeCompounds.map((compound) => (
             <div key={compound.herb} className="bg-gray-50 rounded-lg p-2.5">
-              <span className="text-xs font-semibold text-teal-700">{compound.herb}</span>
+              <span className="text-xs font-semibold text-blue-700">{compound.herb}</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {compound.compounds.map((c) => (
                   <span key={c} className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] text-gray-600">
@@ -98,7 +98,7 @@ export function ScientificEvidenceTab({ data, isLoading }: ScientificEvidenceTab
       )}
 
       {/* 환자 친화적 설명 */}
-      <div className="bg-emerald-50/60 rounded-lg p-3 border border-emerald-100">
+      <div className="bg-blue-50/60 rounded-lg p-3 border border-blue-100">
         <p className="text-xs text-gray-700 leading-relaxed">
           💡 {data.patientFriendlyExplanation}
         </p>

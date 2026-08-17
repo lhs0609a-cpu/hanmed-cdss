@@ -26,7 +26,7 @@ const reasonColors: Record<MatchReasonType, { bg: string; text: string; border: 
   constitution: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   age: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
   gender: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
-  diagnosis: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  diagnosis: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
   formula: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
 }
 

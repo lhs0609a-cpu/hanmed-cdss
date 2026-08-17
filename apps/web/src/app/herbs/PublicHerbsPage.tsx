@@ -159,12 +159,12 @@ export default function PublicHerbsPage() {
   const totalCount = currentResults.length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="glass-surface border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
               <Leaf className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -350,7 +350,7 @@ function HerbCard({
   onToggle: () => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+    <div className="surface-card rounded-2xl overflow-hidden hover:shadow-lg transition-shadow">
       <div className="p-5 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -391,7 +391,7 @@ function HerbCard({
       </div>
 
       {isExpanded && (
-        <div className="border-t border-gray-100 bg-gradient-to-br from-green-50/50 to-emerald-50/50 p-5">
+        <div className="border-t border-gray-100 bg-gradient-to-br from-green-50/50 to-blue-50/50 p-5">
           <div className="grid md:grid-cols-2 gap-4">
             {(herb.nature || herb.taste || herb.meridian) && (
               <div className="space-y-3">
@@ -488,7 +488,7 @@ function PrescriptionCard({
   onToggle: () => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+    <div className="surface-card rounded-2xl overflow-hidden hover:shadow-lg transition-shadow">
       <div className="p-5 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">

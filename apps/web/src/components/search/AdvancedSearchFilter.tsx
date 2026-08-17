@@ -219,7 +219,7 @@ export function AdvancedSearchFilter({ onFilterChange, initialFilters }: Advance
                     >
                       <button
                         onClick={() => loadSearch(search)}
-                        className="hover:text-teal-600"
+                        className="hover:text-blue-600"
                       >
                         {search.name}
                       </button>
@@ -248,7 +248,7 @@ export function AdvancedSearchFilter({ onFilterChange, initialFilters }: Advance
                     onClick={() => toggleConstitution(option.value)}
                     className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                       filters.constitution.includes(option.value)
-                        ? 'bg-teal-50 border-teal-500 text-teal-700 dark:bg-teal-900/30'
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700'
                     }`}
                   >
@@ -370,7 +370,7 @@ export function AdvancedSearchFilter({ onFilterChange, initialFilters }: Advance
                       onClick={() => toggleOutcome(option.value)}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                         filters.outcome.includes(option.value)
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/30'
+                          ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700'
                       }`}
                     >
@@ -452,7 +452,7 @@ export function AdvancedSearchFilter({ onFilterChange, initialFilters }: Advance
             </Badge>
           ))}
           {filters.outcome.map((o) => (
-            <Badge key={o} variant="secondary" className="gap-1 bg-emerald-100 text-emerald-700">
+            <Badge key={o} variant="secondary" className="gap-1 bg-blue-100 text-blue-700">
               {outcomeOptions.find((opt) => opt.value === o)?.label}
               <button onClick={() => toggleOutcome(o)}>
                 <X className="h-3 w-3" />

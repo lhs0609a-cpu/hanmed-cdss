@@ -30,12 +30,22 @@ interface State {
 }
 
 // 에러 카테고리
-type ErrorCategory = 'network' | 'auth' | 'timeout' | 'validation' | 'unknown'
+type ErrorCategory = 'update' | 'network' | 'auth' | 'timeout' | 'validation' | 'unknown'
 
 // 에러 카테고리 분류
 function categorizeError(error: Error): ErrorCategory {
   const message = error.message.toLowerCase()
 
+  // 새 배포로 구버전 청크가 사라져 dynamic import 가 실패한 경우.
+  // 메시지에 'fetch' 가 포함되어 network 로 오분류되지 않도록 먼저 처리한다.
+  if (
+    message.includes('dynamically imported module') ||
+    message.includes('importing a module script') ||
+    message.includes('loading chunk') ||
+    message.includes('loading css chunk')
+  ) {
+    return 'update'
+  }
   if (message.includes('network') || message.includes('fetch') || message.includes('cors')) {
     return 'network'
   }
@@ -56,6 +66,12 @@ const CATEGORY_INFO: Record<
   ErrorCategory,
   { icon: typeof AlertTriangle; title: string; description: string; color: string }
 > = {
+  update: {
+    icon: RefreshCw,
+    title: '새 버전이 배포되었어요',
+    description: '앱이 업데이트되어 화면을 새로 불러와야 합니다. 새로고침하면 정상 동작합니다.',
+    color: 'text-blue-600 bg-blue-100',
+  },
   network: {
     icon: WifiOff,
     title: '네트워크 연결 문제',
@@ -228,11 +244,17 @@ Stack: ${error?.stack || 'N/A'}
         {/* 액션 버튼 */}
         <div className="flex gap-3 justify-center mb-6">
           <button
-            onClick={onRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            onClick={
+              // 청크(update)/네트워크 오류는 상태만 리셋하면 같은 실패를 반복하므로
+              // 최신 index.html 을 받도록 전체 새로고침한다.
+              category === 'update' || category === 'network'
+                ? () => window.location.reload()
+                : onRetry
+            }
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            다시 시도
+            {category === 'update' ? '새로고침' : '다시 시도'}
           </button>
 
           {category === 'auth' && (
@@ -336,7 +358,7 @@ Stack: ${error?.stack || 'N/A'}
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
                 <a
                   href="mailto:support@ongojisin.ai"
-                  className="flex items-center gap-1 hover:text-teal-600"
+                  className="flex items-center gap-1 hover:text-blue-600"
                 >
                   <ExternalLink className="w-3 h-3" />
                   고객센터 문의
@@ -345,7 +367,7 @@ Stack: ${error?.stack || 'N/A'}
                   href="https://ongojisin.ai/help"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-teal-600"
+                  className="flex items-center gap-1 hover:text-blue-600"
                 >
                   <ExternalLink className="w-3 h-3" />
                   도움말 센터
@@ -396,7 +418,7 @@ function PageErrorFallback() {
         <div className="flex gap-3 justify-center mb-6">
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
             새로고침

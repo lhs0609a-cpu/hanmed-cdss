@@ -5,6 +5,11 @@ primary_region = "nrt"  # Tokyo (한국에서 가장 가까운 리전)
 [build]
   dockerfile = "Dockerfile"
 
+# 배포 전 마이그레이션 적용 — 실패 시 배포 중단(구버전 유지).
+# 부팅 시 migrationsRun:true 는 안전망으로 유지되며, 이미 적용된 건 no-op.
+[deploy]
+  release_command = "node dist/database/migrate.js"
+
 [env]
   NODE_ENV = "production"
   PORT = "3001"

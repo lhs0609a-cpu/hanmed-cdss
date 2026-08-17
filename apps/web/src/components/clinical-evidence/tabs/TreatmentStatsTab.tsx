@@ -8,8 +8,8 @@ interface TreatmentStatsTabProps {
 }
 
 const outcomeLabels = [
-  { key: 'cured', label: '완치', color: 'bg-emerald-500' },
-  { key: 'significantlyImproved', label: '현저호전', color: 'bg-teal-400' },
+  { key: 'cured', label: '완치', color: 'bg-green-500' },
+  { key: 'significantlyImproved', label: '현저호전', color: 'bg-blue-400' },
   { key: 'improved', label: '호전', color: 'bg-blue-400' },
   { key: 'noChange', label: '불변', color: 'bg-gray-400' },
   { key: 'worsened', label: '악화', color: 'bg-red-400' },
@@ -26,7 +26,7 @@ export function TreatmentStatsTab({ data, isLoading }: TreatmentStatsTabProps) {
     <div className="space-y-4 p-4">
       {/* 성공률 대형 숫자 */}
       <div className="text-center">
-        <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+        <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
           {data.overallSuccessRate}%
         </div>
         <p className="text-xs text-gray-500 mt-1">
@@ -73,9 +73,9 @@ export function TreatmentStatsTab({ data, isLoading }: TreatmentStatsTabProps) {
           <div className="text-lg font-bold text-blue-700">{data.avgTreatmentDays}일</div>
           <p className="text-[10px] text-gray-500">평균 치료 기간</p>
         </div>
-        <div className="bg-emerald-50/60 rounded-lg p-3 text-center">
-          <TrendingUp className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
-          <div className="text-lg font-bold text-emerald-700">{data.prognosis.expectedImprovementWeeks}주</div>
+        <div className="bg-blue-50/60 rounded-lg p-3 text-center">
+          <TrendingUp className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+          <div className="text-lg font-bold text-blue-700">{data.prognosis.expectedImprovementWeeks}주</div>
           <p className="text-[10px] text-gray-500">호전 예상 시기</p>
         </div>
       </div>

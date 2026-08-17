@@ -50,10 +50,10 @@ export function SimilarPatientStats({
         {/* Improvement Rate */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-white">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
+            <TrendingUp className="h-4 w-4 text-blue-500" />
             <span className="text-xs text-gray-500">호전율</span>
           </div>
-          <div className="text-2xl font-bold text-emerald-600">{improvementRate !== null ? `${improvementRate}%` : '-'}</div>
+          <div className="text-2xl font-bold text-blue-600">{improvementRate !== null ? `${improvementRate}%` : '-'}</div>
           <div className="text-[10px] text-gray-400">{improvementRate !== null ? '치료 후 개선' : '데이터 수집중'}</div>
         </div>
 
@@ -153,8 +153,8 @@ export function SimilarPatientStatsBadge({
       </div>
       <div className="h-4 w-px bg-indigo-200" />
       <div className="flex items-center gap-1.5">
-        <TrendingUp className="h-4 w-4 text-emerald-500" />
-        <span className="text-sm font-medium text-emerald-700">
+        <TrendingUp className="h-4 w-4 text-blue-500" />
+        <span className="text-sm font-medium text-blue-700">
           {improvementRate}% 호전
         </span>
       </div>
@@ -175,18 +175,18 @@ export function RecommendationStatHighlight({
   formulaName: string
 }) {
   return (
-    <div className="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100">
+    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-blue-50 rounded-xl border border-blue-100">
       <div className="flex items-center gap-2 mb-2">
-        <Percent className="h-4 w-4 text-emerald-600" />
-        <span className="text-xs font-semibold text-emerald-700">유사 환자 데이터 기반</span>
+        <Percent className="h-4 w-4 text-blue-600" />
+        <span className="text-xs font-semibold text-blue-700">유사 환자 데이터 기반</span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>
-          <div className="text-lg font-bold text-emerald-600">{matchedPatients}</div>
+          <div className="text-lg font-bold text-blue-600">{matchedPatients}</div>
           <div className="text-[10px] text-gray-500">유사 환자</div>
         </div>
         <div>
-          <div className="text-lg font-bold text-teal-600">{successRate}%</div>
+          <div className="text-lg font-bold text-blue-600">{successRate}%</div>
           <div className="text-[10px] text-gray-500">호전율</div>
         </div>
         {avgTreatmentDays && (

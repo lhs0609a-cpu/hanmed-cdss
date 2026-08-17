@@ -116,7 +116,7 @@ function UserActions({
             className="fixed inset-0 z-10"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+          <div className="absolute right-0 top-full mt-1 w-48 glass-surface border rounded-lg shadow-lg py-1 z-20">
             {canModify && user.status === 'active' && (
               <button
                 onClick={() => {
@@ -307,7 +307,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 필터 영역 */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* 검색 */}
           <div className="flex-1 relative">
@@ -373,7 +373,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />

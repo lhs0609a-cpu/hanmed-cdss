@@ -69,10 +69,10 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     ],
     illustration: (
       <div className="relative w-64 h-64">
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-full animate-pulse" />
-        <div className="absolute inset-4 bg-gradient-to-br from-teal-200 to-emerald-200 rounded-full" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-100 rounded-full animate-pulse" />
+        <div className="absolute inset-4 bg-gradient-to-br from-blue-200 to-blue-200 rounded-full" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <Stethoscope className="w-24 h-24 text-teal-600" />
+          <Stethoscope className="w-24 h-24 text-blue-600" />
         </div>
         <div className="absolute top-4 right-4 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center animate-bounce">
           <Sparkles className="w-6 h-6 text-amber-600" />
@@ -111,7 +111,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
             <span className="text-sm text-gray-500">두통, 어지러움...</span>
           </div>
           <div className="space-y-2">
-            <div className="p-2 bg-teal-50 rounded-lg border border-teal-200">
+            <div className="p-2 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium">유사도 95%</span>
                 <span className="text-amber-500 text-xs">⭐⭐⭐⭐⭐</span>
@@ -165,12 +165,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     ],
     illustration: (
       <div className="relative w-64 h-64">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-100 rounded-full" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="text-6xl mb-2">🎊</div>
-            <div className="text-2xl font-bold text-teal-600">시작하기</div>
-            <div className="text-sm text-teal-700 mt-1">14일 무료 체험</div>
+            <div className="text-2xl font-bold text-blue-600">시작하기</div>
+            <div className="text-sm text-blue-700 mt-1">14일 무료 체험</div>
           </div>
         </div>
         <div className="absolute -top-2 -right-2 px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-sm font-bold rounded-full shadow-lg">
@@ -249,13 +249,13 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
         </button>
 
         {/* Step indicator */}
-        <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-teal-100 text-teal-700 text-sm font-medium rounded-full">
+        <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
           {currentStep + 1} / {ONBOARDING_STEPS.length}
         </div>
 
         <div className="grid md:grid-cols-2">
           {/* Left side - Illustration */}
-          <div className="hidden md:flex items-center justify-center p-8 bg-gradient-to-br from-teal-50 to-emerald-50">
+          <div className="hidden md:flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-blue-50">
             {step.illustration}
           </div>
 
@@ -270,9 +270,9 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
                   className={cn(
                     'h-2 rounded-full transition-all',
                     currentStep === index
-                      ? 'bg-teal-600 w-8'
+                      ? 'bg-blue-600 w-8'
                       : index < currentStep
-                      ? 'bg-teal-300 w-2'
+                      ? 'bg-blue-300 w-2'
                       : 'bg-gray-200 hover:bg-gray-300 w-2'
                   )}
                   aria-label={`${index + 1}단계로 이동`}
@@ -282,7 +282,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
 
             {/* Content */}
             <div className="text-center mb-6">
-              <p className="text-teal-600 font-medium text-sm mb-2">{step.subtitle}</p>
+              <p className="text-blue-600 font-medium text-sm mb-2">{step.subtitle}</p>
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">{step.title}</h2>
               <p className="text-gray-500 whitespace-pre-line text-sm md:text-base">{step.description}</p>
             </div>
@@ -299,8 +299,8 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
                   key={index}
                   className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <feature.icon className="w-4 h-4 text-teal-600" />
+                  <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <feature.icon className="w-4 h-4 text-blue-600" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 text-sm">{feature.title}</h3>
@@ -324,7 +324,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
             {step.actionButton && !isLastStep && (
               <button
                 onClick={handleActionButton}
-                className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-teal-500/30 transition-all"
+                className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all"
               >
                 <MousePointer className="w-4 h-4" />
                 {step.actionButton.label}
@@ -353,8 +353,8 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
                 className={cn(
                   'flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all',
                   isLastStep
-                    ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white hover:shadow-lg hover:shadow-teal-500/30'
-                    : 'bg-teal-600 text-white hover:bg-teal-700'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/30'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 )}
               >
                 {isLastStep ? (

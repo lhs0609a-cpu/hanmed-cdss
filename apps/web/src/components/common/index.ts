@@ -87,6 +87,14 @@ export {
 // Usage Limit Modal
 export { UsageLimitModal } from './UsageLimitModal'
 
+// Feature Gate (티어 게이팅)
+export {
+  FeatureGate,
+  FeatureGateAction,
+  UpgradePromptDialog,
+} from './FeatureGate'
+export type { FeatureGateProps } from './FeatureGate'
+
 // Medical Term Tooltips & Glossary
 export {
   TermTooltip,
@@ -141,7 +149,6 @@ export {
 } from './VisuallyHidden'
 
 // Onboarding
-export { WelcomeModal } from './WelcomeModal'
 
 // Offline Status
 export { OfflineBanner } from './OfflineBanner'
@@ -170,3 +177,6 @@ export {
 
 // 토스 스타일 3D 아이콘 컨테이너 (lucide 아이콘 → gradient pill)
 export { Toss3DIcon, type Toss3DTone, type Toss3DSize } from './Toss3DIcon'
+
+// 온고지신 브랜드 마크 (CSS 3D 스쿼클) — 앱 전역 "온" 로고 단일 소스
+export { Logo, LogoMark, type LogoProps } from './Logo'

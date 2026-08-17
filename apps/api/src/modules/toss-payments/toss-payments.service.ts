@@ -14,6 +14,13 @@ import {
   PLAN_LIMITS,
 } from '../../database/entities/user.entity';
 import {
+  FeatureKey,
+  PLAN_FEATURES,
+  FEATURE_LABELS,
+  PRACTITIONER_SEAT_LIMITS,
+  CASE_SAVE_LIMITS,
+} from '../../database/entities/plan-features';
+import {
   Subscription,
   SubscriptionStatus,
   BillingInterval,
@@ -39,18 +46,18 @@ import {
   evaluateRefundEligibility,
 } from './refund-policy';
 
-// 플랜별 가격 정보 (수익성 최적화 버전 - 2024.02)
-// 핵심 변경사항:
-// 1. Free: 30회/월로 제한 (기존 무제한 일일 10회에서 축소)
-// 2. Basic: 100회/월 + 초과 400원 (가치 인식 향상)
-// 3. Clinic: 1,500회/월 Fair Use (무제한 리스크 제거)
-// 4. 연간 결제 시 17% 할인 (2개월 무료)
+// 플랜별 가격 정보 (PLG 수익모델 — 2026-06)
+// 핵심 원칙:
+//  1. 한의사가 매일 임상에서 쓰는 핵심 기능(변증·처방·치험례·커뮤니티)은 무료 — PLG 후킹
+//  2. "돈 버는 기능"(보험청구·삭감방지)은 별도 add-on 또는 Clinic 티어
+//  3. 연간 결제 시 17% 할인 (2개월 무료) — 기존 정책 유지
+//  4. Free의 AI 챗봇만 월 50회 제한, 변증/검색/처방 추천은 무제한 (코어 임상은 무료)
 export const PLAN_PRICES = {
   [SubscriptionTier.FREE]: {
     monthly: 0,
     yearly: 0,
     name: 'Free',
-    includedQueries: 30, // 월 30회 (일 1회 평균) - 전환 유도 목적
+    includedQueries: 50, // AI 챗봇 월 50회 (코어 임상은 무제한)
     overagePrice: 0,
     canExceed: false,
   },
@@ -58,27 +65,42 @@ export const PLAN_PRICES = {
     monthly: 19900,
     yearly: 199000, // 17% 할인 (2개월 무료)
     name: 'Basic',
-    includedQueries: 100, // 기존 50 → 100 (가치 인식 향상)
-    overagePrice: 400, // 기존 500 → 400 (업그레이드 유도)
-    canExceed: true,
-  },
-  [SubscriptionTier.PROFESSIONAL]: {
-    monthly: 99000,
-    yearly: 990000, // 17% 할인 (2개월 무료)
-    name: 'Professional',
-    includedQueries: 300,
-    overagePrice: 300,
-    canExceed: true,
-  },
-  [SubscriptionTier.CLINIC]: {
-    monthly: 299000, // 기존 199,000 → 299,000 (마진 개선)
-    yearly: 2990000, // 17% 할인 (2개월 무료)
-    name: 'Clinic',
-    includedQueries: 1500, // Fair Use Policy: 월 1,500회
+    includedQueries: 200, // AI 챗봇 월 200회
     overagePrice: 200, // 초과 시 건당 200원
     canExceed: true,
   },
+  [SubscriptionTier.PROFESSIONAL]: {
+    monthly: 49000, // 한의사 1인 메인 티어 (Pro)
+    yearly: 490000, // 17% 할인
+    name: 'Pro',
+    includedQueries: 1000, // AI 챗봇 월 1,000회
+    overagePrice: 100,
+    canExceed: true,
+  },
+  [SubscriptionTier.CLINIC]: {
+    monthly: 149000, // 한의원 단위 (원장 + 한의사 2인까지 포함)
+    yearly: 1490000, // 17% 할인
+    name: 'Clinic',
+    includedQueries: 5000, // Fair Use Policy: 한의원 단위 5,000회
+    overagePrice: 80,
+    canExceed: true,
+  },
 };
+
+/**
+ * 청구 부가서비스 (Add-on) — Clinic 티어 위에 얹는 별도 상품.
+ *
+ * 한국 의료 SW 시장에서 가장 큰 단일 매출원은 "청구·삭감방지"라는 시장 검증을 따른다.
+ * 초기엔 정액제로 단순화하고, 트랙션 확보 후 성과연동(절감액의 10~15%) 옵션을 추가 검토.
+ */
+export const BILLING_ADDON = {
+  /** 청구 add-on 월 정액 (Clinic 티어 add-on) */
+  INSURANCE_CLAIM_MONTHLY: 99000,
+  /** 청구 add-on 연간 (17% 할인) */
+  INSURANCE_CLAIM_YEARLY: 990000,
+  name: '보험청구·삭감방지',
+  description: '자동 청구 + 사전 삭감 점검 + 청구 누락 알람 + 심사 대응 가이드',
+} as const;
 
 interface TossBillingKeyResponse {
   mId: string;
@@ -937,10 +959,18 @@ export class TossPaymentsService {
       order: { createdAt: 'DESC' },
     });
 
+    const features = Array.from(PLAN_FEATURES[user.subscriptionTier] ?? []);
+
     return {
       tier: user.subscriptionTier,
       expiresAt: user.subscriptionExpiresAt,
       hasBillingKey: !!user.tossBillingKey,
+      features, // 현재 티어에서 접근 가능한 FeatureKey 목록 — 프론트 게이팅용
+      seats: PRACTITIONER_SEAT_LIMITS[user.subscriptionTier] ?? 1,
+      caseSaveLimit:
+        CASE_SAVE_LIMITS[user.subscriptionTier] === Infinity
+          ? -1
+          : CASE_SAVE_LIMITS[user.subscriptionTier],
       subscription: subscription
         ? {
             id: subscription.id,
@@ -956,92 +986,143 @@ export class TossPaymentsService {
 
   // 요금제 목록 조회
   getPlans() {
+    /** PLAN_FEATURES 매트릭스의 FeatureKey를 사람이 읽는 한글 라벨로 변환 */
+    const featureLabels = (tier: SubscriptionTier): string[] =>
+      Array.from(PLAN_FEATURES[tier]).map((key) => FEATURE_LABELS[key]);
+
     return {
       plans: [
         {
           tier: 'free',
           name: 'Free',
-          description: '학생/수련생을 위한 무료 플랜',
+          description: '한의사·학생·수련생 — 핵심 임상은 영구 무료',
+          tagline: '변증·처방·치험례·커뮤니티 모두 무제한',
           features: [
-            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.FREE].includedQueries}회/월`,
-            '기본 검색 기능',
-            '커뮤니티 읽기',
+            `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.FREE].includedQueries}회`,
+            '변증·통합진단 무제한',
+            '처방 추천 + 근거 무제한',
+            '증상·치험례 검색 무제한',
+            '커뮤니티 무제한',
+            '한약재·DUR / 침구혈자리',
           ],
+          featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.FREE]),
+          featureLabels: featureLabels(SubscriptionTier.FREE),
           monthlyPrice: 0,
           yearlyPrice: 0,
           aiQueryLimit: PLAN_PRICES[SubscriptionTier.FREE].includedQueries,
           overagePrice: 0,
           canExceed: false,
+          seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.FREE],
+          caseSaveLimit: CASE_SAVE_LIMITS[SubscriptionTier.FREE],
         },
         {
           tier: 'basic',
           name: 'Basic',
-          description: '한약사, 체험 사용자를 위한 기본 플랜',
+          description: '한약사·예비개원의 — 가볍게 시작',
           features: [
-            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.BASIC].includedQueries}회/월 포함`,
-            `초과 시 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건`,
-            '전체 검색 기능',
-            '커뮤니티 참여',
+            `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.BASIC].includedQueries}회 (초과 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건)`,
+            '케이스 저장 50건',
+            '케이스 내보내기 (PDF/이미지)',
+            '기본 통계',
             '이메일 지원',
           ],
+          featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.BASIC]),
+          featureLabels: featureLabels(SubscriptionTier.BASIC),
           monthlyPrice: PLAN_PRICES[SubscriptionTier.BASIC].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.BASIC].yearly,
           aiQueryLimit: PLAN_PRICES[SubscriptionTier.BASIC].includedQueries,
           overagePrice: PLAN_PRICES[SubscriptionTier.BASIC].overagePrice,
           canExceed: true,
+          seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.BASIC],
+          caseSaveLimit: CASE_SAVE_LIMITS[SubscriptionTier.BASIC],
         },
         {
           tier: 'professional',
-          name: 'Professional',
-          description: '봉직 한의사를 위한 전문가 플랜',
+          name: 'Pro',
+          description: '한의사 1인 — 활발한 임상의 메인 티어',
+          tagline: '환자관리 + 음성차트 + 무제한 저장',
           features: [
-            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries}회/월 포함`,
-            `초과 시 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].overagePrice}원/건`,
-            '고급 분석 기능',
-            '처방 비교 무제한',
+            `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries.toLocaleString()}회`,
+            '케이스 무제한 저장 + 통계',
+            '환자 관리 (전자차트)',
+            '음성차트 (Voice Chart)',
+            '고급 검색 필터·학파 비교',
+            '워터마크 제거 내보내기',
             '우선 지원',
           ],
+          featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.PROFESSIONAL]),
+          featureLabels: featureLabels(SubscriptionTier.PROFESSIONAL),
           monthlyPrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].yearly,
           aiQueryLimit: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries,
           overagePrice: PLAN_PRICES[SubscriptionTier.PROFESSIONAL].overagePrice,
           canExceed: true,
+          seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.PROFESSIONAL],
+          caseSaveLimit: -1, // unlimited
+          recommended: true,
         },
         {
           tier: 'clinic',
           name: 'Clinic',
-          description: '개원 한의사를 위한 최상위 플랜',
+          description: '한의원 단위 (원장 + 한의사 2인 포함)',
+          tagline: '보험청구·삭감방지 포함 · 팀 협업',
           features: [
-            `AI 쿼리 ${PLAN_PRICES[SubscriptionTier.CLINIC].includedQueries.toLocaleString()}회/월 (Fair Use)`,
-            '모든 기능 이용',
-            '다중 계정 지원 (최대 5명)',
+            `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.CLINIC].includedQueries.toLocaleString()}회 (Fair Use)`,
+            `다인 계정 (기본 ${PRACTITIONER_SEAT_LIMITS[SubscriptionTier.CLINIC]}인, 추가 시트 별도)`,
+            '보험청구·삭감방지 포함',
+            '한의원 단위 대시보드·고급 분석',
+            '한의원 공동 케이스 DB',
             '전담 지원',
-            '맞춤형 리포트',
           ],
+          featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.CLINIC]),
+          featureLabels: featureLabels(SubscriptionTier.CLINIC),
           monthlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].monthly,
           yearlyPrice: PLAN_PRICES[SubscriptionTier.CLINIC].yearly,
           aiQueryLimit: PLAN_PRICES[SubscriptionTier.CLINIC].includedQueries,
           overagePrice: PLAN_PRICES[SubscriptionTier.CLINIC].overagePrice,
           canExceed: true,
+          seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.CLINIC],
+          caseSaveLimit: -1,
         },
         {
           tier: 'enterprise',
           name: 'Enterprise',
-          description: '대형 병원/네트워크를 위한 맞춤형 플랜',
+          description: '한방병원·네트워크 — 별도 협의',
           features: [
             '무제한 AI 쿼리',
             '전용 서버 환경',
             '맞춤형 API 연동',
             'SLA 보장 (99.9%)',
             '전담 계정 매니저',
-            'HIPAA/개인정보 컴플라이언스',
+            '개인정보 컴플라이언스',
           ],
-          monthlyPrice: 0, // 별도 문의
+          featureKeys: [],
+          featureLabels: [],
+          monthlyPrice: 0,
           yearlyPrice: 0,
-          aiQueryLimit: -1, // 무제한
+          aiQueryLimit: -1,
           overagePrice: 0,
           canExceed: false,
-          isCustom: true, // 별도 문의 표시
+          seats: -1,
+          caseSaveLimit: -1,
+          isCustom: true,
+        },
+      ],
+      addons: [
+        {
+          key: 'insurance_claim',
+          name: BILLING_ADDON.name,
+          description: BILLING_ADDON.description,
+          monthlyPrice: BILLING_ADDON.INSURANCE_CLAIM_MONTHLY,
+          yearlyPrice: BILLING_ADDON.INSURANCE_CLAIM_YEARLY,
+          requiresTier: SubscriptionTier.PROFESSIONAL, // Pro 이상에서 add-on 가능 (Clinic은 포함)
+          includedInTiers: [SubscriptionTier.CLINIC],
+          features: [
+            '자동 보험청구',
+            '삭감 위험 사전 점검',
+            '청구 누락 알람',
+            '심사 대응 가이드',
+          ],
         },
       ],
     };

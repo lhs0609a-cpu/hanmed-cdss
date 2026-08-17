@@ -467,7 +467,7 @@ ${soapNote.plan}
         {/* Recording Section */}
         <div className="space-y-4">
           {/* Recording Controls */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="text-center">
               {/* Timer Display */}
               <div className="mb-6">
@@ -488,7 +488,7 @@ ${soapNote.plan}
                   {[...Array(12)].map((_, i) => (
                     <div
                       key={i}
-                      className="w-1 bg-teal-500 rounded-full animate-pulse"
+                      className="w-1 bg-blue-500 rounded-full animate-pulse"
                       style={{
                         height: `${Math.random() * 30 + 10}px`,
                         animationDelay: `${i * 0.1}s`,
@@ -508,7 +508,7 @@ ${soapNote.plan}
                       'w-20 h-20 rounded-full flex items-center justify-center transition-all',
                       micPermission === 'denied'
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:shadow-lg hover:shadow-teal-500/30'
+                        : 'accent-gradient accent-glow text-white hover:brightness-[1.06]'
                     )}
                   >
                     <Mic className="h-8 w-8" />
@@ -544,7 +544,7 @@ ${soapNote.plan}
           </div>
 
           {/* Transcript */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-gray-400" />
@@ -571,7 +571,7 @@ ${soapNote.plan}
               <button
                 onClick={processToSOAP}
                 disabled={isProcessing}
-                className="w-full mt-4 py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
                   <>
@@ -591,10 +591,10 @@ ${soapNote.plan}
 
         {/* SOAP Note Section */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="surface-card rounded-2xl overflow-hidden">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-teal-500" />
+                <FileText className="h-5 w-5 text-blue-500" />
                 SOAP 차트
               </h3>
               {soapNote && (
@@ -615,7 +615,7 @@ ${soapNote.plan}
                   </button>
                   <button
                     onClick={saveSession}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                   >
                     <Save className="h-4 w-4" />
                     저장
@@ -633,8 +633,8 @@ ${soapNote.plan}
                       className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-teal-100 rounded-lg">
-                          <section.icon className="h-4 w-4 text-teal-600" />
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <section.icon className="h-4 w-4 text-blue-600" />
                         </div>
                         <div className="text-left">
                           <p className="font-semibold text-gray-900">{section.label}</p>
@@ -654,11 +654,11 @@ ${soapNote.plan}
                             <textarea
                               value={soapNote[section.key]}
                               onChange={(e) => updateSOAPSection(section.key, e.target.value)}
-                              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 min-h-[100px] resize-none"
+                              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-h-[100px] resize-none"
                             />
                             <button
                               onClick={() => setEditingSection(null)}
-                              className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm hover:bg-teal-600 transition-colors"
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
                             >
                               완료
                             </button>
@@ -692,7 +692,7 @@ ${soapNote.plan}
 
           {/* Saved Sessions */}
           {savedSessions.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="surface-card rounded-2xl p-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-gray-400" />
                 최근 기록
@@ -723,12 +723,12 @@ ${soapNote.plan}
       </div>
 
       {/* Tips */}
-      <div className="bg-teal-50 rounded-2xl border border-teal-100 p-6">
-        <h3 className="font-bold text-teal-900 mb-3">💡 효과적인 음성 기록 팁</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-teal-800">
+      <div className="bg-blue-50 rounded-2xl border border-blue-100 p-6">
+        <h3 className="font-bold text-blue-900 mb-3">💡 효과적인 음성 기록 팁</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
           <div>
             <p className="font-medium mb-2">명확하게 말하기</p>
-            <ul className="space-y-1 text-teal-700">
+            <ul className="space-y-1 text-blue-700">
               <li>• "주소증은 두통입니다"</li>
               <li>• "맥은 현맥이고 설은 홍설입니다"</li>
               <li>• "처방은 소시호탕으로 합니다"</li>
@@ -736,7 +736,7 @@ ${soapNote.plan}
           </div>
           <div>
             <p className="font-medium mb-2">키워드 사용</p>
-            <ul className="space-y-1 text-teal-700">
+            <ul className="space-y-1 text-blue-700">
               <li>• 주소증, 증상, 호소 (S)</li>
               <li>• 맥, 설, 복진, 관찰 (O)</li>
               <li>• 변증, 진단, 의심 (A)</li>
@@ -749,7 +749,7 @@ ${soapNote.plan}
       {/* Prescription Modal */}
       {showPrescriptionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg mx-4 glass-surface border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

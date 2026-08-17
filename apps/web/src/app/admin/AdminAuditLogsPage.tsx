@@ -165,7 +165,7 @@ export default function AdminAuditLogsPage() {
       </div>
 
       {/* 필터 영역 */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-4 w-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-700">필터</span>
@@ -257,7 +257,7 @@ export default function AdminAuditLogsPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />

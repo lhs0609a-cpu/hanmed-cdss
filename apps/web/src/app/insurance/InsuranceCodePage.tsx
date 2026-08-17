@@ -8,6 +8,7 @@ import {
   Info,
   DollarSign,
   Tag,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -797,11 +798,32 @@ export default function InsuranceCodePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <FileText className="h-7 w-7 text-green-500" />
+          <FileText className="h-7 w-7 text-blue-500" />
           보험 청구 코드
         </h1>
         <p className="mt-1 text-gray-500">
           한방 보험 청구 코드를 검색하고 확인하세요
+        </p>
+      </div>
+
+      {/* 예시 데이터 고지 — 이 페이지의 코드/점수/수가는 실제 심평원 고시값이 아닌 참고용
+          예시입니다. 실제 청구 전 반드시 심평원 최신 고시로 확인해야 오청구/삭감을 막습니다. */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" aria-hidden="true" />
+        <p className="text-[13px] leading-relaxed text-amber-800">
+          <strong>참고용 예시 데이터입니다 — 고시 기준연도 없음.</strong> 이 표는 특정 연도
+          고시에 연동되어 있지 않고 자동 갱신되지 않습니다. 수가는 매년 개정되므로 표시된
+          점수·금액을 그대로 청구하면 오청구·삭감으로 이어질 수 있습니다. 실제 청구 전
+          반드시{' '}
+          <a
+            href="https://www.hira.or.kr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold underline underline-offset-2"
+          >
+            심평원 최신 고시
+          </a>
+          로 확인하세요.
         </p>
       </div>
 
@@ -815,7 +837,7 @@ export default function InsuranceCodePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="코드, 명칭으로 검색..."
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
         </div>
@@ -829,7 +851,7 @@ export default function InsuranceCodePage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
                 selectedCategory === category
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
@@ -870,7 +892,7 @@ export default function InsuranceCodePage() {
                 <tr key={code.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-green-600">{code.code}</span>
+                      <span className="font-mono font-bold text-blue-600">{code.code}</span>
                       <button
                         onClick={() => handleCopyCode(code.code)}
                         className="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -894,7 +916,7 @@ export default function InsuranceCodePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                         {code.category}
                       </span>
                       <span className="text-xs text-gray-500">{code.subcategory}</span>
@@ -932,37 +954,37 @@ export default function InsuranceCodePage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <Tag className="h-5 w-5 text-green-500" />
+            <Tag className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-gray-500">전체 코드</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{insuranceCodes.length}</p>
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">{insuranceCodes.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-gray-500">침술 코드</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {insuranceCodes.filter((c) => c.category === '침술').length}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-5 w-5 text-purple-500" />
             <span className="text-sm text-gray-500">추나 코드</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {insuranceCodes.filter((c) => c.category === '추나').length}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="glass-tile rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-5 w-5 text-amber-500" />
             <span className="text-sm text-gray-500">한약 코드</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold tracking-tight tabular-nums text-gray-900">
             {insuranceCodes.filter((c) => c.category === '한약').length}
           </p>
         </div>
@@ -974,7 +996,7 @@ export default function InsuranceCodePage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <span className="font-mono text-2xl font-bold text-green-600">
+                <span className="font-mono text-2xl font-bold text-blue-600">
                   {selectedCode.code}
                 </span>
                 <h2 className="text-xl font-bold text-gray-900 mt-2">
@@ -991,7 +1013,7 @@ export default function InsuranceCodePage() {
 
             <div className="space-y-4">
               <div className="flex gap-2">
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-lg">
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg">
                   {selectedCode.category}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
@@ -1050,7 +1072,7 @@ export default function InsuranceCodePage() {
               </button>
               <button
                 onClick={() => setSelectedCode(null)}
-                className="flex-1 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                className="accent-gradient accent-glow flex-1 py-3 text-white rounded-md transition-colors"
               >
                 닫기
               </button>

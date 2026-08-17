@@ -11,24 +11,11 @@
  */
 
 import type { FeeSearchResult } from '@/types'
+import { fetchPublicData } from './public-data-proxy'
 
-// 환경변수에서 API 키 가져오기
-const PUBLIC_DATA_API_KEY = import.meta.env.VITE_PUBLIC_DATA_API_KEY || ''
-
-// 데모 모드 여부 확인
-export const isInsuranceApiDemoMode = (): boolean => !PUBLIC_DATA_API_KEY
-
-// API 엔드포인트
-const API_ENDPOINTS = {
-  // 수가기준정보조회서비스
-  FEE_KOREAN: 'https://apis.data.go.kr/B551182/mdfeeCrtrInfoService/getOrmcCrtrList', // 한방수가
-  FEE_MEDICAL: 'https://apis.data.go.kr/B551182/mdfeeCrtrInfoService/getMdCrtrList', // 진료수가
-  FEE_PHARMACY: 'https://apis.data.go.kr/B551182/mdfeeCrtrInfoService/getPhmcCrtrList', // 약국수가
-  // 질병정보서비스
-  DISEASE_INFO: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList', // 질병명칭/코드
-  DISEASE_INOUT: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissInoStatsList', // 입원외래별통계
-  DISEASE_GENDER_AGE: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissSexAggrStatsList', // 성별연령별통계
-}
+// serviceKey 는 백엔드 프록시가 주입한다(public-data-proxy.ts). 프론트는 서버 키 설정 여부를
+// 알 수 없으므로, 데모 배너는 실제 검색 결과의 isDemo 플래그로만 판단한다.
+export const isInsuranceApiDemoMode = (): boolean => false
 
 // ========== 수가정보 API ==========
 
@@ -43,15 +30,8 @@ export async function searchKoreanMedicineFee(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: FeeSearchResult[]; totalCount: number; isDemo?: boolean }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    const demoResult = getDemoKoreanFeeData(keyword)
-    return { ...demoResult, isDemo: true }
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
     })
@@ -65,7 +45,7 @@ export async function searchKoreanMedicineFee(
       }
     }
 
-    const response = await fetch(`${API_ENDPOINTS.FEE_KOREAN}?${params}`)
+    const response = await fetchPublicData('FEE_KOREAN', params)
     const text = await response.text()
 
     // XML 파싱
@@ -117,13 +97,8 @@ export async function searchMedicalFee(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: FeeSearchResult[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    return { items: [], totalCount: 0 }
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
     })
@@ -136,7 +111,7 @@ export async function searchMedicalFee(
       }
     }
 
-    const response = await fetch(`${API_ENDPOINTS.FEE_MEDICAL}?${params}`)
+    const response = await fetchPublicData('FEE_MEDICAL', params)
     const text = await response.text()
 
     const parser = new DOMParser()
@@ -204,15 +179,8 @@ export async function searchDiseaseCode(
   pageNo: number = 1,
   numOfRows: number = 20
 ): Promise<{ items: DiseaseInfo[]; totalCount: number; isDemo?: boolean }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    const demoResult = getDemoDiseaseData(keyword, mdTpCd)
-    return { ...demoResult, isDemo: true }
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
     })
@@ -230,7 +198,7 @@ export async function searchDiseaseCode(
       params.append('mdTpCd', mdTpCd)
     }
 
-    const response = await fetch(`${API_ENDPOINTS.DISEASE_INFO}?${params}`)
+    const response = await fetchPublicData('DISEASE_INFO', params)
     const text = await response.text()
 
     const parser = new DOMParser()

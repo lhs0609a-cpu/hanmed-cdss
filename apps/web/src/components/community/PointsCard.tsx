@@ -29,8 +29,8 @@ export function PointsCard({ stats, compact = false, className }: PointsCardProp
       label: '기여 포인트',
       value: stats.contributionPoints.toLocaleString(),
       icon: TrendingUp,
-      color: 'text-teal-600',
-      bgColor: 'bg-teal-50',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
     {
       label: '작성 글',

@@ -331,6 +331,29 @@
     from { width: 0%; }
   }
 
+  /* 진행률을 알 수 없는 대기(AI 분석 등)용 무한 바.
+     퍼센트를 아는 척하면 안 된다 — 고정 폭 + pulse 는 "멈춘 것처럼" 보이고 사실도 아니다.
+     모션 감소는 상단 base 레이어의 전역 prefers-reduced-motion 규칙이 함께 처리한다. */
+  .progress-indeterminate {
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-indeterminate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+    animation: ongojisin-indeterminate 1.4s ease-in-out infinite;
+  }
+  @keyframes ongojisin-indeterminate {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+
   .slide-in-menu {
     animation: ongojisin-fade-up 0.2s ease-out forwards;
   }
@@ -518,5 +541,177 @@
   .backdrop-blur-xl,
   .backdrop-blur-2xl {
     backdrop-filter: none;
+  }
+}
+
+/* ============================================================
+   몰입형 랜딩 스코프 (.ojs-immersive)
+   ------------------------------------------------------------
+   위 "Toss 톤 정합화" 블록은 앱 전반의 광고성 장식을 걷어내려고
+   backdrop-filter / 그라디언트를 전역 !important 로 차단한다.
+   랜딩 페이지는 3D 추상 + 글래스모피즘이 디자인의 본체이므로
+   해당 규칙을 지우는 대신 이 스코프 안에서만 되돌린다.
+   (전역 규칙을 삭제하면 대시보드 등 나머지 화면 톤이 전부 바뀐다)
+   ============================================================ */
+.ojs-immersive .backdrop-blur,
+.ojs-immersive .backdrop-blur-sm,
+.ojs-immersive .backdrop-blur-md,
+.ojs-immersive .backdrop-blur-lg,
+.ojs-immersive .backdrop-blur-xl,
+.ojs-immersive .backdrop-blur-2xl,
+.ojs-immersive .backdrop-blur-3xl {
+  -webkit-backdrop-filter: var(--tw-backdrop-blur);
+  backdrop-filter: var(--tw-backdrop-blur);
+}
+
+/* 그라디언트 텍스트 복원 — 히어로 헤드라인용 */
+.ojs-immersive [class*='bg-clip-text'][class*='text-transparent'] {
+  background-image: var(--ojs-text-gradient, linear-gradient(180deg, #ffffff 0%, #9db9e8 100%)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* 주의: 섹션 배경 그라디언트는 tailwind 유틸리티(bg-gradient-to-*) 대신
+   인라인 style={{ backgroundImage }} 로 넣는다.
+   위 평탄화 블록이 [class*='bg-gradient-to-tr'][class*='from-'] 처럼 광범위한
+   !important 선택자를 쓰고 있어, 유틸리티로 넣으면 방향 정보(to right 등)까지
+   함께 복원해야 해서 취약해진다. 인라인 스타일은 해당 선택자에 걸리지 않는다. */
+
+/* 구체/오브젝트 부유 애니메이션 */
+@keyframes ojs-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, -22px, 0) scale(1.035); }
+}
+.ojs-float {
+  animation: ojs-float 13s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* 스크롤 등장 */
+@keyframes ojs-rise {
+  from { opacity: 0; transform: translate3d(0, 22px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.ojs-rise { animation: ojs-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* 광원 맥동 — CTA 뒤 글로우 */
+@keyframes ojs-pulse-glow {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.75; }
+}
+.ojs-pulse-glow { animation: ojs-pulse-glow 6s ease-in-out infinite; }
+
+/* 접근성 — 모션 최소화 설정 존중 */
+@media (prefers-reduced-motion: reduce) {
+  .ojs-float,
+  .ojs-rise,
+  .ojs-pulse-glow {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   앱 내부 글래스 액센트 시스템 (라이트 기반)
+   ------------------------------------------------------------
+   랜딩(.ojs-immersive)은 다크 몰입형이지만, 진료 화면은 하루 8시간
+   차트·수치를 읽는 곳이라 라이트를 유지한다.
+   글래스는 '떠 있어야 하는 것'에만 액센트로 쓴다:
+     - 상단 헤더/사이드바처럼 콘텐츠 위에 고정되는 표면
+     - 통계 타일, 강조 카드
+     - 시트/팝오버
+   본문 카드·테이블은 불투명 흰색을 유지한다(가독성 우선).
+   ============================================================ */
+@layer base {
+  :root {
+    /* 표면 단계 — 위로 갈수록 떠 있음 */
+    --surface-1: 0 0% 100%;             /* 기본 카드 */
+    --surface-2: 210 17% 98%;           /* 섹션 배경 */
+    --surface-3: 210 14% 96%;           /* 눌린 영역/입력 */
+
+    /* 글래스 — 라이트 모드용. 흰색 기반 + 낮은 채도 */
+    --glass-bg: 255 255 255 / 0.72;
+    --glass-bg-strong: 255 255 255 / 0.86;
+    --glass-border: 255 255 255 / 0.65;
+    --glass-ring: 17 24 39 / 0.06;
+
+    /* 액센트 그라디언트 — 브랜드 블루 → 인디고. 강조 요소에만 */
+    --accent-gradient: linear-gradient(135deg, #3182F6 0%, #5B7CFA 100%);
+    --accent-glow: 49 130 246 / 0.18;
+
+    /* 상승 그림자 스케일 */
+    --shadow-1: 0 1px 2px rgba(17, 24, 39, 0.04);
+    --shadow-2: 0 4px 16px -4px rgba(17, 24, 39, 0.08);
+    --shadow-3: 0 12px 40px -12px rgba(17, 24, 39, 0.14);
+  }
+
+  .dark {
+    --surface-1: 213 23% 16%;
+    --surface-2: 213 23% 13%;
+    --surface-3: 213 23% 22%;
+
+    --glass-bg: 25 31 40 / 0.66;
+    --glass-bg-strong: 25 31 40 / 0.85;
+    --glass-border: 255 255 255 / 0.10;
+    --glass-ring: 255 255 255 / 0.06;
+
+    --accent-glow: 49 130 246 / 0.28;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 4px 16px -4px rgba(0, 0, 0, 0.45);
+    --shadow-3: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@layer components {
+  /* 떠 있는 표면 — 헤더/사이드바/시트.
+     위 'Toss 평탄화' 블록이 .backdrop-blur-* 유틸리티만 무력화하므로
+     여기서는 backdrop-filter 를 직접 선언해 영향을 받지 않는다. */
+  .glass-surface {
+    background: rgb(var(--glass-bg));
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border-color: rgb(var(--glass-border));
+  }
+
+  .glass-surface-strong {
+    background: rgb(var(--glass-bg-strong));
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-color: rgb(var(--glass-border));
+  }
+
+  /* 강조 카드 — 통계 타일 등. 미묘한 광택 + 링 */
+  .glass-tile {
+    position: relative;
+    background: rgb(var(--glass-bg-strong));
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+    box-shadow:
+      var(--shadow-2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border: 1px solid rgb(var(--glass-border));
+  }
+  .dark .glass-tile {
+    box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* 액센트 그라디언트 표면 — 주요 CTA, 활성 내비 항목 */
+  .accent-gradient {
+    background: var(--accent-gradient);
+    color: #fff;
+  }
+
+  /* 액센트 글로우 — 포커스/활성 강조 */
+  .accent-glow {
+    box-shadow: 0 8px 28px -8px rgb(var(--accent-glow));
+  }
+
+  /* 본문 카드 — 불투명 유지(가독성). 글래스 아님 */
+  .surface-card {
+    background: hsl(var(--surface-1));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-1);
   }
 }

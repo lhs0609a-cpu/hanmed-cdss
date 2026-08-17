@@ -434,13 +434,13 @@ export default function HealthHomePage() {
                   <p className="font-medium text-gray-900">{item.question}</p>
                 </div>
                 <div className="flex items-start gap-3 ml-0 md:ml-9">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
                     A
                   </span>
                   <div className="flex-1">
                     <p className="text-sm text-gray-600 leading-relaxed">{item.answer}</p>
                     <div className="flex items-center gap-3 mt-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
                         <CheckCircle className="w-3 h-3" />
                         {item.doctor}
                       </span>

@@ -67,7 +67,7 @@ function ClinicActions({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+          <div className="absolute right-0 top-full mt-1 w-48 glass-surface border rounded-lg shadow-lg py-1 z-20">
             {!clinic.isHanmedVerified && (
               <button
                 onClick={() => {
@@ -149,8 +149,8 @@ function ClinicDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4">
+      <div className="relative glass-surface border rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
+        <div className="sticky top-0 glass-surface border-b border-gray-100 px-6 py-4">
           <h2 className="text-lg font-bold text-gray-900">한의원 정보 수정</h2>
         </div>
 
@@ -361,7 +361,7 @@ export default function AdminClinicsPage() {
       </div>
 
       {/* 필터 영역 */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="surface-card rounded-2xl p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* 검색 */}
           <div className="flex-1 relative">
@@ -395,7 +395,7 @@ export default function AdminClinicsPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />

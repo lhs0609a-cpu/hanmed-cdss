@@ -107,7 +107,11 @@ export function RealTimeAssistant({
       }
 
       const data = await response.json()
-      const reply = data?.data?.reply ?? data?.reply ?? ''
+      // NestJS 전역 TransformInterceptor가 컨트롤러의 { success, data:{reply} }를
+      // 한 번 더 감싸므로 실제 reply는 data.data.data.reply 깊이에 있다.
+      // 인터셉터가 나중에 정리돼 단일 래핑이 되더라도 깨지지 않도록 폴백 체인 유지.
+      const reply =
+        data?.data?.data?.reply ?? data?.data?.reply ?? data?.reply ?? ''
       setChatMessages((prev) => [...prev, { role: 'assistant', content: reply || '(응답이 비어 있습니다)' }])
     } catch (err) {
       const msg = err instanceof Error ? err.message : '알 수 없는 오류'
@@ -471,10 +475,10 @@ function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
     },
     case: {
       icon: BookOpen,
-      bg: 'bg-emerald-50',
-      border: 'border-emerald-100',
-      iconColor: 'text-emerald-500',
-      titleColor: 'text-emerald-700',
+      bg: 'bg-blue-50',
+      border: 'border-blue-100',
+      iconColor: 'text-blue-500',
+      titleColor: 'text-blue-700',
     },
     warning: {
       icon: AlertTriangle,

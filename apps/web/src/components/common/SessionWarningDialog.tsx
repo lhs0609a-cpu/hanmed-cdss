@@ -131,7 +131,7 @@ export function SessionWarningDialog({
                 'flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl font-medium transition-all',
                 isUrgent
                   ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-teal-500 hover:bg-teal-600',
+                  : 'bg-blue-500 hover:bg-blue-600',
                 isRefreshing && 'opacity-70 cursor-not-allowed'
               )}
             >

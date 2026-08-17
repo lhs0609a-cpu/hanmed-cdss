@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { Stethoscope, BookOpen, ArrowRight, ChevronRight } from 'lucide-react'
+import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap, AlertCircle } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 /**
@@ -60,6 +60,13 @@ export default function DashboardPage() {
   const recentQuery = useRecentActivities()
   const recent = recentQuery.data ?? []
 
+  // 아직 진료 기록이 없는 신규 한의사에게는 예시 증례 카드를 대시보드 안에서 바로 권한다.
+  // (예전에는 여기서 /consultation?demo=1 로 리다이렉트했으나,
+  //  ① 조회 실패 시에도 recent=[] 라 멀쩡한 사용자가 예시 화면으로 튕겼고
+  //  ② replace 리다이렉트라 진료 1건이 쌓이기 전까지 대시보드에 접근할 수 없었다.)
+  const showExampleCard =
+    !recentQuery.isLoading && !recentQuery.isError && recent.length === 0
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* 인사 */}
@@ -70,27 +77,59 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      {/* 큰 CTA — 새 진료 시작 1개만 */}
+      {/* 큰 CTA — 새 진료 시작 1개만.
+          앱 내부는 라이트 기반이지만 이 카드만 액센트 그라디언트로 한 단계 띄운다.
+          (하루에 가장 많이 누르는 단일 동작) */}
       <Link
         to="/dashboard/consultation"
-        className="group block bg-neutral-900 hover:bg-neutral-800 text-white rounded-2xl p-7 transition-colors"
+        className="group relative block overflow-hidden rounded-2xl p-7 text-white accent-gradient accent-glow transition-[transform,filter] duration-200 hover:-translate-y-0.5 hover:brightness-[1.04]"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
+        {/* 유리 광택 — 좌상단 하이라이트 */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-16 -top-24 h-56 w-56 rounded-full"
+          style={{
+            background:
+              'radial-gradient(circle at center, rgba(255,255,255,0.30), transparent 68%)',
+            filter: 'blur(8px)',
+          }}
+        />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <Toss3DIcon icon={Stethoscope} tone="teal" size="sm" />
-              <span className="text-[13px] font-medium text-white/70">진료 시작</span>
+              <span className="text-[13px] font-medium text-white/75">진료 시작</span>
             </div>
             <p className="mt-2 text-[22px] font-bold tracking-tight">
               증상 입력하고 처방 후보 받기
             </p>
-            <p className="mt-1 text-[13px] text-white/70">
-              평균 3초 안에 6,000+ 치험례에서 유사 사례를 찾아드려요.
+            <p className="mt-1 text-[13px] text-white/75">
+              변증 후보와 유사 치험례를 근거와 함께 정리해 드립니다.
             </p>
           </div>
           <ArrowRight className="h-6 w-6 flex-shrink-0 transition-transform group-hover:translate-x-1" />
         </div>
       </Link>
+
+      {/* 아하 모먼트 — 진료 기록이 아직 없을 때만. 환자 데이터를 넣기 전에
+          예시 증례로 변증 → 처방 후보 → 근거까지 실제 결과를 먼저 보여준다. */}
+      {showExampleCard && (
+        <Link
+          to="/dashboard/consultation?demo=1"
+          className="group flex items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 transition-colors hover:bg-blue-50"
+        >
+          <Toss3DIcon icon={Zap} tone="blue" size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-bold text-neutral-900">
+              먼저 예시 진료 결과부터 보기
+            </p>
+            <p className="mt-0.5 text-[13px] text-neutral-600">
+              환자 데이터 입력 없이 30초면 됩니다. 실제 AI 분석을 그대로 돌려 보여드려요.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 flex-shrink-0 text-blue-500 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      )}
 
       {/* 최근 진료 — 매일 보는 핵심 리스트 */}
       <section>
@@ -104,14 +143,35 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+        {/* 목록은 불투명 흰 표면 유지 — 환자명/시각을 읽는 곳이라 가독성 우선.
+            글래스는 셸(사이드바·헤더)과 강조 CTA 에만 쓴다. */}
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[var(--shadow-2)]">
           {recentQuery.isLoading ? (
             <div className="p-10 text-center text-[13px] text-neutral-500">불러오는 중…</div>
+          ) : recentQuery.isError ? (
+            <div className="p-10 text-center">
+              <AlertCircle className="h-7 w-7 mx-auto mb-3 text-neutral-300" aria-hidden="true" />
+              <p className="text-[14px] font-medium text-neutral-700">
+                최근 진료를 불러오지 못했습니다
+              </p>
+              <p className="text-[12px] text-neutral-500 mt-1">
+                진료 기록이 없는 것이 아니라, 조회에 실패했습니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => recentQuery.refetch()}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
           ) : recent.length === 0 ? (
             <div className="p-10 text-center">
               <BookOpen className="h-7 w-7 mx-auto mb-3 text-neutral-300" aria-hidden="true" />
               <p className="text-[14px] font-medium text-neutral-700">아직 진료 기록이 없습니다</p>
-              <p className="text-[12px] text-neutral-500 mt-1">위 버튼으로 첫 진료를 시작해보세요</p>
+              <p className="text-[12px] text-neutral-500 mt-1">
+                첫 진료를 시작하면 여기에 쌓입니다
+              </p>
             </div>
           ) : (
             <ul className="divide-y divide-neutral-100">

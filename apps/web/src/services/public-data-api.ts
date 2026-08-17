@@ -14,33 +14,13 @@ import type {
   DurCheckResult,
   DrugIdentificationItem,
 } from '@/types'
+import { fetchPublicData } from './public-data-proxy'
 
-// 환경변수에서 API 키 가져오기
-const PUBLIC_DATA_API_KEY = import.meta.env.VITE_PUBLIC_DATA_API_KEY || ''
-
-// API 엔드포인트
-const API_ENDPOINTS = {
-  // 의약품개요정보(e약은요)
-  DRUG_INFO: 'https://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList',
-  // DUR 품목정보 - 병용금기
-  DUR_CONTRAINDICATION: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getUsjntTabooInfoList03',
-  // DUR 품목정보 - 임부금기
-  DUR_PREGNANCY: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getPwnmTabooInfoList03',
-  // DUR 품목정보 - 노인주의
-  DUR_ELDERLY: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getOdsnAtentInfoList03',
-  // DUR 품목정보 - 특정연령금기
-  DUR_AGE: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSpcifyAgrdeTabooInfoList03',
-  // DUR 품목정보 - 용량주의
-  DUR_DOSAGE: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getMdctnDosgeCautInfoList03',
-  // DUR 품목정보 - 투여기간주의
-  DUR_DURATION: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getMdctnPdAtentInfoList03',
-  // DUR 품목정보 - 효능군중복
-  DUR_DUPLICATE: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getEfcyDplctInfoList03',
-  // DUR 품목정보 - 서방정분할주의
-  DUR_EXTENDED_RELEASE: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSeobangjeongDivideAtentInfoList03',
-  // 의약품 낱알식별 정보
-  DRUG_IDENTIFICATION: 'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService01/getMdcinGrnIdntfcInfoList01',
-}
+// 데모(하드코딩) 데이터는 개발 환경에서만 폴백으로 사용한다.
+// 프로덕션에서 약물/DUR 안전정보를 조작된 데모로 대체하면 임상 오인 위험이 있으므로,
+// API 오류 시엔 조용히 가짜 데이터를 보여주지 않고 실패/빈 결과로 노출한다.
+// (serviceKey 는 백엔드 프록시가 주입 — public-data-proxy.ts)
+const ALLOW_DEMO_FALLBACK = import.meta.env.DEV
 
 /**
  * 의약품 검색 (e약은요 API)
@@ -53,21 +33,16 @@ export async function searchDrugs(
   pageNo: number = 1,
   numOfRows: number = 10
 ): Promise<{ items: DrugSearchResult[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다. 데모 데이터를 반환합니다.')
-    return getDemoDrugData(itemName)
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(pageNo),
       numOfRows: String(numOfRows),
       itemName: itemName,
       type: 'json',
     })
 
-    const response = await fetch(`${API_ENDPOINTS.DRUG_INFO}?${params}`)
+    const response = await fetchPublicData('DRUG_INFO', params)
+    if (!response.ok) throw new Error(`프록시 오류 (${response.status})`)
     const data = await response.json()
 
     if (data.header?.resultCode !== '00') {
@@ -92,7 +67,8 @@ export async function searchDrugs(
     }
   } catch (error) {
     console.error('의약품 검색 API 오류:', error)
-    return getDemoDrugData(itemName)
+    if (ALLOW_DEMO_FALLBACK) return getDemoDrugData(itemName)
+    return { items: [], totalCount: 0 }
   }
 }
 
@@ -109,14 +85,8 @@ export async function searchDrugByIdentification(params: {
   pageNo?: number
   numOfRows?: number
 }): Promise<{ items: DrugIdentificationItem[]; totalCount: number }> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return { items: [], totalCount: 0 }
-  }
-
   try {
     const searchParams = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: String(params.pageNo || 1),
       numOfRows: String(params.numOfRows || 10),
       type: 'json',
@@ -128,7 +98,8 @@ export async function searchDrugByIdentification(params: {
     if (params.printFront) searchParams.append('print_front', params.printFront)
     if (params.printBack) searchParams.append('print_back', params.printBack)
 
-    const response = await fetch(`${API_ENDPOINTS.DRUG_IDENTIFICATION}?${searchParams}`)
+    const response = await fetchPublicData('DRUG_IDENTIFICATION', searchParams)
+    if (!response.ok) throw new Error(`프록시 오류 (${response.status})`)
     const data = await response.json()
 
     if (data.header?.resultCode !== '00') {
@@ -152,21 +123,16 @@ export async function searchDrugByIdentification(params: {
 export async function checkDurContraindication(
   itemName: string
 ): Promise<DurItem[]> {
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다.')
-    return getDemoDurData(itemName)
-  }
-
   try {
     const params = new URLSearchParams({
-      serviceKey: PUBLIC_DATA_API_KEY,
       pageNo: '1',
       numOfRows: '100',
       itemName: itemName,
       type: 'json',
     })
 
-    const response = await fetch(`${API_ENDPOINTS.DUR_CONTRAINDICATION}?${params}`)
+    const response = await fetchPublicData('DUR_CONTRAINDICATION', params)
+    if (!response.ok) throw new Error(`프록시 오류 (${response.status})`)
     const data = await response.json()
 
     if (data.header?.resultCode !== '00') {
@@ -176,7 +142,8 @@ export async function checkDurContraindication(
     return data.body?.items || []
   } catch (error) {
     console.error('DUR 병용금기 API 오류:', error)
-    return getDemoDurData(itemName)
+    if (ALLOW_DEMO_FALLBACK) return getDemoDurData(itemName)
+    throw error instanceof Error ? error : new Error('DUR 정보 조회 실패')
   }
 }
 
@@ -200,13 +167,8 @@ export async function checkDurComprehensive(
     extendedReleaseWarnings: [],
   }
 
-  if (!PUBLIC_DATA_API_KEY) {
-    console.warn('공공데이터 API 키가 설정되지 않았습니다. 데모 데이터를 반환합니다.')
-    return getDemoDurCheckResult(drugNames)
-  }
-
   try {
-    // 각 의약품에 대해 DUR 정보 조회
+    // 각 의약품에 대해 DUR 정보 조회 (백엔드 프록시 경유)
     for (const drugName of drugNames) {
       const durItems = await checkDurContraindication(drugName)
 
@@ -244,7 +206,8 @@ export async function checkDurComprehensive(
     return result
   } catch (error) {
     console.error('DUR 종합 체크 오류:', error)
-    return getDemoDurCheckResult(drugNames)
+    if (ALLOW_DEMO_FALLBACK) return getDemoDurCheckResult(drugNames)
+    throw error instanceof Error ? error : new Error('DUR 정보 조회 실패')
   }
 }
 
