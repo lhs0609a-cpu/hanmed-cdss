@@ -21,14 +21,14 @@ export class FormulaHerb {
   id: string;
 
   @ManyToOne(() => Formula, (f) => f.formulaHerbs, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'formula_id' })
+  @JoinColumn({ name: 'formulaId' })
   formula: Formula;
 
   @Column('uuid')
   formulaId: string;
 
   @ManyToOne(() => Herb, { eager: true })
-  @JoinColumn({ name: 'herb_id' })
+  @JoinColumn({ name: 'herbId' })
   herb: Herb;
 
   @Column('uuid')

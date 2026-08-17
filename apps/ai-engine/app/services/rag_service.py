@@ -19,5 +19,9 @@ class RAGService:
         return await self.llm_service.generate_recommendation(
             patient_info=patient_info,
             current_medications=patient_info.get('current_medications'),
+            # top_k 를 넘기지 않아 프롬프트에 후보 개수 지시가 빠져 있었다.
+            # 그 결과 요청이 3개를 원해도 모델이 늘 1개만 돌려줬고,
+            # 결과 화면의 "다른 후보" 블록이 영영 뜨지 않았다.
+            top_k=top_k,
             user_id=user_id,
         )

@@ -124,7 +124,7 @@ export class HerbCompound {
   id: string;
 
   @ManyToOne(() => Herb, (h) => h.compounds, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'herb_id' })
+  @JoinColumn({ name: 'herbId' })
   herb: Herb;
 
   @Column('uuid')
