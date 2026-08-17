@@ -103,8 +103,22 @@ export default function LoginPage() {
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
       goNext()
-    } catch {
-      setError('데모 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } catch (err) {
+      // 429 를 "로그인 실패" 로 뭉뚱그리면 안 된다.
+      // 한의원은 여러 직원이 한 공인 IP 를 쓰기 때문에 체험 버튼만 몇 번 눌러도 걸린다.
+      // 원인과 대기 시간을 알려주지 않으면 "서비스가 고장났다" 로 읽힌다.
+      const res = (err as { response?: { status?: number; headers?: Record<string, string> } })
+        ?.response
+      if (res?.status === 429) {
+        const retryAfter = Number(res.headers?.['retry-after'])
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? `${retryAfter}초` : '잠시'
+        setError(
+          `체험 로그인 요청이 짧은 시간에 몰렸습니다. ${wait} 후 다시 눌러 주세요. ` +
+            '(같은 인터넷 회선에서 여러 번 시도하면 잠시 제한됩니다)',
+        )
+      } else {
+        setError('데모 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      }
     } finally {
       setIsLoading(false)
     }
