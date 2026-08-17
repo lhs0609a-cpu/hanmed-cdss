@@ -47,16 +47,21 @@ export class FixEntitySchemaDrift1753000000000 implements MigrationInterface {
       ADD COLUMN IF NOT EXISTS "embedding" jsonb NULL
     `);
 
-    // 2) herbs.efficacyTags — Herb 엔티티는 text[] (@Column('text', { array: true }))
+    // 2) herbs_master.efficacyTags — Herb 엔티티는 text[] (@Column('text', { array: true }))
+    //
+    // 테이블명 주의: Herb 엔티티는 @Entity('herbs_master') 다. 여기에 "herbs" 라고 적는 바람에
+    // 릴리즈 단계에서 42P01(relation "herbs" does not exist)로 죽었고, 배포가 통째로 롤백되어
+    // 이 마이그레이션 자체가 운영에 영원히 반영되지 않았다. 그 결과 /herbs·/formulas 는
+    // 계속 500 이었다. 테이블명은 반드시 엔티티의 @Entity 값과 대조할 것.
     await queryRunner.query(`
-      ALTER TABLE "herbs"
+      ALTER TABLE "herbs_master"
       ADD COLUMN IF NOT EXISTS "efficacyTags" text[] NULL
     `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      ALTER TABLE "herbs" DROP COLUMN IF EXISTS "efficacyTags"
+      ALTER TABLE "herbs_master" DROP COLUMN IF EXISTS "efficacyTags"
     `);
     // embeddedAt 은 원래 이름으로 되돌린다(데이터 보존).
     await queryRunner.query(`

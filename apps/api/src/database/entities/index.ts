@@ -73,3 +73,7 @@ export * from './saju-purchase.entity';
 
 // Analytics events
 export * from './analytics-event.entity';
+
+// 한의사 소유 환자 명부 / 진료 기록 (브라우저 localStorage 대체)
+export * from './practitioner-patient.entity';
+export * from './practitioner-visit.entity';

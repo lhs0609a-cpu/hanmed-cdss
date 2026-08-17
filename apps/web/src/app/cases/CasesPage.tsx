@@ -11,7 +11,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
-import { BASE_STATS } from '@/config/stats.config'
+import { logError } from '@/lib/errors'
 
 // API에서 반환하는 케이스 타입
 interface CaseFromAPI {
@@ -39,201 +39,6 @@ interface CaseRecord extends CaseFromAPI {
 // AI Engine API URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
 
-// Mock 치험례 데이터 (API 실패 시 사용)
-const MOCK_CASES: CaseFromAPI[] = [
-  {
-    id: 'mock-1',
-    title: '만성 소화불량 치험례',
-    chiefComplaint: '식후 더부룩함, 소화불량 3개월',
-    symptoms: ['식욕부진', '복부팽만', '피로감', '수면장애'],
-    formulaName: '보중익기탕',
-    formulaHanja: '補中益氣湯',
-    constitution: '소음인',
-    diagnosis: '비기허증',
-    patientAge: 45,
-    patientGender: 'F',
-    outcome: '완치',
-    result: '4주 복용 후 소화기능 정상화, 식욕 회복',
-    originalText: '여성 45세. 평소 체력이 약하고 소화가 잘 안 되는 편. 3개월 전부터 식후 더부룩함과 소화불량 증상이 심해짐. 복진상 복부 냉감 및 연약. 보중익기탕 가감 처방 후 4주 복용하여 증상 소실.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-2',
-    title: '두통 및 현훈 치험례',
-    chiefComplaint: '잦은 두통, 어지러움 2개월',
-    symptoms: ['두통', '현훈', '이명', '불면'],
-    formulaName: '반하백출천마탕',
-    formulaHanja: '半夏白朮天麻湯',
-    constitution: '태음인',
-    diagnosis: '담음두통',
-    patientAge: 52,
-    patientGender: 'M',
-    outcome: '호전',
-    result: '6주 복용 후 두통 빈도 70% 감소',
-    originalText: '남성 52세. 비만 체형. 2개월간 잦은 두통과 현훈 호소. 맥침활, 설태백니. 담음두통으로 변증하여 반하백출천마탕 처방. 6주 복용 후 두통 빈도 현저히 감소.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-3',
-    title: '만성 요통 치험례',
-    chiefComplaint: '허리 통증 6개월',
-    symptoms: ['요통', '하지무력', '야간뇨', '피로'],
-    formulaName: '팔미지황환',
-    formulaHanja: '八味地黃丸',
-    constitution: '소양인',
-    diagnosis: '신양허증',
-    patientAge: 58,
-    patientGender: 'M',
-    outcome: '호전',
-    result: '8주 복용 후 요통 50% 경감, 야간뇨 감소',
-    originalText: '남성 58세. 6개월 전부터 만성 요통으로 내원. 야간뇨 2-3회, 하지 무력감 동반. 맥침세, 설담. 신양허로 변증하여 팔미지황환 처방. 8주 복용 후 증상 개선.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-4',
-    title: '불면증 치험례',
-    chiefComplaint: '수면 장애 4개월',
-    symptoms: ['입면곤란', '조기각성', '불안', '심계'],
-    formulaName: '귀비탕',
-    formulaHanja: '歸脾湯',
-    constitution: '소음인',
-    diagnosis: '심비양허',
-    patientAge: 38,
-    patientGender: 'F',
-    outcome: '완치',
-    result: '6주 복용 후 수면 정상화',
-    originalText: '여성 38세. 직장인. 업무 스트레스로 4개월간 불면증 호소. 입면 곤란, 조기 각성, 주간 피로 심함. 심비양허로 변증하여 귀비탕 처방. 6주 복용 후 수면 패턴 정상화.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-5',
-    title: '기능성 소화불량 치험례',
-    chiefComplaint: '속쓰림, 복통 2개월',
-    symptoms: ['속쓰림', '복통', '오심', '식욕부진'],
-    formulaName: '소시호탕',
-    formulaHanja: '小柴胡湯',
-    constitution: '소양인',
-    diagnosis: '간위불화',
-    patientAge: 42,
-    patientGender: 'M',
-    outcome: '완치',
-    result: '3주 복용 후 증상 소실',
-    originalText: '남성 42세. 스트레스성 소화불량. 속쓰림과 복통 호소. 구고, 왕래한열 증상 동반. 소양인 체질로 소시호탕 처방. 3주 복용 후 증상 완전 소실.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-6',
-    title: '갱년기 증후군 치험례',
-    chiefComplaint: '안면홍조, 발한 1년',
-    symptoms: ['안면홍조', '발한', '불면', '심계항진'],
-    formulaName: '가미소요산',
-    formulaHanja: '加味逍遙散',
-    constitution: '태음인',
-    diagnosis: '간울화화',
-    patientAge: 51,
-    patientGender: 'F',
-    outcome: '호전',
-    result: '8주 복용 후 홍조 발생 60% 감소',
-    originalText: '여성 51세. 폐경 후 1년간 갱년기 증상으로 고생. 안면홍조, 야간 발한, 불면 호소. 간울화화로 변증하여 가미소요산 처방. 8주 복용 후 증상 현저히 개선.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-7',
-    title: '기침 치험례',
-    chiefComplaint: '마른기침 3주',
-    symptoms: ['마른기침', '인후건조', '미열', '피로'],
-    formulaName: '맥문동탕',
-    formulaHanja: '麥門冬湯',
-    constitution: '소양인',
-    diagnosis: '폐음허',
-    patientAge: 35,
-    patientGender: 'M',
-    outcome: '완치',
-    result: '2주 복용 후 기침 소실',
-    originalText: '남성 35세. 감기 후유증으로 3주간 마른기침 지속. 인후 건조감, 미열 동반. 맥세삭. 폐음허로 변증하여 맥문동탕 처방. 2주 복용 후 기침 완전 소실.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-8',
-    title: '변비 치험례',
-    chiefComplaint: '만성 변비 6개월',
-    symptoms: ['변비', '복부팽만', '두통', '피부건조'],
-    formulaName: '마자인환',
-    formulaHanja: '麻子仁丸',
-    constitution: '태음인',
-    diagnosis: '장조변비',
-    patientAge: 62,
-    patientGender: 'F',
-    outcome: '호전',
-    result: '4주 복용 후 배변 주기 정상화',
-    originalText: '여성 62세. 6개월간 만성 변비로 고생. 3-4일에 1회 배변, 변이 굳고 건조. 장조변비로 변증하여 마자인환 처방. 4주 복용 후 1-2일 1회 배변으로 개선.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-9',
-    title: '감기 (풍한감모) 치험례',
-    chiefComplaint: '오한, 발열, 두통 3일 — 감기 초기',
-    symptoms: ['감기', '오한', '발열', '두통', '코막힘', '근육통'],
-    formulaName: '갈근탕',
-    formulaHanja: '葛根湯',
-    constitution: '태음인',
-    diagnosis: '풍한표실',
-    patientAge: 28,
-    patientGender: 'M',
-    outcome: '완치',
-    result: '3일 복용 후 감기 증상 소실',
-    originalText: '남성 28세. 환절기 감기로 내원. 오한·미열·두통·항강 호소. 풍한외감으로 변증하여 갈근탕 처방. 3일 복용 후 증상 완전 소실.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-10',
-    title: '감기 후 기침 치험례',
-    chiefComplaint: '감기 후 잔존 기침 2주',
-    symptoms: ['감기', '기침', '가래', '인후통', '피로'],
-    formulaName: '소청룡탕',
-    formulaHanja: '小靑龍湯',
-    constitution: '소음인',
-    diagnosis: '외한내음',
-    patientAge: 41,
-    patientGender: 'F',
-    outcome: '완치',
-    result: '1주 복용 후 기침·가래 소실',
-    originalText: '여성 41세. 2주 전 감기 이후 기침과 묽은 가래 지속. 오한 동반. 외한내음으로 변증하여 소청룡탕 처방. 1주 복용으로 호전.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-11',
-    title: '편두통 치험례',
-    chiefComplaint: '편측 박동성 두통 반복 3개월',
-    symptoms: ['두통', '편두통', '오심', '광공포', '소리공포'],
-    formulaName: '천궁차조산',
-    formulaHanja: '川芎茶調散',
-    constitution: '소양인',
-    diagnosis: '간양상항',
-    patientAge: 33,
-    patientGender: 'F',
-    outcome: '호전',
-    result: '6주 복용 후 두통 빈도·강도 60% 감소',
-    originalText: '여성 33세. 3개월간 월 4–5회 편측 박동성 두통 발작. 두통 발작 시 오심·구토. 간양상항으로 변증하여 천궁차조산 처방. 6주 복용 후 빈도 현저히 감소.',
-    dataSource: '대한한방내과학회지',
-  },
-  {
-    id: 'mock-12',
-    title: '급성 요통 치험례',
-    chiefComplaint: '갑작스러운 허리 통증 1주',
-    symptoms: ['요통', '허리통증', '근육경직', '하지방사통'],
-    formulaName: '독활기생탕',
-    formulaHanja: '獨活寄生湯',
-    constitution: '태음인',
-    diagnosis: '한습요통',
-    patientAge: 47,
-    patientGender: 'M',
-    outcome: '완치',
-    result: '2주 복용 후 통증 소실, 일상 복귀',
-    originalText: '남성 47세. 무거운 짐을 들다 발생한 급성 요통. 한습 노출 병력. 한습요통으로 변증하여 독활기생탕 처방. 2주 복용으로 완전 회복.',
-    dataSource: '대한한방내과학회지',
-  },
-]
 
 // 성별 표시 함수
 function formatGender(gender: string | null): string {
@@ -353,7 +158,6 @@ export default function CasesPage() {
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [totalPages, setTotalPages] = useState(0)
   const [stats, setStats] = useState({ cured: 0, improved: 0, total: 0 })
-  const [isUsingMockData, setIsUsingMockData] = useState(false)
   const ITEMS_PER_PAGE = 20
 
   // 상세 모달
@@ -457,7 +261,6 @@ export default function CasesPage() {
         setTotalCases(items.length)
         setTotalPages(1)
         setRetryCount(0)
-        setIsUsingMockData(false)
         setStats({ cured: 0, improved: 0, total: items.length })
         setLoading(false)
         setIsRetrying(false)
@@ -502,53 +305,22 @@ export default function CasesPage() {
       setTotalCases(meta.total || 0)
       setTotalPages(meta.totalPages || 0)
       setRetryCount(0)
-      setIsUsingMockData(false)
 
       // 통계 계산 — 백엔드는 treatmentOutcome enum 사용. 프론트 표시값과 매핑.
       const cured = cases.filter((c: any) => c.treatmentOutcome === '완치' || c.outcome === '완치').length
       const improved = cases.filter((c: any) => c.treatmentOutcome === '호전' || c.outcome === '호전').length
       setStats({ cured, improved, total: meta.total || 0 })
     } catch (err) {
-      // API 실패 시 Mock 데이터 사용
-      setIsUsingMockData(true)
-      console.warn('치험례 API 호출 실패, Mock 데이터 사용:', err)
-
-      // 검색어로 Mock 데이터 필터링
-      let filteredMock = [...MOCK_CASES]
-
-      if (debouncedSearch) {
-        const searchLower = debouncedSearch.toLowerCase()
-        filteredMock = filteredMock.filter(c =>
-          c.title.toLowerCase().includes(searchLower) ||
-          c.chiefComplaint.toLowerCase().includes(searchLower) ||
-          c.symptoms.some(s => s.toLowerCase().includes(searchLower)) ||
-          c.formulaName.toLowerCase().includes(searchLower) ||
-          c.diagnosis.toLowerCase().includes(searchLower) ||
-          (c.originalText || '').toLowerCase().includes(searchLower) ||
-          c.constitution.toLowerCase().includes(searchLower)
-        )
-      }
-      if (selectedConstitution) {
-        filteredMock = filteredMock.filter(c => c.constitution === selectedConstitution)
-      }
-      if (selectedOutcome) {
-        filteredMock = filteredMock.filter(c => c.outcome === selectedOutcome)
-      }
-
-      setCases(filteredMock)
-      // 검색·필터가 걸려있으면 실제 일치 건수를, 아니면 전체 DB 통계를 노출
-      const hasActiveFilter = !!(debouncedSearch || selectedConstitution || selectedOutcome)
-      const displayTotal = hasActiveFilter ? filteredMock.length : BASE_STATS.cases
-      setTotalCases(displayTotal)
-      setTotalPages(Math.max(1, Math.ceil(filteredMock.length / ITEMS_PER_PAGE)))
-
-      // 통계 계산
-      const cured = filteredMock.filter(c => c.outcome === '완치').length
-      const improved = filteredMock.filter(c => c.outcome === '호전').length
-      setStats({ cured, improved, total: displayTotal })
-
-      setError(null) // Mock 데이터 사용 시 에러 숨김
-      setRetryCount(0)
+      // 조회 실패를 목데이터로 덮지 않는다.
+      // 예전에는 MOCK_CASES 20건을 띄우면서 총계는 BASE_STATS.cases(6,000) 로 표시했다.
+      // 한의사가 2페이지를 누르는 순간 들통나고, 그 시점에 제품 전체 신뢰가 무너진다.
+      // 실패는 실패로 보여주고 재시도 경로만 제공한다.
+      logError(err, 'CasesPage')
+      setCases([])
+      setTotalCases(0)
+      setTotalPages(0)
+      setStats({ cured: 0, improved: 0, total: 0 })
+      setError('치험례를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
       setLoading(false)
       setIsRetrying(false)
@@ -586,14 +358,6 @@ export default function CasesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Demo Data Warning — 실제 API fallback 으로 mock 쓰는 경우에만 노출 */}
-      {isUsingMockData && (
-        <div className="mb-2 p-3 bg-neutral-50 border border-neutral-200 rounded-xl flex items-center gap-2 text-[12px]">
-          <span className="text-neutral-700 font-medium">샘플 데이터 표시 중</span>
-          <span className="text-neutral-500">API 서버 연결 대기 — 연결되면 실제 치험례 데이터가 표시됩니다.</span>
-        </div>
-      )}
-
       <div>
         <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
           치험례

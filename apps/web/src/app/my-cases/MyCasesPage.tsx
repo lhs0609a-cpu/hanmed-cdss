@@ -170,6 +170,18 @@ export default function MyCasesPage() {
         </div>
       </div>
 
+      {/* 저장 위치 고지 — 이 화면의 데이터는 아직 서버로 가지 않는다.
+          환자 명부·진료 기록은 서버로 옮겼지만 치험례는 필드 구조가 달라 다음 단계다.
+          그 사실을 숨기면 한의사가 축적한 임상 기록을 브라우저 청소 한 번에 잃는다. */}
+      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+        <p className="text-[13px] leading-relaxed text-amber-800">
+          <strong>이 기기에만 저장됩니다.</strong> 내 치험례는 아직 서버에 동기화되지 않아
+          다른 PC에서는 보이지 않고, 브라우저 데이터를 지우면 사라집니다. 중요한 기록은
+          내보내기(⤓)로 따로 보관해 주세요. 서버 저장은 준비 중입니다.
+        </p>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[

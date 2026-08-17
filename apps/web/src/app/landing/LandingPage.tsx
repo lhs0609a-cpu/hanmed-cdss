@@ -115,8 +115,8 @@ const PAIN_POINTS = [
 const FEATURES = [
   {
     mockup: MockupPatternDiagnosis,
-    title: 'AI 변증 추론',
-    body: '증상·설진·맥진을 입력하면 팔강·장부 변증 후보를 신뢰도와 함께 제시합니다. 근거가 된 조문과 사례를 함께 보여줘 판단을 검증할 수 있습니다.',
+    title: '변증 후보 추론',
+    body: '증상·설진·맥진을 입력하면 팔강·장부 변증 후보를 입력 소견과의 일치도 순으로 제시합니다. 근거가 된 조문과 사례를 함께 보여줘 판단을 검증할 수 있습니다.',
   },
   {
     mockup: MockupCaseSearch,
@@ -125,8 +125,8 @@ const FEATURES = [
   },
   {
     mockup: MockupClaimCheck,
-    title: '삭감 사전 점검',
-    body: '청구를 보내기 전에 삭감 위험을 짚습니다. 상병-처방 정합성, 산정 기준, 누락 항목을 자동으로 검토합니다.',
+    title: '수가·상병 코드 조회',
+    body: '한방 수가 코드와 산정 기준을 처방 화면을 벗어나지 않고 찾아봅니다. 청구 프로그램 연동과 자동 제출은 아직 지원하지 않습니다.',
   },
   {
     mockup: MockupVoiceChart,
@@ -154,7 +154,7 @@ const FLOW_STEPS = [
   {
     step: '02',
     title: '근거와 함께 후보 제시',
-    body: '변증 후보, 처방 후보, 참고 치험례가 신뢰도와 근거를 달고 나옵니다.',
+    body: '변증 후보, 처방 후보, 참고 치험례가 약재 구성과 근거를 달고 나옵니다.',
   },
   {
     step: '03',
@@ -163,15 +163,15 @@ const FLOW_STEPS = [
   },
   {
     step: '04',
-    title: '차트와 청구까지',
-    body: '결정한 내용이 SOAP 차트와 청구 데이터로 이어집니다. 다시 입력하지 않습니다.',
+    title: '차트와 설명자료로',
+    body: '결정한 내용이 환자 차트에 남고, 환자 설명자료와 진료 근거서로 바로 출력됩니다.',
   },
 ]
 
 const FAQS = [
   {
     q: '온고지신 AI는 정확히 무엇인가요?',
-    a: '한의원의 진료 차트(EMR)와 임상 결정 보조(CDSS)를 결합한 시스템입니다. 환자 등록·진료 기록·처방 발행·청구 점검을 한 곳에서 처리하면서, 변증 추론과 처방 후보, 삭감 위험을 함께 보조합니다.',
+    a: '한의사를 위한 임상 결정 보조(CDSS)입니다. 증상을 입력하면 변증 후보와 처방 후보를 근거·약재 구성·유사 치험례와 함께 제시하고, 환자 차트와 설명자료로 이어집니다. 보험 청구 프로그램을 대체하지는 않으며, 수가·상병 코드 조회를 보조합니다.',
   },
   {
     q: 'AI가 진단을 대신하나요?',
@@ -331,9 +331,9 @@ export default function LandingPage() {
                 } as React.CSSProperties
               }
             >
-              변증부터 청구까지,
+              증상 입력에서 처방 근거까지,
               <br />
-              한 화면에서 끝냅니다
+              30초면 끝납니다
             </span>
           </h1>
 
@@ -341,8 +341,8 @@ export default function LandingPage() {
             className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px]"
             style={{ animationDelay: '0.12s' }}
           >
-            증상을 입력하면 변증 후보와 처방 후보를 근거와 함께 제시하고, 차트를 저장하면 삭감
-            위험까지 짚어냅니다.
+            증상을 입력하면 변증 후보와 처방 후보를 약재 구성·유사 치험례·환자 설명자료까지
+            붙여서 돌려드립니다.
             <br className="hidden sm:block" />
             최종 판단은 언제나 한의사가 합니다.
           </p>

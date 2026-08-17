@@ -902,11 +902,11 @@ export default function PatternDiagnosisPage() {
         }
       })
 
-    setTimeout(() => {
-      setResults(sortedPatterns)
-      setAnalyzing(false)
-      setStep('result')
-    }, 1500)
+    // 즉시 계산이 끝나는 로컬 규칙 연산이다. 예전에는 setTimeout(1500) 으로
+    // "분석 중"을 재생했는데, 없는 연산을 있는 척하는 연출이라 제거했다.
+    setResults(sortedPatterns)
+    setAnalyzing(false)
+    setStep('result')
   }
 
   const resetDiagnosis = () => {
@@ -1008,7 +1008,9 @@ export default function PatternDiagnosisPage() {
             <span className="ml-2 text-[12px] font-medium text-neutral-400 align-middle">참고용</span>
           </h1>
           <p className="mt-1 text-[14px] text-neutral-500">
-            증상·맥·설을 입력하면 변증 후보를 추론합니다. 최종 진단·처방은 한의사의 판단에 따릅니다.
+            증상·맥·설 선택에 가중치를 적용해 변증 후보를 정렬하는 <strong className="font-semibold text-neutral-600">규칙 기반 도구</strong>입니다.
+            표시되는 일치도는 선택한 소견과 각 변증의 겹치는 정도이며, 임상 확률이 아닙니다.
+            최종 진단·처방은 한의사의 판단에 따릅니다.
           </p>
         </div>
         {step !== 'symptoms' && (
@@ -1288,7 +1290,7 @@ export default function PatternDiagnosisPage() {
             <div className="flex items-start gap-3">
               <Toss3DIcon icon={Lightbulb} tone="amber" size="sm" className="mt-0.5" />
               <p className="text-slate-700 text-sm">
-                수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. AI가 자동으로 분석하거나 직접 선택할 수 있습니다.
+                수집된 정보를 바탕으로 팔강변증(음양, 표리, 한열, 허실)을 선택해주세요. 입력값으로 자동 제안하거나 직접 선택할 수 있습니다.
               </p>
             </div>
           </div>

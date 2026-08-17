@@ -149,7 +149,6 @@ export {
 } from './VisuallyHidden'
 
 // Onboarding
-export { WelcomeModal } from './WelcomeModal'
 
 // Offline Status
 export { OfflineBanner } from './OfflineBanner'

@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
-import { WelcomeModal } from '@/components/common/WelcomeModal'
 import { RouteBoundary } from '@/components/common/RouteErrorBoundary'
 
 // Layouts (eager — used on every authenticated request)
@@ -271,9 +270,10 @@ function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
 
+      {/* 로그인 직후 첫 화면(아하 모먼트)을 팝업으로 가리지 않는다.
+          환영 모달·사용법 투어는 제거하고, 첫 화면 자체가 가치를 보여준다. */}
       <Toaster />
       <OfflineBanner />
-      <WelcomeModal />
     </HanjaSettingsProvider>
   )
 }

@@ -1,194 +1,154 @@
 import { DataSource } from 'typeorm';
 import { dataSourceOptions } from '../data-source';
+import { Formula } from '../entities/formula.entity';
+import { Herb } from '../entities/herb.entity';
+import { FormulaHerb } from '../entities/formula-herb.entity';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * 처방 카탈로그 적재 — apps/web/src/data/formulas/all-formulas.json → formulas / herbs_master / formula_herbs
+ *
+ * 원시 SQL 로 컬럼명을 직접 적던 버전은 스키마와 어긋나 있었다
+ * (standard_name vs "standardName", processing_method vs "processingMethod").
+ * 그래서 시드가 조용히 실패했고 운영의 처방·약재 테이블이 빈 채로 남아 있었다.
+ * 지금은 엔티티/리포지토리를 통해 넣는다 — 컬럼명은 ORM 이 만들어주므로 다시 어긋날 수 없다.
+ *
+ * 멱등: 이미 있는 처방/약재는 건너뛴다. 몇 번 돌려도 안전.
+ */
+
 interface FormulaJsonData {
-  id: string;
   name: string;
-  hanja: string;
-  code?: string;
-  category: string;
+  hanja?: string;
+  category?: string;
   categoryLabel?: string;
-  source: string;
-  originalText?: string | null;
-  composition: Array<{
-    herb: string;
-    amount: string;
-    processing?: string | null;
-  }>;
-  compositionText?: string;
-  usage?: string;
+  source?: string;
+  composition?: Array<{ herb: string; amount?: string; processing?: string | null }>;
   indications?: string[];
   indicationText?: string;
   description?: string;
   mechanism?: string | null;
-  compositionExplanation?: string;
-  comparisons?: Array<{
-    targetFormula: string;
-    difference: string;
-  }>;
-  comparisonText?: string;
-  cases?: any[];
   contraindications?: string[];
-  cautions?: string[];
-  dataSource?: string;
-  searchKeywords?: string[];
 }
 
-async function seedFormulas() {
-  console.log('Starting formula seed...');
+/** "各五分" 같은 용량 표기를 약재명에서 걷어낸다. */
+function cleanHerbName(raw: string): string {
+  return raw.replace(/各[\d\w]+/g, '').trim();
+}
 
+async function seedFormulas(): Promise<void> {
   const dataSource = new DataSource(dataSourceOptions);
+  await dataSource.initialize();
+  console.log('[seed] DB 연결됨');
 
   try {
-    await dataSource.initialize();
-    console.log('Database connection established');
-
-    // JSON 파일 읽기
-    const dataPath = path.join(__dirname, '../../../../web/src/data/formulas/all-formulas.json');
-
+    const dataPath = path.join(
+      __dirname,
+      '../../../../web/src/data/formulas/all-formulas.json',
+    );
     if (!fs.existsSync(dataPath)) {
-      console.error('all-formulas.json not found at:', dataPath);
-      return;
+      throw new Error(`all-formulas.json 을 찾을 수 없습니다: ${dataPath}`);
     }
 
-    const rawData = fs.readFileSync(dataPath, 'utf-8');
-    const formulas: FormulaJsonData[] = JSON.parse(rawData);
-    console.log(`Found ${formulas.length} formulas in JSON file`);
+    const formulas: FormulaJsonData[] = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    console.log(`[seed] JSON 처방 ${formulas.length}건`);
 
-    // 1. 먼저 모든 약재(herb) 수집 및 삽입
-    const allHerbs = new Set<string>();
-    formulas.forEach(formula => {
-      formula.composition?.forEach(comp => {
-        if (comp.herb) {
-          // 한자명에서 "各五分" 같은 용량 정보 제거
-          const cleanHerb = comp.herb.replace(/各[\d\w]+/g, '').trim();
-          if (cleanHerb) {
-            allHerbs.add(cleanHerb);
-          }
-        }
-      });
-    });
+    const herbRepo = dataSource.getRepository(Herb);
+    const formulaRepo = dataSource.getRepository(Formula);
+    const formulaHerbRepo = dataSource.getRepository(FormulaHerb);
 
-    console.log(`Found ${allHerbs.size} unique herbs`);
+    // 1) 약재 — 처방 구성에 등장하는 모든 약재를 먼저 확보한다.
+    const herbNames = new Set<string>();
+    for (const f of formulas) {
+      for (const c of f.composition ?? []) {
+        const name = cleanHerbName(c.herb ?? '');
+        if (name) herbNames.add(name);
+      }
+    }
+    console.log(`[seed] 고유 약재 ${herbNames.size}종`);
 
-    // 약재 삽입
-    const herbIdMap = new Map<string, string>();
+    const herbIdByName = new Map<string, string>();
+    let newHerbs = 0;
+    for (const name of herbNames) {
+      const existing = await herbRepo.findOne({ where: { standardName: name } });
+      if (existing) {
+        herbIdByName.set(name, existing.id);
+        continue;
+      }
+      // 성질·귀경 등 상세는 별도 시드(seed-formula-properties)에서 채운다.
+      // 여기서는 처방 구성이 깨지지 않도록 최소 레코드만 만든다.
+      const saved = await herbRepo.save(
+        herbRepo.create({ standardName: name, hanjaName: name, category: '미분류' }),
+      );
+      herbIdByName.set(name, saved.id);
+      newHerbs++;
+    }
+    console.log(`[seed] 약재 신규 ${newHerbs}건 / 전체 ${herbIdByName.size}건`);
 
-    for (const herbName of allHerbs) {
-      try {
-        // 이미 존재하는지 확인 (한자명 또는 한글명으로)
-        const existing = await dataSource.query(
-          `SELECT id FROM herbs_master WHERE hanja_name = $1 OR standard_name = $1 LIMIT 1`,
-          [herbName]
+    // 2) 처방 + 구성
+    let newFormulas = 0;
+    let skipped = 0;
+    let links = 0;
+
+    for (const f of formulas) {
+      if (!f.name) continue;
+
+      let formula = await formulaRepo.findOne({ where: { name: f.name } });
+      if (formula) {
+        skipped++;
+      } else {
+        const category =
+          !f.category || f.category === 'etc' ? f.categoryLabel || '기타' : f.category;
+        formula = await formulaRepo.save(
+          formulaRepo.create({
+            name: f.name,
+            hanja: f.hanja || '',
+            category,
+            source: f.source || '',
+            indication: f.indicationText || (f.indications ?? []).join(', ') || '',
+            pathogenesis: f.mechanism || f.description || '',
+            contraindications: f.contraindications ?? [],
+          }),
         );
+        newFormulas++;
+      }
 
-        if (existing.length > 0) {
-          herbIdMap.set(herbName, existing[0].id);
-        } else {
-          // 새로 삽입
-          const result = await dataSource.query(
-            `INSERT INTO herbs_master (standard_name, hanja_name, category, properties)
-             VALUES ($1, $1, '미분류', '{}')
-             RETURNING id`,
-            [herbName]
-          );
-          herbIdMap.set(herbName, result[0].id);
-        }
-      } catch (error) {
-        console.error(`Error inserting herb ${herbName}:`, error);
+      for (const c of f.composition ?? []) {
+        const herbName = cleanHerbName(c.herb ?? '');
+        const herbId = herbName ? herbIdByName.get(herbName) : undefined;
+        if (!herbId) continue;
+
+        const already = await formulaHerbRepo.findOne({
+          where: { formulaId: formula.id, herbId },
+        });
+        if (already) continue;
+
+        await formulaHerbRepo.save(
+          formulaHerbRepo.create({
+            formulaId: formula.id,
+            herbId,
+            amount: c.amount || '',
+            processingMethod: c.processing || undefined,
+          }),
+        );
+        links++;
       }
     }
 
-    console.log(`Processed ${herbIdMap.size} herbs`);
-
-    // 2. 처방 삽입
-    let insertedCount = 0;
-    let skippedCount = 0;
-
-    for (const formula of formulas) {
-      try {
-        // 이미 존재하는지 확인
-        const existing = await dataSource.query(
-          `SELECT id FROM formulas WHERE name = $1 LIMIT 1`,
-          [formula.name]
-        );
-
-        let formulaId: string;
-
-        if (existing.length > 0) {
-          formulaId = existing[0].id;
-          skippedCount++;
-        } else {
-          // 카테고리 매핑
-          let category = formula.category || formula.categoryLabel || '기타';
-          if (category === 'etc' || !category) {
-            category = '기타';
-          }
-
-          // 처방 삽입
-          const result = await dataSource.query(
-            `INSERT INTO formulas (name, hanja, category, source, indication, pathogenesis, contraindications)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id`,
-            [
-              formula.name,
-              formula.hanja || '',
-              category,
-              formula.source || '',
-              formula.indicationText || formula.indications?.join(', ') || '',
-              formula.description || '',
-              formula.contraindications || null,
-            ]
-          );
-          formulaId = result[0].id;
-          insertedCount++;
-
-          // 3. formula_herbs 관계 삽입
-          for (const comp of formula.composition || []) {
-            const cleanHerb = comp.herb?.replace(/各[\d\w]+/g, '').trim();
-            if (!cleanHerb) continue;
-
-            const herbId = herbIdMap.get(cleanHerb);
-            if (!herbId) {
-              console.warn(`Herb not found: ${cleanHerb}`);
-              continue;
-            }
-
-            try {
-              await dataSource.query(
-                `INSERT INTO formula_herbs (formula_id, herb_id, amount, processing_method)
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT DO NOTHING`,
-                [
-                  formulaId,
-                  herbId,
-                  comp.amount || '',
-                  comp.processing || null,
-                ]
-              );
-            } catch (err) {
-              // 무시 (중복 등)
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`Error inserting formula ${formula.name}:`, error);
-      }
-    }
-
-    console.log(`\nSeed completed!`);
-    console.log(`  Inserted: ${insertedCount} formulas`);
-    console.log(`  Skipped (already exists): ${skippedCount} formulas`);
-    console.log(`  Total herbs: ${herbIdMap.size}`);
-
-  } catch (error) {
-    console.error('Seed failed:', error);
-    process.exit(1);
+    console.log(
+      `[seed] 처방 신규 ${newFormulas}건 · 기존 ${skipped}건 · 구성 연결 ${links}건 추가`,
+    );
   } finally {
     await dataSource.destroy();
   }
 }
 
-seedFormulas();
+seedFormulas()
+  .then(() => {
+    console.log('[seed] 완료');
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('[seed] 실패:', err);
+    process.exit(1);
+  });

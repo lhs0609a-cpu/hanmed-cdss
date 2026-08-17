@@ -5,7 +5,7 @@ import { useSidebarStore } from '@/stores/sidebarStore'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { ThemeToggle, LogoMark } from '@/components/common'
 import { SessionWarningDialog } from '@/components/common/SessionWarningDialog'
-import { OnboardingFlow, useOnboardingStatus } from '@/components/onboarding'
+import { OnboardingFlow } from '@/components/onboarding'
 import { useState, useEffect, useMemo } from 'react'
 import { useSessionManager } from '@/hooks/useSessionManager'
 import {
@@ -58,15 +58,17 @@ interface MenuItem {
 }
 
 // 메뉴 정의 — Toss 식 단순화 v2.
-// Primary 5 (매일 쓰는 진료 핵심) + 더 보기 12 (필요시 도구) = 17 노출.
-// 나머지 17개는 사이드바에서 숨기고 ⌘K 검색 인덱스(HIDDEN_MENU)에만 유지.
+// Primary 5 (매일 쓰는 진료 핵심) + 더 보기 11 (필요시 도구) = 16 노출.
+// 나머지 18개는 사이드바에서 숨기고 ⌘K 검색 인덱스(HIDDEN_MENU)에만 유지.
 // 거의 안 쓰거나 다른 페이지에 통합되어 있는 항목 — 검색으로는 여전히 도달 가능.
 const PRIMARY_MENU: MenuItem[] = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '새 진료', href: '/dashboard/consultation', icon: Stethoscope },
   { name: '환자', href: '/dashboard/patients', icon: Users },
   { name: '치험례', href: '/dashboard/cases', icon: BookOpen },
-  { name: 'AI 변증', href: '/dashboard/pattern-diagnosis', icon: Brain },
+  // "AI 변증" 이 아니다 — 증상·맥·설 선택에 가중치를 더해 정렬하는 규칙 기반 도구.
+  // LLM 도 서버 호출도 쓰지 않으므로 AI 로 부르면 과장이 된다.
+  { name: '변증 도우미', href: '/dashboard/pattern-diagnosis', icon: Brain },
 ]
 
 const MORE_MENU: MenuItem[] = [
@@ -74,7 +76,6 @@ const MORE_MENU: MenuItem[] = [
   { name: '처방 비교', href: '/dashboard/formula-compare', icon: ArrowLeftRight },
   { name: '처방 검색', href: '/dashboard/formulas', icon: FlaskConical },
   { name: '약재 검색', href: '/dashboard/herbs', icon: Leaf },
-  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },
   { name: 'Red Flag', href: '/dashboard/red-flag', icon: AlertTriangle },
   { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle },
   { name: '체질 진단', href: '/dashboard/constitution', icon: User },
@@ -104,6 +105,7 @@ const HIDDEN_MENU: MenuItem[] = [
   { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse },  // 의미 모호
   { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin },                // 침구 — 한약 CDSS 분리
   { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity },                  // 차트에 흡수 가능
+  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },                 // 실사용 거의 없음 (2026-08)
 ]
 
 export default function DashboardLayout() {
@@ -119,7 +121,7 @@ export default function DashboardLayout() {
   } = useSidebarStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const { shouldShowOnboarding } = useOnboardingStatus()
+  // OnboardingFlow 는 자동 노출하지 않는다(첫 화면이 대신). 수동 진입 시에만 true.
   const [showOnboarding, setShowOnboarding] = useState(false)
   const {
     isSessionWarningVisible,
@@ -140,16 +142,9 @@ export default function DashboardLayout() {
     [],
   )
 
-  // 온보딩 표시 여부 결정 (게스트 모드가 아닌 신규 사용자)
-  // 단일 온보딩 원칙: 전역 WelcomeModal 이 환영을 담당하므로, OnboardingFlow 는
-  // WelcomeModal 을 본 뒤에만(중복 환영 방지) 자동 노출한다. WelcomeModal 종료 시
-  // onboarding_completed 가 설정되므로 실질적으로 신규 사용자에겐 중복 표시되지 않는다.
-  useEffect(() => {
-    const welcomeShown = localStorage.getItem('hanmed-cdss-welcome-shown')
-    if (shouldShowOnboarding && !isGuest && welcomeShown) {
-      setShowOnboarding(true)
-    }
-  }, [shouldShowOnboarding, isGuest])
+  // 로그인 직후 첫 화면(아하 모먼트)을 팝업으로 가리지 않는다 — 환영/온보딩 자동 노출 제거.
+  // 첫 화면 자체가 온보딩 역할을 대신하므로 OnboardingFlow 는 자동으로 띄우지 않는다.
+  // (컴포넌트·설정 경로는 유지 — 필요 시 명시적 진입점에서 재사용 가능)
 
   // 페이지 방문 기록
   useEffect(() => {

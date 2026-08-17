@@ -9,6 +9,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
+import { PractitionerPatientsModule } from './modules/practitioner-patients/practitioner-patients.module';
 import { CasesModule } from './modules/cases/cases.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -158,6 +159,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     AuthModule,
     UsersModule,
     PatientsModule,
+    PractitionerPatientsModule,
     CasesModule,
     PrescriptionsModule,
     InteractionsModule,

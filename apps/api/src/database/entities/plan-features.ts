@@ -27,8 +27,8 @@ export enum FeatureKey {
   // ── Pro 이상 (운영 효율) ────────────────────────
   CASE_SAVE_UNLIMITED = 'case_save_unlimited', // 케이스 무제한 저장
   CASE_EXPORT = 'case_export', // 케이스 PDF/이미지 내보내기
-  PATIENT_MANAGEMENT = 'patient_management', // 환자 관리(전자차트)
-  VOICE_CHART = 'voice_chart', // 음성차트
+  PATIENT_MANAGEMENT = 'patient_management', // 환자 명부·진료 기록 서버 보관 (법정 EMR 아님)
+  VOICE_CHART = 'voice_chart', // 음성 받아쓰기 (베타)
   STATS_BASIC = 'stats_basic', // 기본 통계
   ADVANCED_FILTERS = 'advanced_filters', // 고급 검색 필터·학파 비교
   EXPORT_NO_WATERMARK = 'export_no_watermark', // 워터마크 제거 내보내기
@@ -159,10 +159,10 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   [FeatureKey.ACUPOINTS]: '침구혈자리',
   [FeatureKey.RED_FLAG]: '적색신호 알림',
   [FeatureKey.AI_CHAT]: 'AI 챗봇',
-  [FeatureKey.CASE_SAVE_UNLIMITED]: '케이스 무제한 저장',
+  [FeatureKey.CASE_SAVE_UNLIMITED]: '치험례 개수 제한 없음',
   [FeatureKey.CASE_EXPORT]: '케이스 내보내기 (PDF/이미지)',
-  [FeatureKey.PATIENT_MANAGEMENT]: '환자 관리 (전자차트)',
-  [FeatureKey.VOICE_CHART]: '음성차트',
+  [FeatureKey.PATIENT_MANAGEMENT]: '환자 명부·진료 기록 서버 보관',
+  [FeatureKey.VOICE_CHART]: '음성 받아쓰기 (베타)',
   [FeatureKey.STATS_BASIC]: '기본 통계',
   [FeatureKey.ADVANCED_FILTERS]: '고급 검색 필터·학파 비교',
   [FeatureKey.EXPORT_NO_WATERMARK]: '워터마크 제거 내보내기',

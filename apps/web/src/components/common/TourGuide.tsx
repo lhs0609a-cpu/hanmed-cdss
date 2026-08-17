@@ -24,20 +24,9 @@ export default function TourGuide({ tourId, steps, onComplete }: TourGuideProps)
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
   const [showStartButton, setShowStartButton] = useState(false)
 
-  // Check if tour was already completed
-  useEffect(() => {
-    const completedTours = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    // 전역 환영 모달을 아직 안 본 신규 사용자에겐 페이지 투어를 띄우지 않는다
-    // (환영 모달 위에 "처음이신가요?" 가 겹쳐 뜨는 것을 방지 — 단일 온보딩 흐름).
-    const welcomeShown = localStorage.getItem('hanmed-cdss-welcome-shown')
-    if (welcomeShown && !completedTours[tourId]) {
-      // First time visitor - show start button after delay
-      const timer = setTimeout(() => {
-        setShowStartButton(true)
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [tourId])
+  // 자동 팝업("처음이신가요?") 제거 — 로그인 직후 아하 화면을 인터럽트하지 않는다.
+  // 투어는 이제 순전히 opt-in: TourRestartButton(가이드 보기)으로만 시작한다.
+  // (data-tour 앵커는 그대로 두어 수동 실행 시 동작)
 
   // Update target element position
   const updateTargetPosition = useCallback(() => {

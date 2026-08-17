@@ -11,9 +11,15 @@ import { DataSource } from 'typeorm';
  * 운영 이미지에는 ts-node 가 없으므로 반드시 컴파일된 경로를 사용한다.
  */
 async function run(): Promise<void> {
+  const url = process.env.DATABASE_URL || '';
+
   const dataSource = new DataSource({
     type: 'postgres',
-    url: process.env.DATABASE_URL,
+    url,
+    // Supabase 풀러는 TLS 를 요구하지만 인증서 체인이 표준 검증을 통과하지 못한다.
+    // app.module 의 TypeORM 설정과 동일한 규칙을 쓰지 않으면 release 단계에서만
+    // 접속이 실패해 배포가 통째로 막힌다.
+    ssl: url.includes('pooler.supabase.com') ? { rejectUnauthorized: false } : undefined,
     // 마이그레이션 실행에는 엔티티 메타데이터가 필요 없다.
     entities: [],
     migrations: [__dirname + '/migrations/*{.ts,.js}'],

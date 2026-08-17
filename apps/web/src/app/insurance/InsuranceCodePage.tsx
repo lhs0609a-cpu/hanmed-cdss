@@ -811,8 +811,19 @@ export default function InsuranceCodePage() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" aria-hidden="true" />
         <p className="text-[13px] leading-relaxed text-amber-800">
-          <strong>참고용 예시 데이터입니다.</strong> 표시된 코드·점수·수가는 실제 심평원 고시값과
-          다를 수 있습니다. 실제 청구 전 반드시 심평원 최신 고시로 확인하세요.
+          <strong>참고용 예시 데이터입니다 — 고시 기준연도 없음.</strong> 이 표는 특정 연도
+          고시에 연동되어 있지 않고 자동 갱신되지 않습니다. 수가는 매년 개정되므로 표시된
+          점수·금액을 그대로 청구하면 오청구·삭감으로 이어질 수 있습니다. 실제 청구 전
+          반드시{' '}
+          <a
+            href="https://www.hira.or.kr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold underline underline-offset-2"
+          >
+            심평원 최신 고시
+          </a>
+          로 확인하세요.
         </p>
       </div>
 

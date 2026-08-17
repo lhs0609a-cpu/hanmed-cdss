@@ -1,9 +1,9 @@
-import { useNavigate, Navigate, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
-import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap } from 'lucide-react'
+import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap, AlertCircle } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
 /**
@@ -60,13 +60,12 @@ export default function DashboardPage() {
   const recentQuery = useRecentActivities()
   const recent = recentQuery.data ?? []
 
-  // 첫 화면 = 핵심 기능(이미 풀린 결과). 아직 진료 기록이 없는 신규 한의사에게는
-  // 빈 대시보드 대신, 예시 증례가 분석 완료된 상태의 진료 화면을 첫 화면으로 보여준다.
-  // "보는 순간 가치 체감 → 곧바로 내 환자 입력"으로 이탈을 막는다.
-  // (실제 진료가 1건이라도 쌓이면 아래의 일반 대시보드로 자동 전환)
-  if (!recentQuery.isLoading && recent.length === 0) {
-    return <Navigate to="/dashboard/consultation?demo=1" replace />
-  }
+  // 아직 진료 기록이 없는 신규 한의사에게는 예시 증례 카드를 대시보드 안에서 바로 권한다.
+  // (예전에는 여기서 /consultation?demo=1 로 리다이렉트했으나,
+  //  ① 조회 실패 시에도 recent=[] 라 멀쩡한 사용자가 예시 화면으로 튕겼고
+  //  ② replace 리다이렉트라 진료 1건이 쌓이기 전까지 대시보드에 접근할 수 없었다.)
+  const showExampleCard =
+    !recentQuery.isLoading && !recentQuery.isError && recent.length === 0
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -112,6 +111,26 @@ export default function DashboardPage() {
         </div>
       </Link>
 
+      {/* 아하 모먼트 — 진료 기록이 아직 없을 때만. 환자 데이터를 넣기 전에
+          예시 증례로 변증 → 처방 후보 → 근거까지 실제 결과를 먼저 보여준다. */}
+      {showExampleCard && (
+        <Link
+          to="/dashboard/consultation?demo=1"
+          className="group flex items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 transition-colors hover:bg-blue-50"
+        >
+          <Toss3DIcon icon={Zap} tone="blue" size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-bold text-neutral-900">
+              먼저 예시 진료 결과부터 보기
+            </p>
+            <p className="mt-0.5 text-[13px] text-neutral-600">
+              환자 데이터 입력 없이 30초면 됩니다. 실제 AI 분석을 그대로 돌려 보여드려요.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 flex-shrink-0 text-blue-500 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      )}
+
       {/* 최근 진료 — 매일 보는 핵심 리스트 */}
       <section>
         <div className="flex items-center justify-between mb-3 px-1">
@@ -129,18 +148,30 @@ export default function DashboardPage() {
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[var(--shadow-2)]">
           {recentQuery.isLoading ? (
             <div className="p-10 text-center text-[13px] text-neutral-500">불러오는 중…</div>
+          ) : recentQuery.isError ? (
+            <div className="p-10 text-center">
+              <AlertCircle className="h-7 w-7 mx-auto mb-3 text-neutral-300" aria-hidden="true" />
+              <p className="text-[14px] font-medium text-neutral-700">
+                최근 진료를 불러오지 못했습니다
+              </p>
+              <p className="text-[12px] text-neutral-500 mt-1">
+                진료 기록이 없는 것이 아니라, 조회에 실패했습니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => recentQuery.refetch()}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
           ) : recent.length === 0 ? (
             <div className="p-10 text-center">
               <BookOpen className="h-7 w-7 mx-auto mb-3 text-neutral-300" aria-hidden="true" />
               <p className="text-[14px] font-medium text-neutral-700">아직 진료 기록이 없습니다</p>
-              <p className="text-[12px] text-neutral-500 mt-1">환자 데이터 없이 먼저 체험해볼 수 있어요</p>
-              <Link
-                to="/dashboard/consultation?demo=1"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors"
-              >
-                <Zap className="h-4 w-4" aria-hidden="true" />
-                예시 케이스로 30초 체험
-              </Link>
+              <p className="text-[12px] text-neutral-500 mt-1">
+                첫 진료를 시작하면 여기에 쌓입니다
+              </p>
             </div>
           ) : (
             <ul className="divide-y divide-neutral-100">

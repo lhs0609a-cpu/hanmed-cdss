@@ -13,6 +13,17 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+/**
+ * 적합도 등급 — 환자에게 나가는 문서라 백분율을 그대로 적지 않는다.
+ * confidence_score 는 AI 자체 평가값이지 치료 성공률이 아니므로,
+ * 숫자로 적으면 환자가 "90% 낫는다"로 읽는다.
+ */
+function confidenceLabel(score: number): string {
+  if (score >= 0.8) return '높음'
+  if (score >= 0.6) return '보통'
+  return '낮음'
+}
+
 interface PatientInfo {
   name?: string
   age?: number
@@ -90,7 +101,7 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
       '[ 처방 ]',
       '-'.repeat(50),
       `처방명: ${data.prescription.formulaName}${data.prescription.formulaHanja ? ` (${data.prescription.formulaHanja})` : ''}`,
-      `신뢰도: ${data.prescription.confidence ? `${(data.prescription.confidence * 100).toFixed(0)}%` : '-'}`,
+      `AI 적합도: ${data.prescription.confidence ? confidenceLabel(data.prescription.confidence) : '-'} (임상 성공률이 아닌 근거 일치도 자체 평가)`,
       '',
       '구성 약재:',
       ...data.prescription.herbs.map(h => `  - ${h.name} ${h.amount} (${h.role})`),
@@ -181,7 +192,7 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
 
             <h2>처방</h2>
             <p><strong>${data.prescription.formulaName}</strong>${data.prescription.formulaHanja ? ` (${data.prescription.formulaHanja})` : ''}</p>
-            ${data.prescription.confidence ? `<p>AI 추천 신뢰도: ${(data.prescription.confidence * 100).toFixed(0)}%</p>` : ''}
+            ${data.prescription.confidence ? `<p>AI 적합도: ${confidenceLabel(data.prescription.confidence)} <span style="color:#666;font-size:0.9em">(임상 성공률이 아니라 AI 가 근거 자료와의 일치도를 스스로 평가한 값입니다)</span></p>` : ''}
 
             <p><strong>구성 약재:</strong></p>
             <ul class="herb-list">
@@ -348,8 +359,11 @@ export function PrescriptionDocument({ isOpen, onClose, data }: PrescriptionDocu
                   )}
                 </div>
                 {data.prescription.confidence && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                    신뢰도 {(data.prescription.confidence * 100).toFixed(0)}%
+                  <span
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                    title="임상 성공률이 아니라 AI 가 근거 자료와의 일치도를 스스로 평가한 값입니다."
+                  >
+                    AI 적합도 {confidenceLabel(data.prescription.confidence)}
                   </span>
                 )}
               </div>

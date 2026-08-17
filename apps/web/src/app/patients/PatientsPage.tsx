@@ -19,6 +19,14 @@ import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { ExportDialog } from '@/components/common'
 import { matchesWithHanja } from '@/lib/hanja-map'
 import { setInlineToastTimeout } from '@/hooks/useToast'
+import { logError } from '@/lib/errors'
+import {
+  fetchMyPatients,
+  createMyPatient,
+  importLocalData,
+  hasLegacyLocalData,
+  type MyPatient,
+} from '@/services/myPatients'
 
 const patientsTourSteps = [
   {
@@ -55,67 +63,26 @@ interface Patient {
   status: 'active' | 'inactive'
 }
 
-const initialPatients: Patient[] = [
-  {
-    id: '1',
-    name: '김영희',
-    birthDate: '1985-03-15',
-    gender: 'F',
-    phone: '010-1234-5678',
-    constitution: '소음인',
-    lastVisit: '2024-01-15',
-    totalVisits: 8,
-    mainComplaint: '만성 소화불량, 피로',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: '박철수',
-    birthDate: '1972-07-22',
-    gender: 'M',
-    phone: '010-2345-6789',
-    constitution: '태음인',
-    lastVisit: '2024-01-10',
-    totalVisits: 12,
-    mainComplaint: '요통, 무릎 관절통',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: '이민지',
-    birthDate: '1990-11-08',
-    gender: 'F',
-    phone: '010-3456-7890',
-    constitution: '소양인',
-    lastVisit: '2024-01-08',
-    totalVisits: 5,
-    mainComplaint: '월경불순, 두통',
-    status: 'active',
-  },
-  {
-    id: '4',
-    name: '정대호',
-    birthDate: '1968-05-30',
-    gender: 'M',
-    phone: '010-4567-8901',
-    lastVisit: '2023-12-20',
-    totalVisits: 3,
-    mainComplaint: '불면, 어깨 통증',
-    status: 'inactive',
-  },
-  {
-    id: '5',
-    name: '최수진',
-    birthDate: '1995-09-12',
-    gender: 'F',
-    phone: '010-5678-9012',
-    constitution: '태양인',
-    lastVisit: '2024-01-18',
-    totalVisits: 2,
-    mainComplaint: '스트레스성 두통',
-    status: 'active',
-  },
-]
+
+/**
+ * 서버 DTO → 화면 모델.
+ * 서버는 미입력 값을 null 로 주지만 이 화면의 렌더링·검색 코드는 문자열을 가정하므로
+ * 여기서 한 번만 정규화한다(각 사용처에서 ?? '' 를 흩뿌리지 않게).
+ */
+function toViewPatient(p: MyPatient): Patient {
+  return {
+    id: p.id,
+    name: p.name,
+    birthDate: p.birthDate ?? '',
+    gender: p.gender ?? 'F',
+    phone: p.phone ?? '',
+    constitution: p.constitution ?? undefined,
+    lastVisit: p.lastVisitAt ?? p.createdAt,
+    totalVisits: p.totalVisits,
+    mainComplaint: p.mainComplaint ?? '',
+    status: p.status,
+  }
+}
 
 interface NewPatientForm {
   name: string
@@ -129,44 +96,63 @@ interface NewPatientForm {
   mainComplaint: string
 }
 
-// 로컬스토리지 키
-const PATIENTS_STORAGE_KEY = 'hanmed_patients'
-
-// 로컬스토리지에서 환자 데이터 로드
-function loadPatientsFromStorage(): Patient[] {
-  try {
-    const stored = localStorage.getItem(PATIENTS_STORAGE_KEY)
-    if (stored) {
-      return JSON.parse(stored)
-    }
-  } catch (e) {
-    console.error('Failed to load patients from storage:', e)
-  }
-  return initialPatients
-}
-
-// 로컬스토리지에 환자 데이터 저장
-function savePatientsToStorage(patients: Patient[]): void {
-  try {
-    localStorage.setItem(PATIENTS_STORAGE_KEY, JSON.stringify(patients))
-  } catch (e) {
-    console.error('Failed to save patients to storage:', e)
-  }
-}
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>(() => loadPatientsFromStorage())
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [newPatientName, setNewPatientName] = useState('')
   const [showTour, setShowTour] = useState(true)
+  const [showImportBanner, setShowImportBanner] = useState(() => hasLegacyLocalData())
+  const [isImporting, setIsImporting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  // 환자 데이터 변경 시 로컬스토리지에 저장
+  // 서버에서 명부를 가져온다. (예전에는 localStorage 에서 읽었고,
+  // 기기를 바꾸면 사라지는 데이터를 "전자차트"로 팔고 있었다.)
+  const loadPatients = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError('')
+    try {
+      const rows = await fetchMyPatients()
+      setPatients(rows.map(toViewPatient))
+    } catch (err) {
+      logError(err, 'PatientsPage.load')
+      setLoadError('환자 명부를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    savePatientsToStorage(patients)
-  }, [patients])
+    void loadPatients()
+  }, [loadPatients])
+
+  const handleImportLocal = useCallback(async () => {
+    setIsImporting(true)
+    try {
+      const result = await importLocalData()
+      setShowImportBanner(false)
+      await loadPatients()
+      setNewPatientName(
+        `환자 ${result.importedPatients}명 · 진료 기록 ${result.importedVisits}건을 서버로 옮겼습니다`,
+      )
+      setShowSuccessToast(true)
+      setInlineToastTimeout(
+        () => setShowSuccessToast(false),
+        '로컬 데이터를 서버로 옮겼습니다',
+        '이제 다른 기기에서도 같은 명부가 열립니다',
+      )
+    } catch (err) {
+      logError(err, 'PatientsPage.import')
+      setLoadError('로컬 데이터 이관에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsImporting(false)
+    }
+  }, [loadPatients])
 
   // 새 환자 폼
   const [newPatient, setNewPatient] = useState<NewPatientForm>({
@@ -253,11 +239,9 @@ export default function PatientsPage() {
     return Object.keys(errors).length === 0
   }, [newPatient])
 
-  const handleAddPatient = useCallback(() => {
+  const handleAddPatient = useCallback(async () => {
     if (!validateForm()) return
-
-    const today = new Date().toISOString().split('T')[0]
-    const newId = (Math.max(...patients.map((p) => parseInt(p.id))) + 1).toString()
+    if (isSaving) return
 
     // 출생연도만 입력 모드면 1월 1일을 가정해 birthDate 를 생성
     const resolvedBirthDate =
@@ -265,21 +249,27 @@ export default function PatientsPage() {
         ? `${newPatient.birthYearOnly}-01-01`
         : newPatient.birthDate
 
-    const patient: Patient = {
-      id: newId,
-      name: newPatient.name.trim(),
-      birthDate: resolvedBirthDate,
-      gender: newPatient.gender,
-      phone: newPatient.phone.trim(),
-      constitution: newPatient.constitution || undefined,
-      lastVisit: today,
-      totalVisits: 0,
-      mainComplaint: newPatient.mainComplaint.trim(),
-      status: 'active',
+    setIsSaving(true)
+    let created: Awaited<ReturnType<typeof createMyPatient>>
+    try {
+      created = await createMyPatient({
+        name: newPatient.name.trim(),
+        birthDate: resolvedBirthDate || null,
+        gender: newPatient.gender,
+        phone: newPatient.phone.trim() || null,
+        constitution: newPatient.constitution || null,
+        mainComplaint: newPatient.mainComplaint.trim() || null,
+      })
+    } catch (err) {
+      logError(err, 'PatientsPage.create')
+      setFormErrors({ name: '환자 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.' })
+      setIsSaving(false)
+      return
     }
+    setIsSaving(false)
 
-    setPatients([patient, ...patients])
-    setNewPatientName(patient.name)
+    setPatients((prev) => [toViewPatient(created), ...prev])
+    setNewPatientName(created.name)
     setShowNewPatientModal(false)
     setShowSuccessToast(true)
 
@@ -299,10 +289,10 @@ export default function PatientsPage() {
     // 자동 닫힘 — 글자수 기반 (기본 6초+) 으로 사용자가 충분히 읽을 수 있게.
     setInlineToastTimeout(
       () => setShowSuccessToast(false),
-      `${patient.name} 환자가 등록되었습니다`,
+      `${created.name} 환자가 등록되었습니다`,
       '환자 차트에서 진료를 시작하세요',
     )
-  }, [patients, newPatient, validateForm])
+  }, [newPatient, validateForm, isSaving])
 
   const formatPhoneNumber = useCallback((value: string) => {
     const numbers = value.replace(/[^0-9]/g, '')
@@ -313,6 +303,40 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6">
+      {/* 브라우저에만 남아 있던 예전 데이터 이관 — 서버 저장 전환 시 1회만 노출 */}
+      {showImportBanner && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[14px] font-bold text-blue-900">
+                이 브라우저에 저장돼 있던 환자 기록이 있습니다
+              </p>
+              <p className="mt-0.5 text-[13px] text-blue-800">
+                예전에는 환자 명부가 이 기기에만 저장됐습니다. 서버로 옮기면 다른 PC에서도
+                열리고 백업됩니다. 원본은 지우지 않습니다.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={handleImportLocal}
+                disabled={isImporting}
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isImporting ? '옮기는 중…' : '서버로 옮기기'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImportBanner(false)}
+                className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-blue-800 transition-colors hover:bg-blue-100"
+              >
+                나중에
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -491,7 +515,32 @@ export default function PatientsPage() {
           </table>
         </div>
 
-        {filteredPatients.length === 0 && (
+        {/* 조회 실패와 "환자 없음"은 완전히 다른 상태다 — 섞으면 한의사가
+            자기 명부가 비었다고 오해한다. */}
+        {!isLoading && loadError && (
+          <div className="text-center py-12">
+            <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
+            <p className="text-[15px] font-semibold text-neutral-700">{loadError}</p>
+            <p className="text-[13px] text-neutral-500 mt-1">
+              환자가 없는 것이 아니라, 명부 조회에 실패했습니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadPatients()}
+              className="mt-5 inline-flex items-center gap-2 h-11 px-5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[14px] font-semibold rounded-md transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="py-12 text-center text-[13px] text-neutral-500">
+            환자 명부를 불러오는 중…
+          </div>
+        )}
+
+        {!isLoading && !loadError && filteredPatients.length === 0 && (
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
             <p className="text-[15px] font-semibold text-neutral-700">

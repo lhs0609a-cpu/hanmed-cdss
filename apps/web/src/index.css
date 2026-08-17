@@ -331,6 +331,29 @@
     from { width: 0%; }
   }
 
+  /* 진행률을 알 수 없는 대기(AI 분석 등)용 무한 바.
+     퍼센트를 아는 척하면 안 된다 — 고정 폭 + pulse 는 "멈춘 것처럼" 보이고 사실도 아니다.
+     모션 감소는 상단 base 레이어의 전역 prefers-reduced-motion 규칙이 함께 처리한다. */
+  .progress-indeterminate {
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-indeterminate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #60a5fa, #2563eb);
+    animation: ongojisin-indeterminate 1.4s ease-in-out infinite;
+  }
+  @keyframes ongojisin-indeterminate {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+
   .slide-in-menu {
     animation: ongojisin-fade-up 0.2s ease-out forwards;
   }

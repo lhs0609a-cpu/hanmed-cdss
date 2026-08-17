@@ -13,7 +13,6 @@ import {
   Activity,
   Brain,
   ChevronRight,
-  ChevronLeft,
   Info,
   Shield,
   BookOpen,
@@ -32,7 +31,10 @@ import {
   Stethoscope,
   FileCheck,
   Zap,
+  RefreshCw,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { createMyVisit } from '@/services/myPatients'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
@@ -91,6 +93,22 @@ interface Recommendation {
   confidence_score: number
   herbs: Array<{ name: string; amount: string; role: string }>
   rationale: string
+}
+
+/**
+ * 적합도 등급.
+ *
+ * confidence_score 는 임상 성공률이 아니라 AI 가 스스로 매긴 확신도(출전 누락 시 감점)다.
+ * "85%" 처럼 소수점 없는 백분율로 크게 띄우면 통계적 근거가 있는 수치로 읽히므로,
+ * 3단계 등급으로 낮춰 표기하고 원 수치는 툴팁에서만 확인할 수 있게 한다.
+ */
+const CONFIDENCE_DEFINITION =
+  'AI 가 근거 자료와의 일치도를 스스로 평가한 값입니다. 임상 성공률이나 치료 효과를 뜻하지 않습니다.'
+
+function confidenceBand(score: number): { label: string; tone: string } {
+  if (score >= 0.8) return { label: '높음', tone: 'text-blue-700 bg-blue-50 border-blue-200' }
+  if (score >= 0.6) return { label: '보통', tone: 'text-neutral-700 bg-neutral-100 border-neutral-200' }
+  return { label: '낮음', tone: 'text-amber-800 bg-amber-50 border-amber-200' }
 }
 
 // 처방 상세 정보 데이터
@@ -208,7 +226,6 @@ const COMMON_SYMPTOMS = [
   '호흡곤란', '심계', '흉통', '요통', '관절통', '부종', '자한', '도한',
 ]
 
-const PRESCRIPTIONS_STORAGE_KEY = 'hanmed_prescriptions'
 
 // 신규 사용자 "30초 체험"용 예시 케이스 — 비위기허 소화불량 (아하 경로가 잘 살아나는 대표 증례)
 const EXAMPLE_CASE = {
@@ -250,6 +267,10 @@ export default function ConsultationPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [analysis, setAnalysis] = useState('')
   const [error, setError] = useState('')
+  // 백엔드가 폴백 추론(그라운딩·임산부 금기 가드 우회)으로 응답했을 때 붙여 보내는 경고.
+  // 이 값이 있으면 결과를 "검증된 추천"처럼 보여줘선 안 된다.
+  const [safetyWarning, setSafetyWarning] = useState('')
+  const [isSavingVisit, setIsSavingVisit] = useState(false)
 
   // 상세 정보 모달
   const [selectedFormula, setSelectedFormula] = useState<Recommendation | null>(null)
@@ -275,7 +296,7 @@ export default function ConsultationPage() {
 
   // 마법사 단계: 1=환자정보, 2=증상입력, 3=AI분석, 4=처방확인
   const [wizardStep, setWizardStep] = useState(1)
-  const totalWizardSteps = 4
+  const totalWizardSteps = 3
 
   // 예시(데모)로 진입했는지 — 결과 화면에서 "내 환자로 입력" 핸드오프 배너를 띄우는 플래그
   const [isDemoRun, setIsDemoRun] = useState(searchParams.get('demo') === '1')
@@ -367,6 +388,7 @@ export default function ConsultationPage() {
     currentMedications?: string[]
   }) => {
     setError('')
+    setSafetyWarning('')
     setIsLoading(true)
 
     try {
@@ -380,8 +402,11 @@ export default function ConsultationPage() {
             : undefined,
       })
 
-      setRecommendations(response.data.data?.recommendations || response.data.recommendations || [])
-      setAnalysis(response.data.data?.analysis || response.data.analysis || '')
+      const body = response.data.data ?? response.data
+      setRecommendations(body?.recommendations || [])
+      setAnalysis(body?.analysis || '')
+      // AI Engine 장애 시 백엔드가 안전 가드 없는 폴백으로 답한다. 반드시 화면에 드러내야 한다.
+      setSafetyWarning(body?.warning || '')
     } catch (err: unknown) {
       logError(err, 'ConsultationPage')
       setError('처방 추천을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
@@ -410,7 +435,7 @@ export default function ConsultationPage() {
     setChiefComplaint(EXAMPLE_CASE.chiefComplaint)
     setSymptoms(EXAMPLE_CASE.symptoms)
     setCurrentMedications([])
-    setWizardStep(3)
+    setWizardStep(2)
     void runRecommend({
       chiefComplaint: EXAMPLE_CASE.chiefComplaint,
       symptoms: EXAMPLE_CASE.symptoms,
@@ -484,42 +509,55 @@ export default function ConsultationPage() {
     setShowSelectConfirm(true)
   }
 
-  const confirmSelectFormula = () => {
-    if (!selectedForSelect) return
+  /**
+   * 처방 채택 → 서버에 진료 기록으로 저장.
+   *
+   * 예전에는 localStorage('hanmed_prescriptions')에만 넣고 "진료 기록에 저장되었습니다"
+   * 라고 알렸다. 다른 PC 에서는 존재하지 않는 기록이었다. 이제는 서버에 남기고,
+   * 저장에 실패하면 성공했다고 말하지 않는다.
+   */
+  const confirmSelectFormula = async () => {
+    if (!selectedForSelect || isSavingVisit) return
 
+    // 예시 진료(demo)는 실제 환자 기록이 아니므로 저장하지 않는다.
+    if (isDemoRun) {
+      setShowSelectConfirm(false)
+      toast({
+        title: '예시 진료입니다',
+        description: '이 결과는 저장되지 않습니다. 내 환자로 입력하면 기록에 남습니다.',
+      })
+      return
+    }
+
+    setIsSavingVisit(true)
     try {
-      // 처방 기록 생성
-      const prescriptionRecord = {
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
+      await createMyVisit({
+        visitedAt: new Date().toISOString(),
+        chiefComplaint: chiefComplaint || null,
+        symptoms: symptoms.map((s) => ({ name: s.name, severity: s.severity })),
+        diagnosis: analysis || null,
         formulaName: selectedForSelect.formula_name,
         herbs: selectedForSelect.herbs,
-        rationale: selectedForSelect.rationale,
-        confidenceScore: selectedForSelect.confidence_score,
-        chiefComplaint,
-        symptoms: symptoms.map(s => s.name),
-        constitution: constitution || undefined,
-        analysis,
-      }
-
-      // localStorage에 저장
-      const existingRecords = JSON.parse(localStorage.getItem(PRESCRIPTIONS_STORAGE_KEY) || '[]')
-      existingRecords.unshift(prescriptionRecord)
-      // 최대 100개까지 저장
-      localStorage.setItem(PRESCRIPTIONS_STORAGE_KEY, JSON.stringify(existingRecords.slice(0, 100)))
+        aiConfidence: selectedForSelect.confidence_score ?? null,
+        // 안전 가드가 우회된 폴백 결과였는지 함께 남긴다 — 사후 감사에서 걸러내려면 필요하다.
+        aiDegraded: !!safetyWarning,
+        notes: selectedForSelect.rationale || null,
+      })
 
       setShowSelectConfirm(false)
       toast({
-        title: '처방이 선택되었습니다',
-        description: `${selectedForSelect.formula_name}이(가) 진료 기록에 저장되었습니다.`,
+        title: '진료 기록에 저장되었습니다',
+        description: `${selectedForSelect.formula_name} · 환자 메뉴에서 확인할 수 있습니다.`,
       })
     } catch (err) {
-      console.error('Failed to save prescription:', err)
+      logError(err, 'ConsultationPage.saveVisit')
       toast({
         title: '저장 실패',
-        description: '처방 저장 중 오류가 발생했습니다.',
+        description: '진료 기록을 서버에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSavingVisit(false)
     }
   }
 
@@ -541,35 +579,29 @@ export default function ConsultationPage() {
   }
 
   // 마법사 단계 정보
+  // 3단계 — 증상만 넣으면 결과까지 간다.
+  // '환자 정보' 를 별도 1단계로 두던 구조를 없앴다(전부 선택 항목인 통행료였다).
   const wizardSteps = [
-    { step: 1, title: '환자 정보', icon: User, description: '기본 정보 입력' },
-    { step: 2, title: '증상 입력', icon: ClipboardList, description: '증상 및 주소증' },
-    { step: 3, title: 'AI 분석', icon: Stethoscope, description: 'AI가 분석 중' },
-    { step: 4, title: '처방 확인', icon: FileCheck, description: '결과 검토' },
+    { step: 1, title: '증상 입력', icon: ClipboardList, description: '주소증 및 동반 증상' },
+    { step: 2, title: '분석', icon: Stethoscope, description: '변증·처방 후보 도출' },
+    { step: 3, title: '처방 확인', icon: FileCheck, description: '결과 검토' },
   ]
 
   // 다음 단계로 이동
   const goToNextStep = useCallback(() => {
     if (wizardStep < totalWizardSteps) {
-      // 단계 2에서 3으로 이동 시 AI 분석 시작
-      if (wizardStep === 2 && chiefComplaint.trim()) {
+      // 증상 입력(1) → 분석(2) 로 넘어갈 때 실제 추천 호출
+      if (wizardStep === 1 && chiefComplaint.trim()) {
         handleSubmit()
       }
       setWizardStep(prev => prev + 1)
     }
   }, [wizardStep, chiefComplaint])
 
-  // 이전 단계로 이동
-  const goToPrevStep = useCallback(() => {
-    if (wizardStep > 1) {
-      setWizardStep(prev => prev - 1)
-    }
-  }, [wizardStep])
-
   // AI 분석 완료 시 자동으로 다음 단계로 이동
   useEffect(() => {
-    if (inputMode === 'wizard' && wizardStep === 3 && recommendations.length > 0 && !isLoading) {
-      setWizardStep(4)
+    if (inputMode === 'wizard' && wizardStep === 2 && recommendations.length > 0 && !isLoading) {
+      setWizardStep(3)
     }
   }, [inputMode, wizardStep, recommendations.length, isLoading])
 
@@ -630,8 +662,9 @@ export default function ConsultationPage() {
         </div>
       </div>
 
-      {/* 마법사 모드: 진행 표시기 */}
-      {inputMode === 'wizard' && (
+      {/* 마법사 모드: 진행 표시기 — 결과(step4)에선 숨긴다.
+          이미 끝난 단계를 보여주는 건 첫 화면에서 소음이라, 입력 중(1~3)에만 노출. */}
+      {inputMode === 'wizard' && wizardStep < 3 && (
         <div className="glass-surface rounded-2xl border p-4 shadow-[var(--shadow-2)]">
           <div className="flex items-center justify-between">
             {wizardSteps.map((step, index) => {
@@ -656,7 +689,7 @@ export default function ConsultationPage() {
                           ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
                           : isCompleted
                           ? 'bg-blue-100 text-blue-600'
-                          : 'bg-gray-100 text-gray-400'
+                          : 'bg-neutral-100 text-neutral-400'
                       }`}
                     >
                       {isCompleted ? (
@@ -666,12 +699,12 @@ export default function ConsultationPage() {
                       )}
                     </div>
                     <span className={`text-xs font-medium ${
-                      isActive ? 'text-blue-600' : isCompleted ? 'text-blue-500' : 'text-gray-400'
+                      isActive ? 'text-blue-600' : isCompleted ? 'text-blue-500' : 'text-neutral-400'
                     }`}>
                       {step.title}
                     </span>
                     <span className={`text-[10px] ${
-                      isActive ? 'text-gray-600' : 'text-gray-400'
+                      isActive ? 'text-neutral-600' : 'text-neutral-400'
                     }`}>
                       {step.description}
                     </span>
@@ -679,7 +712,7 @@ export default function ConsultationPage() {
 
                   {/* 연결선 */}
                   {index < wizardSteps.length - 1 && (
-                    <div className="flex-1 mx-2 h-0.5 rounded-full overflow-hidden bg-gray-200">
+                    <div className="flex-1 mx-2 h-0.5 rounded-full overflow-hidden bg-neutral-200">
                       <div
                         className={`h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ${
                           isCompleted ? 'w-full' : 'w-0'
@@ -696,31 +729,36 @@ export default function ConsultationPage() {
 
       {/* 마법사 모드 전용 레이아웃 */}
       {inputMode === 'wizard' ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          {/* 단계 1: 환자 정보 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+          {/* 단계 1: 증상 입력 */}
           {wizardStep === 1 && (
-            <div className="space-y-6" data-tour="patient-info">
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <Toss3DIcon icon={User} tone="teal" size="xl" />
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">환자 정보 입력</h2>
-                    <p className="text-sm text-gray-500">진료 시작을 위한 기본 정보를 입력해주세요</p>
-                  </div>
+            <div className="space-y-6" data-tour="symptom-input">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl shadow-lg shadow-blue-500/20">
+                  <ClipboardList className="h-6 w-6 text-white" />
                 </div>
-                <button
-                  onClick={runExampleCase}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors"
-                >
-                  <Zap className="h-4 w-4" aria-hidden="true" />
-                  예시로 30초 체험
-                </button>
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900">증상 입력</h2>
+                  <p className="text-sm text-neutral-500">환자가 호소하는 증상을 입력해주세요</p>
+                </div>
               </div>
 
+              {/* 환자 정보 — 전부 선택 항목이라 기본은 접어 둔다.
+                  예전에는 이 항목들만 있는 1단계를 따로 두고 "다음" 을 눌러야 증상 입력으로
+                  넘어갔다. 하루 40명을 보는 원장에겐 아무것도 입력하지 않는 화면을
+                  40번 통과하는 셈이라, 증상 입력을 첫 화면으로 올리고 여기로 접어 넣었다. */}
+              <details className="rounded-xl border border-neutral-200 bg-neutral-50/60 px-4 py-3">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-700 marker:hidden">
+                  <span className="inline-flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                    환자 정보 추가 (선택) — 나이 · 성별 · 체질 · 복용 약
+                  </span>
+                </summary>
+                <div className="mt-4 space-y-6" data-tour="patient-info">
               {/* 환자 기본 정보 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="patient-age" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="patient-age" className="block text-sm font-medium text-neutral-700 mb-1.5">
                     나이 (선택)
                   </label>
                   <input
@@ -729,18 +767,18 @@ export default function ConsultationPage() {
                     value={patientAge}
                     onChange={(e) => setPatientAge(e.target.value)}
                     placeholder="예: 45세"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-gender" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="patient-gender" className="block text-sm font-medium text-neutral-700 mb-1.5">
                     성별 (선택)
                   </label>
                   <select
                     id="patient-gender"
                     value={patientGender}
                     onChange={(e) => setPatientGender(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
                   >
                     <option value="">선택 안함</option>
                     <option value="male">남성</option>
@@ -751,7 +789,7 @@ export default function ConsultationPage() {
 
               {/* 체질 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
                   사상체질 (선택)
                 </label>
                 <div className="grid grid-cols-5 gap-2">
@@ -762,7 +800,7 @@ export default function ConsultationPage() {
                       className={`px-3 py-3 rounded-xl text-sm font-medium transition-all border-2 ${
                         constitution === c
                           ? 'bg-violet-500 text-white border-violet-500 shadow-lg shadow-violet-500/20'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:bg-violet-50'
+                          : 'bg-white text-neutral-600 border-neutral-200 hover:border-violet-300 hover:bg-violet-50'
                       }`}
                     >
                       {c || '미상'}
@@ -773,7 +811,7 @@ export default function ConsultationPage() {
 
               {/* 복용 중인 약물 */}
               <div>
-                <label htmlFor="medication-wizard" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="medication-wizard" className="block text-sm font-medium text-neutral-700 mb-1.5">
                   복용 중인 양약 (선택)
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -783,12 +821,12 @@ export default function ConsultationPage() {
                     value={newMedication}
                     onChange={(e) => setNewMedication(e.target.value)}
                     placeholder="예: 혈압약, 당뇨약..."
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addMedication()}
                   />
                   <button
                     onClick={addMedication}
-                    className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                    className="px-4 py-3 bg-neutral-200 text-neutral-700 rounded-xl hover:bg-neutral-300 transition-colors"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
@@ -812,36 +850,12 @@ export default function ConsultationPage() {
                   </div>
                 )}
               </div>
-
-              {/* 다음 단계 버튼 */}
-              <div className="flex justify-end pt-4 border-t border-gray-100">
-                <button
-                  onClick={goToNextStep}
-                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 transition-all flex items-center gap-2"
-                >
-                  다음: 증상 입력
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 단계 2: 증상 입력 */}
-          {wizardStep === 2 && (
-            <div className="space-y-6" data-tour="symptom-input">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl shadow-lg shadow-blue-500/20">
-                  <ClipboardList className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">증상 입력</h2>
-                  <p className="text-sm text-gray-500">환자가 호소하는 증상을 입력해주세요</p>
-                </div>
-              </div>
+              </details>
 
               {/* 주소증 입력 */}
               <div>
-                <label htmlFor="chief-complaint-wizard" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="chief-complaint-wizard" className="block text-sm font-medium text-neutral-700 mb-1.5">
                   주소증 <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -849,14 +863,14 @@ export default function ConsultationPage() {
                   value={chiefComplaint}
                   onChange={(e) => setChiefComplaint(e.target.value)}
                   placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고 설사를 자주 합니다. 피로감이 심합니다..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
                   rows={5}
                 />
               </div>
 
               {/* 빠른 증상 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
                   빠른 증상 추가 (클릭하여 선택)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -869,7 +883,7 @@ export default function ConsultationPage() {
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           isSelected
                             ? 'bg-blue-500 text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         }`}
                       >
                         {symptom}
@@ -904,7 +918,7 @@ export default function ConsultationPage() {
 
               {/* 직접 입력 */}
               <div>
-                <label htmlFor="custom-symptom" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="custom-symptom" className="block text-sm font-medium text-neutral-700 mb-1.5">
                   직접 증상 추가
                 </label>
                 <div className="flex gap-2">
@@ -914,7 +928,7 @@ export default function ConsultationPage() {
                     value={newSymptom}
                     onChange={(e) => setNewSymptom(e.target.value)}
                     placeholder="증상 입력 후 Enter"
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
                   />
                   <button
@@ -926,35 +940,36 @@ export default function ConsultationPage() {
                 </div>
               </div>
 
-              {/* 네비게이션 버튼 */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              {/* 네비게이션 — 증상 입력이 첫 단계라 '이전' 은 없다.
+                  대신 데이터를 넣기 전에 결과부터 보고 싶은 사람을 위해 예시 진료를 옆에 둔다. */}
+              <div className="flex flex-col-reverse gap-3 pt-4 border-t border-neutral-100 sm:flex-row sm:items-center sm:justify-between">
                 <button
-                  onClick={goToPrevStep}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
+                  onClick={runExampleCase}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
                 >
-                  <ChevronLeft className="h-5 w-5" />
-                  이전
+                  <Zap className="h-4 w-4" aria-hidden="true" />
+                  예시로 30초 체험
                 </button>
                 <button
                   onClick={goToNextStep}
                   disabled={!chiefComplaint.trim()}
-                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl accent-gradient accent-glow px-6 py-3 font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Sparkles className="h-5 w-5" />
-                  AI 분석 시작
+                  분석 시작
                 </button>
               </div>
             </div>
           )}
 
-          {/* 단계 3: AI 분석 중 */}
-          {wizardStep === 3 && (
+          {/* 단계 2: AI 분석 중 */}
+          {wizardStep === 2 && (
             <div className="space-y-6" data-tour="analyze-button">
               <div className="flex items-center gap-3 mb-6">
                 <Toss3DIcon icon={Stethoscope} tone="purple" size="xl" className="animate-pulse" />
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">AI 분석 중</h2>
-                  <p className="text-sm text-gray-500">등록된 치험례를 분석하고 있습니다</p>
+                  <h2 className="text-xl font-bold text-neutral-900">AI 분석 중</h2>
+                  <p className="text-sm text-neutral-500">등록된 치험례를 분석하고 있습니다</p>
                 </div>
               </div>
 
@@ -967,25 +982,41 @@ export default function ConsultationPage() {
                       <Brain className="absolute inset-0 m-auto h-10 w-10 text-blue-500" />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-lg font-semibold text-gray-900">AI가 분석 중입니다...</p>
-                      <p className="text-gray-500">증상 패턴을 분석하고 최적의 처방을 찾고 있습니다</p>
+                      <p className="text-lg font-semibold text-neutral-900">AI가 분석 중입니다...</p>
+                      <p className="text-neutral-500">증상 패턴을 분석하고 최적의 처방을 찾고 있습니다</p>
                     </div>
+                    {/* 실제 진행률을 알 수 없는 요청이라 퍼센트를 표시하지 않는다.
+                        (이전엔 70% 고정 바를 pulse 시켜 진행 중인 척했다 — 사실이 아니고, 멈춘 것처럼 보였다) */}
                     <div className="max-w-md mx-auto space-y-2">
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span>진행 중</span>
+                      <div className="flex items-center justify-between text-sm text-neutral-600">
+                        <span>분석 중</span>
                         <span>잠시만 기다려주세요</span>
                       </div>
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse" style={{ width: '70%' }} />
-                      </div>
+                      <div
+                        className="progress-indeterminate h-2 rounded-full bg-neutral-200"
+                        role="progressbar"
+                        aria-label="AI 분석 진행 중"
+                      />
                     </div>
+                  </div>
+                ) : error ? (
+                  /* 실패(타임아웃 포함)를 "분석 완료"로 위장하지 않는다.
+                     여기서 초록 체크가 뜨면 결과 0건인 4단계로 사용자를 밀어넣게 된다. */
+                  <div className="max-w-md mx-auto">
+                    <ErrorMessage message={error} onRetry={handleSubmit} />
+                    <button
+                      onClick={() => setWizardStep(1)}
+                      className="mt-3 text-sm font-medium text-neutral-500 hover:text-neutral-900"
+                    >
+                      증상 다시 입력하기
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
-                    <p className="text-lg font-semibold text-gray-900">분석이 완료되었습니다!</p>
+                    <p className="text-lg font-semibold text-neutral-900">분석이 완료되었습니다!</p>
                     <button
-                      onClick={() => setWizardStep(4)}
+                      onClick={() => setWizardStep(3)}
                       className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 transition-all flex items-center gap-2 mx-auto"
                     >
                       결과 확인하기
@@ -996,23 +1027,23 @@ export default function ConsultationPage() {
               </div>
 
               {/* 분석 중 입력 요약 표시 */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <h4 className="font-medium text-gray-700">입력된 정보 요약</h4>
+              <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
+                <h4 className="font-medium text-neutral-700">입력된 정보 요약</h4>
                 <div className="space-y-2 text-sm">
                   {constitution && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">체질:</span>
+                      <span className="text-neutral-500">체질:</span>
                       <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded">{constitution}</span>
                     </div>
                   )}
                   <div className="flex items-start gap-2">
-                    <span className="text-gray-500 shrink-0">주소증:</span>
-                    <span className="text-gray-700">{chiefComplaint}</span>
+                    <span className="text-neutral-500 shrink-0">주소증:</span>
+                    <span className="text-neutral-700">{chiefComplaint}</span>
                   </div>
                   {symptoms.length > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500 shrink-0">증상:</span>
-                      <span className="text-gray-700">{symptoms.map(s => s.name).join(', ')}</span>
+                      <span className="text-neutral-500 shrink-0">증상:</span>
+                      <span className="text-neutral-700">{symptoms.map(s => s.name).join(', ')}</span>
                     </div>
                   )}
                 </div>
@@ -1020,21 +1051,26 @@ export default function ConsultationPage() {
             </div>
           )}
 
-          {/* 단계 4: 처방 확인 - 결과 영역에서 표시 */}
-          {wizardStep === 4 && (
+          {/* 단계 3: 처방 확인 - 결과 영역에서 표시 */}
+          {wizardStep === 3 && (
             <div className="space-y-6" data-tour="result-area">
-              {/* 데모 핸드오프 — 예시임을 정직하게 알리고, 곧바로 내 환자 입력으로 넘긴다.
-                  (첫 화면에서 이미 풀린 결과를 본 직후의 액티베이션 지점) */}
+              {/* ① 컨텍스트 바 — 이 결과가 "누구의" 것인지 한 줄로. 데모면 예시임을 명시하고
+                  곧바로 내 환자 입력으로 넘길 CTA 를 함께 둔다. */}
               {isDemoRun && recommendations.length > 0 && (
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <Zap className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" aria-hidden="true" />
-                    <div>
-                      <p className="text-[15px] font-bold text-blue-900">
-                        예시 증례입니다 — 아래는 실제 AI 분석 결과예요
-                      </p>
-                      <p className="text-[13px] text-blue-800 mt-0.5">
-                        방금 보신 흐름 그대로, 이제 선생님 환자의 증상을 넣어보세요.
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-bold text-blue-900">예시 진료 · 실제 AI 분석 결과</p>
+                      <p className="text-[13px] text-blue-800 mt-0.5 truncate">
+                        {[
+                          patientAge,
+                          patientGender === 'male' ? '남성' : patientGender === 'female' ? '여성' : '',
+                          constitution,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                        {symptoms.length > 0 && ` · ${symptoms.map((s) => s.name).join('·')}`}
                       </p>
                     </div>
                   </div>
@@ -1048,23 +1084,126 @@ export default function ConsultationPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 mb-6">
-                <Toss3DIcon icon={FileCheck} tone="mint" size="xl" />
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">처방 추천 결과</h2>
-                  <p className="text-sm text-gray-500">{recommendations.length}개의 처방이 추천되었습니다</p>
-                </div>
-              </div>
-
-              {/* AI 분석 요약 */}
-              {analysis && (
-                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-200 p-4">
+              {/* ② 답(히어로) — 최우선 처방을 크게. 변증 근거·약재 구성까지 한 카드에 담아
+                  "무엇을 / 왜 / 무엇으로" 를 3초 안에 읽히게 한다. */}
+              {/* 안전 가드가 우회된 폴백 응답 — 결과보다 먼저, 결과보다 크게 알린다. */}
+              {safetyWarning && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5"
+                >
                   <div className="flex items-start gap-3">
-                    <Toss3DIcon icon={Brain} tone="teal" size="sm" className="mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">AI 변증 분석</h4>
-                      <p className="text-sm text-gray-600 leading-relaxed">{analysis}</p>
+                    <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-bold text-amber-900">
+                        안전 검증을 거치지 않은 임시 추론입니다
+                      </p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-amber-800">{safetyWarning}</p>
+                      <p className="mt-2 text-[13px] leading-relaxed text-amber-800">
+                        <strong>임산부·수유부·고령 환자에게는 이 결과를 그대로 사용하지 마십시오.</strong>{' '}
+                        금기 본초 자동 제외와 출전 검증이 적용되지 않았습니다. 잠시 후 다시 시도하면
+                        정상 경로로 재분석됩니다.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-amber-700"
+                      >
+                        <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                        정상 경로로 다시 분석
+                      </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {recommendations.length > 0 && (
+                <div
+                  className={cn(
+                    'rounded-2xl border p-5 sm:p-6',
+                    safetyWarning
+                      ? 'border-neutral-200 bg-neutral-50'
+                      : 'border-blue-200 bg-gradient-to-br from-blue-50/60 to-white',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold text-white',
+                          safetyWarning ? 'bg-neutral-500' : 'bg-blue-500',
+                        )}
+                      >
+                        <CheckCircle className="h-3 w-3" />
+                        {safetyWarning ? '검증 전 후보' : '최우선 처방'}
+                      </span>
+                      <h2 className="mt-2 text-[26px] font-bold leading-tight tracking-tight text-neutral-900">
+                        {recommendations[0].formula_name}
+                      </h2>
+                    </div>
+                    {/* 폴백일 때는 적합도를 아예 표시하지 않는다 — 검증 안 된 값에 숫자를 붙이면 신뢰를 오도한다. */}
+                    {!safetyWarning && (
+                      <div className="shrink-0 text-right">
+                        <span
+                          className={cn(
+                            'inline-block rounded-lg border px-2.5 py-1 text-[15px] font-bold',
+                            confidenceBand(recommendations[0].confidence_score).tone,
+                          )}
+                          title={`${CONFIDENCE_DEFINITION} (원 수치 ${(recommendations[0].confidence_score * 100).toFixed(0)})`}
+                        >
+                          {confidenceBand(recommendations[0].confidence_score).label}
+                        </span>
+                        <p className="mt-1 text-[11px] text-neutral-500">AI 적합도</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 왜 — AI 변증 분석 */}
+                  {analysis && (
+                    <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-white/70 p-3.5 border border-neutral-100">
+                      <Brain className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <p className="text-[13.5px] leading-relaxed text-neutral-700">{analysis}</p>
+                    </div>
+                  )}
+
+                  {/* 무엇으로 — 약재 구성(그라운딩 검증 통과분). 온전한 구성이 신뢰의 핵심. */}
+                  {recommendations[0].herbs?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-neutral-500">
+                        <Pill className="h-3.5 w-3.5" /> 구성 {recommendations[0].herbs.length}味
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {recommendations[0].herbs.map((h, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[12px] text-neutral-700 border border-neutral-200"
+                          >
+                            <span className="font-medium">{h.name}</span>
+                            {h.amount && <span className="text-neutral-400">{h.amount}</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 근거 요약 스트립 — 입력 대비 무엇이 반영됐는지(지어내지 않고 실제 입력 기준) */}
+                  <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-neutral-100 pt-3 text-[12px] text-neutral-500">
+                    {symptoms.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Activity className="h-3.5 w-3.5 text-neutral-400" />
+                        주소증·증상 {symptoms.length}개 반영
+                      </span>
+                    )}
+                    {constitution && (
+                      <span className="flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-neutral-400" />
+                        체질({constitution}) 고려
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Shield className="h-3.5 w-3.5 text-neutral-400" />
+                      본초 안전성 검증
+                    </span>
                   </div>
                 </div>
               )}
@@ -1092,49 +1231,51 @@ export default function ConsultationPage() {
                 </div>
               )}
 
-              {/* 처방 목록 (간략) */}
-              <div className="space-y-3">
-                {recommendations.slice(0, 3).map((rec, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
-                      index === 0
-                        ? 'border-blue-300 bg-blue-50/50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                    onClick={() => openDetailModal(rec)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {index === 0 && (
-                          <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded">
-                            BEST
-                          </span>
-                        )}
-                        <span className="font-bold text-gray-900">{rec.formula_name}</span>
-                      </div>
-                      <span className={`px-2 py-1 rounded-lg text-sm font-bold ${
-                        rec.confidence_score >= 0.9
-                          ? 'bg-green-100 text-green-700'
-                          : rec.confidence_score >= 0.7
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {(rec.confidence_score * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">{rec.rationale}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* 유사 환자 성공 통계 — 내 치험례 기반 (데이터 없으면 컴포넌트가 자동 숨김) */}
+              {/* ③ 유사 환자 통계 — "그래서 결과는?" 에 대한 실데이터 답.
+                  (매칭 치험례 없으면 컴포넌트가 스스로 숨는다) */}
               {recommendations.length > 0 && (
                 <SimilarCaseSuccessCard
                   chiefComplaint={chiefComplaint}
                   symptoms={symptoms}
                   diagnosis={analysis || undefined}
                 />
+              )}
+
+              {/* ④ 다른 후보 — 최우선 외 대안. 비교/상세는 클릭. */}
+              {recommendations.length > 1 && (
+                <div>
+                  <p className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-neutral-500">
+                    <Beaker className="h-4 w-4" /> 다른 후보 {recommendations.length - 1}개
+                  </p>
+                  <div className="space-y-2">
+                    {recommendations.slice(1).map((rec, index) => (
+                      <button
+                        key={index}
+                        onClick={() => openDetailModal(rec)}
+                        className="w-full rounded-xl border border-neutral-200 bg-white p-3.5 text-left transition-all hover:border-neutral-300 hover:shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold text-neutral-900">{rec.formula_name}</span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={cn(
+                                'rounded-md border px-1.5 py-0.5 text-[12px] font-bold',
+                                confidenceBand(rec.confidence_score).tone,
+                              )}
+                              title={CONFIDENCE_DEFINITION}
+                            >
+                              {confidenceBand(rec.confidence_score).label}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-neutral-300" />
+                          </span>
+                        </div>
+                        {rec.rationale && (
+                          <p className="mt-1 line-clamp-1 text-[12.5px] text-neutral-500">{rec.rationale}</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* 환자 설명자료 · 진료 근거서 — 최우선 처방 기준으로 즉시 생성 */}
@@ -1151,11 +1292,12 @@ export default function ConsultationPage() {
                 </button>
               )}
 
-              {/* 네비게이션 */}
-              <div className="flex justify-between pt-4 border-t border-gray-100">
+              {/* 네비게이션 — 390px 에서 버튼 라벨이 "최우선 처방 선 / 택" 으로 쪼개지던 문제.
+                  좁은 화면에서는 세로로 쌓고, 라벨은 whitespace-nowrap 으로 묶는다. */}
+              <div className="flex flex-col-reverse gap-3 border-t border-neutral-100 pt-4 sm:flex-row sm:justify-between">
                 <button
                   onClick={startMyPatient}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-neutral-100 px-6 py-3 font-semibold text-neutral-700 transition-all hover:bg-neutral-200"
                 >
                   <Plus className="h-5 w-5" />
                   새 진료 시작
@@ -1163,7 +1305,7 @@ export default function ConsultationPage() {
                 <button
                   onClick={() => recommendations[0] && handleSelectFormula(recommendations[0])}
                   disabled={recommendations.length === 0}
-                  className="px-6 py-3 accent-gradient accent-glow text-white rounded-xl font-semibold hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl accent-gradient accent-glow px-6 py-3 font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <CheckCircle className="h-5 w-5" />
                   최우선 처방 선택
@@ -1179,14 +1321,14 @@ export default function ConsultationPage() {
           <div className="lg:col-span-2 space-y-4">
             {/* Quick Input Mode - 통합 입력 */}
             {quickMode ? (
-              <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-gray-900">환자 증상 입력</h2>
-                  <p className="text-xs text-gray-500">자유롭게 입력 후 Enter 또는 분석 버튼</p>
+                  <h2 className="font-bold text-neutral-900">환자 증상 입력</h2>
+                  <p className="text-xs text-neutral-500">자유롭게 입력 후 Enter 또는 분석 버튼</p>
                 </div>
               </div>
 
@@ -1200,7 +1342,7 @@ export default function ConsultationPage() {
                 onChange={(e) => setChiefComplaint(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="예: 65세 남자, 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고 설사를 자주 합니다. 피로감이 심합니다..."
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
+                className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-base"
                 rows={5}
                 autoFocus
                 aria-describedby="chief-complaint-hint"
@@ -1211,7 +1353,7 @@ export default function ConsultationPage() {
 
               {/* Quick Symptom Tags */}
               <fieldset className="mt-4">
-                <legend className="text-xs font-medium text-gray-500 mb-2">빠른 증상 추가 (클릭하여 선택)</legend>
+                <legend className="text-xs font-medium text-neutral-500 mb-2">빠른 증상 추가 (클릭하여 선택)</legend>
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="증상 선택">
                   {COMMON_SYMPTOMS.slice(0, 12).map((symptom) => {
                     const isSelected = symptoms.some(s => s.name === symptom)
@@ -1224,7 +1366,7 @@ export default function ConsultationPage() {
                         className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                           isSelected
                             ? 'bg-blue-500 text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         }`}
                       >
                         {symptom}
@@ -1236,7 +1378,7 @@ export default function ConsultationPage() {
 
               {/* Selected Symptoms Display */}
               {symptoms.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="mt-3 pt-3 border-t border-neutral-100">
                   <div className="flex flex-wrap gap-1.5" role="list" aria-label="선택된 증상 목록">
                     {symptoms.map((symptom, index) => (
                       <span
@@ -1260,7 +1402,7 @@ export default function ConsultationPage() {
 
               {/* Quick Constitution Selection */}
               <fieldset className="mt-4 flex items-center gap-2">
-                <legend className="text-xs font-medium text-gray-500">체질:</legend>
+                <legend className="text-xs font-medium text-neutral-500">체질:</legend>
                 <div className="flex gap-1" role="radiogroup" aria-label="사상체질 선택">
                   {['', '태양인', '태음인', '소양인', '소음인'].map((c) => (
                     <button
@@ -1272,7 +1414,7 @@ export default function ConsultationPage() {
                       className={`px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${
                         constitution === c
                           ? 'bg-violet-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
                       {c || '미상'}
@@ -1316,14 +1458,14 @@ export default function ConsultationPage() {
             /* Detailed Input Mode - 기존 상세 입력 */
             <>
               {/* Chief Complaint */}
-              <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div data-tour="patient-info" className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="p-2 bg-blue-100 rounded-xl">
                     <User className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-gray-900">주소증</h2>
-                    <p className="text-xs text-gray-500">환자가 호소하는 주요 증상</p>
+                    <h2 className="font-bold text-neutral-900">주소증</h2>
+                    <p className="text-xs text-neutral-500">환자가 호소하는 주요 증상</p>
                   </div>
                 </div>
                 <label htmlFor="chief-complaint-detail" className="sr-only">주소증 상세 입력</label>
@@ -1332,7 +1474,7 @@ export default function ConsultationPage() {
                   value={chiefComplaint}
                   onChange={(e) => setChiefComplaint(e.target.value)}
                   placeholder="예: 소화가 안되고 배가 차갑습니다. 밥을 먹으면 더부룩하고..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none"
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none"
                   rows={4}
                   aria-describedby="chief-complaint-detail-hint"
                 />
@@ -1340,14 +1482,14 @@ export default function ConsultationPage() {
               </div>
 
               {/* Symptoms */}
-              <div data-tour="symptom-input" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div data-tour="symptom-input" className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="p-2 bg-blue-100 rounded-xl">
                     <Activity className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-gray-900">세부 증상</h2>
-                    <p className="text-xs text-gray-500">관련 증상을 태그로 추가</p>
+                    <h2 className="font-bold text-neutral-900">세부 증상</h2>
+                    <p className="text-xs text-neutral-500">관련 증상을 태그로 추가</p>
                   </div>
                 </div>
 
@@ -1359,7 +1501,7 @@ export default function ConsultationPage() {
                     value={newSymptom}
                     onChange={(e) => setNewSymptom(e.target.value)}
                     placeholder="증상 입력 후 Enter"
-                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                    className="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
                     aria-describedby="new-symptom-hint"
                   />
@@ -1391,32 +1533,32 @@ export default function ConsultationPage() {
                     </span>
                   ))}
                   {symptoms.length === 0 && (
-                    <span className="text-sm text-gray-400" aria-live="polite">증상을 추가해주세요</span>
+                    <span className="text-sm text-neutral-400" aria-live="polite">증상을 추가해주세요</span>
                   )}
                 </div>
               </div>
 
               {/* Constitution & Medications */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="p-2 bg-amber-100 rounded-xl">
                     <Pill className="h-5 w-5 text-amber-600" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-gray-900">추가 정보</h2>
-                    <p className="text-xs text-gray-500">체질 및 복용 약물</p>
+                    <h2 className="font-bold text-neutral-900">추가 정보</h2>
+                    <p className="text-xs text-neutral-500">체질 및 복용 약물</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="constitution-select" className="block text-sm font-medium text-gray-700 mb-1.5">체질</label>
+                    <label htmlFor="constitution-select" className="block text-sm font-medium text-neutral-700 mb-1.5">체질</label>
                     <select
                       id="constitution-select"
                       value={constitution}
                       onChange={(e) => setConstitution(e.target.value)}
                       aria-describedby="constitution-hint"
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
+                      className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all appearance-none"
                     >
                       <option value="">미상 / 선택 안함</option>
                       <option value="태양인">태양인</option>
@@ -1428,7 +1570,7 @@ export default function ConsultationPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="medication-input" className="block text-sm font-medium text-gray-700 mb-1.5">복용 중인 양약</label>
+                    <label htmlFor="medication-input" className="block text-sm font-medium text-neutral-700 mb-1.5">복용 중인 양약</label>
                     <div className="flex gap-2 mb-2">
                       <input
                         id="medication-input"
@@ -1436,7 +1578,7 @@ export default function ConsultationPage() {
                         value={newMedication}
                         onChange={(e) => setNewMedication(e.target.value)}
                         placeholder="양약 추가"
-                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                        className="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                         onKeyDown={(e) => e.key === 'Enter' && addMedication()}
                         aria-describedby="medication-hint"
                       />
@@ -1444,7 +1586,7 @@ export default function ConsultationPage() {
                       <button
                         onClick={addMedication}
                         aria-label="양약 추가"
-                        className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/50"
+                        className="px-4 py-2.5 bg-neutral-200 text-neutral-700 rounded-xl hover:bg-neutral-300 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-400/50"
                       >
                         <Plus className="h-5 w-5" aria-hidden="true" />
                       </button>
@@ -1454,13 +1596,13 @@ export default function ConsultationPage() {
                         <span
                           key={index}
                           role="listitem"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-sm font-medium"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 text-neutral-700 border border-neutral-200 rounded-full text-sm font-medium"
                         >
                           {med}
                           <button
                             onClick={() => removeMedication(index)}
                             aria-label={`${med} 양약 삭제`}
-                            className="hover:bg-gray-300 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/50"
+                            className="hover:bg-neutral-300 rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-400/50"
                           >
                             <X className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
@@ -1474,10 +1616,10 @@ export default function ConsultationPage() {
           )}
 
           {/* Advanced Options - 학파 선택 및 분석 옵션 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
             <button
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
               aria-expanded={showAdvancedOptions}
               aria-controls="advanced-options-panel"
             >
@@ -1486,25 +1628,25 @@ export default function ConsultationPage() {
                   <Settings2 className="h-5 w-5 text-purple-600" />
                 </div>
                 <div className="text-left">
-                  <h2 className="font-bold text-gray-900">분석 옵션</h2>
-                  <p className="text-xs text-gray-500">학파 선호도 및 변증 분석 설정</p>
+                  <h2 className="font-bold text-neutral-900">분석 옵션</h2>
+                  <p className="text-xs text-neutral-500">학파 선호도 및 변증 분석 설정</p>
                 </div>
               </div>
-              <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} aria-hidden="true" />
+              <ChevronRight className={`h-5 w-5 text-neutral-400 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`} aria-hidden="true" />
             </button>
 
             {showAdvancedOptions && (
-              <div id="advanced-options-panel" className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
+              <div id="advanced-options-panel" className="px-6 pb-6 space-y-4 border-t border-neutral-100 pt-4">
                 {/* 학파 선호도 */}
                 <fieldset>
-                  <legend className="block text-sm font-medium text-gray-700 mb-2">학파 선호도</legend>
+                  <legend className="block text-sm font-medium text-neutral-700 mb-2">학파 선호도</legend>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setPreferredSchool('all')}
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                         preferredSchool === 'all'
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          ? 'bg-neutral-900 text-white border-neutral-900'
+                          : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'
                       }`}
                     >
                       전체 (자동 선택)
@@ -1514,7 +1656,7 @@ export default function ConsultationPage() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'classical'
                           ? 'bg-amber-600 text-white border-amber-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                          : 'bg-white text-neutral-700 border-neutral-300 hover:bg-amber-50'
                       }`}
                     >
                       <Scroll className="h-4 w-4" />
@@ -1525,7 +1667,7 @@ export default function ConsultationPage() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'later'
                           ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+                          : 'bg-white text-neutral-700 border-neutral-300 hover:bg-blue-50'
                       }`}
                     >
                       <Book className="h-4 w-4" />
@@ -1536,7 +1678,7 @@ export default function ConsultationPage() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5 ${
                         preferredSchool === 'sasang'
                           ? 'bg-violet-600 text-white border-violet-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-violet-50'
+                          : 'bg-white text-neutral-700 border-neutral-300 hover:bg-violet-50'
                       }`}
                     >
                       <Users className="h-4 w-4" />
@@ -1544,7 +1686,7 @@ export default function ConsultationPage() {
                     </button>
                   </div>
                   {preferredSchool !== 'all' && (
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-neutral-500">
                       {SCHOOL_INFO[preferredSchool].philosophy}
                     </p>
                   )}
@@ -1552,33 +1694,33 @@ export default function ConsultationPage() {
 
                 {/* 분석 옵션 */}
                 <fieldset className="space-y-3">
-                  <legend className="block text-sm font-medium text-gray-700">분석 포함 항목</legend>
-                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                  <legend className="block text-sm font-medium text-neutral-700">분석 포함 항목</legend>
+                  <label className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
                     <input
                       type="checkbox"
                       id="palgang-checkbox"
                       checked={includePalGang}
                       onChange={(e) => setIncludePalGang(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
                       aria-describedby="palgang-desc"
                     />
                     <div>
-                      <span className="font-medium text-gray-900">팔강변증 분석</span>
-                      <p id="palgang-desc" className="text-xs text-gray-500">음양, 표리, 한열, 허실 분석 포함</p>
+                      <span className="font-medium text-neutral-900">팔강변증 분석</span>
+                      <p id="palgang-desc" className="text-xs text-neutral-500">음양, 표리, 한열, 허실 분석 포함</p>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                  <label className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
                     <input
                       type="checkbox"
                       id="byeongyang-checkbox"
                       checked={includeByeongYang}
                       onChange={(e) => setIncludeByeongYang(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
                       aria-describedby="byeongyang-desc"
                     />
                     <div>
-                      <span className="font-medium text-gray-900">병양도표 매칭</span>
-                      <p id="byeongyang-desc" className="text-xs text-gray-500">증상별 변증 패턴 매칭 분석</p>
+                      <span className="font-medium text-neutral-900">병양도표 매칭</span>
+                      <p id="byeongyang-desc" className="text-xs text-neutral-500">증상별 변증 패턴 매칭 분석</p>
                     </div>
                   </label>
                 </fieldset>
@@ -1648,14 +1790,14 @@ export default function ConsultationPage() {
 
               {/* AI Analysis */}
               {analysis && (
-                <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-gray-200 p-6">
+                <div className="bg-gradient-to-br from-slate-50 to-neutral-50 rounded-2xl border border-neutral-200 p-6">
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
                       <Brain className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 mb-2">AI 변증 분석</h3>
-                      <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{analysis}</p>
+                      <h3 className="font-bold text-neutral-900 mb-2">AI 변증 분석</h3>
+                      <p className="text-neutral-600 text-sm leading-relaxed whitespace-pre-wrap">{analysis}</p>
                     </div>
                   </div>
                 </div>
@@ -1670,13 +1812,13 @@ export default function ConsultationPage() {
               <PrescriptionDisclaimer />
 
               {/* Recommendations */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-blue-500" />
-                    추천 처방 <span className="text-xs font-normal text-gray-500 ml-1">(참고용)</span>
+                    추천 처방 <span className="text-xs font-normal text-neutral-500 ml-1">(참고용)</span>
                   </h2>
-                  <span className="text-xs text-gray-500">{recommendations.length}개의 처방 추천</span>
+                  <span className="text-xs text-neutral-500">{recommendations.length}개의 처방 추천</span>
                 </div>
 
                 <div className="space-y-4">
@@ -1686,7 +1828,7 @@ export default function ConsultationPage() {
                       className={`group p-5 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg ${
                         index === 0
                           ? 'border-blue-200 bg-blue-50/50 hover:shadow-blue-500/10'
-                          : 'border-gray-100 hover:border-gray-200'
+                          : 'border-neutral-100 hover:border-neutral-200'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -1697,23 +1839,23 @@ export default function ConsultationPage() {
                                 BEST
                               </span>
                             )}
-                            <h3 className="font-bold text-lg text-gray-900">{rec.formula_name}</h3>
+                            <h3 className="font-bold text-lg text-neutral-900">{rec.formula_name}</h3>
                           </div>
                         </div>
-                        <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
-                          rec.confidence_score >= 0.9
-                            ? 'bg-green-100 text-green-700'
-                            : rec.confidence_score >= 0.7
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {(rec.confidence_score * 100).toFixed(0)}%
+                        <div
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-sm font-bold',
+                            confidenceBand(rec.confidence_score).tone,
+                          )}
+                          title={CONFIDENCE_DEFINITION}
+                        >
+                          적합도 {confidenceBand(rec.confidence_score).label}
                         </div>
                       </div>
 
                       {/* Herbs with roles */}
                       <div className="mb-4">
-                        <p className="text-xs font-medium text-gray-500 mb-2">구성 약재</p>
+                        <p className="text-xs font-medium text-neutral-500 mb-2">구성 약재</p>
                         <div className="flex flex-wrap gap-2">
                           {rec.herbs.map((herb, i) => {
                             const herbInfo = HERB_INFO[herb.name]
@@ -1721,7 +1863,7 @@ export default function ConsultationPage() {
                               <span
                                 key={i}
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-medium border ${
-                                  roleColors[herb.role] || 'bg-gray-100 text-gray-700 border-gray-200'
+                                  roleColors[herb.role] || 'bg-neutral-100 text-neutral-700 border-neutral-200'
                                 }`}
                               >
                                 {herbInfo ? (
@@ -1746,8 +1888,8 @@ export default function ConsultationPage() {
                       </div>
 
                       {/* Rationale */}
-                      <div className="pt-3 border-t border-gray-100">
-                        <p className="text-sm text-gray-600 leading-relaxed">{rec.rationale}</p>
+                      <div className="pt-3 border-t border-neutral-100">
+                        <p className="text-sm text-neutral-600 leading-relaxed">{rec.rationale}</p>
                       </div>
 
                       {/* 유사환자 성공률/치료일 통계는 실제 아웃컴 데이터가 확보되기 전까지
@@ -1764,7 +1906,7 @@ export default function ConsultationPage() {
                         </button>
                         <button
                           onClick={() => openDetailModal(rec)}
-                          className="py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+                          className="py-2 px-4 bg-neutral-100 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-200 transition-colors flex items-center gap-1"
                         >
                           <Info className="h-4 w-4" />
                           상세
@@ -1818,17 +1960,17 @@ export default function ConsultationPage() {
               )}
 
               {/* Similar Cases Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <button
                   onClick={() => setShowSimilarCases(!showSimilarCases)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-100 rounded-xl">
                       <Search className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div className="text-left">
-                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                      <h3 className="font-bold text-neutral-900 flex items-center gap-2">
                         유사 치험례
                         {similarCases.length > 0 && (
                           <span className="px-1.5 py-0.5 text-xs font-bold bg-indigo-100 text-indigo-700 rounded">
@@ -1836,21 +1978,21 @@ export default function ConsultationPage() {
                           </span>
                         )}
                       </h3>
-                      <p className="text-xs text-gray-500">비슷한 환자 사례와 처방 확인</p>
+                      <p className="text-xs text-neutral-500">비슷한 환자 사례와 처방 확인</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {loadingSimilarCases && (
-                      <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                      <Loader2 className="h-4 w-4 text-neutral-400 animate-spin" />
                     )}
-                    <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${showSimilarCases ? 'rotate-90' : ''}`} />
+                    <ChevronRight className={`h-5 w-5 text-neutral-400 transition-transform ${showSimilarCases ? 'rotate-90' : ''}`} />
                   </div>
                 </button>
 
                 {showSimilarCases && (
-                  <div className="px-6 pb-6 border-t border-gray-100">
+                  <div className="px-6 pb-6 border-t border-neutral-100">
                     {loadingSimilarCases ? (
-                      <div className="py-8 text-center text-gray-500">
+                      <div className="py-8 text-center text-neutral-500">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                         <p className="text-sm">유사 치험례 검색 중...</p>
                       </div>
@@ -1872,8 +2014,8 @@ export default function ConsultationPage() {
                         </Link>
                       </div>
                     ) : (
-                      <div className="py-8 text-center text-gray-500">
-                        <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      <div className="py-8 text-center text-neutral-500">
+                        <BookOpen className="h-8 w-8 mx-auto mb-2 text-neutral-300" />
                         <p className="text-sm">유사한 치험례를 찾지 못했습니다</p>
                         <Link
                           to="/dashboard/case-search"
@@ -1891,13 +2033,13 @@ export default function ConsultationPage() {
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center py-16">
-                <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-3xl flex items-center justify-center">
-                  <Sparkles className="h-10 w-10 text-gray-300" />
+                <div className="w-20 h-20 mx-auto mb-6 bg-neutral-100 rounded-3xl flex items-center justify-center">
+                  <Sparkles className="h-10 w-10 text-neutral-300" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-2">
                   AI 처방 추천을 받아보세요
                 </h3>
-                <p className="text-gray-500 max-w-sm mx-auto">
+                <p className="text-neutral-500 max-w-sm mx-auto">
                   환자의 주소증과 증상을 입력하면<br />
                   등록된 치험례를 분석하여 처방 후보를 추천합니다
                 </p>
@@ -1943,7 +2085,7 @@ export default function ConsultationPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] space-y-6">
               {/* 구성 약재 */}
               <div>
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                   <Beaker className="h-5 w-5 text-blue-500" />
                   구성 약재
                 </h3>
@@ -1951,7 +2093,7 @@ export default function ConsultationPage() {
                   {selectedFormula.herbs.map((herb, i) => (
                     <div
                       key={i}
-                      className={`p-3 rounded-xl border-2 ${roleColors[herb.role] || 'bg-gray-50 border-gray-200'}`}
+                      className={`p-3 rounded-xl border-2 ${roleColors[herb.role] || 'bg-neutral-50 border-neutral-200'}`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold">{herb.name}</span>
@@ -1967,29 +2109,29 @@ export default function ConsultationPage() {
                 <>
                   {/* 주치 */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5 text-blue-500" />
                       주치 (적응증)
                     </h3>
-                    <p className="text-gray-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
+                    <p className="text-neutral-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
                       {formulaDetails[selectedFormula.formula_name].indication}
                     </p>
                   </div>
 
                   {/* 병기 */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                       <Brain className="h-5 w-5 text-purple-500" />
                       병기 설명
                     </h3>
-                    <p className="text-gray-700 bg-purple-50 p-4 rounded-xl leading-relaxed">
+                    <p className="text-neutral-700 bg-purple-50 p-4 rounded-xl leading-relaxed">
                       {formulaDetails[selectedFormula.formula_name].pathogenesis}
                     </p>
                   </div>
 
                   {/* 가감법 */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                       <Activity className="h-5 w-5 text-amber-500" />
                       가감법
                     </h3>
@@ -1997,8 +2139,8 @@ export default function ConsultationPage() {
                       {formulaDetails[selectedFormula.formula_name].modifications.map((mod, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl">
                           <span className="text-amber-600 font-medium whitespace-nowrap">{mod.condition}</span>
-                          <span className="text-gray-400">→</span>
-                          <span className="text-gray-700">{mod.action}</span>
+                          <span className="text-neutral-400">→</span>
+                          <span className="text-neutral-700">{mod.action}</span>
                         </div>
                       ))}
                     </div>
@@ -2006,7 +2148,7 @@ export default function ConsultationPage() {
 
                   {/* 현대 임상 응용 */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-blue-500" />
                       현대 임상 응용
                     </h3>
@@ -2021,7 +2163,7 @@ export default function ConsultationPage() {
 
                   {/* 금기 및 주의사항 */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-red-500" />
                       금기 및 주의사항
                     </h3>
@@ -2047,21 +2189,21 @@ export default function ConsultationPage() {
 
               {/* AI 추천 근거 */}
               <div>
-                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-neutral-900 mb-3 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-blue-500" />
                   AI 추천 근거
                 </h3>
-                <p className="text-gray-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
+                <p className="text-neutral-700 bg-blue-50 p-4 rounded-xl leading-relaxed">
                   {selectedFormula.rationale}
                 </p>
               </div>
             </div>
 
             {/* 모달 푸터 */}
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 border-t border-neutral-100 flex gap-3">
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 py-3 bg-neutral-100 text-neutral-700 rounded-xl hover:bg-neutral-200 transition-colors font-medium"
               >
                 닫기
               </button>
@@ -2087,15 +2229,15 @@ export default function ConsultationPage() {
               <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
                 <CheckCircle className="h-8 w-8 text-blue-500" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">처방 선택 확인</h2>
-              <p className="text-gray-500 mt-2">
+              <h2 className="text-xl font-bold text-neutral-900">처방 선택 확인</h2>
+              <p className="text-neutral-500 mt-2">
                 <span className="font-bold text-blue-600">{selectedForSelect.formula_name}</span>을(를)
                 <br />선택하시겠습니까?
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-gray-600 mb-2">선택한 처방 정보:</p>
+            <div className="bg-neutral-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-neutral-600 mb-2">선택한 처방 정보:</p>
               <div className="flex flex-wrap gap-1.5">
                 {selectedForSelect.herbs.map((herb, i) => (
                   <span key={i} className="text-xs px-2 py-1 bg-white rounded border">
@@ -2108,15 +2250,16 @@ export default function ConsultationPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowSelectConfirm(false)}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 py-3 bg-neutral-100 text-neutral-700 rounded-xl hover:bg-neutral-200 transition-colors font-medium"
               >
                 취소
               </button>
               <button
-                onClick={confirmSelectFormula}
-                className="flex-1 py-3 accent-gradient accent-glow text-white rounded-xl hover:brightness-105 transition-all font-medium"
+                onClick={() => void confirmSelectFormula()}
+                disabled={isSavingVisit}
+                className="flex-1 py-3 accent-gradient accent-glow text-white rounded-xl hover:brightness-105 transition-all font-medium disabled:opacity-50"
               >
-                확인
+                {isSavingVisit ? '저장 중…' : '확인'}
               </button>
             </div>
           </div>
