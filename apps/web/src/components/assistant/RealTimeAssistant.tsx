@@ -44,7 +44,10 @@ export function RealTimeAssistant({
   constitution = '',
   enabled = true,
 }: RealTimeAssistantProps) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  // 기본은 접힘. 펼친 상태로 뜨면 진료 첫 화면에서 주소증 입력창 위를 덮는다 —
+  // 한의사가 가장 먼저, 가장 길게 쓰는 입력란을 보조 패널이 가리면 안 된다.
+  // 필요할 때 헤더를 눌러 펼친다.
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
