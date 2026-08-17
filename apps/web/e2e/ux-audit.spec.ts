@@ -33,11 +33,16 @@ test('UX 감사 — 로그인 첫 화면 + 노출 메뉴 전수 순회', async (
 
   // 로컬 빌드본(127.0.0.1)에서 운영 API 를 부를 때 CORS 가 막으므로,
   // 요청을 서버사이드로 우회 실행하고 CORS 헤더를 붙여 돌려준다(운영 설정은 안 건드림).
+  // 로컬 빌드본을 볼 때만 API 를 같은 출처의 프록시로 돌린다(CORS 우회).
+  // 배포본을 볼 때 이걸 켜면 API 호출이 정적 호스팅으로 가서 전부 index.html 을 받는다.
   const origin = process.env.BASE_URL || 'http://127.0.0.1:4190'
-  await page.route('**/api.ongojisin.co.kr/**', (route) => {
-    const url = new URL(route.request().url())
-    return route.continue({ url: `${origin}${url.pathname}${url.search}` })
-  })
+  const isLocal = /127\.0\.0\.1|localhost/.test(origin)
+  if (isLocal) {
+    await page.route('**/api.ongojisin.co.kr/**', (route) => {
+      const url = new URL(route.request().url())
+      return route.continue({ url: `${origin}${url.pathname}${url.search}` })
+    })
+  }
 
   const errors: string[] = []
   let currentSlug = 'login'

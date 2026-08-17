@@ -25,7 +25,14 @@ test('데모 로그인 네트워크 진단', async ({ page }) => {
     if (m.type() === 'error') console.log(`[CONSOLE] ${m.text().slice(0, 200)}`)
   })
 
+  // 실제 유입 경로 재현: 랜딩 → 로그인
+  page.on('response', (r) => {
+    if (r.status() >= 400) console.log(`[HTTP ${r.status()}] ${r.url().slice(0, 120)}`)
+  })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(2500)
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(1500)
   await page.getByRole('button', { name: /데모 계정으로 체험/i }).click()
   await page.waitForTimeout(20000)
   console.log(`[URL] ${page.url()}`)

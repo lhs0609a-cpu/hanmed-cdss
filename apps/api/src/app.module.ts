@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { PractitionerPatientsModule } from './modules/practitioner-patients/practitioner-patients.module';
+import { NoticesModule } from './modules/notices/notices.module';
 import { CasesModule } from './modules/cases/cases.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -160,6 +161,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     UsersModule,
     PatientsModule,
     PractitionerPatientsModule,
+    NoticesModule,
     CasesModule,
     PrescriptionsModule,
     InteractionsModule,
