@@ -8,8 +8,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.k
 const MAX_RETRIES = 3
 const RETRY_DELAY_BASE = 1000 // 1초
 
-// 재시도 가능한 상태 코드
-const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+// 재시도 가능한 상태 코드.
+//
+// 429 는 일부러 뺐다. 레이트리밋에 걸린 요청을 백오프만 걸고 3번 더 때리면
+// 클릭 한 번이 서버에 4번 도달해서 제한 상태를 스스로 연장한다.
+// (한의원처럼 여러 직원이 한 회선을 쓰는 환경에서 체험 로그인이 계속 실패하던 원인)
+// 429 는 재시도 대신 사용자에게 Retry-After 를 안내한다.
+const RETRYABLE_STATUS_CODES = [408, 500, 502, 503, 504]
 
 // 확장된 요청 설정 타입
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {

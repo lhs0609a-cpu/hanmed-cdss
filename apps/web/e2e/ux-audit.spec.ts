@@ -59,7 +59,11 @@ test('UX 감사 — 로그인 첫 화면 + 노출 메뉴 전수 순회', async (
   await page.screenshot({ path: `${OUT}/00-login.png` })
 
   await page.getByRole('button', { name: /데모 계정으로 체험/i }).click()
-  await page.waitForURL(/\/dashboard/, { timeout: 60000 })
+  // waitForURL 은 navigation 이벤트를 기다리는데 React Router 의 pushState 전환에서는
+  // 'load' 가 다시 발생하지 않아 타임아웃난다. URL 을 폴링해서 확인한다.
+  await expect
+    .poll(() => page.url(), { timeout: 60000, intervals: [500] })
+    .toContain('/dashboard')
   await page.waitForTimeout(4000)
   await page.screenshot({ path: `${OUT}/00-첫화면-로그인직후.png`, fullPage: true })
 
