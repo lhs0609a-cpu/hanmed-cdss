@@ -134,7 +134,19 @@ export default function HerbsPage() {
           약재 검색
         </h1>
         <p className="mt-1 text-gray-500">
-          한약재의 성분과 효능을 확인하세요
+          처방 구성에 쓰이는 한약재를 찾아봅니다
+        </p>
+      </div>
+
+      {/* 현재 상태 고지 — 약재 목록은 처방 카탈로그에서 추출한 것이라
+          성질·귀경·효능 같은 상세는 아직 대부분 비어 있다.
+          "성분과 효능을 확인하세요" 라고 해 놓고 빈 카드를 보여주면 그게 더 나쁘다. */}
+      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+        <p className="text-[13px] leading-relaxed text-amber-800">
+          <strong>상세 정보 보강 중입니다.</strong> 현재는 처방 구성에서 추출한 약재명 위주이며,
+          성질(氣味)·귀경·효능·유효성분은 순차적으로 채우고 있습니다. 임상 판단은 본초서로
+          확인해 주세요.
         </p>
       </div>
 
