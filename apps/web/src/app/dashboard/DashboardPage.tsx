@@ -131,6 +131,25 @@ export default function DashboardPage() {
         </Link>
       )}
 
+      {/* 치험례 — 이 제품의 축.
+          매일 여는 첫 화면에 "근거가 몇 건 쌓여 있는지" 가 보여야
+          한의사가 이걸 검색 도구가 아니라 임상 자산으로 인식한다. */}
+      <Link
+        to="/dashboard/cases"
+        className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300"
+      >
+        <Toss3DIcon icon={BookOpen} tone="amber" size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-bold text-neutral-900">
+            치험례에서 근거 찾기
+          </p>
+          <p className="mt-0.5 text-[13px] text-neutral-600">
+            실제 임상 기록을 주소증·처방·변증으로 검색합니다. 진료 결과의 근거도 여기서 나옵니다.
+          </p>
+        </div>
+        <ChevronRight className="h-5 w-5 flex-shrink-0 text-neutral-300 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+
       {/* 최근 진료 — 매일 보는 핵심 리스트 */}
       <section>
         <div className="flex items-center justify-between mb-3 px-1">
