@@ -41,6 +41,27 @@ export class Herb {
   @Column('text', { array: true, nullable: true })
   meridianTropism: string[]; // 귀경
 
+  // ── 식약처 공정서 정보 (대한민국약전/약전외한약규격집) ─────────────
+  // 아래 네 필드는 식약처 생약 약재정보 API 에서 받은 공식 값이다.
+  // 성미귀경·효능(위 필드들)은 AI 가 고전 기술을 정리한 참고값이라 출처가 다르다 —
+  // 화면에서 이 둘을 구분해 표기해야 한의사가 무엇을 믿을지 판단할 수 있다.
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  scientificName: string | null; // 학명 (Angelica gigas Nakai)
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  latinName: string | null; // 라틴생약명 (Angelicae Gigantis Radix)
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  englishName: string | null; // 영문 약재명
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  medicinalPart: string | null; // 약용부위 (뿌리, 지상부 등)
+
+  /** 근거 공정서 (KP/KHP 등) — 어느 공정서에 수재됐는지 */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  pharmacopoeia: string | null;
+
   @Column('text', { nullable: true })
   efficacy: string; // 효능 설명 (자유 텍스트)
 
