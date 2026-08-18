@@ -237,7 +237,7 @@ export default function HerbDetailPage() {
                 {herb.containedIn.map((formula) => (
                   <Link
                     key={formula.id}
-                    to={`/formulas/${formula.id}`}
+                    to={`/dashboard/formulas/${formula.id}`}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors group"
                   >
                     <div>
