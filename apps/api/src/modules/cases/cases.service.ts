@@ -370,7 +370,15 @@ export class CasesService {
       async () => {
         const qb = this.casesRepository.createQueryBuilder('c');
         if (input.kind === 'formula') {
-          qb.where('"c"."herbalFormulas"::text ILIKE :n', { n: `%${name}%` });
+          // JSON 전체를 ILIKE 하면 약재명·비고까지 걸려 건수가 부풀려진다.
+          // formulaName 필드만 정확히 본다.
+          qb.where(
+            `EXISTS (
+               SELECT 1 FROM jsonb_array_elements("c"."herbalFormulas") AS f
+               WHERE f->>'formulaName' ILIKE :n
+             )`,
+            { n: `%${name}%` },
+          );
         } else {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
         }
@@ -447,7 +455,15 @@ export class CasesService {
           names.map(async (name) => {
             const qb = this.casesRepository.createQueryBuilder('c');
             if (input.kind === 'formula') {
-              qb.where('"c"."herbalFormulas"::text ILIKE :n', { n: `%${name}%` });
+              // JSON 전체를 ILIKE 하면 약재명·비고까지 걸려 건수가 부풀려진다.
+          // formulaName 필드만 정확히 본다.
+          qb.where(
+            `EXISTS (
+               SELECT 1 FROM jsonb_array_elements("c"."herbalFormulas") AS f
+               WHERE f->>'formulaName' ILIKE :n
+             )`,
+            { n: `%${name}%` },
+          );
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
             }
