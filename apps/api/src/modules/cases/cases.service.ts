@@ -390,15 +390,25 @@ export class CasesService {
           // 단방·식용약초 사례는 원문 첫 줄 매칭이 필요한데, 6,454건 전문 스캔이라
           // 응답이 9초까지 늘어졌다(처방 조회는 0.4초). 실사용에 못 쓸 속도라 뺐다.
           // 단방 사례를 살리려면 헤더의 약재명을 별도 컬럼으로 뽑아 두는 작업이 선행돼야 한다.
+          // 약재가 든 처방명을 먼저 한 번 뽑아 두고 IN 으로 맞춘다.
+          // 케이스 6,454행마다 3중 조인을 돌리면 단건 7초, 12개 일괄 16초가 나온다.
+          // 조인을 바깥으로 한 번만 접으면 같은 결과를 훨씬 싸게 얻는다.
+          const formulaNames: string[] = (
+            await this.casesRepository.manager.query(
+              `SELECT DISTINCT fo."name"
+                 FROM "formulas" fo
+                 JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
+                 JOIN "herbs_master" hm ON hm."id" = fh."herbId"
+                WHERE hm."standardName" ILIKE $1`,
+              [`%${name}%`],
+            )
+          ).map((r: { name: string }) => r.name);
+
           qb.where(
             `(
                EXISTS (
-                 SELECT 1
-                 FROM jsonb_array_elements("c"."herbalFormulas") AS f
-                 JOIN "formulas" fo ON fo."name" = f->>'formulaName'
-                 JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
-                 JOIN "herbs_master" hm ON hm."id" = fh."herbId"
-                 WHERE hm."standardName" ILIKE :n
+                 SELECT 1 FROM jsonb_array_elements("c"."herbalFormulas") AS f
+                 WHERE f->>'formulaName' = ANY(:names)
                )
                OR EXISTS (
                  SELECT 1
@@ -407,7 +417,7 @@ export class CasesService {
                  WHERE h->>'name' ILIKE :n
                )
              )`,
-            { n: `%${name}%` },
+            { names: formulaNames.length > 0 ? formulaNames : [''], n: `%${name}%` },
           );
         } else {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
@@ -498,15 +508,25 @@ export class CasesService {
               // 상세(getCaseEvidence)와 같은 세 경로를 써야 한다.
               // 여기만 formula/pattern 로 두는 바람에 목록 뱃지는 0건,
               // 상세는 56건으로 서로 다른 숫자를 말하고 있었다.
+              // 약재가 든 처방명을 먼저 한 번 뽑아 두고 IN 으로 맞춘다.
+              // 케이스 6,454행마다 3중 조인을 돌리면 단건 7초, 12개 일괄 16초가 나온다.
+              // 조인을 바깥으로 한 번만 접으면 같은 결과를 훨씬 싸게 얻는다.
+              const formulaNames: string[] = (
+                await this.casesRepository.manager.query(
+                  `SELECT DISTINCT fo."name"
+                     FROM "formulas" fo
+                     JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
+                     JOIN "herbs_master" hm ON hm."id" = fh."herbId"
+                    WHERE hm."standardName" ILIKE $1`,
+                  [`%${name}%`],
+                )
+              ).map((r: { name: string }) => r.name);
+
               qb.where(
                 `(
                    EXISTS (
-                     SELECT 1
-                     FROM jsonb_array_elements("c"."herbalFormulas") AS f
-                     JOIN "formulas" fo ON fo."name" = f->>'formulaName'
-                     JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
-                     JOIN "herbs_master" hm ON hm."id" = fh."herbId"
-                     WHERE hm."standardName" ILIKE :n
+                     SELECT 1 FROM jsonb_array_elements("c"."herbalFormulas") AS f
+                     WHERE f->>'formulaName' = ANY(:names)
                    )
                    OR EXISTS (
                      SELECT 1
@@ -515,7 +535,7 @@ export class CasesService {
                      WHERE h->>'name' ILIKE :n
                    )
                  )`,
-                { n: `%${name}%` },
+                { names: formulaNames.length > 0 ? formulaNames : [''], n: `%${name}%` },
               );
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
