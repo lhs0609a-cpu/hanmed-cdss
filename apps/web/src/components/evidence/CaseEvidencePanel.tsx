@@ -155,16 +155,27 @@ export function CaseEvidencePanel({
               {k} {v}건
             </span>
           ))}
-          {data.successRate !== null ? (
-            <span className="text-[12px] text-neutral-500">
-              경과 기록 {data.gradedCount}건 중 완치·호전 {data.successRate}%
-            </span>
-          ) : (
+          {data.successRate === null && (
             <span className="text-[12px] text-neutral-400">
               경과 기록이 적어 성공률은 내지 않습니다
             </span>
           )}
         </div>
+      )}
+
+      {/* 출판 편향 고지 — 치험례집은 성공한 사례를 주로 싣는다.
+          이 비율을 '임상 성공률' 로 읽으면 실제보다 크게 부풀려 판단하게 된다.
+          숫자를 보여주되 무엇을 세었는지 같이 말한다. */}
+      {data.successRate !== null && (
+        <p className="mb-3 rounded-lg bg-neutral-50 px-3 py-2 text-[12px] leading-relaxed text-neutral-600">
+          수록된 치험례 {data.gradedCount}건 중 완치·호전이{' '}
+          <strong className="font-bold text-neutral-900">{data.successRate}%</strong>입니다.
+          <span className="text-neutral-500">
+            {' '}
+            치험례집은 성공한 사례를 주로 싣기 때문에 실제 임상 성공률보다 높게 나옵니다.
+            처방 선택의 근거로만 쓰고 환자에게 이 수치를 그대로 말하지 마십시오.
+          </span>
+        </p>
       )}
 
       <ul className="space-y-2">
