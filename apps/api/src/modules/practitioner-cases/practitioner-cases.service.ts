@@ -42,7 +42,7 @@ export interface UpsertMyCaseInput {
   herbs?: CaseHerb[];
   modifications?: string | null;
   treatmentDuration?: string | null;
-  outcome?: '완치' | '호전' | '무효' | '진행중' | null;
+  outcome?: '완치' | '호전' | '무효' | '악화' | '진행중' | null;
   outcomeDetails?: string | null;
   notes?: string | null;
   tags?: string[];

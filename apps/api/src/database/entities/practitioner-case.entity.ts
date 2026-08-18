@@ -84,7 +84,7 @@ export class PractitionerCase {
   treatmentDuration: string | null;
 
   @Column({ type: 'varchar', length: 16, nullable: true })
-  outcome: '완치' | '호전' | '무효' | '진행중' | null;
+  outcome: '완치' | '호전' | '무효' | '악화' | '진행중' | null;
 
   @Column({ type: 'text', nullable: true })
   outcomeDetails: string | null;

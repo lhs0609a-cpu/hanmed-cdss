@@ -30,6 +30,8 @@ import {
   recordVisitOutcome,
   type VisitOutcome,
 } from '@/services/myPatients'
+import { fetchMyCases, createMyCase } from '@/services/myCases'
+import type { MyCaseOutcome } from '@/services/myCases'
 import { setInlineToastTimeout } from '@/hooks/useToast'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
@@ -115,6 +117,9 @@ export default function PatientDetailPage() {
   const [isSavingVisit, setIsSavingVisit] = useState(false)
   // 타임라인에서 경과를 바로 적을 수 있게 — 대시보드까지 가지 않아도 된다.
   const [outcomeOpenId, setOutcomeOpenId] = useState<string | null>(null)
+  /** 이미 치험례로 옮긴 진료 — 같은 진료를 두 번 올리지 않게 막는다. */
+  const [promotedVisitIds, setPromotedVisitIds] = useState<Set<string>>(new Set())
+  const [promotingId, setPromotingId] = useState<string | null>(null)
 
   // 환자·진료 기록 로드 — 서버에서.
   //
@@ -127,7 +132,15 @@ export default function PatientDetailPage() {
     }
     setIsLoading(true)
     try {
-      const [p, vs] = await Promise.all([fetchMyPatient(id), fetchMyVisits(id, 100)])
+      const [p, vs, myCases] = await Promise.all([
+        fetchMyPatient(id),
+        fetchMyVisits(id, 100),
+        // 치험례 조회가 실패해도 차트는 떠야 한다 — 승격 버튼만 다시 보일 뿐이다.
+        fetchMyCases().catch(() => []),
+      ])
+      setPromotedVisitIds(
+        new Set(myCases.map((c) => c.sourceVisitId).filter((v): v is string => Boolean(v))),
+      )
       setPatient({
         id: p.id,
         name: p.name,
@@ -232,6 +245,44 @@ export default function PatientDetailPage() {
       percent: first > 0 ? Math.round(((latest - first) / first) * 100) : null,
     }
   })()
+
+  /**
+   * 진료를 내 치험례로 옮긴다.
+   *
+   * 경과까지 적은 진료는 이미 치험례에 필요한 내용을 다 갖고 있다. 그걸 다시
+   * 타이핑하게 두면 아무도 안 옮기고, 치험례는 영영 안 쌓인다.
+   *
+   * 환자 이름·연락처는 넘기지 않는다 — 치험례는 나중에 공유될 수 있는 기록이라
+   * 나이·성별·체질까지만 가져간다.
+   */
+  const handlePromoteToCase = async (visit: VisitRecord) => {
+    if (!patient || promotingId) return
+    setPromotingId(visit.id)
+    try {
+      await createMyCase({
+        sourceVisitId: visit.id,
+        patientAge: patient.birthDate ? calculateAge(patient.birthDate) : null,
+        patientGender: patient.gender,
+        patientConstitution: patient.constitution || null,
+        chiefComplaint:
+          patient.mainComplaint || visit.symptoms.join(', ') || visit.diagnosis || '주소증 기록 없음',
+        symptoms: visit.symptoms,
+        diagnosis: visit.diagnosis || null,
+        byeonjeung: visit.diagnosis || null,
+        formulaName: visit.prescription,
+        outcome: (visit.outcome as MyCaseOutcome) ?? null,
+        outcomeDetails: visit.outcomeNotes ?? null,
+        notes: [visit.pulseNote && `맥진: ${visit.pulseNote}`, visit.notes]
+          .filter(Boolean)
+          .join(String.fromCharCode(10)) || null,
+      })
+      setPromotedVisitIds((prev) => new Set(prev).add(visit.id))
+    } catch (err) {
+      logError(err, 'PatientDetailPage.promoteCase')
+    } finally {
+      setPromotingId(null)
+    }
+  }
 
   /** 타임라인에서 경과 기록 — 기록하면 대시보드 확인 목록에서도 빠진다. */
   const handleRecordOutcome = async (visitId: string, outcome: VisitOutcome) => {
@@ -680,14 +731,35 @@ export default function PatientDetailPage() {
               {/* 경과 — 기록돼 있으면 보여주고, 없으면 여기서 바로 적게 한다.
                   대시보드까지 가지 않아도 환자를 보면서 남길 수 있어야 실제로 적는다. */}
               {visit.outcome ? (
-                visit.outcomeNotes && (
-                  <div className="mt-3 rounded-xl border border-neutral-200 p-3">
-                    <p className="text-[13px] leading-relaxed text-neutral-700">
-                      <span className="font-semibold text-neutral-900">경과 메모 </span>
-                      {visit.outcomeNotes}
-                    </p>
+                <>
+                  {visit.outcomeNotes && (
+                    <div className="mt-3 rounded-xl border border-neutral-200 p-3">
+                      <p className="text-[13px] leading-relaxed text-neutral-700">
+                        <span className="font-semibold text-neutral-900">경과 메모 </span>
+                        {visit.outcomeNotes}
+                      </p>
+                    </div>
+                  )}
+                  {/* 경과까지 적은 진료는 그대로 치험례가 된다. 다시 타이핑하게 두면
+                      아무도 안 옮기고 치험례는 영영 안 쌓인다. */}
+                  <div className="mt-3 border-t border-neutral-100 pt-3">
+                    {promotedVisitIds.has(visit.id) ? (
+                      <p className="flex items-center gap-1.5 text-[13px] text-neutral-500">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        내 치험례에 저장됨
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handlePromoteToCase(visit)}
+                        disabled={promotingId === visit.id}
+                        className="text-[13px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                      >
+                        {promotingId === visit.id ? '저장 중...' : '내 치험례로 저장 →'}
+                      </button>
+                    )}
                   </div>
-                )
+                </>
               ) : (
                 <div className="mt-3 border-t border-neutral-100 pt-3">
                   {outcomeOpenId === visit.id ? (
