@@ -243,16 +243,30 @@ class LLMService:
     ) -> str:
         symptoms_text = ", ".join([s["name"] for s in patient_info.get("symptoms", []) if s.get("name")])
         meds_text = ", ".join(medications) if medications else "없음"
+        # 유사 치험례 — 이 블록이 "왜 이 처방인지" 의 1차 근거다.
+        # case_id 를 같이 넣어야 모델이 어느 사례를 근거로 삼았는지 지목할 수 있고,
+        # 화면에서 그 사례를 실제로 펼쳐 보여줄 수 있다.
         cases_block = ""
         if similar_cases:
             short = []
-            for c in similar_cases[:3]:
+            for c in similar_cases[:5]:
+                cid = sanitize_user_input(str(c.get("case_id", "") or ""), max_length=64)
                 title = sanitize_user_input(str(c.get("title", "") or ""), max_length=120)
                 summary = sanitize_user_input(str(c.get("summary", "") or ""), max_length=300)
-                if title or summary:
-                    short.append(f"- {title}: {summary}")
+                formula = sanitize_user_input(str(c.get("formula_name", "") or ""), max_length=60)
+                outcome = sanitize_user_input(str(c.get("outcome", "") or ""), max_length=20)
+                if not (title or summary):
+                    continue
+                meta = " · ".join([x for x in (formula, outcome) if x])
+                short.append(f"- [{cid}] {title}{f' ({meta})' if meta else ''}: {summary}")
             if short:
-                cases_block = "\n## 유사 치험례 요약\n" + "\n".join(short) + "\n"
+                cases_block = (
+                    "\n## 유사 치험례 (실제 임상 기록 — 추천의 1차 근거)\n"
+                    + "\n".join(short)
+                    + "\n실제 사례에서 쓰인 처방을 우선 후보로 검토하고, "
+                    "각 후보의 case_refs 에 근거가 된 사례의 [id] 를 적으세요. "
+                    "사례와 무관한 처방을 고른 경우 rationale 에 그 이유를 밝히세요.\n"
+                )
 
         pregnancy_value = patient_info.get('pregnancy')
         pregnancy_text = (
@@ -282,7 +296,8 @@ class LLMService:
             '  "recommendations": [\n'
             '    {"formula_name": "처방명", "confidence_score": 0.0-1.0, '
             '"herbs": [{"name": "약재명", "amount": "용량", "role": "군|신|좌|사"}], '
-            '"rationale": "선정 근거", "source": "근거 출처(있으면)"}\n'
+            '"rationale": "선정 근거", "source": "근거 출처(있으면)", '
+            '"case_refs": ["근거가 된 유사 치험례의 id"]}\n'
             "  ],\n"
             '  "analysis": "종합 분석",\n'
             '  "modifications": "가감 제안",\n'

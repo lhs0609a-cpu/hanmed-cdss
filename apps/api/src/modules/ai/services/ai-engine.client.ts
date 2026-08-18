@@ -25,6 +25,18 @@ export interface AiEngineRecommendationRequest {
   symptoms: Array<{ name: string; severity?: number; duration?: string }>;
   currentMedications?: string[];
   topK?: number;
+  /**
+   * DB 에서 찾은 유사 치험례. 엔진은 이걸 프롬프트에 넣어 추천 근거로 삼는다.
+   * 비워 보내면 모델이 자기 지식만으로 답해서 "왜 이 처방인지" 를 댈 수 없다.
+   */
+  similarCases?: Array<{
+    caseId?: string;
+    title?: string;
+    summary?: string;
+    formulaName?: string;
+    outcome?: string;
+    matchPercent?: number;
+  }>;
   /** 호출자 식별 — AI Engine 의 rate-limit/personalization 용 */
   userId?: string;
 }
@@ -43,6 +55,8 @@ export interface AiEngineFormulaRecommendation {
   source?: string | null;
   has_classical_citation?: boolean | null;
   safety_flags?: string[] | null;
+  /** 이 후보의 근거가 된 유사 치험례 id — 화면에서 해당 사례를 펼쳐 보여준다. */
+  case_refs?: string[] | null;
 }
 
 export interface AiEngineRecommendationResponse {
@@ -97,6 +111,14 @@ export class AiEngineClient {
       symptoms: req.symptoms,
       current_medications: req.currentMedications,
       top_k: req.topK ?? 3,
+      similar_cases: (req.similarCases ?? []).map((c) => ({
+        case_id: c.caseId,
+        title: c.title,
+        summary: c.summary,
+        formula_name: c.formulaName,
+        outcome: c.outcome,
+        match_percent: c.matchPercent,
+      })),
     };
 
     const url = `${this.baseUrl}/api/v1/recommend/`;
