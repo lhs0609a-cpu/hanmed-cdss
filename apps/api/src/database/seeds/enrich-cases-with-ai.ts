@@ -18,7 +18,7 @@
  * idempotent: clinicalNotes 가 '[AI-ENRICHED]' 로 시작하면 스킵.
  *
  * 실행:
- *   ANTHROPIC_API_KEY=sk-ant-... pnpm --filter @hanmed/api enrich:cases
+ *   OPENAI_API_KEY=sk-... pnpm --filter @hanmed/api enrich:cases
  *
  * 옵션:
  *   --dry-run         DB 쓰기 없이 첫 5건만 출력
@@ -27,7 +27,7 @@
  *   --since=YYYY-MM-DD  특정 일자 이후 생성된 케이스만
  *
  * 비용 추정:
- *   6,454 건 × 평균 1,500 토큰 ≈ Sonnet 4.5 기준 $25~30, 약 6~8시간 소요.
+ *   6,454 건 × 평균 1,500 토큰 ≈ gpt-4o-mini 기준 $3~5, 약 2~3시간 소요.
  *   중단 후 재실행 안전 — 이미 처리된 행 스킵.
  */
 
@@ -39,7 +39,7 @@ import {
   Gender,
   TreatmentOutcome,
 } from '../entities/clinical-case.entity';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 interface EnrichResult {
   herbs: Array<{ name: string; amount: string; role?: string }>;
@@ -51,7 +51,10 @@ interface EnrichResult {
 }
 
 const ENRICHED_MARKER = '[AI-ENRICHED]';
-const MODEL = 'claude-sonnet-4-6';
+// OpenAI 로 전환 — 이 작업은 '원문에서 필드 뽑기' 라 상위 모델이 필요 없고,
+// 6,454건 전수 기준 Sonnet($25~30, 6~8h) 대비 gpt-4o-mini 는 $3~5, 2~3h 다.
+// JSON 스키마 강제(response_format)로 파싱 실패도 줄인다.
+const MODEL = 'gpt-4o-mini';
 const SYSTEM_PROMPT = `당신은 한의학 치험례 원문을 구조화하는 도우미입니다.
 입력 텍스트(보통 방약합편 또는 임상 사례 원문)에서 다음을 추출해 JSON 으로만 응답합니다.
 다른 설명 텍스트 없이 JSON 만 출력하세요.
@@ -93,35 +96,48 @@ function parseArgs(): CliOptions {
   };
 }
 
-async function callClaude(client: Anthropic, originalText: string): Promise<EnrichResult | null> {
+
+/**
+ * 모델이 값 없음을 문자열로 돌려주는 경우를 정규화한다.
+ * 실제로 patternDiagnosis 에 "null" 이라는 문자열이 그대로 저장되고 있었다 —
+ * 화면에는 변증이 "null" 로 찍히고, 변증 검색은 그걸 진짜 값으로 센다.
+ */
+function normalizeNullable(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  if (!t) return null;
+  const lowered = t.toLowerCase();
+  if (['null', 'undefined', 'none', 'n/a', '없음', '미상', '해당없음'].includes(lowered)) {
+    return null;
+  }
+  return t;
+}
+
+async function callModel(client: OpenAI, originalText: string): Promise<EnrichResult | null> {
   const userText = originalText.slice(0, 8000); // 토큰 한도 보호
-  const response = await client.messages.create({
+  const response = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 1500,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userText }],
+    // JSON 만 뱉게 강제 — fenced block 이나 설명 문구가 섞여 파싱이 깨지는 걸 막는다.
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userText },
+    ],
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') return null;
-
-  let text = content.text.trim();
-  // 모델이 fenced block 으로 감쌌을 때 안전 추출
-  if (text.includes('```json')) {
-    text = text.split('```json')[1].split('```')[0].trim();
-  } else if (text.startsWith('```')) {
-    text = text.replace(/^```\s*/, '').replace(/```\s*$/, '');
-  }
+  const text = response.choices?.[0]?.message?.content?.trim();
+  if (!text) return null;
 
   try {
     const parsed = JSON.parse(text) as Partial<EnrichResult>;
     return {
       herbs: Array.isArray(parsed.herbs) ? parsed.herbs : [],
-      patternDiagnosis: parsed.patternDiagnosis ?? null,
+      patternDiagnosis: normalizeNullable(parsed.patternDiagnosis),
       symptoms: Array.isArray(parsed.symptoms) ? parsed.symptoms : [],
-      treatmentOutcome: parsed.treatmentOutcome ?? null,
+      treatmentOutcome: normalizeNullable(parsed.treatmentOutcome) as EnrichResult['treatmentOutcome'],
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+      summary: normalizeNullable(parsed.summary) ?? '',
     };
   } catch {
     console.warn('[parse] 실패 — 응답 prefix:', text.slice(0, 200));
@@ -130,11 +146,11 @@ async function callClaude(client: Anthropic, originalText: string): Promise<Enri
 }
 
 async function enrichOne(
-  client: Anthropic,
+  client: OpenAI,
   row: ClinicalCase,
   opts: CliOptions,
 ): Promise<Partial<ClinicalCase> | null> {
-  const result = await callClaude(client, row.originalText);
+  const result = await callModel(client, row.originalText);
   if (!result) return null;
 
   // 기존 herbalFormulas[0] 의 formulaName 은 유지하고 herbs 만 채움
@@ -174,12 +190,12 @@ async function main() {
   const opts = parseArgs();
   console.log('Enrich 옵션:', opts);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error('ANTHROPIC_API_KEY 환경변수가 필요합니다.');
+    console.error('OPENAI_API_KEY 환경변수가 필요합니다.');
     process.exit(1);
   }
-  const client = new Anthropic({ apiKey });
+  const client = new OpenAI({ apiKey });
 
   const dataSource = new DataSource(dataSourceOptions);
   await dataSource.initialize();
