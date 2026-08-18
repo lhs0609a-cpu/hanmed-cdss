@@ -8,7 +8,6 @@ import {
   MockupPatternDiagnosis,
   MockupCaseSearch,
   MockupClaimCheck,
-  MockupVoiceChart,
   MockupInteraction,
   MockupFormulaSearch,
 } from '@/components/common/FeatureMockups'
@@ -127,11 +126,6 @@ const FEATURES = [
     mockup: MockupClaimCheck,
     title: '수가·상병 코드 조회',
     body: '한방 수가 코드와 산정 기준을 처방 화면을 벗어나지 않고 찾아봅니다. 청구 프로그램 연동과 자동 제출은 아직 지원하지 않습니다.',
-  },
-  {
-    mockup: MockupVoiceChart,
-    title: '음성 차트',
-    body: '진료하면서 말한 내용을 SOAP 형식으로 정리합니다. 기록을 위해 진료를 멈출 필요가 없습니다.',
   },
   {
     mockup: MockupInteraction,

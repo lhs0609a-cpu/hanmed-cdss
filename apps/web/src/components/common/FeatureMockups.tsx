@@ -80,29 +80,6 @@ export function MockupClaimCheck({ size = 'md' }: MockupProps) {
   )
 }
 
-/** 음성 차트 — 파형 + SOAP */
-export function MockupVoiceChart({ size = 'md' }: MockupProps) {
-  const bars = [3, 6, 9, 12, 8, 14, 10, 16, 11, 7, 13, 9, 5, 8, 11, 14, 10, 6, 4, 7]
-  return (
-    <div className={`w-full ${heightClass(size)} rounded-xl bg-white border border-neutral-200 p-3 flex flex-col`}>
-      <div className={`flex items-end gap-[2px] ${size === 'sm' ? 'h-8' : 'h-12'} mb-2`}>
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 bg-neutral-900 rounded-sm"
-            style={{ height: `${(h / 16) * 100}%` }}
-          />
-        ))}
-      </div>
-      <div className="text-[10px] text-neutral-500 leading-relaxed border-t border-neutral-100 pt-2">
-        <span className="font-bold text-neutral-900">S</span>: 두통 3일 ·{' '}
-        <span className="font-bold text-neutral-900">O</span>: 맥부삭 ·{' '}
-        <span className="font-bold text-neutral-900">A</span>: 풍열
-      </div>
-    </div>
-  )
-}
-
 /** 약물 상호작용 — 양약+한약 CRITICAL */
 export function MockupInteraction({ size = 'md' }: MockupProps) {
   return (

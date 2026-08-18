@@ -170,7 +170,6 @@ export {
   MockupPatternDiagnosis,
   MockupCaseSearch,
   MockupClaimCheck,
-  MockupVoiceChart,
   MockupInteraction,
   MockupFormulaSearch,
 } from './FeatureMockups'
