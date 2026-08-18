@@ -8,7 +8,7 @@ import { api } from './api'
  * 로컬 기록은 importLocalCases() 로 1회 이관한다.
  */
 
-export type MyCaseOutcome = '완치' | '호전' | '무효' | '진행중'
+export type MyCaseOutcome = '완치' | '호전' | '무효' | '악화' | '진행중'
 
 export interface MyCase {
   id: string

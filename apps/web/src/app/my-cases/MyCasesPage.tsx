@@ -223,6 +223,7 @@ export default function MyCasesPage() {
             <option value="호전">호전</option>
             <option value="진행중">진행중</option>
             <option value="무효">무효</option>
+            <option value="악화">악화</option>
           </select>
 
           {/* Sort */}
@@ -335,6 +336,8 @@ export default function MyCasesPage() {
                       ? 'bg-green-100 text-green-700'
                       : caseItem.outcome === '진행중'
                       ? 'bg-blue-100 text-blue-700'
+                      : caseItem.outcome === '악화'
+                      ? 'bg-red-100 text-red-700'
                       : 'bg-gray-100 text-gray-700'
                   }`}>
                     {caseItem.outcome}
@@ -447,7 +450,7 @@ function AddCaseModal({
     herbs: '',
     modifications: '',
     treatmentDuration: '',
-    outcome: '' as '' | '완치' | '호전' | '무효' | '진행중',
+    outcome: '' as '' | '완치' | '호전' | '무효' | '악화' | '진행중',
     outcomeDetails: '',
     notes: '',
   })
@@ -639,6 +642,7 @@ function AddCaseModal({
                 <option value="호전">호전</option>
                 <option value="진행중">진행중</option>
                 <option value="무효">무효</option>
+                <option value="악화">악화</option>
               </select>
             </div>
           </div>
