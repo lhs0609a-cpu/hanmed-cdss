@@ -387,8 +387,9 @@ export class CasesService {
           // 약재는 세 경로로 치험례에 닿는다.
           //  1) 이 약재가 들어간 처방을 쓴 사례  ← 임상적으로 가장 많은 경로
           //  2) 원문에서 약재 구성이 추출된 사례
-          //  3) 단방·식용약초 사례 (원문 첫 줄이 약재명으로 시작)
-          // 셋을 합치지 않으면 약재 화면은 이름만 있는 사전으로 남는다.
+          // 단방·식용약초 사례는 원문 첫 줄 매칭이 필요한데, 6,454건 전문 스캔이라
+          // 응답이 9초까지 늘어졌다(처방 조회는 0.4초). 실사용에 못 쓸 속도라 뺐다.
+          // 단방 사례를 살리려면 헤더의 약재명을 별도 컬럼으로 뽑아 두는 작업이 선행돼야 한다.
           qb.where(
             `(
                EXISTS (
@@ -405,9 +406,8 @@ export class CasesService {
                       jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
                  WHERE h->>'name' ILIKE :n
                )
-               OR "c"."originalText" ILIKE :head
              )`,
-            { n: `%${name}%`, head: `%●${name}%` },
+            { n: `%${name}%` },
           );
         } else {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
@@ -514,9 +514,8 @@ export class CasesService {
                           jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
                      WHERE h->>'name' ILIKE :n
                    )
-                   OR "c"."originalText" ILIKE :head
                  )`,
-                { n: `%${name}%`, head: `%●${name}%` },
+                { n: `%${name}%` },
               );
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
