@@ -34,7 +34,7 @@ import { CaseEvidencePanel } from '@/components/evidence/CaseEvidencePanel'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { TermTooltip } from '@/components/common'
 import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/lib/kcdOm'
-import { suggestCheopyakCodes, describeCheopyak } from '@/data/cheopyak-codes'
+import { suggestCheopyakCodes, describeCheopyak, CHEOPYAK_NOTICE } from '@/data/cheopyak-codes'
 import { usePrescriptionTracking } from '@/hooks/usePrescriptionTracking'
 import { api } from '@/services/api'
 import { Toss3DIcon, type Toss3DTone } from '@/components/common/Toss3DIcon'
@@ -1442,6 +1442,11 @@ export default function PatternDiagnosisPage() {
                       <p className="font-semibold mb-2 flex items-center gap-1.5 text-white">
                         <Pill className="h-3.5 w-3.5" />
                         첩약 건강보험 시범사업
+                      </p>
+                      {/* 대상 질환·한도·코드 출처를 함께 밝힌다.
+                          범위를 안 적으면 대상이 아닌 질환까지 청구 가능한 것으로 읽힌다. */}
+                      <p className="mb-2 text-[12px] leading-relaxed text-neutral-400">
+                        {CHEOPYAK_NOTICE}
                       </p>
                       <ul className="space-y-1 text-neutral-200">
                         {cheopyak.slice(0, 3).map((d) => (

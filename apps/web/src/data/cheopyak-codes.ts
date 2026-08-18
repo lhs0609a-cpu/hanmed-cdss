@@ -1,20 +1,34 @@
 /**
  * 첩약 건강보험 시범사업 — 처방 ↔ 시범사업 코드 매핑.
  *
- * 사업 개요 (2024-2026 본사업, 2026-05 기준):
- *   - 대상 질환: 16개 (요추추간판탈출증, 알레르기비염, 기능성소화불량, 월경통, 안면신경마비 등)
- *   - 대상 처방: 60첩(20일분) 한 번. 본인부담률 약 30%.
- *   - 한의사가 청구 시 *시범사업 코드*를 부여해야 보험 적용.
- *   - 본 데이터는 보건복지부/심평원 고시 기준이며 운영 중 분기별 갱신.
+ * 사업 개요 (2단계 시범사업, 2024-04 ~ 2026-12):
+ *   - 대상 질환은 **6개뿐**이다:
+ *     월경통 · 안면신경마비 · 뇌혈관질환 후유증 · 알레르기비염 ·
+ *     기능성소화불량 · 요추추간판탈출증
+ *     (1단계 3개에서 2단계에 3개 추가. 보건복지부 보도자료 기준)
+ *   - 환자 1인당 연간 2개 질환, 각 20일분까지.
+ *   - 본인부담률: 한의원 30% / 한방병원 40% / 종합병원 50%.
+ *
+ * 주의 — 이 파일은 한때 16개 질환을 대상으로 표기하고 있었다.
+ * 슬관절증·불면증·두통처럼 시범사업 대상이 아닌 질환까지 "첩약 보험 대상"으로
+ * 띄우면 한의사가 그대로 청구했다가 삭감된다. 대상은 isPilotCovered 로 구분하고,
+ * 비대상 질환은 화면에서 청구 후보로 제안하지 않는다.
+ *
+ * pilotCode 는 아직 심평원 고시값이 아니라 내부 가칭이다(CP01…).
+ * 실제 청구 코드로 쓰면 안 되며, 화면에서도 그렇게 안내해야 한다.
  *
  * 정책:
- *   - 진단 결과 / 변증 추론 결과에서 disease_match 가 일치하면 자동 추천.
- *   - 처방명이 typical_formulas 와 매칭되면 codes 를 노출.
+ *   - 진단/변증 결과가 대상 질환과 일치할 때만 후보로 노출.
  *   - 한의사가 최종 코드 채택 — 본 매핑은 후보 제안 보조용.
  */
 
 export interface CheopyakDisease {
-  /** 시범사업 질환 코드 (가칭, 운영에서 심평원 고시값으로 교체) */
+  /**
+   * 2단계 시범사업 실제 대상인지. false 면 청구 후보로 제안하지 않는다.
+   * (임상 참고용으로 데이터는 남기되 보험 대상처럼 보이면 안 된다)
+   */
+  isPilotCovered?: boolean
+  /** 내부 가칭 코드 — 심평원 고시값 아님. 그대로 청구하면 안 된다. */
   pilotCode: string
   /** KCD 코드 후보들 */
   kcdCodes: string[]
@@ -32,6 +46,7 @@ export interface CheopyakDisease {
 
 export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
   {
+    isPilotCovered: true,
     pilotCode: 'CP01',
     kcdCodes: ['M51.2', 'M54.5'],
     name: '요추추간판탈출증·요통',
@@ -41,6 +56,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: true,
     pilotCode: 'CP02',
     kcdCodes: ['J30.1', 'J30.2', 'J30.3', 'J30.4'],
     name: '알레르기비염',
@@ -50,6 +66,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: true,
     pilotCode: 'CP03',
     kcdCodes: ['K30'],
     name: '기능성소화불량',
@@ -59,6 +76,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: true,
     pilotCode: 'CP04',
     kcdCodes: ['N94.4', 'N94.5', 'N94.6'],
     name: '월경통(원발성/속발성)',
@@ -68,6 +86,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: true,
     pilotCode: 'CP05',
     kcdCodes: ['G51.0'],
     name: '안면신경마비(구안와사)',
@@ -77,6 +96,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: true,
     pilotCode: 'CP06',
     kcdCodes: ['I63', 'I64', 'I69'],
     name: '뇌혈관질환후유증',
@@ -86,6 +106,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP07',
     kcdCodes: ['M17'],
     name: '슬골관절증',
@@ -95,6 +116,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP08',
     kcdCodes: ['M75', 'M75.0'],
     name: '견관절(어깨) 질환',
@@ -104,6 +126,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP09',
     kcdCodes: ['F51.0', 'G47.0'],
     name: '불면증',
@@ -113,6 +136,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP10',
     kcdCodes: ['F45.0', 'F48.0'],
     name: '기능성신체증후군(화병/스트레스)',
@@ -122,6 +146,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP11',
     kcdCodes: ['M79.7'],
     name: '근막동통증후군',
@@ -131,6 +156,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP12',
     kcdCodes: ['G43', 'G44'],
     name: '두통(편두통/긴장성)',
@@ -140,6 +166,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP13',
     kcdCodes: ['I10', 'I11', 'I12'],
     name: '본태성고혈압(동반증상)',
@@ -149,6 +176,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP14',
     kcdCodes: ['L20', 'L23', 'L29'],
     name: '아토피성피부염·만성피부질환',
@@ -158,6 +186,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP15',
     kcdCodes: ['R53'],
     name: '만성피로증후군',
@@ -167,6 +196,7 @@ export const CHEOPYAK_DISEASES: CheopyakDisease[] = [
     patientCopayPercent: 30,
   },
   {
+    isPilotCovered: false,
     pilotCode: 'CP16',
     kcdCodes: ['N40'],
     name: '전립선비대증',
@@ -199,10 +229,23 @@ export function suggestCheopyakCodes(input: {
       matches.add(disease)
     }
   }
-  return Array.from(matches)
+  // 시범사업 대상이 아닌 질환은 청구 후보로 내보내지 않는다.
+  // 슬관절증·불면증·두통 등은 첩약 건강보험 대상이 아닌데 후보로 띄우면
+  // 한의사가 그대로 청구했다가 삭감된다.
+  return Array.from(matches).filter((d) => d.isPilotCovered !== false)
 }
 
-/** 시범사업 코드 표기 — UI 안내문에서 사용 */
+/**
+ * 시범사업 안내 문구 — UI 표기용.
+ * 내부 가칭 코드(CP01…)는 노출하지 않는다. 심평원 고시값이 아니라서
+ * 화면에 코드처럼 보이면 그대로 청구에 옮겨 적게 된다.
+ */
 export function describeCheopyak(d: CheopyakDisease): string {
-  return `[${d.pilotCode}] ${d.name} · ${d.defaultCheopCount}첩 · 본인부담 약 ${d.patientCopayPercent}%`
+  return `${d.name} · ${d.defaultCheopCount}첩 · 본인부담 약 ${d.patientCopayPercent}%`
 }
+
+/** 첩약 시범사업 자체에 대한 고지 — 화면 하단에 함께 노출한다. */
+export const CHEOPYAK_NOTICE =
+  '첩약 건강보험 2단계 시범사업(2024-04~2026-12) 대상 6개 질환에 한합니다. ' +
+  '환자 1인당 연간 2개 질환·각 20일분까지이며, 실제 청구 코드와 산정 기준은 ' +
+  '심평원 고시로 확인해 주세요.'
