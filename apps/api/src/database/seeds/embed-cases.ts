@@ -60,7 +60,14 @@ function buildEmbeddingInput(c: ClinicalCase): string {
   }
   if (c.patientConstitution) parts.push(`체질: ${c.patientConstitution}`);
   if (c.treatmentOutcome) parts.push(`결과: ${c.treatmentOutcome}`);
-  if (c.originalText) parts.push(c.originalText);
+
+  // 원문은 보조로만 넣고 길이를 제한한다.
+  //
+  // 예전에는 원문 전체(최대 6,000자)를 그대로 붙였다. 구조화 필드는 수십 자인데
+  // 원문이 수천 자라 벡터가 원문에 지배당했고, "소화불량 수면장애" 로 검색하면
+  // 여드름 치험례가 상위에 뜨는 식으로 주제가 뭉개졌다.
+  // 지금은 변증·증상·처방이 채워져 있으므로 그쪽이 신호를 잡게 둔다.
+  if (c.originalText) parts.push(`원문 발췌: ${c.originalText.slice(0, 600)}`);
   const joined = parts.join('\n');
   return joined.length > MAX_INPUT_CHARS ? joined.slice(0, MAX_INPUT_CHARS) : joined;
 }
