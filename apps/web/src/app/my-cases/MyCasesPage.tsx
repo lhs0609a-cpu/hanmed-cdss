@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
   Search,
@@ -11,38 +10,18 @@ import {
   Star,
   StarOff,
   Download,
+  ChevronDown,
 } from 'lucide-react'
-
-// 개인 치험례 인터페이스
-interface MyCase {
-  id: string
-  createdAt: Date
-  updatedAt: Date
-  // 환자 정보
-  patientAge?: number
-  patientGender?: 'M' | 'F'
-  patientConstitution?: string
-  // 증상 및 진단
-  chiefComplaint: string
-  symptoms: string[]
-  diagnosis?: string
-  byeonjeung?: string // 변증
-  // 처방
-  formulaName: string
-  herbs: Array<{ name: string; amount: string }>
-  modifications?: string // 가감내용
-  // 치료 결과
-  treatmentDuration?: string
-  outcome?: '완치' | '호전' | '무효' | '진행중'
-  outcomeDetails?: string
-  // 추가 정보
-  notes?: string
-  tags?: string[]
-  isStarred?: boolean
-}
-
-// 로컬 스토리지 키
-const MY_CASES_STORAGE_KEY = 'ongojishin_my_cases'
+import {
+  fetchMyCases,
+  createMyCase,
+  updateMyCase,
+  deleteMyCase,
+  importLocalCases,
+  type MyCase,
+  type NewMyCasePayload,
+} from '@/services/myCases'
+import { logError } from '@/lib/errors'
 
 export default function MyCasesPage() {
   const [cases, setCases] = useState<MyCase[]>([])
@@ -51,50 +30,60 @@ export default function MyCasesPage() {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'starred'>('newest')
   const [isLoading, setIsLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [migratedCount, setMigratedCount] = useState(0)
 
-  // 로컬 스토리지에서 케이스 로드
-  useEffect(() => {
-    loadCases()
-  }, [])
-
-  const loadCases = () => {
+  /**
+   * 서버에서 치험례를 불러온다.
+   * 예전 브라우저 저장분이 남아 있으면 먼저 서버로 올린 뒤 조회한다 —
+   * 순서를 바꾸면 이관한 기록이 이번 화면에서는 안 보인다.
+   */
+  const loadCases = useCallback(async () => {
     setIsLoading(true)
+    setLoadError(null)
     try {
-      const saved = localStorage.getItem(MY_CASES_STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        setCases(parsed.map((c: MyCase) => ({
-          ...c,
-          createdAt: new Date(c.createdAt),
-          updatedAt: new Date(c.updatedAt),
-        })))
-      }
+      const moved = await importLocalCases()
+      if (moved > 0) setMigratedCount(moved)
+      setCases(await fetchMyCases())
     } catch (error) {
-      console.error('Failed to load cases:', error)
+      logError(error, 'MyCasesPage.load')
+      setLoadError('치험례를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const saveCases = (newCases: MyCase[]) => {
-    localStorage.setItem(MY_CASES_STORAGE_KEY, JSON.stringify(newCases))
-    setCases(newCases)
-  }
+  useEffect(() => {
+    void loadCases()
+  }, [loadCases])
 
-  const toggleStar = (caseId: string) => {
-    const updated = cases.map(c =>
-      c.id === caseId ? { ...c, isStarred: !c.isStarred } : c
-    )
-    saveCases(updated)
-  }
-
-  const deleteCase = (caseId: string) => {
-    if (confirm('이 치험례를 삭제하시겠습니까?')) {
-      const updated = cases.filter(c => c.id !== caseId)
-      saveCases(updated)
+  const toggleStar = async (caseId: string) => {
+    const target = cases.find((c) => c.id === caseId)
+    if (!target) return
+    const next = !target.isStarred
+    // 먼저 화면을 바꾸고 서버에 보낸다 — 별표는 실패해도 잃을 게 없다.
+    setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, isStarred: next } : c)))
+    try {
+      await updateMyCase(caseId, { isStarred: next })
+    } catch (error) {
+      logError(error, 'MyCasesPage.star')
+      setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, isStarred: !next } : c)))
     }
   }
 
+  const deleteCase = async (caseId: string) => {
+    if (!confirm('이 치험례를 삭제하시겠습니까?')) return
+    try {
+      await deleteMyCase(caseId)
+      setCases((prev) => prev.filter((c) => c.id !== caseId))
+    } catch (error) {
+      logError(error, 'MyCasesPage.delete')
+      alert('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    }
+  }
+
+  /** 내보내기 — 서버에 있는 내 치험례를 그대로 파일로 뽑는다. */
   const exportCases = () => {
     const dataStr = JSON.stringify(cases, null, 2)
     const blob = new Blob([dataStr], { type: 'application/json' })
@@ -120,11 +109,11 @@ export default function MyCasesPage() {
     .sort((a, b) => {
       switch (sortBy) {
         case 'newest':
-          return b.createdAt.getTime() - a.createdAt.getTime()
+          return b.createdAt.localeCompare(a.createdAt)
         case 'oldest':
-          return a.createdAt.getTime() - b.createdAt.getTime()
+          return a.createdAt.localeCompare(b.createdAt)
         case 'starred':
-          if (a.isStarred === b.isStarred) return b.createdAt.getTime() - a.createdAt.getTime()
+          if (a.isStarred === b.isStarred) return b.createdAt.localeCompare(a.createdAt)
           return a.isStarred ? -1 : 1
         default:
           return 0
@@ -170,17 +159,28 @@ export default function MyCasesPage() {
         </div>
       </div>
 
-      {/* 저장 위치 고지 — 이 화면의 데이터는 아직 서버로 가지 않는다.
-          환자 명부·진료 기록은 서버로 옮겼지만 치험례는 필드 구조가 달라 다음 단계다.
-          그 사실을 숨기면 한의사가 축적한 임상 기록을 브라우저 청소 한 번에 잃는다. */}
-      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-        <p className="text-[13px] leading-relaxed text-amber-800">
-          <strong>이 기기에만 저장됩니다.</strong> 내 치험례는 아직 서버에 동기화되지 않아
-          다른 PC에서는 보이지 않고, 브라우저 데이터를 지우면 사라집니다. 중요한 기록은
-          내보내기(⤓)로 따로 보관해 주세요. 서버 저장은 준비 중입니다.
-        </p>
-      </div>
+      {/* 이관 결과 — 예전 브라우저 저장분을 옮겼을 때만 뜬다. */}
+      {migratedCount > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+          <p className="text-[13px] leading-relaxed text-blue-800">
+            이 브라우저에만 있던 치험례 <strong>{migratedCount}건</strong>을 계정으로 옮겼습니다.
+            이제 다른 PC에서 로그인해도 그대로 보입니다.
+          </p>
+        </div>
+      )}
+
+      {loadError && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-[13px] leading-relaxed text-red-800">{loadError}</p>
+          <button
+            onClick={() => void loadCases()}
+            className="shrink-0 text-[13px] font-semibold text-red-700 underline"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -279,7 +279,7 @@ export default function MyCasesPage() {
                   </h3>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>{caseItem.createdAt.toLocaleDateString('ko-KR')}</span>
+                    <span>{new Date(caseItem.createdAt).toLocaleDateString('ko-KR')}</span>
                     {caseItem.patientAge && (
                       <>
                         <span className="text-gray-300">|</span>
@@ -292,7 +292,7 @@ export default function MyCasesPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleStar(caseItem.id)}
+                  onClick={() => void toggleStar(caseItem.id)}
                   className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   {caseItem.isStarred ? (
@@ -343,15 +343,63 @@ export default function MyCasesPage() {
               </div>
 
               {/* Actions */}
+              {/* 펼쳐서 본다 — 예전에는 없는 라우트(/my-cases/:id)로 보내는
+                  '상세보기' 링크라 눌러도 빈 화면이었다. */}
+              {expandedId === caseItem.id && (
+                <dl className="mb-3 space-y-2 rounded-xl bg-gray-50 p-3 text-sm">
+                  {caseItem.byeonjeung && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">변증</dt>
+                      <dd className="text-gray-800">{caseItem.byeonjeung}</dd>
+                    </div>
+                  )}
+                  {caseItem.herbs.length > 0 && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">약재</dt>
+                      <dd className="text-gray-800">
+                        {caseItem.herbs.map((h) => `${h.name}${h.amount ? ` ${h.amount}` : ''}`).join(', ')}
+                      </dd>
+                    </div>
+                  )}
+                  {caseItem.modifications && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">가감</dt>
+                      <dd className="text-gray-800">{caseItem.modifications}</dd>
+                    </div>
+                  )}
+                  {caseItem.treatmentDuration && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">치료 기간</dt>
+                      <dd className="text-gray-800">{caseItem.treatmentDuration}</dd>
+                    </div>
+                  )}
+                  {caseItem.outcomeDetails && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">경과</dt>
+                      <dd className="text-gray-800">{caseItem.outcomeDetails}</dd>
+                    </div>
+                  )}
+                  {caseItem.notes && (
+                    <div className="flex gap-2">
+                      <dt className="w-16 shrink-0 text-gray-500">메모</dt>
+                      <dd className="whitespace-pre-wrap text-gray-800">{caseItem.notes}</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+
               <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                <Link
-                  to={`/my-cases/${caseItem.id}`}
-                  className="flex-1 py-2 text-center text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
-                >
-                  상세보기
-                </Link>
                 <button
-                  onClick={() => deleteCase(caseItem.id)}
+                  onClick={() => setExpandedId(expandedId === caseItem.id ? null : caseItem.id)}
+                  className="flex flex-1 items-center justify-center gap-1 py-2 text-center text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
+                >
+                  {expandedId === caseItem.id ? '접기' : '자세히'}
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${expandedId === caseItem.id ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                <button
+                  onClick={() => void deleteCase(caseItem.id)}
                   className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -366,14 +414,9 @@ export default function MyCasesPage() {
       {showAddModal && (
         <AddCaseModal
           onClose={() => setShowAddModal(false)}
-          onSave={(newCase) => {
-            const caseWithId: MyCase = {
-              ...newCase,
-              id: crypto.randomUUID(),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }
-            saveCases([...cases, caseWithId])
+          onSave={async (newCase) => {
+            const saved = await createMyCase(newCase)
+            setCases((prev) => [saved, ...prev])
             setShowAddModal(false)
           }}
         />
@@ -388,8 +431,10 @@ function AddCaseModal({
   onSave,
 }: {
   onClose: () => void
-  onSave: (data: Omit<MyCase, 'id' | 'createdAt' | 'updatedAt'>) => void
+  onSave: (data: NewMyCasePayload) => Promise<void>
 }) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     patientAge: '',
     patientGender: '' as '' | 'M' | 'F',
@@ -407,33 +452,42 @@ function AddCaseModal({
     notes: '',
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSaving) return
 
     if (!formData.chiefComplaint.trim() || !formData.formulaName.trim()) {
-      alert('주소증과 처방명은 필수입니다.')
+      setSaveError('주소증과 처방명은 필수입니다.')
       return
     }
 
-    onSave({
-      patientAge: formData.patientAge ? parseInt(formData.patientAge) : undefined,
-      patientGender: formData.patientGender || undefined,
-      patientConstitution: formData.patientConstitution || undefined,
-      chiefComplaint: formData.chiefComplaint,
-      symptoms: formData.symptoms.split(',').map(s => s.trim()).filter(Boolean),
-      diagnosis: formData.diagnosis || undefined,
-      byeonjeung: formData.byeonjeung || undefined,
-      formulaName: formData.formulaName,
-      herbs: formData.herbs.split(',').map(h => {
-        const parts = h.trim().split(' ')
-        return { name: parts[0], amount: parts[1] || '' }
-      }).filter(h => h.name),
-      modifications: formData.modifications || undefined,
-      treatmentDuration: formData.treatmentDuration || undefined,
-      outcome: formData.outcome || undefined,
-      outcomeDetails: formData.outcomeDetails || undefined,
-      notes: formData.notes || undefined,
-    })
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await onSave({
+        patientAge: formData.patientAge ? parseInt(formData.patientAge) : null,
+        patientGender: formData.patientGender || null,
+        patientConstitution: formData.patientConstitution || null,
+        chiefComplaint: formData.chiefComplaint.trim(),
+        symptoms: formData.symptoms.split(',').map(s => s.trim()).filter(Boolean),
+        diagnosis: formData.diagnosis || null,
+        byeonjeung: formData.byeonjeung || null,
+        formulaName: formData.formulaName.trim(),
+        herbs: formData.herbs.split(',').map(h => {
+          const parts = h.trim().split(' ')
+          return { name: parts[0], amount: parts[1] || '' }
+        }).filter(h => h.name),
+        modifications: formData.modifications || null,
+        treatmentDuration: formData.treatmentDuration || null,
+        outcome: formData.outcome || null,
+        outcomeDetails: formData.outcomeDetails || null,
+        notes: formData.notes || null,
+      })
+    } catch (error) {
+      logError(error, 'MyCasesPage.create')
+      setSaveError('저장하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -602,20 +656,26 @@ function AddCaseModal({
           </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-          >
-            취소
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-          >
-            저장
-          </button>
+        <div className="px-6 py-4 border-t border-gray-100">
+          {saveError && (
+            <p className="mb-3 text-sm text-red-600">{saveError}</p>
+          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-60"
+            >
+              {isSaving ? '저장 중...' : '저장'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
