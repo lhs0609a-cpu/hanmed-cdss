@@ -30,6 +30,7 @@ import { PalGangAnalysis, BodyConstitutionResult } from '@/types'
 import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/diagnosis/PalGangAnalyzer'
 import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitutionAssessment'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
+import { CaseEvidencePanel } from '@/components/evidence/CaseEvidencePanel'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { TermTooltip } from '@/components/common'
 import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/lib/kcdOm'
@@ -1358,6 +1359,12 @@ export default function PatternDiagnosisPage() {
             bodyHeat={bodyConstitution?.bodyHeat}
             bodyStrength={bodyConstitution?.bodyStrength}
           />
+
+          {/* 이 변증이 실제로 쓰인 치험례 — 변증명만 던지고 끝내면 종이 사전과 다를 게 없다.
+              몇 건에서 쓰였고 어떤 처방으로 어떻게 끝났는지가 붙어야 판단에 쓸 수 있다. */}
+          {results[0] && (
+            <CaseEvidencePanel kind="pattern" name={results[0].pattern} limit={4} />
+          )}
 
           {/* AI 결과 면책 조항 */}
           <AIResultDisclaimer />

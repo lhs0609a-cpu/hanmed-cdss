@@ -90,6 +90,46 @@ export class CasesController {
     return this.casesService.findById(id);
   }
 
+
+  @Get('evidence')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '처방/변증별 치험례 근거',
+    description:
+      '처방명 또는 변증명으로 실제 치험례를 모아 건수·경과 분포·성공률과 대표 사례를 돌려준다.' +
+      ' 처방 상세, 변증 도우미, 약재 상세 등 어느 화면에서든 같은 근거를 붙이는 데 쓴다.',
+  })
+  async getEvidence(
+    @Query('kind') kind: 'formula' | 'pattern',
+    @Query('name') name: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.casesService.getCaseEvidence({
+      kind: kind === 'pattern' ? 'pattern' : 'formula',
+      name,
+      limit: limit ? parseInt(limit, 10) : 5,
+    });
+  }
+
+
+  @Get('evidence-counts')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '처방/변증별 치험례 건수 일괄 조회',
+    description: '목록 화면에서 카드마다 개별 호출하지 않도록 이름 여러 개의 건수를 한 번에 준다.',
+  })
+  async getEvidenceCounts(
+    @Query('kind') kind: 'formula' | 'pattern',
+    @Query('names') names: string,
+  ) {
+    return this.casesService.getCaseCounts({
+      kind: kind === 'pattern' ? 'pattern' : 'formula',
+      names: (names || '').split(',').map((n) => n.trim()).filter(Boolean),
+    });
+  }
+
   @Post('search')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()

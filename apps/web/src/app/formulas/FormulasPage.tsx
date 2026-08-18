@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -16,6 +16,7 @@ import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
 import { useMfdsDrugSearch, type MfdsListItem } from '@/hooks/useMfdsDrug'
 import { koreanContains } from '@/lib/hangul'
+import { api } from '@/services/api'
 
 interface FormulaHerb {
   id: string
@@ -192,6 +193,29 @@ export default function FormulasPage() {
     setSelectedSchool(school)
     setPage(1)
   }
+
+
+  // 치험례 건수 — 처방 이름만 나열하면 종이 사전이다.
+  // "이 처방이 실제로 몇 건에서 쓰였는가" 가 목록에서 바로 보여야 한다.
+  const [caseCounts, setCaseCounts] = useState<Record<string, number>>({})
+  useEffect(() => {
+    const names = paginatedFormulas.map((f) => f.name).filter(Boolean)
+    if (names.length === 0) return
+    let cancelled = false
+    api
+      .get<Record<string, number>>('/cases/evidence-counts', {
+        params: { kind: 'formula', names: names.join(',') },
+      })
+      .then(({ data }) => {
+        if (!cancelled && data) setCaseCounts((prev) => ({ ...prev, ...data }))
+      })
+      .catch(() => {
+        /* 건수는 부가 정보 — 실패해도 목록은 그대로 보여준다 */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [paginatedFormulas])
 
   return (
     <div className="space-y-6">
@@ -390,6 +414,20 @@ export default function FormulasPage() {
                 {formula.source && (
                   <p className="text-xs text-gray-400 mb-2">출전: {formula.source}</p>
                 )}
+
+                {/* 임상 근거 — 건수가 0이면 "기록 없음" 으로 정직하게 */}
+                <p className="mb-2 inline-flex items-center gap-1.5 text-xs">
+                  <BookOpen className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
+                  {caseCounts[formula.name] === undefined ? (
+                    <span className="text-gray-300">치험례 확인 중</span>
+                  ) : caseCounts[formula.name] > 0 ? (
+                    <span className="font-semibold text-gray-700">
+                      치험례 {caseCounts[formula.name].toLocaleString()}건
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">치험례 기록 없음</span>
+                  )}
+                </p>
 
                 <p className="text-sm text-gray-600 line-clamp-2 mb-4">
                   {formula.indication}

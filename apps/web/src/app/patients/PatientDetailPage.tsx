@@ -21,6 +21,7 @@ import {
   Printer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { setInlineToastTimeout } from '@/hooks/useToast'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
@@ -462,6 +463,12 @@ export default function PatientDetailPage() {
           <p className="text-lg font-bold text-gray-900 truncate">{patient.mainComplaint || '-'}</p>
         </div>
       </div>
+
+      {/* 이 환자 주소증과 닮은 치험례 — 차트만 쌓아 두면 기록장이다.
+          같은 호소로 다른 한의사가 어떻게 했는지가 옆에 있어야 판단에 쓴다. */}
+      {patient.mainComplaint && (
+        <SimilarCaseSuccessCard chiefComplaint={patient.mainComplaint} symptoms={[]} />
+      )}
 
       {/* Tabs - 모바일에서 가로 스크롤 가능 */}
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">

@@ -342,6 +342,124 @@ export class CasesService {
     };
   }
 
+
+  /**
+   * 처방명 또는 변증명으로 실제 치험례를 모아 경과까지 집계한다.
+   *
+   * 이 제품의 축은 치험례다. 처방 카탈로그·변증 도구가 이름만 나열하면
+   * 한의사에게는 종이 사전과 다를 게 없다. 어떤 처방을 볼 때
+   * "실제로 몇 건 쓰였고 어떻게 끝났는지" 가 같이 보여야 의미가 생긴다.
+   *
+   * kind='formula' → herbalFormulas 안에서 처방명 매칭
+   * kind='pattern' → patternDiagnosis 매칭
+   */
+  async getCaseEvidence(input: {
+    kind: 'formula' | 'pattern';
+    name: string;
+    limit?: number;
+  }) {
+    const name = (input.name || '').trim();
+    const limit = Math.min(Math.max(input.limit ?? 5, 1), 20);
+    if (!name) {
+      return { name, kind: input.kind, total: 0, successRate: null, outcomeBreakdown: {}, cases: [] };
+    }
+
+    const cacheKey = `evidence:${input.kind}:${name}:${limit}`;
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const qb = this.casesRepository.createQueryBuilder('c');
+        if (input.kind === 'formula') {
+          qb.where('c.herbalFormulas::text ILIKE :n', { n: `%${name}%` });
+        } else {
+          qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
+        }
+
+        const total = await qb.getCount();
+
+        // 경과 분포 — 완치/호전을 성공으로 본다.
+        const outcomeRows = await qb
+          .clone()
+          .select('c.treatmentOutcome', 'outcome')
+          .addSelect('COUNT(*)', 'cnt')
+          .groupBy('c.treatmentOutcome')
+          .getRawMany();
+
+        const outcomeBreakdown: Record<string, number> = {};
+        for (const r of outcomeRows) {
+          if (r.outcome) outcomeBreakdown[r.outcome] = parseInt(r.cnt, 10);
+        }
+        const graded = Object.values(outcomeBreakdown).reduce((a, b) => a + b, 0);
+        const good = (outcomeBreakdown['완치'] || 0) + (outcomeBreakdown['호전'] || 0);
+        // 경과가 기록된 건이 5건 미만이면 성공률을 내지 않는다 — 3건 중 3건 성공을
+        // "100%" 로 띄우면 통계처럼 읽히지만 근거가 없다.
+        const successRate = graded >= 5 ? Math.round((good / graded) * 100) : null;
+
+        const rows = await qb
+          .clone()
+          .orderBy('c.createdAt', 'DESC')
+          .take(limit)
+          .getMany();
+
+        return {
+          name,
+          kind: input.kind,
+          total,
+          gradedCount: graded,
+          successRate,
+          outcomeBreakdown,
+          cases: rows.map((c) => ({
+            id: c.id,
+            chiefComplaint: c.chiefComplaint,
+            patternDiagnosis: c.patternDiagnosis,
+            outcome: c.treatmentOutcome,
+            constitution: c.patientConstitution,
+            formulaName: c.herbalFormulas?.[0]?.formulaName ?? '',
+            ageRange: c.patientAgeRange,
+            gender: c.patientGender,
+          })),
+        };
+      },
+      { prefix: CACHE_PREFIX, ttl: 600 },
+    );
+  }
+
+
+  /**
+   * 여러 처방/변증의 치험례 건수를 한 번에.
+   *
+   * 목록 화면에서 카드마다 개별 호출하면 한 페이지에 20번이 나간다.
+   * 목록은 "이 처방에 임상 기록이 있는가" 만 알면 되므로 건수만 묶어서 돌려준다.
+   */
+  async getCaseCounts(input: { kind: 'formula' | 'pattern'; names: string[] }) {
+    const names = Array.from(
+      new Set((input.names || []).map((n) => (n || '').trim()).filter(Boolean)),
+    ).slice(0, 50);
+    if (names.length === 0) return {};
+
+    const cacheKey = `counts:${input.kind}:${names.join('|')}`;
+    return this.cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const out: Record<string, number> = {};
+        // 이름별 ILIKE 라 한 방 쿼리로 묶기 어렵다. 50개 상한 + 10분 캐시로 감당한다.
+        await Promise.all(
+          names.map(async (name) => {
+            const qb = this.casesRepository.createQueryBuilder('c');
+            if (input.kind === 'formula') {
+              qb.where('c.herbalFormulas::text ILIKE :n', { n: `%${name}%` });
+            } else {
+              qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
+            }
+            out[name] = await qb.getCount();
+          }),
+        );
+        return out;
+      },
+      { prefix: CACHE_PREFIX, ttl: 600 },
+    );
+  }
+
   async findAll(
     page = 1,
     limit = 20,
