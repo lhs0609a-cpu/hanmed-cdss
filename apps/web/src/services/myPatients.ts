@@ -35,7 +35,19 @@ export interface MyVisit {
   aiConfidence: number | null
   aiDegraded: boolean
   notes: string | null
+  outcome: string | null
+  outcomeNotes: string | null
+  outcomeRecordedAt: string | null
+  followUpAt: string | null
 }
+
+/** 경과 확인이 필요한 진료 — 대시보드 목록용 */
+export interface PendingFollowUp extends MyVisit {
+  patientName: string | null
+  daysSince: number
+}
+
+export type VisitOutcome = '완치' | '호전' | '무효' | '악화' | '진행중'
 
 export interface NewPatientPayload {
   name: string
@@ -97,6 +109,26 @@ export async function fetchMyVisits(patientId?: string, limit = 50): Promise<MyV
 
 export async function createMyVisit(payload: NewVisitPayload): Promise<MyVisit> {
   const { data } = await api.post<MyVisit>('/my-patients/visits', payload)
+  return data
+}
+
+/**
+ * 경과 확인이 필요한 진료 목록.
+ * 처방을 낸 뒤 결과를 기록하지 않으면 그 진료는 치험례가 되지 못한다.
+ */
+export async function fetchPendingFollowUps(staleDays = 14): Promise<PendingFollowUp[]> {
+  const { data } = await api.get<PendingFollowUp[]>('/my-patients/follow-ups', {
+    params: { staleDays },
+  })
+  return Array.isArray(data) ? data : []
+}
+
+/** 진료 경과 기록 */
+export async function recordVisitOutcome(
+  visitId: string,
+  payload: { outcome: VisitOutcome; outcomeNotes?: string | null; followUpAt?: string | null },
+): Promise<MyVisit> {
+  const { data } = await api.patch<MyVisit>(`/my-patients/visits/${visitId}/outcome`, payload)
   return data
 }
 
