@@ -75,7 +75,6 @@ export const PLAN_TIERS: PlanTier[] = [
     features: [
       'Basic의 모든 기능',
       'AI 챗봇 월 1,000회',
-      '음성 차트 (SOAP 자동 생성)',
       '치험례 전체 열람 및 유사 사례 추천',
       '삭감 사전 점검',
       '초과 시 건당 100원',

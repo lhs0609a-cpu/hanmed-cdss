@@ -30,7 +30,6 @@ import {
   ScrollText,
   Brain,
   Shield,
-  Mic,
   ArrowLeftRight,
   MessageSquare,
   Library,
@@ -105,7 +104,6 @@ const HIDDEN_MENU: MenuItem[] = [
   { name: '통합의학', href: '/dashboard/integrated-diagnosis', icon: HeartPulse },  // 의미 모호
   { name: '경혈 검색', href: '/dashboard/acupoints', icon: MapPin },                // 침구 — 한약 CDSS 분리
   { name: '맥진 기록', href: '/dashboard/pulse', icon: Activity },                  // 차트에 흡수 가능
-  { name: '음성 차트', href: '/dashboard/voice-chart', icon: Mic },                 // 실사용 거의 없음 (2026-08)
 ]
 
 export default function DashboardLayout() {

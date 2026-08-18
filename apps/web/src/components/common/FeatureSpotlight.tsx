@@ -387,14 +387,6 @@ export const SPOTLIGHT_SEQUENCES = {
     name: '새로운 기능 안내',
     targets: [
       {
-        id: 'voice-chart',
-        selector: '[data-spotlight="voice-chart"]',
-        title: '음성 차트 기능',
-        description:
-          '진료 내용을 음성으로 녹음하면 AI가 자동으로 SOAP 형식의 차트로 변환합니다. 타이핑 없이 빠르게 차트를 작성하세요!',
-        badge: 'NEW' as const,
-      },
-      {
         id: 'ai-case-search',
         selector: '[data-spotlight="ai-case-search"]',
         title: 'AI 치험례 검색',

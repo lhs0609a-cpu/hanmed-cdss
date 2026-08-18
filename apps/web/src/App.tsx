@@ -46,7 +46,6 @@ const PatternDiagnosisPage = lazy(() => import('@/app/diagnosis/PatternDiagnosis
 const ClaimCheckPage = lazy(() => import('@/app/claim-check/ClaimCheckPage'))
 const FormulaComparePage = lazy(() => import('@/app/formula-compare/FormulaComparePage'))
 const RedFlagPage = lazy(() => import('@/app/red-flag/RedFlagPage'))
-const VoiceChartPage = lazy(() => import('@/app/voice-chart/VoiceChartPage'))
 const ByeongYangTablePage = lazy(() => import('@/app/byeongyang/ByeongYangTablePage'))
 const SchoolComparisonPage = lazy(() => import('@/app/school-compare/SchoolComparisonPage'))
 const IntegratedDiagnosisPage = lazy(() => import('@/app/integrated-diagnosis/IntegratedDiagnosisPage'))
@@ -214,7 +213,6 @@ function App() {
           <Route path="claim-check" element={route(<ClaimCheckPage />)} />
           <Route path="formula-compare" element={route(<FormulaComparePage />)} />
           <Route path="red-flag" element={route(<RedFlagPage />)} />
-          <Route path="voice-chart" element={route(<VoiceChartPage />)} />
 
           <Route path="byeongyang" element={route(<ByeongYangTablePage />)} />
           <Route path="school-compare" element={route(<SchoolComparisonPage />)} />
