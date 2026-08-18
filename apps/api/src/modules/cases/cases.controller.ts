@@ -82,15 +82,8 @@ export class CasesController {
     return this.casesService.getStatistics();
   }
 
-  @Get(':id')
-  @UseGuards(AuthGuard('jwt'))
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '치험례 상세 조회' })
-  async findOne(@Param('id') id: string) {
-    return this.casesService.findById(id);
-  }
-
-
+  // 주의: 아래 :id 라우트보다 반드시 위에 있어야 한다.
+  // 밑에 두면 'evidence' 가 :id 로 잡혀 uuid 파싱 오류(500)가 난다.
   @Get('evidence')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
@@ -129,6 +122,15 @@ export class CasesController {
       names: (names || '').split(',').map((n) => n.trim()).filter(Boolean),
     });
   }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '치험례 상세 조회' })
+  async findOne(@Param('id') id: string) {
+    return this.casesService.findById(id);
+  }
+
 
   @Post('search')
   @UseGuards(AuthGuard('jwt'))
