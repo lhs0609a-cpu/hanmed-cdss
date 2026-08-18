@@ -76,7 +76,7 @@ const defaultDemoPatient: {
   id: string
   name: string
   birthDate: string
-  gender: 'M' | 'F'
+  gender: 'M' | 'F' | null
   phone: string
   address: string
   constitution: string
@@ -131,7 +131,9 @@ export default function PatientDetailPage() {
         id: p.id,
         name: p.name,
         birthDate: p.birthDate ?? '',
-        gender: (p.gender ?? 'F') as 'M' | 'F',
+        // 성별·생년월일은 안 받은 환자가 많다. 모르면 비워 둔다 —
+        // 임의로 '여 · 만 NaN세' 를 만들어 두면 차트를 못 믿게 된다.
+        gender: (p.gender as 'M' | 'F' | null) ?? null,
         phone: p.phone ?? '',
         address: '',
         constitution: p.constitution ?? '',
@@ -188,6 +190,14 @@ export default function PatientDetailPage() {
     }
     return age
   }
+
+  /** 성별·나이 표기 — 모르는 값은 아예 빼고 있는 것만 잇는다. */
+  const patientSubtitle = [
+    patient?.gender === 'F' ? '여' : patient?.gender === 'M' ? '남' : null,
+    patient?.birthDate ? `만 ${calculateAge(patient.birthDate)}세` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   const getTrend = (current: number, previous: number) => {
     if (current < previous) return { icon: TrendingDown, color: 'text-green-500', label: '호전' }
@@ -369,7 +379,7 @@ export default function PatientDetailPage() {
             <div>
               <h1 className="text-[22px] font-bold text-neutral-900 tracking-tight">{patient.name}</h1>
               <p className="text-[13px] text-neutral-500">
-                {patient.gender === 'F' ? '여' : '남'} · 만 {calculateAge(patient.birthDate)}세
+                {patientSubtitle || '기본 정보 미입력'}
                 {patient.constitution && (
                   <span className="ml-2 px-2 py-0.5 bg-neutral-100 text-neutral-700 text-[11px] font-semibold rounded-sm">
                     {patient.constitution}
@@ -504,17 +514,15 @@ export default function PatientDetailPage() {
               기본 정보
             </h3>
             <div className="space-y-3">
+              {/* 빈 값은 빈칸이 아니라 '미입력' 으로 —
+                  칸이 비어 있으면 안 받은 건지 화면이 깨진 건지 구분이 안 된다. */}
               <div className="flex justify-between">
                 <span className="text-gray-500">생년월일</span>
-                <span className="font-medium">{patient.birthDate}</span>
+                <span className="font-medium">{patient.birthDate || '미입력'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">연락처</span>
-                <span className="font-medium">{patient.phone}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">주소</span>
-                <span className="font-medium">{patient.address}</span>
+                <span className="font-medium">{patient.phone || '미입력'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">체질</span>
