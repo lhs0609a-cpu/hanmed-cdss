@@ -11,6 +11,7 @@ import {
   Shield,
 } from 'lucide-react'
 import api from '@/services/api'
+import { CaseEvidencePanel } from '@/components/evidence/CaseEvidencePanel'
 
 interface Compound {
   id: string
@@ -224,6 +225,12 @@ export default function HerbDetailPage() {
               </div>
             )}
           </div>
+
+          {/* 이 약재를 쓴 실제 치험례 — 성분·효능만 있으면 본초서와 다를 게 없다.
+              약재 → 그 약재가 든 처방 → 그 처방을 쓴 사례, 그리고 단방 사례까지 이어 붙인다. */}
+          {herb.standardName && (
+            <CaseEvidencePanel kind="herb" name={herb.standardName} limit={4} />
+          )}
 
           {/* 포함된 처방 */}
           {herb.containedIn.length > 0 && (

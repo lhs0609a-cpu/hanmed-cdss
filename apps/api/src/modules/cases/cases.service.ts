@@ -358,7 +358,7 @@ export class CasesService {
    * kind='pattern' → patternDiagnosis 매칭
    */
   async getCaseEvidence(input: {
-    kind: 'formula' | 'pattern';
+    kind: 'formula' | 'pattern' | 'herb';
     name: string;
     limit?: number;
   }) {
@@ -382,6 +382,32 @@ export class CasesService {
                WHERE f->>'formulaName' ILIKE :n
              )`,
             { n: `%${name}%` },
+          );
+        } else if (input.kind === 'herb') {
+          // 약재는 세 경로로 치험례에 닿는다.
+          //  1) 이 약재가 들어간 처방을 쓴 사례  ← 임상적으로 가장 많은 경로
+          //  2) 원문에서 약재 구성이 추출된 사례
+          //  3) 단방·식용약초 사례 (원문 첫 줄이 약재명으로 시작)
+          // 셋을 합치지 않으면 약재 화면은 이름만 있는 사전으로 남는다.
+          qb.where(
+            `(
+               EXISTS (
+                 SELECT 1
+                 FROM jsonb_array_elements("c"."herbalFormulas") AS f
+                 JOIN "formulas" fo ON fo."name" = f->>'formulaName'
+                 JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
+                 JOIN "herbs_master" hm ON hm."id" = fh."herbId"
+                 WHERE hm."standardName" ILIKE :n
+               )
+               OR EXISTS (
+                 SELECT 1
+                 FROM jsonb_array_elements("c"."herbalFormulas") AS f2,
+                      jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
+                 WHERE h->>'name' ILIKE :n
+               )
+               OR "c"."originalText" ILIKE :head
+             )`,
+            { n: `%${name}%`, head: `%●${name}%` },
           );
         } else {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
@@ -443,7 +469,7 @@ export class CasesService {
    * 목록 화면에서 카드마다 개별 호출하면 한 페이지에 20번이 나간다.
    * 목록은 "이 처방에 임상 기록이 있는가" 만 알면 되므로 건수만 묶어서 돌려준다.
    */
-  async getCaseCounts(input: { kind: 'formula' | 'pattern'; names: string[] }) {
+  async getCaseCounts(input: { kind: 'formula' | 'pattern' | 'herb'; names: string[] }) {
     const names = Array.from(
       new Set((input.names || []).map((n) => (n || '').trim()).filter(Boolean)),
     ).slice(0, 50);

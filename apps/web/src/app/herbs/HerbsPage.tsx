@@ -8,6 +8,7 @@ import {
   Filter,
   Beaker,
   AlertCircle,
+  BookOpen,
 } from 'lucide-react'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
@@ -124,6 +125,29 @@ export default function HerbsPage() {
       setIsLoading(false)
     }
   }
+
+
+  // 치험례 건수 — 약재 이름만 나열하면 본초 사전이다.
+  // 이 약재가 실제로 몇 건의 임상에서 쓰였는지가 목록에서 보여야 한다.
+  const [caseCounts, setCaseCounts] = useState<Record<string, number>>({})
+  useEffect(() => {
+    const names = herbs.map((h) => h.standardName).filter(Boolean)
+    if (names.length === 0) return
+    let cancelled = false
+    api
+      .get<Record<string, number>>('/cases/evidence-counts', {
+        params: { kind: 'herb', names: names.join(',') },
+      })
+      .then(({ data }) => {
+        if (!cancelled && data) setCaseCounts((prev) => ({ ...prev, ...data }))
+      })
+      .catch(() => {
+        /* 건수는 부가 정보 — 실패해도 목록은 그대로 */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [herbs])
 
   return (
     <div className="space-y-6">
@@ -252,6 +276,19 @@ export default function HerbsPage() {
                 to={`/dashboard/herbs/${herb.id}`}
                 className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
+                <p className="mb-2 inline-flex items-center gap-1.5 text-xs">
+                  <BookOpen className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
+                  {caseCounts[herb.standardName] === undefined ? (
+                    <span className="text-gray-300">치험례 확인 중</span>
+                  ) : caseCounts[herb.standardName] > 0 ? (
+                    <span className="font-semibold text-gray-700">
+                      치험례 {caseCounts[herb.standardName].toLocaleString()}건
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">치험례 기록 없음</span>
+                  )}
+                </p>
+
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Leaf className="h-5 w-5 text-blue-500" />

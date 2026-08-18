@@ -29,7 +29,7 @@ interface EvidenceCase {
 
 interface EvidenceResponse {
   name: string
-  kind: 'formula' | 'pattern'
+  kind: 'formula' | 'pattern' | 'herb'
   total: number
   gradedCount: number
   successRate: number | null
@@ -51,7 +51,7 @@ export function CaseEvidencePanel({
   compact = false,
   className,
 }: {
-  kind: 'formula' | 'pattern'
+  kind: 'formula' | 'pattern' | 'herb'
   name: string
   limit?: number
   /** 목록 카드 안에 넣을 때 — 건수 요약만 한 줄로 */
@@ -85,7 +85,8 @@ export function CaseEvidencePanel({
     }
   }, [kind, name, limit])
 
-  const label = kind === 'formula' ? '이 처방' : '이 변증'
+  const label =
+    kind === 'formula' ? '이 처방' : kind === 'herb' ? '이 약재' : '이 변증'
 
   if (loading) {
     return compact ? (
@@ -109,7 +110,7 @@ export function CaseEvidencePanel({
           <h3 className="text-[15px] font-bold text-neutral-900">치험례 근거</h3>
         </div>
         <p className="text-[13px] leading-relaxed text-neutral-500">
-          {label}이 쓰인 치험례가 아직 데이터베이스에 없습니다. 진료 후 직접 공유하시면
+          {label}가 쓰인 치험례가 아직 데이터베이스에 없습니다. 진료 후 직접 공유하시면
           다음 진료의 근거가 됩니다.
         </p>
       </div>
@@ -136,7 +137,7 @@ export function CaseEvidencePanel({
           <h3 className="text-[15px] font-bold text-neutral-900">치험례 근거</h3>
         </div>
         <span className="text-[13px] text-neutral-500">
-          {label}이 쓰인 기록{' '}
+          {label}가 쓰인 기록{' '}
           <strong className="font-bold text-neutral-900">{data.total.toLocaleString()}건</strong>
         </span>
       </div>
