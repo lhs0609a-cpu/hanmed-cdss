@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -22,24 +22,24 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
+import { logError } from '@/lib/errors'
+import {
+  fetchMyPatient,
+  fetchMyVisits,
+  createMyVisit,
+  recordVisitOutcome,
+  type VisitOutcome,
+} from '@/services/myPatients'
 import { setInlineToastTimeout } from '@/hooks/useToast'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 
-// 로컬스토리지 키
-const PATIENTS_STORAGE_KEY = 'hanmed_patients'
-const VISITS_STORAGE_KEY = 'hanmed_patient_visits'
-
-interface StoredPatient {
-  id: string
-  name: string
-  birthDate: string
-  gender: 'M' | 'F'
-  phone: string
-  constitution?: string
-  lastVisit: string
-  totalVisits: number
-  mainComplaint: string
-  isActive: boolean
+/** 경과 색상 — 대시보드 카드와 같은 규칙을 쓴다. */
+const OUTCOME_TONE: Record<string, string> = {
+  완치: 'border-green-200 bg-green-50 text-green-700',
+  호전: 'border-amber-200 bg-amber-50 text-amber-700',
+  진행중: 'border-neutral-200 bg-neutral-50 text-neutral-700',
+  무효: 'border-neutral-200 bg-neutral-50 text-neutral-600',
+  악화: 'border-red-200 bg-red-50 text-red-700',
 }
 
 interface VisitRecord {
@@ -51,6 +51,10 @@ interface VisitRecord {
   pulseNote: string
   painScore: number
   notes: string
+  /** 서버 진료 기록의 경과 — 미기록이면 null */
+  outcome?: string | null
+  outcomeNotes?: string | null
+  outcomeRecordedAt?: string | null
 }
 
 interface ProgressData {
@@ -94,74 +98,9 @@ const defaultDemoPatient: {
   medicalHistory: '2020년 위염 진단',
 }
 
-const defaultVisits: VisitRecord[] = [
-  {
-    id: '1',
-    date: '2024-01-15',
-    symptoms: ['소화불량', '식후 더부룩함', '피로', '수족냉'],
-    diagnosis: '비기허(脾氣虛), 위한(胃寒)',
-    prescription: '향사육군자탕 가미',
-    pulseNote: '좌관: 세약, 우관: 허완',
-    painScore: 6,
-    notes: '식사량 줄이고 따뜻한 음식 권고. 2주 후 재진.',
-  },
-  {
-    id: '2',
-    date: '2024-01-01',
-    symptoms: ['소화불량', '복부 팽만감', '피로', '수족냉', '변비'],
-    diagnosis: '비기허(脾氣虛)',
-    prescription: '육군자탕',
-    pulseNote: '전체적으로 세약',
-    painScore: 7,
-    notes: '초진. 3개월 전부터 증상 시작.',
-  },
-  {
-    id: '3',
-    date: '2023-12-15',
-    symptoms: ['소화불량', '복통', '피로', '수족냉'],
-    diagnosis: '비위허한(脾胃虛寒)',
-    prescription: '이중탕',
-    pulseNote: '지맥, 세약',
-    painScore: 8,
-    notes: '급성 악화. 찬음식 섭취 후 증상 심화.',
-  },
-]
 
-// 로컬스토리지에서 환자 데이터 로드
-function loadPatientFromStorage(patientId: string): StoredPatient | null {
-  try {
-    const stored = localStorage.getItem(PATIENTS_STORAGE_KEY)
-    if (stored) {
-      const patients: StoredPatient[] = JSON.parse(stored)
-      return patients.find(p => p.id === patientId) || null
-    }
-  } catch (e) {
-    console.error('Failed to load patient from storage:', e)
-  }
-  return null
-}
 
-// 로컬스토리지에서 환자 진료 기록 로드
-function loadVisitsFromStorage(patientId: string): VisitRecord[] {
-  try {
-    const stored = localStorage.getItem(`${VISITS_STORAGE_KEY}_${patientId}`)
-    if (stored) {
-      return JSON.parse(stored)
-    }
-  } catch (e) {
-    console.error('Failed to load visits from storage:', e)
-  }
-  return []
-}
 
-// 로컬스토리지에 환자 진료 기록 저장
-function saveVisitsToStorage(patientId: string, visits: VisitRecord[]): void {
-  try {
-    localStorage.setItem(`${VISITS_STORAGE_KEY}_${patientId}`, JSON.stringify(visits))
-  } catch (e) {
-    console.error('Failed to save visits to storage:', e)
-  }
-}
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -172,52 +111,61 @@ export default function PatientDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [patient, setPatient] = useState<typeof defaultDemoPatient | null>(null)
   const [visits, setVisits] = useState<VisitRecord[]>([])
+  const [isSavingVisit, setIsSavingVisit] = useState(false)
+  // 타임라인에서 경과를 바로 적을 수 있게 — 대시보드까지 가지 않아도 된다.
+  const [outcomeOpenId, setOutcomeOpenId] = useState<string | null>(null)
 
-  // 환자 데이터 로드
-  useEffect(() => {
+  // 환자·진료 기록 로드 — 서버에서.
+  //
+  // 명부는 이미 서버로 옮겼는데 이 화면만 localStorage 를 읽고 있었다.
+  // 목록에서 연 환자가 상세에서는 "찾을 수 없음" 으로 뜨는 상태였다.
+  const loadPatient = useCallback(async () => {
     if (!id) {
       setIsLoading(false)
       return
     }
-
-    const storedPatient = loadPatientFromStorage(id)
-    let storedVisits = loadVisitsFromStorage(id)
-
-    if (storedPatient) {
-      // 로컬스토리지에서 찾은 환자
+    setIsLoading(true)
+    try {
+      const [p, vs] = await Promise.all([fetchMyPatient(id), fetchMyVisits(id, 100)])
       setPatient({
-        id: storedPatient.id,
-        name: storedPatient.name,
-        birthDate: storedPatient.birthDate,
-        gender: storedPatient.gender,
-        phone: storedPatient.phone,
+        id: p.id,
+        name: p.name,
+        birthDate: p.birthDate ?? '',
+        gender: (p.gender ?? 'F') as 'M' | 'F',
+        phone: p.phone ?? '',
         address: '',
-        constitution: storedPatient.constitution || '',
+        constitution: p.constitution ?? '',
         allergies: [],
         medications: [],
-        mainComplaint: storedPatient.mainComplaint,
+        mainComplaint: p.mainComplaint ?? '',
         medicalHistory: '',
       })
-      // 진료 기록이 없으면 빈 배열
-      setVisits(storedVisits.length > 0 ? storedVisits : [])
-    } else if (id === '1') {
-      // 기본 데모 환자
-      setPatient(defaultDemoPatient)
-      setVisits(defaultVisits)
-    } else {
-      // 찾을 수 없는 환자
+      setVisits(
+        vs.map((v) => ({
+          id: v.id,
+          date: v.visitedAt.slice(0, 10),
+          symptoms: (v.symptoms ?? []).map((x) => x.name).filter(Boolean),
+          diagnosis: v.diagnosis ?? '',
+          prescription: v.formulaName ?? '',
+          pulseNote: '',
+          painScore: 0,
+          notes: v.notes ?? '',
+          outcome: v.outcome,
+          outcomeNotes: v.outcomeNotes,
+          outcomeRecordedAt: v.outcomeRecordedAt,
+        })),
+      )
+    } catch (err) {
+      logError(err, 'PatientDetailPage')
       setPatient(null)
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }, [id])
 
-  // 진료 기록 변경 시 저장
   useEffect(() => {
-    if (id && visits.length > 0) {
-      saveVisitsToStorage(id, visits)
-    }
-  }, [id, visits])
+    void loadPatient()
+  }, [loadPatient])
 
   // 새 진료 기록 폼
   const [newVisit, setNewVisit] = useState<NewVisitForm>({
@@ -257,6 +205,23 @@ export default function PatientDetailPage() {
       symptomCount: v.symptoms.length,
     }))
 
+  /** 타임라인에서 경과 기록 — 기록하면 대시보드 확인 목록에서도 빠진다. */
+  const handleRecordOutcome = async (visitId: string, outcome: VisitOutcome) => {
+    try {
+      const saved = await recordVisitOutcome(visitId, { outcome })
+      setVisits((prev) =>
+        prev.map((v) =>
+          v.id === visitId
+            ? { ...v, outcome: saved.outcome, outcomeRecordedAt: saved.outcomeRecordedAt }
+            : v,
+        ),
+      )
+      setOutcomeOpenId(null)
+    } catch (err) {
+      logError(err, 'PatientDetailPage.recordOutcome')
+    }
+  }
+
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof NewVisitForm, string>> = {}
 
@@ -274,24 +239,49 @@ export default function PatientDetailPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleAddVisit = () => {
-    if (!validateForm()) return
+  /** 진료 기록 추가 — 서버에 저장한다. 브라우저에만 남기면 기기를 바꾸는 순간 사라진다. */
+  const handleAddVisit = async () => {
+    if (!validateForm() || !id || isSavingVisit) return
 
-    const today = new Date().toISOString().split('T')[0]
-    const newId = (Math.max(...visits.map((v) => parseInt(v.id))) + 1).toString()
-
-    const visit: VisitRecord = {
-      id: newId,
-      date: today,
-      symptoms: newVisit.symptoms.split(',').map((s) => s.trim()).filter(Boolean),
-      diagnosis: newVisit.diagnosis.trim(),
-      prescription: newVisit.prescription.trim(),
-      pulseNote: newVisit.pulseNote.trim(),
-      painScore: newVisit.painScore,
-      notes: newVisit.notes.trim(),
+    setIsSavingVisit(true)
+    try {
+      const saved = await createMyVisit({
+        patientId: id,
+        visitedAt: new Date().toISOString(),
+        chiefComplaint: newVisit.symptoms.trim() || null,
+        symptoms: newVisit.symptoms
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .map((name) => ({ name })),
+        diagnosis: newVisit.diagnosis.trim() || null,
+        formulaName: newVisit.prescription.trim() || null,
+        notes: [newVisit.pulseNote.trim(), newVisit.notes.trim()].filter(Boolean).join(String.fromCharCode(10)) || null,
+      })
+      setVisits((prev) => [
+        {
+          id: saved.id,
+          date: saved.visitedAt.slice(0, 10),
+          symptoms: (saved.symptoms ?? []).map((x) => x.name),
+          diagnosis: saved.diagnosis ?? '',
+          prescription: saved.formulaName ?? '',
+          pulseNote: newVisit.pulseNote.trim(),
+          painScore: newVisit.painScore,
+          notes: saved.notes ?? '',
+          outcome: saved.outcome,
+          outcomeNotes: saved.outcomeNotes,
+          outcomeRecordedAt: saved.outcomeRecordedAt,
+        },
+        ...prev,
+      ])
+    } catch (err) {
+      logError(err, 'PatientDetailPage.addVisit')
+      setFormErrors({ symptoms: '진료 기록 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.' })
+      setIsSavingVisit(false)
+      return
     }
+    setIsSavingVisit(false)
 
-    setVisits([visit, ...visits])
     setShowNewVisitModal(false)
     setShowSuccessToast(true)
     setActiveTab('visits')
@@ -316,11 +306,6 @@ export default function PatientDetailPage() {
     window.print()
   }
 
-  const getPainScoreColor = (score: number) => {
-    if (score <= 3) return 'bg-green-100 text-green-700'
-    if (score <= 6) return 'bg-yellow-100 text-yellow-700'
-    return 'bg-red-100 text-red-700'
-  }
 
   // 로딩 중
   if (isLoading) {
@@ -603,10 +588,21 @@ export default function PatientDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">통증 점수</span>
-                  <span className={cn('px-3 py-1 rounded-full font-bold', getPainScoreColor(visit.painScore))}>
-                    {visit.painScore}/10
-                  </span>
+                  {/* 경과가 이 진료의 결론이다. 통증 점수보다 먼저 눈에 들어와야 한다. */}
+                  {visit.outcome ? (
+                    <span
+                      className={cn(
+                        'rounded-full border px-3 py-1 text-sm font-bold',
+                        OUTCOME_TONE[visit.outcome] ?? 'border-neutral-200 bg-neutral-50 text-neutral-600',
+                      )}
+                    >
+                      {visit.outcome}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
+                      경과 미기록
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -650,6 +646,54 @@ export default function PatientDetailPage() {
                     <FileText className="inline h-4 w-4 mr-1 text-gray-400" />
                     {visit.notes}
                   </p>
+                </div>
+              )}
+
+              {/* 경과 — 기록돼 있으면 보여주고, 없으면 여기서 바로 적게 한다.
+                  대시보드까지 가지 않아도 환자를 보면서 남길 수 있어야 실제로 적는다. */}
+              {visit.outcome ? (
+                visit.outcomeNotes && (
+                  <div className="mt-3 rounded-xl border border-neutral-200 p-3">
+                    <p className="text-[13px] leading-relaxed text-neutral-700">
+                      <span className="font-semibold text-neutral-900">경과 메모 </span>
+                      {visit.outcomeNotes}
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="mt-3 border-t border-neutral-100 pt-3">
+                  {outcomeOpenId === visit.id ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(['완치', '호전', '진행중', '무효', '악화'] as VisitOutcome[]).map((o) => (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => void handleRecordOutcome(visit.id, o)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors',
+                            OUTCOME_TONE[o],
+                          )}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setOutcomeOpenId(null)}
+                        className="rounded-lg px-3 py-2 text-[13px] text-neutral-500 hover:bg-neutral-100"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOutcomeOpenId(visit.id)}
+                      className="text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+                    >
+                      경과 기록하기 →
+                    </button>
+                  )}
                 </div>
               )}
             </div>
