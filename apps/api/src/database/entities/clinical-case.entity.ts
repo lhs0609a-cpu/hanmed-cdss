@@ -127,6 +127,19 @@ export class ClinicalCase {
   @Column('text')
   originalText: string; // 원본 텍스트 전문
 
+  /**
+   * 단방·식용약초 치험례의 약재명.
+   *
+   * 치험례에는 방제 사례만 있는 게 아니다. `●오미자(식용약초) 알레르기성 비염...`
+   * 처럼 약재 하나로 치료한 사례가 1,800건 가까이 된다. 처방명이 없다고 버리면
+   * 약재 화면에서 쓸 수 있는 임상 근거를 통째로 잃는다.
+   *
+   * 원문 첫 줄에서 미리 뽑아 여기 저장한다 — 조회할 때마다 원문을 전문 스캔하면
+   * 약재 근거 조회가 9초까지 늘어진다(실측).
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  singleHerb: string | null;
+
   @Column({ nullable: true })
   embeddingVectorId: string; // Pinecone 벡터 ID (legacy)
 
