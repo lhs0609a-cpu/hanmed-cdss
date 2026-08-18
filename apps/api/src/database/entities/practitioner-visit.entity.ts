@@ -93,6 +93,17 @@ export class PractitionerVisit {
   @Column({ type: 'boolean', default: false })
   aiDegraded: boolean;
 
+  /**
+   * 통증 점수(VAS, 0~10). 안 물어본 진료도 있으므로 0 이 아니라 null 이 기본이다.
+   * 0 을 기본값으로 두면 '통증 없음' 과 '안 물어봄' 이 같아진다.
+   */
+  @Column({ type: 'smallint', nullable: true })
+  painScore: number | null;
+
+  /** 맥진 소견 — 다음 진료에서 대조하려면 남아 있어야 한다. */
+  @Column({ type: 'text', nullable: true })
+  pulseNote: string | null;
+
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
