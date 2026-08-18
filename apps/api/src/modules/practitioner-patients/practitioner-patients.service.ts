@@ -39,6 +39,8 @@ export interface VisitDto {
   herbs: VisitHerb[];
   aiConfidence: number | null;
   aiDegraded: boolean;
+  painScore: number | null;
+  pulseNote: string | null;
   notes: string | null;
   outcome: string | null;
   outcomeNotes: string | null;
@@ -67,6 +69,8 @@ export interface CreateVisitInput {
   herbs?: VisitHerb[];
   aiConfidence?: number | null;
   aiDegraded?: boolean;
+  painScore?: number | null;
+  pulseNote?: string | null;
   notes?: string | null;
   followUpAt?: string | null;
 }
@@ -145,6 +149,8 @@ export class PractitionerPatientsService {
       herbs: v.herbs ?? [],
       aiConfidence: v.aiConfidence,
       aiDegraded: v.aiDegraded,
+      painScore: v.painScore,
+      pulseNote: v.pulseNote,
       notes: v.notes,
       outcome: v.outcome,
       outcomeNotes: v.outcomeNotes,
@@ -279,6 +285,9 @@ export class PractitionerPatientsService {
       herbs: input.herbs ?? [],
       aiConfidence: input.aiConfidence ?? null,
       aiDegraded: input.aiDegraded ?? false,
+      // 0 은 '통증 없음' 이라는 답이므로 살려야 한다 — ?? 를 쓴다.
+      painScore: input.painScore ?? null,
+      pulseNote: input.pulseNote ?? null,
       notes: input.notes ?? null,
       followUpAt: input.followUpAt ? new Date(input.followUpAt) : null,
     });

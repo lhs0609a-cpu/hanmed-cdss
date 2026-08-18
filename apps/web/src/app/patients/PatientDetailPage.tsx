@@ -49,7 +49,8 @@ interface VisitRecord {
   diagnosis: string
   prescription: string
   pulseNote: string
-  painScore: number
+  /** 통증 점수 — 안 물어본 진료는 null. 0(통증 없음)과 구분해야 한다. */
+  painScore: number | null
   notes: string
   /** 서버 진료 기록의 경과 — 미기록이면 null */
   outcome?: string | null
@@ -149,8 +150,8 @@ export default function PatientDetailPage() {
           symptoms: (v.symptoms ?? []).map((x) => x.name).filter(Boolean),
           diagnosis: v.diagnosis ?? '',
           prescription: v.formulaName ?? '',
-          pulseNote: '',
-          painScore: 0,
+          pulseNote: v.pulseNote ?? '',
+          painScore: v.painScore,
           notes: v.notes ?? '',
           outcome: v.outcome,
           outcomeNotes: v.outcomeNotes,
@@ -206,14 +207,31 @@ export default function PatientDetailPage() {
   }
 
   // 경과 데이터 계산
+  // 통증 점수를 안 받은 진료는 그래프에서 뺀다 — 0 으로 찍으면 없던 호전이 생긴다.
   const progressData: ProgressData[] = visits
+    .filter((v) => v.painScore !== null)
     .slice(0, 5)
     .reverse()
     .map((v) => ({
       date: v.date.slice(5).replace('-', '/'),
-      painScore: v.painScore,
+      painScore: v.painScore as number,
       symptomCount: v.symptoms.length,
     }))
+
+  /**
+   * 통증 점수 변화 — 점수를 받은 진료끼리만 비교한다.
+   * 첫 진료가 0 점이면 감소율은 계산되지 않는다(0 으로 나눈다).
+   */
+  const painChange = (() => {
+    const scored = visits.filter((v) => v.painScore !== null)
+    if (scored.length < 2) return null
+    const latest = scored[0].painScore as number
+    const first = scored[scored.length - 1].painScore as number
+    return {
+      delta: latest - first,
+      percent: first > 0 ? Math.round(((latest - first) / first) * 100) : null,
+    }
+  })()
 
   /** 타임라인에서 경과 기록 — 기록하면 대시보드 확인 목록에서도 빠진다. */
   const handleRecordOutcome = async (visitId: string, outcome: VisitOutcome) => {
@@ -266,7 +284,9 @@ export default function PatientDetailPage() {
           .map((name) => ({ name })),
         diagnosis: newVisit.diagnosis.trim() || null,
         formulaName: newVisit.prescription.trim() || null,
-        notes: [newVisit.pulseNote.trim(), newVisit.notes.trim()].filter(Boolean).join(String.fromCharCode(10)) || null,
+        pulseNote: newVisit.pulseNote.trim() || null,
+        painScore: newVisit.painScore,
+        notes: newVisit.notes.trim() || null,
       })
       setVisits((prev) => [
         {
@@ -275,8 +295,8 @@ export default function PatientDetailPage() {
           symptoms: (saved.symptoms ?? []).map((x) => x.name),
           diagnosis: saved.diagnosis ?? '',
           prescription: saved.formulaName ?? '',
-          pulseNote: newVisit.pulseNote.trim(),
-          painScore: newVisit.painScore,
+          pulseNote: saved.pulseNote ?? '',
+          painScore: saved.painScore,
           notes: saved.notes ?? '',
           outcome: saved.outcome,
           outcomeNotes: saved.outcomeNotes,
@@ -433,17 +453,17 @@ export default function PatientDetailPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-500">현재 통증 점수</p>
           <div className="flex items-center gap-2">
-            {hasVisits ? (
+            {hasVisits && latestVisit.painScore !== null ? (
               <>
                 <p className="text-2xl font-bold text-gray-900">{latestVisit.painScore}/10</p>
-                {previousVisit && (() => {
-                  const trend = getTrend(latestVisit.painScore, previousVisit.painScore)
+                {previousVisit?.painScore != null && (() => {
+                  const trend = getTrend(latestVisit.painScore as number, previousVisit.painScore)
                   const TrendIcon = trend.icon
                   return <TrendIcon className={cn('h-5 w-5', trend.color)} />
                 })()}
               </>
             ) : (
-              <p className="text-2xl font-bold text-gray-400">-</p>
+              <p className="text-2xl font-bold text-gray-400">{hasVisits ? '미기록' : '-'}</p>
             )}
           </div>
         </div>
@@ -790,13 +810,15 @@ export default function PatientDetailPage() {
               <div className="bg-white/70 rounded-xl p-4">
                 <p className="text-sm text-gray-600">통증 점수 변화</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {visits.length > 1 ? (
+                  {painChange ? (
                     <>
-                      {visits[visits.length - 1].painScore - visits[0].painScore > 0 ? '+' : ''}
-                      {visits[0].painScore - visits[visits.length - 1].painScore}점
-                      <span className="text-sm font-normal ml-1">
-                        ({Math.round(((visits[visits.length - 1].painScore - visits[0].painScore) / visits[visits.length - 1].painScore) * -100)}% 감소)
-                      </span>
+                      {painChange.delta > 0 ? '+' : ''}
+                      {painChange.delta}점
+                      {painChange.percent !== null && (
+                        <span className="text-sm font-normal ml-1">
+                          ({painChange.percent}% {painChange.delta < 0 ? '감소' : '증가'})
+                        </span>
+                      )}
                     </>
                   ) : (
                     '데이터 부족'

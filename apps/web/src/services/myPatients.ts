@@ -34,6 +34,9 @@ export interface MyVisit {
   herbs: Array<{ name: string; amount?: string; role?: string }>
   aiConfidence: number | null
   aiDegraded: boolean
+  /** 통증 점수(VAS 0~10) — 안 물어본 진료는 null */
+  painScore: number | null
+  pulseNote: string | null
   notes: string | null
   outcome: string | null
   outcomeNotes: string | null
@@ -70,6 +73,8 @@ export interface NewVisitPayload {
   herbs?: Array<{ name: string; amount?: string; role?: string }>
   aiConfidence?: number | null
   aiDegraded?: boolean
+  painScore?: number | null
+  pulseNote?: string | null
   notes?: string | null
 }
 
