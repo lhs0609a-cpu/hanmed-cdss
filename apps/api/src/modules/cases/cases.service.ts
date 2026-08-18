@@ -416,6 +416,7 @@ export class CasesService {
                       jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
                  WHERE h->>'name' ILIKE :n
                )
+               OR "c"."singleHerb" ILIKE :n
              )`,
             { names: formulaNames.length > 0 ? formulaNames : [''], n: `%${name}%` },
           );
@@ -534,6 +535,7 @@ export class CasesService {
                           jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
                      WHERE h->>'name' ILIKE :n
                    )
+                   OR "c"."singleHerb" ILIKE :n
                  )`,
                 { names: formulaNames.length > 0 ? formulaNames : [''], n: `%${name}%` },
               );
