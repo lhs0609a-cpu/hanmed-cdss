@@ -370,7 +370,7 @@ export class CasesService {
       async () => {
         const qb = this.casesRepository.createQueryBuilder('c');
         if (input.kind === 'formula') {
-          qb.where('c.herbalFormulas::text ILIKE :n', { n: `%${name}%` });
+          qb.where('"c"."herbalFormulas"::text ILIKE :n', { n: `%${name}%` });
         } else {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
         }
@@ -447,7 +447,7 @@ export class CasesService {
           names.map(async (name) => {
             const qb = this.casesRepository.createQueryBuilder('c');
             if (input.kind === 'formula') {
-              qb.where('c.herbalFormulas::text ILIKE :n', { n: `%${name}%` });
+              qb.where('"c"."herbalFormulas"::text ILIKE :n', { n: `%${name}%` });
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
             }
@@ -481,15 +481,15 @@ export class CasesService {
         if (filters?.search) {
           const searchParam = `%${filters.search}%`;
           if (filters.searchField === 'symptoms') {
-            qb.andWhere('c.chiefComplaint ILIKE :search OR c.symptoms::text ILIKE :search', { search: searchParam });
+            qb.andWhere('c.chiefComplaint ILIKE :search OR "c"."symptoms"::text ILIKE :search', { search: searchParam });
           } else if (filters.searchField === 'formula') {
-            qb.andWhere('c.herbalFormulas::text ILIKE :search', { search: searchParam });
+            qb.andWhere('"c"."herbalFormulas"::text ILIKE :search', { search: searchParam });
           } else if (filters.searchField === 'diagnosis') {
             qb.andWhere('c.patternDiagnosis ILIKE :search', { search: searchParam });
           } else {
             // 전체 검색
             qb.andWhere(
-              '(c.chiefComplaint ILIKE :search OR c.patternDiagnosis ILIKE :search OR c.originalText ILIKE :search OR c.herbalFormulas::text ILIKE :search OR c.symptoms::text ILIKE :search)',
+              '(c.chiefComplaint ILIKE :search OR c.patternDiagnosis ILIKE :search OR c.originalText ILIKE :search OR "c"."herbalFormulas"::text ILIKE :search OR "c"."symptoms"::text ILIKE :search)',
               { search: searchParam },
             );
           }
