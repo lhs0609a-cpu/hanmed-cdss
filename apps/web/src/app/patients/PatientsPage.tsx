@@ -502,7 +502,7 @@ export default function PatientsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link
-                      to={`/patients/${patient.id}`}
+                      to={`/dashboard/patients/${patient.id}`}
                       className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       차트 보기

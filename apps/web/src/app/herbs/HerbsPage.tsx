@@ -249,7 +249,7 @@ export default function HerbsPage() {
             {herbs.map((herb) => (
               <Link
                 key={herb.id}
-                to={`/herbs/${herb.id}`}
+                to={`/dashboard/herbs/${herb.id}`}
                 className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">

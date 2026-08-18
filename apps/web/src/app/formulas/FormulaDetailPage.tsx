@@ -307,7 +307,7 @@ export default function FormulaDetailPage() {
                             <div className={`w-2 h-2 rounded-full ${roleStyle.bg.replace('100', '500')}`} />
                             <div>
                               <Link
-                                to={`/herbs/${herb.id}`}
+                                to={`/dashboard/herbs/${herb.id}`}
                                 className="font-medium text-gray-900 hover:text-blue-600"
                               >
                                 {herb.hanja ? (
@@ -465,7 +465,7 @@ export default function FormulaDetailPage() {
             {(showAllCases ? relatedCases : relatedCases.slice(0, 4)).map((caseItem) => (
               <Link
                 key={caseItem.id}
-                to={`/cases/${caseItem.id}`}
+                to={`/dashboard/cases?q=${encodeURIComponent(caseItem.title || "")}`}
                 className="block p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl hover:shadow-md hover:border-blue-200 transition-all group"
               >
                 <div className="flex items-start justify-between mb-2">

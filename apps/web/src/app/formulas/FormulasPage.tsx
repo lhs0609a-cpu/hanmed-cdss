@@ -391,7 +391,7 @@ export default function FormulasPage() {
             {paginatedFormulas.map((formula) => (
               <Link
                 key={formula.id}
-                to={`/formulas/${formula.id}`}
+                to={`/dashboard/formulas/${formula.id}`}
                 className="group surface-card rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
