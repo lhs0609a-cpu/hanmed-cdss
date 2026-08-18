@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap, AlertCircle } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
+import { FollowUpCard } from '@/components/followup/FollowUpCard'
 
 /**
  * 대시보드 — Toss 식 단순화.
@@ -130,6 +131,10 @@ export default function DashboardPage() {
           <ChevronRight className="h-5 w-5 flex-shrink-0 text-blue-500 transition-transform group-hover:translate-x-0.5" />
         </Link>
       )}
+
+      {/* 경과 확인 — 처방을 낸 뒤 결과를 기록하게 만드는 자리.
+          확인할 게 없으면 카드가 스스로 숨는다. */}
+      <FollowUpCard />
 
       {/* 치험례 — 이 제품의 축.
           매일 여는 첫 화면에 "근거가 몇 건 쌓여 있는지" 가 보여야
