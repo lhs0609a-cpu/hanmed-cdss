@@ -344,8 +344,14 @@ export class PractitionerPatientsService {
       .where('v."practitionerId" = :pid', { pid: practitionerId })
       .andWhere('v."deletedAt" IS NULL')
       .andWhere('v."outcomeRecordedAt" IS NULL')
+      // 괄호 주의 — 전체를 감싸지 않으면 AND 가 먼저 묶여서
+      //   ... AND outcomeRecordedAt IS NULL AND (A) OR (B)
+      // 가 되고, B 가 practitionerId 조건까지 벗어난다(교차 테넌트 노출).
       .andWhere(
-        '(v."followUpAt" IS NOT NULL AND v."followUpAt" <= NOW()) OR (v."followUpAt" IS NULL AND v."visitedAt" <= :cutoff)',
+        `(
+           (v."followUpAt" IS NOT NULL AND v."followUpAt" <= NOW())
+           OR (v."followUpAt" IS NULL AND v."visitedAt" <= :cutoff)
+         )`,
         { cutoff },
       )
       .orderBy('v."visitedAt"', 'ASC')
