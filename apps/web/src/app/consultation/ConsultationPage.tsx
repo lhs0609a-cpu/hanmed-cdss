@@ -1367,7 +1367,10 @@ export default function ConsultationPage() {
                                   )}
                                 </span>
                               </div>
-                              {c.summary && (
+                              {/* 요약이 제목을 그대로 되풀이하는 경우가 많다
+                                  (제목이 주소증으로 채워지고 요약도 주소증으로 시작).
+                                  같은 문장을 두 번 보여주면 근거가 빈약해 보인다. */}
+                              {c.summary && !c.summary.startsWith(c.title.slice(0, 20)) && (
                                 <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-neutral-600">
                                   {c.summary}
                                 </p>
