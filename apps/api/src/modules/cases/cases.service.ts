@@ -494,6 +494,30 @@ export class CasesService {
              )`,
             { n: `%${name}%` },
           );
+            } else if (input.kind === 'herb') {
+              // 상세(getCaseEvidence)와 같은 세 경로를 써야 한다.
+              // 여기만 formula/pattern 로 두는 바람에 목록 뱃지는 0건,
+              // 상세는 56건으로 서로 다른 숫자를 말하고 있었다.
+              qb.where(
+                `(
+                   EXISTS (
+                     SELECT 1
+                     FROM jsonb_array_elements("c"."herbalFormulas") AS f
+                     JOIN "formulas" fo ON fo."name" = f->>'formulaName'
+                     JOIN "formula_herbs" fh ON fh."formulaId" = fo."id"
+                     JOIN "herbs_master" hm ON hm."id" = fh."herbId"
+                     WHERE hm."standardName" ILIKE :n
+                   )
+                   OR EXISTS (
+                     SELECT 1
+                     FROM jsonb_array_elements("c"."herbalFormulas") AS f2,
+                          jsonb_array_elements(COALESCE(f2->'herbs', '[]'::jsonb)) AS h
+                     WHERE h->>'name' ILIKE :n
+                   )
+                   OR "c"."originalText" ILIKE :head
+                 )`,
+                { n: `%${name}%`, head: `%●${name}%` },
+              );
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
             }
