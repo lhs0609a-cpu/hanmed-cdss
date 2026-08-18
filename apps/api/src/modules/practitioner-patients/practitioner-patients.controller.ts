@@ -18,6 +18,7 @@ import {
   PractitionerPatientsService,
   UpsertPatientInput,
   CreateVisitInput,
+  RecordOutcomeInput,
 } from './practitioner-patients.service';
 
 type AuthedRequest = Request & { user: { id: string } };
@@ -78,6 +79,29 @@ export class PractitionerPatientsController {
   @ApiOperation({ summary: '진료 기록 저장' })
   createVisit(@Req() req: AuthedRequest, @Body() body: CreateVisitInput) {
     return this.service.createVisit(req.user.id, body);
+  }
+
+  @Get('follow-ups')
+  @ApiOperation({
+    summary: '경과 확인이 필요한 진료',
+    description:
+      '재방문일이 지났는데 경과가 없거나, 재방문일 없이 처방 후 일정 기간이 지난 진료를 모은다.',
+  })
+  listFollowUps(@Req() req: AuthedRequest, @Query('staleDays') staleDays?: string) {
+    return this.service.listPendingFollowUps(
+      req.user.id,
+      staleDays ? parseInt(staleDays, 10) : 14,
+    );
+  }
+
+  @Patch('visits/:id/outcome')
+  @ApiOperation({ summary: '진료 경과 기록' })
+  recordOutcome(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RecordOutcomeInput,
+  ) {
+    return this.service.recordOutcome(req.user.id, id, body);
   }
 
   @Delete('visits/:id')

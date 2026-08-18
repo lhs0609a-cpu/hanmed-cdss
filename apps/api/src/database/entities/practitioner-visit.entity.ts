@@ -96,6 +96,27 @@ export class PractitionerVisit {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  // ── 경과 추적 ────────────────────────────────────────────────
+  // 처방을 내는 것으로 진료가 끝나지 않는다. 그 처방이 어떻게 됐는지가
+  // 다음 진료의 근거이고, 쌓이면 이 한의사 자신의 치험례가 된다.
+  // 만성질환(2026 급여 확대)은 재방문 관리가 곧 치료라 더 그렇다.
+
+  /** 치료 경과. 미기록 상태를 구분하려고 null 을 유지한다. */
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  outcome: '완치' | '호전' | '무효' | '악화' | '진행중' | null;
+
+  /** 경과에 대한 한의사 메모 (가감 이유, 반응 등) */
+  @Column({ type: 'text', nullable: true })
+  outcomeNotes: string | null;
+
+  /** 경과를 기록한 시점 — null 이면 아직 확인 안 한 진료다. */
+  @Column({ type: 'timestamptz', nullable: true })
+  outcomeRecordedAt: Date | null;
+
+  /** 재방문 예정일. 이 날짜가 지났는데 경과가 없으면 확인 대상으로 뜬다. */
+  @Column({ type: 'timestamptz', nullable: true })
+  followUpAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
