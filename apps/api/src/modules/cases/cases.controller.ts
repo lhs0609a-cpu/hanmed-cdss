@@ -94,12 +94,12 @@ export class CasesController {
       ' 처방 상세, 변증 도우미, 약재 상세 등 어느 화면에서든 같은 근거를 붙이는 데 쓴다.',
   })
   async getEvidence(
-    @Query('kind') kind: 'formula' | 'pattern',
+    @Query('kind') kind: 'formula' | 'pattern' | 'herb',
     @Query('name') name: string,
     @Query('limit') limit?: string,
   ) {
     return this.casesService.getCaseEvidence({
-      kind: kind === 'pattern' ? 'pattern' : 'formula',
+      kind: kind === 'pattern' || kind === 'herb' ? kind : 'formula',
       name,
       limit: limit ? parseInt(limit, 10) : 5,
     });
@@ -114,11 +114,11 @@ export class CasesController {
     description: '목록 화면에서 카드마다 개별 호출하지 않도록 이름 여러 개의 건수를 한 번에 준다.',
   })
   async getEvidenceCounts(
-    @Query('kind') kind: 'formula' | 'pattern',
+    @Query('kind') kind: 'formula' | 'pattern' | 'herb',
     @Query('names') names: string,
   ) {
     return this.casesService.getCaseCounts({
-      kind: kind === 'pattern' ? 'pattern' : 'formula',
+      kind: kind === 'pattern' || kind === 'herb' ? kind : 'formula',
       names: (names || '').split(',').map((n) => n.trim()).filter(Boolean),
     });
   }
