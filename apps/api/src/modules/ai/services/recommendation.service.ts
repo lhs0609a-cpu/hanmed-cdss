@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LlmService, RecommendationResult, FormulaRecommendation } from './llm.service';
 import { AiEngineClient } from './ai-engine.client';
+import { CasesService } from '../../cases/cases.service';
 import { BodyHeat, BodyStrength } from '../../../database/entities/clinical-case.entity';
 import { FormulaHeatNature, FormulaStrengthNature } from '../../../database/entities/formula.entity';
 
@@ -43,8 +44,20 @@ export interface ConstitutionWarning {
 }
 
 // 체열/근실도 기반 추천 결과 (검증 포함)
+/** 추천 근거로 사용한 실제 치험례 요약. 화면이 그대로 펼쳐 보여준다. */
+export interface GroundingCase {
+  caseId: string;
+  title: string;
+  summary: string;
+  formulaName: string;
+  outcome: string;
+  matchPercent?: number;
+}
+
 export interface ValidatedRecommendationResult extends RecommendationResult {
   constitutionValidation?: ConstitutionValidation;
+  /** 이번 추천에 근거로 넣은 유사 치험례. 비어 있으면 근거 없이 나온 추천이다. */
+  groundingCases?: GroundingCase[];
 }
 
 @Injectable()
@@ -55,7 +68,48 @@ export class RecommendationService {
     private readonly aiEngine: AiEngineClient,
     /** AI Engine 다운/타임아웃 시 최후 폴백 — 진료가 끊기지 않게 */
     private readonly llmService: LlmService,
+    /** 추천 근거가 될 유사 치험례 조회 — "왜 이 처방인지" 의 1차 출처 */
+    private readonly casesService: CasesService,
   ) {}
+
+  /**
+   * 이번 진료와 닮은 실제 치험례를 찾아 추천 근거로 넘길 형태로 만든다.
+   *
+   * 실패하더라도 진료를 멈추지 않는다 — 근거가 없으면 없는 대로 추천은 나가고,
+   * 화면에서 "근거 치험례 없음"으로 정직하게 표시된다.
+   */
+  private async findGroundingCases(request: RecommendationRequest) {
+    const query = [
+      request.chiefComplaint,
+      ...(request.symptoms || []).map((s) => s?.name).filter(Boolean),
+    ]
+      .filter(Boolean)
+      .join(' ');
+    if (!query.trim()) return [];
+
+    try {
+      const found: any = await this.casesService.searchSimilar({
+        query,
+        topK: 5,
+        constitution: request.constitution,
+      });
+      const rows: any[] = Array.isArray(found?.results) ? found.results : [];
+      return rows.map((r) => ({
+        caseId: String(r.id ?? r.caseId ?? ''),
+        title: r.title ?? r.chiefComplaint ?? '',
+        summary: [r.chiefComplaint, r.patternDiagnosis, r.treatmentResult, r.result]
+          .filter(Boolean)
+          .join(' / ')
+          .slice(0, 400),
+        formulaName: r.formulaName ?? r.herbalFormulas?.[0]?.formulaName ?? '',
+        outcome: r.treatmentOutcome ?? r.outcome ?? '',
+        matchPercent: typeof r.matchPercent === 'number' ? r.matchPercent : undefined,
+      }));
+    } catch (err: any) {
+      this.logger.warn(`유사 치험례 조회 실패 — 근거 없이 추천 진행: ${err?.message || err}`);
+      return [];
+    }
+  }
 
   async getRecommendation(request: RecommendationRequest): Promise<ValidatedRecommendationResult> {
     // 체열/근실도 미입력 시 경고 추가
@@ -84,9 +138,13 @@ export class RecommendationService {
       ? `${request.chiefComplaint}\n\n[체질 평가]\n${constitutionContext}`
       : request.chiefComplaint;
 
+    // 추천 전에 근거가 될 실제 치험례부터 찾는다.
+    const groundingCases = await this.findGroundingCases(request);
+
     let result: RecommendationResult;
     try {
       const aiResult = await this.aiEngine.getRecommendation({
+        similarCases: groundingCases,
         patientAge: request.patientAge,
         patientGender: request.patientGender,
         constitution: request.constitution,
@@ -136,6 +194,8 @@ export class RecommendationService {
 
     return {
       ...result,
+      // 화면이 "이 처방을 고른 근거" 로 실제 사례를 펼쳐 보여줄 수 있게 그대로 실어 보낸다.
+      groundingCases,
       constitutionValidation: validation,
     };
   }
@@ -160,6 +220,8 @@ export class RecommendationService {
         confidence_score: r.confidence_score,
         herbs: r.herbs || [],
         rationale: r.rationale,
+        source: r.source || undefined,
+        caseRefs: (r.case_refs || []) as string[],
       })),
       analysis: res.analysis || '',
       modifications: res.modifications || undefined,

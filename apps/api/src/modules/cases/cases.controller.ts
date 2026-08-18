@@ -97,14 +97,24 @@ export class CasesController {
   async searchByStructured(
     @Body()
     searchDto: {
-      symptoms: string[];
+      // 프론트는 증상을 문자열 배열로도, {name} 객체 배열로도 보낸다.
+      symptoms: Array<string | { name?: string }>;
+      chiefComplaint?: string;
+      diagnosis?: string;
       constitution?: string;
       topK?: number;
     },
   ) {
-    // legacy 호환을 위해 ILIKE 기반 검색을 그대로 둠.
-    // 신규 호출은 POST /search-similar 사용 권장.
-    const query = (searchDto.symptoms || []).join(' ');
+    // 예전에는 symptoms 를 그대로 join 해서 객체가 오면 쿼리가
+    // "[object Object] [object Object]" 가 됐다 — 검색이 항상 헛돌았다.
+    // 주소증·변증도 함께 넣어야 유사도가 의미를 갖는다.
+    const symptomNames = (searchDto.symptoms || [])
+      .map((s) => (typeof s === 'string' ? s : s?.name))
+      .filter((s): s is string => !!s && s.trim().length > 0);
+
+    const query = [searchDto.chiefComplaint, ...symptomNames, searchDto.diagnosis]
+      .filter((v): v is string => !!v && v.trim().length > 0)
+      .join(' ');
     return this.casesService.searchSimilar({
       query,
       topK: searchDto.topK,

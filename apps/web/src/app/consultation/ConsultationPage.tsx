@@ -93,6 +93,20 @@ interface Recommendation {
   confidence_score: number
   herbs: Array<{ name: string; amount: string; role: string }>
   rationale: string
+  /** 고전 출전 등 근거 출처 */
+  source?: string
+  /** 이 후보의 근거가 된 유사 치험례 id */
+  caseRefs?: string[]
+}
+
+/** 추천의 1차 근거로 쓰인 실제 치험례. 비어 있으면 "근거 없이 나온 추천"이다. */
+interface GroundingCase {
+  caseId: string
+  title: string
+  summary: string
+  formulaName: string
+  outcome: string
+  matchPercent?: number
 }
 
 /**
@@ -271,6 +285,8 @@ export default function ConsultationPage() {
   // 이 값이 있으면 결과를 "검증된 추천"처럼 보여줘선 안 된다.
   const [safetyWarning, setSafetyWarning] = useState('')
   const [isSavingVisit, setIsSavingVisit] = useState(false)
+  // 이번 추천에 실제로 근거로 들어간 치험례 — "왜 이 처방인지" 를 화면에서 대는 데 쓴다.
+  const [groundingCases, setGroundingCases] = useState<GroundingCase[]>([])
 
   // 상세 정보 모달
   const [selectedFormula, setSelectedFormula] = useState<Recommendation | null>(null)
@@ -389,6 +405,7 @@ export default function ConsultationPage() {
   }) => {
     setError('')
     setSafetyWarning('')
+    setGroundingCases([])
     setIsLoading(true)
 
     try {
@@ -407,6 +424,7 @@ export default function ConsultationPage() {
       setAnalysis(body?.analysis || '')
       // AI Engine 장애 시 백엔드가 안전 가드 없는 폴백으로 답한다. 반드시 화면에 드러내야 한다.
       setSafetyWarning(body?.warning || '')
+      setGroundingCases(Array.isArray(body?.groundingCases) ? body.groundingCases : [])
     } catch (err: unknown) {
       logError(err, 'ConsultationPage')
       setError('처방 추천을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
@@ -1231,7 +1249,96 @@ export default function ConsultationPage() {
                 </div>
               )}
 
-              {/* ③ 유사 환자 통계 — "그래서 결과는?" 에 대한 실데이터 답.
+              {/* ③ 근거 — 왜 이 처방인가.
+                  결론만 있고 근거가 없으면 한의사는 이 화면을 신뢰하지 않는다.
+                  실제 치험례를 그대로 펼쳐 보여주고, 근거가 없으면 없다고 말한다. */}
+              {recommendations.length > 0 && (
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+                    <h3 className="text-[15px] font-bold text-neutral-900">
+                      이 처방을 고른 근거
+                    </h3>
+                  </div>
+
+                  {recommendations[0]?.source && (
+                    <p className="mb-3 rounded-xl bg-neutral-50 px-3.5 py-2.5 text-[13px] leading-relaxed text-neutral-700">
+                      <span className="font-semibold text-neutral-900">출전 </span>
+                      {recommendations[0].source}
+                    </p>
+                  )}
+
+                  {groundingCases.length > 0 ? (
+                    <>
+                      <p className="mb-2 text-[12.5px] text-neutral-500">
+                        이번 주소증과 닮은 실제 치험례 {groundingCases.length}건을 근거로 함께
+                        넣어 분석했습니다.
+                      </p>
+                      <ul className="space-y-2">
+                        {groundingCases.slice(0, 4).map((c) => {
+                          const cited = recommendations[0]?.caseRefs?.includes(c.caseId)
+                          return (
+                            <li
+                              key={c.caseId}
+                              className={cn(
+                                'rounded-xl border p-3.5',
+                                cited
+                                  ? 'border-blue-200 bg-blue-50/50'
+                                  : 'border-neutral-200 bg-white',
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="min-w-0 flex-1 text-[13.5px] font-medium leading-snug text-neutral-900">
+                                  {c.title || '(제목 없음)'}
+                                </p>
+                                <span className="flex shrink-0 items-center gap-1.5">
+                                  {cited && (
+                                    <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                      직접 인용
+                                    </span>
+                                  )}
+                                  {typeof c.matchPercent === 'number' && (
+                                    <span className="text-[12px] font-bold text-neutral-500">
+                                      {c.matchPercent}%
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {c.summary && (
+                                <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-neutral-600">
+                                  {c.summary}
+                                </p>
+                              )}
+                              {(c.formulaName || c.outcome) && (
+                                <p className="mt-1.5 text-[12px] text-neutral-500">
+                                  {c.formulaName && <span>처방 {c.formulaName}</span>}
+                                  {c.formulaName && c.outcome && <span> · </span>}
+                                  {c.outcome && <span>경과 {c.outcome}</span>}
+                                </p>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                      <Link
+                        to="/dashboard/cases"
+                        className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        치험례 전체에서 더 찾아보기
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="rounded-xl bg-amber-50 px-3.5 py-3 text-[13px] leading-relaxed text-amber-800">
+                      <strong>이번 추천에는 유사 치험례 근거가 붙지 않았습니다.</strong> 주소증과
+                      충분히 닮은 사례를 찾지 못했거나 조회에 실패한 경우입니다. 아래 결과는
+                      치험례 대조 없이 나온 후보이므로 더 신중히 검토해 주세요.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* ④ 유사 환자 통계 — "그래서 결과는?" 에 대한 실데이터 답.
                   (매칭 치험례 없으면 컴포넌트가 스스로 숨는다) */}
               {recommendations.length > 0 && (
                 <SimilarCaseSuccessCard

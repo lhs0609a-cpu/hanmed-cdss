@@ -334,6 +334,10 @@ export interface FormulaRecommendation {
   herbs: HerbInfo[];
   rationale: string;
   constitution_fit?: string; // 체열/근실도 적합성 설명
+  /** 고전 출전 등 근거 출처 (AI Engine 그라운딩이 채움) */
+  source?: string;
+  /** 이 후보의 근거가 된 유사 치험례 id 목록 */
+  caseRefs?: string[];
 }
 
 export interface RecommendationResult {

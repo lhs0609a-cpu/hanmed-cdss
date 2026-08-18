@@ -14,6 +14,16 @@ class SymptomInput(BaseModel):
     severity: Optional[int] = Field(None, ge=1, le=10)
     duration: Optional[str] = None
 
+class SimilarCaseInput(BaseModel):
+    """추천 근거로 쓸 유사 치험례 요약. 원문 전체가 아니라 요약만 받는다(토큰·PII)."""
+
+    case_id: Optional[str] = None
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    formula_name: Optional[str] = None
+    outcome: Optional[str] = None
+    match_percent: Optional[float] = None
+
 class RecommendationRequest(BaseModel):
     patient_age: Optional[int] = Field(None, description="환자 나이")
     patient_gender: Optional[str] = Field(None, description="성별 (male/female)")
@@ -23,6 +33,11 @@ class RecommendationRequest(BaseModel):
     symptoms: List[SymptomInput] = Field(default=[], description="증상 목록")
     current_medications: Optional[List[str]] = Field(None, description="현재 복용 중인 양약")
     top_k: int = Field(default=3, ge=1, le=5)
+    # 호출측(NestJS)이 DB 에서 유사 치험례를 찾아 넣어준다.
+    # 이게 없으면 모델이 자기 지식만으로 답해서 "왜 이 처방인지" 를 댈 근거가 없다.
+    similar_cases: Optional[List[SimilarCaseInput]] = Field(
+        default=None, description="유사 치험례 요약 (추천 근거로 프롬프트에 포함)"
+    )
 
 class HerbInfo(BaseModel):
     name: str
@@ -37,6 +52,8 @@ class FormulaRecommendation(BaseModel):
     source: Optional[str] = None
     has_classical_citation: Optional[bool] = None
     safety_flags: Optional[List[str]] = None
+    # 이 후보의 근거가 된 유사 치험례 id 목록 — 화면에서 실제 사례를 펼쳐 보여준다.
+    case_refs: Optional[List[str]] = None
 
 class RecommendationResponse(BaseModel):
     recommendations: List[FormulaRecommendation]
@@ -86,10 +103,24 @@ async def get_prescription_recommendation(
         'current_medications': rec_request.current_medications,
     }
 
+    # 유사 치험례 — 호출측이 넣어준 근거를 살균해서 프롬프트로 넘긴다.
+    similar_cases = [
+        {
+            'case_id': c.case_id,
+            'title': sanitize_user_input(c.title or '', max_length=120),
+            'summary': sanitize_user_input(c.summary or '', max_length=400),
+            'formula_name': sanitize_user_input(c.formula_name or '', max_length=60),
+            'outcome': sanitize_user_input(c.outcome or '', max_length=20),
+            'match_percent': c.match_percent,
+        }
+        for c in (rec_request.similar_cases or [])
+    ]
+
     try:
         result = await rag_service.get_recommendation(
             patient_info=patient_info,
             top_k=rec_request.top_k,
+            similar_cases=similar_cases or None,
             user_id=x_user_id,
         )
     except CapacityExceeded as e:
@@ -133,6 +164,7 @@ async def get_prescription_recommendation(
             source=rec.get('source'),
             has_classical_citation=rec.get('has_classical_citation'),
             safety_flags=rec.get('safety_flags') or None,
+            case_refs=[str(x) for x in (rec.get('case_refs') or []) if x] or None,
         ))
 
     return RecommendationResponse(

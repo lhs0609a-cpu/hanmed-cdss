@@ -12,9 +12,11 @@ import { PharmacologyReportService } from './services/pharmacology-report.servic
 import { TreatmentStatisticsService } from './services/treatment-statistics.service';
 import { ComprehensiveReportService } from './services/comprehensive-report.service';
 import { AiController } from './ai.controller';
+import { CasesModule } from '../cases/cases.module';
 
 @Module({
-  imports: [ConfigModule, HttpModule],
+  // CasesModule — 추천 근거가 될 유사 치험례를 DB 에서 찾기 위해 필요.
+  imports: [ConfigModule, HttpModule, CasesModule],
   providers: [
     LlmService,
     AiEngineClient,
