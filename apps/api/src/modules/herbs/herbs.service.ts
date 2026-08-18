@@ -230,6 +230,13 @@ export class HerbsService {
       properties: herb.properties,
       meridianTropism: herb.meridianTropism,
       efficacy: herb.efficacy,
+      // 식약처 공정서(대한민국약전 근거) — 성미귀경·효능과 출처가 다르다.
+      // 화면에서 구분해 표기해야 한의사가 무엇을 믿을지 판단할 수 있다.
+      scientificName: herb.scientificName,
+      latinName: herb.latinName,
+      englishName: herb.englishName,
+      medicinalPart: herb.medicinalPart,
+      pharmacopoeia: herb.pharmacopoeia,
       contraindications: herb.contraindications,
       activeCompounds: herb.activeCompounds,
       pubmedReferences: herb.pubmedReferences,

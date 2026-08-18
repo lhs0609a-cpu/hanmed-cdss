@@ -168,9 +168,9 @@ export default function HerbsPage() {
       <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
         <p className="text-[13px] leading-relaxed text-amber-800">
-          <strong>상세 정보 보강 중입니다.</strong> 현재는 처방 구성에서 추출한 약재명 위주이며,
-          성질(氣味)·귀경·효능·유효성분은 순차적으로 채우고 있습니다. 임상 판단은 본초서로
-          확인해 주세요.
+          <strong>출처가 두 가지입니다.</strong> 학명·라틴생약명·약용부위는 식품의약품안전처
+          생약 약재정보(대한민국약전 근거)이고, <strong>성질(氣味)·귀경·효능은 고전 본초 기술을
+          정리한 참고값</strong>입니다. 임상 적용 전 본초서로 확인해 주세요.
         </p>
       </div>
 

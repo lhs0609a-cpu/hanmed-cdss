@@ -42,6 +42,12 @@ interface HerbDetail {
   }
   meridianTropism: string[]
   efficacy: string
+  // 식약처 공정서(대한민국약전 근거) — 성미귀경·효능과 출처가 다르다
+  scientificName?: string | null
+  latinName?: string | null
+  englishName?: string | null
+  medicinalPart?: string | null
+  pharmacopoeia?: string | null
   contraindications?: string
   compounds: Compound[]
   containedIn: ContainedFormula[]
@@ -225,6 +231,57 @@ export default function HerbDetailPage() {
               </div>
             )}
           </div>
+
+          {/* 공정서 정보 — 식약처 생약 약재정보(대한민국약전 근거).
+              성미귀경·효능은 AI 정리본이라 출처가 다르므로 카드를 나눠 표기한다. */}
+          {(herb.scientificName || herb.latinName || herb.medicinalPart) && (
+            <div className="surface-card rounded-2xl p-6">
+              <h2 className="mb-4 flex items-center gap-2 font-bold text-gray-900">
+                <BookOpen className="h-5 w-5 text-blue-500" />
+                공정서 정보
+                <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                  식약처
+                </span>
+              </h2>
+              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {herb.scientificName && (
+                  <div>
+                    <dt className="text-xs text-gray-500">학명</dt>
+                    <dd className="text-sm italic text-gray-900">{herb.scientificName}</dd>
+                  </div>
+                )}
+                {herb.latinName && (
+                  <div>
+                    <dt className="text-xs text-gray-500">라틴생약명</dt>
+                    <dd className="text-sm text-gray-900">{herb.latinName}</dd>
+                  </div>
+                )}
+                {herb.medicinalPart && (
+                  <div>
+                    <dt className="text-xs text-gray-500">약용부위</dt>
+                    <dd className="text-sm text-gray-900">{herb.medicinalPart}</dd>
+                  </div>
+                )}
+                {herb.englishName && (
+                  <div>
+                    <dt className="text-xs text-gray-500">영문명</dt>
+                    <dd className="text-sm text-gray-900">{herb.englishName}</dd>
+                  </div>
+                )}
+                {herb.pharmacopoeia && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs text-gray-500">수재 공정서</dt>
+                    <dd className="text-sm text-gray-900">{herb.pharmacopoeia}</dd>
+                  </div>
+                )}
+              </dl>
+              <p className="mt-4 border-t border-gray-100 pt-3 text-[12px] leading-relaxed text-gray-500">
+                위 항목은 식품의약품안전처 생약 약재정보(대한민국약전 근거)입니다.
+                <strong className="text-gray-700"> 성질·맛·귀경·효능은 고전 본초 기술을 정리한
+                참고값</strong>이라 출처가 다릅니다 — 임상 적용 전 본초서로 확인해 주세요.
+              </p>
+            </div>
+          )}
 
           {/* 이 약재를 쓴 실제 치험례 — 성분·효능만 있으면 본초서와 다를 게 없다.
               약재 → 그 약재가 든 처방 → 그 처방을 쓴 사례, 그리고 단방 사례까지 이어 붙인다. */}
