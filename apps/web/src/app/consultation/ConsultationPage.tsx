@@ -35,6 +35,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createMyVisit } from '@/services/myPatients'
+import {
+  shareCase,
+  toAgeRange,
+  toGenderLabel,
+  type CaseCategory,
+} from '@/services/caseSharing'
 import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
@@ -287,6 +293,11 @@ export default function ConsultationPage() {
   const [isSavingVisit, setIsSavingVisit] = useState(false)
   // 이번 추천에 실제로 근거로 들어간 치험례 — "왜 이 처방인지" 를 화면에서 대는 데 쓴다.
   const [groundingCases, setGroundingCases] = useState<GroundingCase[]>([])
+  // 치험례 공유 — 내 처방을 동료에게 올린다. 이게 쌓여야 추천 근거도 좋아진다.
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareNote, setShareNote] = useState('')
+  const [shareOutcome, setShareOutcome] = useState<'진행중' | '호전' | '완치' | '무효'>('진행중')
+  const [isSharing, setIsSharing] = useState(false)
 
   // 상세 정보 모달
   const [selectedFormula, setSelectedFormula] = useState<Recommendation | null>(null)
@@ -576,6 +587,58 @@ export default function ConsultationPage() {
       })
     } finally {
       setIsSavingVisit(false)
+    }
+  }
+
+
+  /**
+   * 이 진료를 익명 치험례로 공유.
+   * 환자 식별정보는 보내지 않는다 — 나이는 연령대로 뭉개고 이름·연락처는 아예 담지 않는다.
+   */
+  const submitShareCase = async () => {
+    const top = recommendations[0]
+    if (!top || isSharing) return
+
+    setIsSharing(true)
+    try {
+      await shareCase({
+        title: `${chiefComplaint.slice(0, 60)} — ${top.formula_name}`,
+        content: [
+          `주소증: ${chiefComplaint}`,
+          symptoms.length > 0 ? `증상: ${symptoms.map((x) => x.name).join(', ')}` : '',
+          analysis ? `변증: ${analysis}` : '',
+          `처방: ${top.formula_name}`,
+          top.herbs?.length
+            ? `구성: ${top.herbs.map((h) => `${h.name} ${h.amount}`).join(', ')}`
+            : '',
+          `경과: ${shareOutcome}`,
+          shareNote ? `한의사 메모: ${shareNote}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        category: 'prescription' as CaseCategory,
+        patientInfo: {
+          ageRange: toAgeRange(patientAge),
+          gender: toGenderLabel(patientGender),
+          constitution: constitution || undefined,
+          mainSymptoms: symptoms.map((x) => x.name).filter(Boolean),
+        },
+      })
+      setShowShareModal(false)
+      setShareNote('')
+      toast({
+        title: '치험례를 공유했습니다',
+        description: '커뮤니티에서 동료 한의사들이 볼 수 있습니다.',
+      })
+    } catch (err) {
+      logError(err, 'ConsultationPage.shareCase')
+      toast({
+        title: '공유 실패',
+        description: '치험례를 올리지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -1387,16 +1450,29 @@ export default function ConsultationPage() {
 
               {/* 환자 설명자료 · 진료 근거서 — 최우선 처방 기준으로 즉시 생성 */}
               {recommendations.length > 0 && (
-                <button
-                  onClick={() => {
-                    setDocumentFormula(recommendations[0])
-                    setShowDocumentModal(true)
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-white border-2 border-blue-200 text-blue-700 rounded-xl font-semibold hover:bg-blue-50 hover:border-blue-300 transition-all"
-                >
-                  <FileText className="h-5 w-5" />
-                  환자 설명자료 · 진료 근거서 만들기
-                </button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    onClick={() => {
+                      setDocumentFormula(recommendations[0])
+                      setShowDocumentModal(true)
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-blue-200 bg-white px-6 py-3.5 font-semibold text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-50"
+                  >
+                    <FileText className="h-5 w-5" />
+                    환자 설명자료 · 근거서
+                  </button>
+                  {/* 치험례 공유 — 추천 근거는 치험례에서 나온다.
+                      한의사가 자기 처방을 올릴수록 다음 진료의 근거가 두꺼워진다. */}
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    disabled={isDemoRun}
+                    title={isDemoRun ? '예시 진료는 공유할 수 없습니다' : undefined}
+                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-neutral-200 bg-white px-6 py-3.5 font-semibold text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Users className="h-5 w-5" />
+                    치험례로 공유하기
+                  </button>
+                </div>
               )}
 
               {/* 네비게이션 — 390px 에서 버튼 라벨이 "최우선 처방 선 / 택" 으로 쪼개지던 문제.
@@ -2367,6 +2443,98 @@ export default function ConsultationPage() {
                 className="flex-1 py-3 accent-gradient accent-glow text-white rounded-xl hover:brightness-105 transition-all font-medium disabled:opacity-50"
               >
                 {isSavingVisit ? '저장 중…' : '확인'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 치험례 공유 모달 — 익명화 범위를 화면에서 먼저 보여준다.
+          한의사가 "환자 정보가 나가나?" 를 걱정하면 아무도 안 올린다. */}
+      {showShareModal && recommendations.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-[18px] font-bold text-neutral-900">치험례로 공유하기</h3>
+                <p className="mt-1 text-[13px] text-neutral-500">
+                  동료 한의사들이 이 사례를 참고할 수 있게 커뮤니티에 올립니다.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100"
+                aria-label="닫기"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
+              <p className="text-[12px] font-semibold text-neutral-500">올라가는 내용</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-neutral-700">
+                {toAgeRange(patientAge)} {toGenderLabel(patientGender)}
+                {constitution ? ` · ${constitution}` : ''} · {chiefComplaint.slice(0, 40)}
+                {chiefComplaint.length > 40 ? '…' : ''} · {recommendations[0].formula_name}
+              </p>
+              <p className="mt-2 text-[12px] text-neutral-500">
+                환자 이름·연락처·생년월일은 <strong>보내지 않습니다</strong>. 나이는 연령대로만
+                올라갑니다.
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1.5 block text-[13px] font-medium text-neutral-700">
+                현재 경과
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(['진행중', '호전', '완치', '무효'] as const).map((o) => (
+                  <button
+                    key={o}
+                    onClick={() => setShareOutcome(o)}
+                    className={cn(
+                      'rounded-lg border px-3.5 py-2 text-[13px] font-medium transition-colors',
+                      shareOutcome === o
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50',
+                    )}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label
+                htmlFor="share-note"
+                className="mb-1.5 block text-[13px] font-medium text-neutral-700"
+              >
+                한의사 메모 (선택)
+              </label>
+              <textarea
+                id="share-note"
+                value={shareNote}
+                onChange={(e) => setShareNote(e.target.value)}
+                rows={3}
+                placeholder="가감한 이유, 반응, 다음 진료 계획 등 동료에게 도움이 될 내용"
+                className="w-full resize-none rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-[14px] transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="flex-1 rounded-xl bg-neutral-100 py-3 font-medium text-neutral-700 transition-colors hover:bg-neutral-200"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => void submitShareCase()}
+                disabled={isSharing}
+                className="flex-1 rounded-xl accent-gradient accent-glow py-3 font-semibold text-white transition-all hover:brightness-105 disabled:opacity-50"
+              >
+                {isSharing ? '올리는 중…' : '공유하기'}
               </button>
             </div>
           </div>
