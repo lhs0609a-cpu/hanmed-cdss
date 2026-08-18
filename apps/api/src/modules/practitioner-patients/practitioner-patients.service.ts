@@ -40,6 +40,10 @@ export interface VisitDto {
   aiConfidence: number | null;
   aiDegraded: boolean;
   notes: string | null;
+  outcome: string | null;
+  outcomeNotes: string | null;
+  outcomeRecordedAt: string | null;
+  followUpAt: string | null;
 }
 
 export interface UpsertPatientInput {
@@ -64,6 +68,14 @@ export interface CreateVisitInput {
   aiConfidence?: number | null;
   aiDegraded?: boolean;
   notes?: string | null;
+  followUpAt?: string | null;
+}
+
+/** 경과 기록 입력 — 처방 이후 어떻게 됐는지. */
+export interface RecordOutcomeInput {
+  outcome: '완치' | '호전' | '무효' | '악화' | '진행중';
+  outcomeNotes?: string | null;
+  followUpAt?: string | null;
 }
 
 @Injectable()
@@ -134,6 +146,10 @@ export class PractitionerPatientsService {
       aiConfidence: v.aiConfidence,
       aiDegraded: v.aiDegraded,
       notes: v.notes,
+      outcome: v.outcome,
+      outcomeNotes: v.outcomeNotes,
+      outcomeRecordedAt: v.outcomeRecordedAt ? v.outcomeRecordedAt.toISOString() : null,
+      followUpAt: v.followUpAt ? v.followUpAt.toISOString() : null,
     };
   }
 
@@ -264,6 +280,7 @@ export class PractitionerPatientsService {
       aiConfidence: input.aiConfidence ?? null,
       aiDegraded: input.aiDegraded ?? false,
       notes: input.notes ?? null,
+      followUpAt: input.followUpAt ? new Date(input.followUpAt) : null,
     });
     const saved = await this.visits.save(entity);
 
@@ -281,6 +298,78 @@ export class PractitionerPatientsService {
     }
 
     return this.toVisitDto(saved);
+  }
+
+  /**
+   * 진료 경과 기록.
+   *
+   * 처방만 저장되고 결과가 남지 않으면 "지난달에 뭘 줬고 어떻게 됐더라" 를 알 수 없다.
+   * 여기 쌓인 경과가 이 한의사 자신의 치험례가 된다.
+   */
+  async recordOutcome(
+    practitionerId: string,
+    visitId: string,
+    input: RecordOutcomeInput,
+  ): Promise<VisitDto> {
+    const row = await this.visits.findOne({
+      where: { id: visitId, practitionerId, deletedAt: IsNull() },
+    });
+    if (!row) throw new NotFoundException('진료 기록을 찾을 수 없습니다.');
+
+    row.outcome = input.outcome;
+    row.outcomeNotes = input.outcomeNotes ?? null;
+    row.outcomeRecordedAt = new Date();
+    if (input.followUpAt !== undefined) {
+      row.followUpAt = input.followUpAt ? new Date(input.followUpAt) : null;
+    }
+    const saved = await this.visits.save(row);
+    return this.toVisitDto(saved);
+  }
+
+  /**
+   * 경과 확인이 필요한 진료 목록.
+   *
+   * 재방문일이 지났는데 경과가 없거나, 재방문일을 안 잡았어도 처방 후
+   * 일정 기간이 지난 진료를 모은다. 만성질환은 재방문 관리가 곧 치료라
+   * 이 목록이 매일 여는 화면에 있어야 한다.
+   */
+  async listPendingFollowUps(
+    practitionerId: string,
+    staleDays = 14,
+  ): Promise<Array<VisitDto & { patientName: string | null; daysSince: number }>> {
+    const cutoff = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+
+    const rows = await this.visits
+      .createQueryBuilder('v')
+      .where('v."practitionerId" = :pid', { pid: practitionerId })
+      .andWhere('v."deletedAt" IS NULL')
+      .andWhere('v."outcomeRecordedAt" IS NULL')
+      .andWhere(
+        '(v."followUpAt" IS NOT NULL AND v."followUpAt" <= NOW()) OR (v."followUpAt" IS NULL AND v."visitedAt" <= :cutoff)',
+        { cutoff },
+      )
+      .orderBy('v."visitedAt"', 'ASC')
+      .take(50)
+      .getMany();
+
+    // 환자명은 암호화돼 있어 조인으로 못 가져온다. 필요한 것만 복호화한다.
+    const patientIds = Array.from(
+      new Set(rows.map((r) => r.patientId).filter((v): v is string => !!v)),
+    );
+    const nameById = new Map<string, string>();
+    for (const pid of patientIds) {
+      const p = await this.patients.findOne({
+        where: { id: pid, practitionerId, deletedAt: IsNull() },
+      });
+      if (p) nameById.set(pid, this.safeDecrypt(p.nameEncrypted) ?? '(이름 없음)');
+    }
+
+    const now = Date.now();
+    return rows.map((r) => ({
+      ...this.toVisitDto(r),
+      patientName: r.patientId ? nameById.get(r.patientId) ?? null : null,
+      daysSince: Math.floor((now - r.visitedAt.getTime()) / (24 * 60 * 60 * 1000)),
+    }));
   }
 
   async deleteVisit(practitionerId: string, id: string): Promise<void> {
