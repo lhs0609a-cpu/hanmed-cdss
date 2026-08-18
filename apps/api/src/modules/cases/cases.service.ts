@@ -74,12 +74,15 @@ export class CasesService {
   async searchSimilar(input: {
     query: string;
     topK?: number;
-    threshold?: number; // 0~1, 기본 0.3
+    threshold?: number; // 0~1, 기본 0.45
     constitution?: string;
     outcome?: string;
   }) {
     const topK = Math.min(input.topK ?? 10, 50);
-    const threshold = input.threshold ?? 0.3;
+    // 0.3 은 너무 헐거웠다 — "소화불량 수면장애" 에 여드름 사례가 통과했다.
+    // 근거로 쓸 사례만 남기려면 이 정도는 되어야 한다.
+    // (임베딩 입력을 구조화 필드 중심으로 다시 만든 뒤 기준값을 올렸다)
+    const threshold = input.threshold ?? 0.45;
 
     if (!input.query || !input.query.trim()) {
       return {
