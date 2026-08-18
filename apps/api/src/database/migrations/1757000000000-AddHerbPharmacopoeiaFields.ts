@@ -14,13 +14,25 @@ export class AddHerbPharmacopoeiaFields1757000000000 implements MigrationInterfa
   name = 'AddHerbPharmacopoeiaFields1757000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // 학명은 이명이 여러 개 병기돼 길이 예측이 안 된다
+    // ("Cinnamomum cassia (L.) J.Presl Cinnamomum cassia (L.) D.Don ...").
+    // varchar 로 잡았다가 길이 초과로 적재가 통째로 실패했다. text 로 둔다.
     await queryRunner.query(`
       ALTER TABLE "herbs_master"
-        ADD COLUMN IF NOT EXISTS "scientificName" varchar(200),
-        ADD COLUMN IF NOT EXISTS "latinName" varchar(300),
-        ADD COLUMN IF NOT EXISTS "englishName" varchar(200),
-        ADD COLUMN IF NOT EXISTS "medicinalPart" varchar(200),
-        ADD COLUMN IF NOT EXISTS "pharmacopoeia" varchar(120)
+        ADD COLUMN IF NOT EXISTS "scientificName" text,
+        ADD COLUMN IF NOT EXISTS "latinName" text,
+        ADD COLUMN IF NOT EXISTS "englishName" text,
+        ADD COLUMN IF NOT EXISTS "medicinalPart" text,
+        ADD COLUMN IF NOT EXISTS "pharmacopoeia" text
+    `);
+    // 이미 varchar 로 만들어진 환경을 위해 타입을 맞춘다(재실행 안전).
+    await queryRunner.query(`
+      ALTER TABLE "herbs_master"
+        ALTER COLUMN "scientificName" TYPE text,
+        ALTER COLUMN "latinName" TYPE text,
+        ALTER COLUMN "englishName" TYPE text,
+        ALTER COLUMN "medicinalPart" TYPE text,
+        ALTER COLUMN "pharmacopoeia" TYPE text
     `);
   }
 
