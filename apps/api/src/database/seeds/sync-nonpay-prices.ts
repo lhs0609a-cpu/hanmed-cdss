@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { dataSourceOptions } from '../data-source';
+import { readFileSync } from 'fs';
 import { NonPayPrice, NonPayRegionStat } from '../entities/nonpay-price.entity';
 
 /**
@@ -23,9 +24,18 @@ import { NonPayPrice, NonPayRegionStat } from '../entities/nonpay-price.entity';
  */
 
 const DRY_RUN = process.argv.includes('--dry-run');
+/**
+ * --file=<경로> 로 저장해 둔 응답 XML 을 쓸 수 있다.
+ * 상류(data.go.kr)가 자주 504 를 내는데, 한 번 받아 둔 응답이 있으면 그걸로
+ * 적재하는 편이 상류를 계속 두드리는 것보다 낫다. 월 1회 갱신 자료다.
+ */
+const FILE_ARG = process.argv.find((a) => a.startsWith('--file='));
 const ENDPOINT =
   'https://apis.data.go.kr/B551182/nonPaymentDamtInfoService/getNonPaymentItemSidoCdList';
-const PAGE_SIZE = 300;
+// 상류가 요청당 50초쯤 걸리고 게이트웨이 타임아웃이 60초라, 크게 달라고 하면
+// 504 가 난다. 작게 여러 번 받는다(655건 → 7페이지, 약 6분).
+const PAGE_SIZE = 100;
+const MAX_ATTEMPTS = 8;
 
 /** 응답 접미사 = 지역 코드 */
 const REGION_CODES = [
@@ -52,7 +62,8 @@ async function fetchPage(key: string, page: number): Promise<string> {
   const url =
     `${ENDPOINT}?serviceKey=${encodeURIComponent(key)}` +
     `&pageNo=${page}&numOfRows=${PAGE_SIZE}`;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  // 상류가 자주 504 를 낸다. 죽은 게 아니라 느린 것이라 끈질기게 다시 부른다.
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(120000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -62,9 +73,9 @@ async function fetchPage(key: string, page: number): Promise<string> {
       }
       return xml;
     } catch (e) {
-      if (attempt === 3) throw e;
+      if (attempt === MAX_ATTEMPTS) throw e;
       console.log(`  ${page}페이지 재시도 ${attempt}: ${(e as Error).message}`);
-      await new Promise((r) => setTimeout(r, 2000 * attempt));
+      await new Promise((r) => setTimeout(r, 8000));
     }
   }
   throw new Error('unreachable');
@@ -72,7 +83,7 @@ async function fetchPage(key: string, page: number): Promise<string> {
 
 async function main(): Promise<void> {
   const key = process.env.HIRA_NONPAY_API_KEY || process.env.PUBLIC_DATA_API_KEY;
-  if (!key) {
+  if (!key && !FILE_ARG) {
     console.error('HIRA_NONPAY_API_KEY 가 필요합니다.');
     process.exit(1);
   }
@@ -80,16 +91,26 @@ async function main(): Promise<void> {
   console.log(`[nonpay] 심평원 지역별 비급여 가격 수신${DRY_RUN ? ' (dry-run)' : ''}`);
 
   const items: string[] = [];
-  const first = await fetchPage(key, 1);
-  const total = Number(tag(first, 'totalCount') ?? '0');
-  items.push(...(first.match(/<item>[\s\S]*?<\/item>/g) ?? []));
-  const pages = Math.ceil(total / PAGE_SIZE);
-  for (let p = 2; p <= pages; p++) {
-    const xml = await fetchPage(key, p);
+  if (FILE_ARG) {
+    const path = FILE_ARG.slice('--file='.length);
+    const xml = readFileSync(path, 'utf-8');
+    if (!xml.includes('<resultCode>00</resultCode>')) {
+      throw new Error('정상 응답이 아닌 파일입니다.');
+    }
     items.push(...(xml.match(/<item>[\s\S]*?<\/item>/g) ?? []));
-    console.log(`  ${items.length}/${total}`);
+    console.log(`[nonpay] 파일에서 ${items.length}건 읽음 (${path})`);
+  } else {
+    const first = await fetchPage(key as string, 1);
+    const total = Number(tag(first, 'totalCount') ?? '0');
+    items.push(...(first.match(/<item>[\s\S]*?<\/item>/g) ?? []));
+    const pages = Math.ceil(total / PAGE_SIZE);
+    for (let p = 2; p <= pages; p++) {
+      const xml = await fetchPage(key as string, p);
+      items.push(...(xml.match(/<item>[\s\S]*?<\/item>/g) ?? []));
+      console.log(`  ${items.length}/${total}`);
+    }
+    console.log(`[nonpay] 전체 ${items.length}건 수신`);
   }
-  console.log(`[nonpay] 전체 ${items.length}건 수신`);
 
   const rows = items
     .map((item) => ({ item, name: tag(item, 'npayKorNm') }))
