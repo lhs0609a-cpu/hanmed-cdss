@@ -38,6 +38,20 @@ export default function PatientLandingPage() {
           <ChevronRight className="h-5 w-5 text-gray-400" />
         </Link>
 
+        {/* 아직 한의원에 가기 전인 사람에게도 줄 것이 있어야 한다.
+            기피 이유 1위가 '한약 값이 비싸서' 인데, 첩약에 건강보험이 되는
+            질환이 있다는 사실 자체를 모르는 경우가 많다. */}
+        <Link
+          to="/patient/cost"
+          className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-400"
+        >
+          <div>
+            <div className="font-semibold">한약, 얼마나 들까요?</div>
+            <div className="text-[12px] text-gray-500">건강보험 적용 여부 확인</div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-400" />
+        </Link>
+
         <Link
           to="/patient/connect"
           className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-400"
