@@ -7,6 +7,7 @@ import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap, AlertCircle } fro
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 import { FollowUpCard } from '@/components/followup/FollowUpCard'
 import { InactivePatientsCard } from '@/components/followup/InactivePatientsCard'
+import { PatientReportsCard } from '@/components/guide/PatientReportsCard'
 
 /**
  * 대시보드 — Toss 식 단순화.
@@ -135,6 +136,9 @@ export default function DashboardPage() {
 
       {/* 경과 확인 — 처방을 낸 뒤 결과를 기록하게 만드는 자리.
           확인할 게 없으면 카드가 스스로 숨는다. */}
+      {/* 환자가 복용 중에 보낸 기록 — 이상반응은 경과 확인보다 먼저 봐야 한다. */}
+      <PatientReportsCard />
+
       <FollowUpCard />
 
       {/* 이탈은 조용히 일어난다 — 누가 안 오고 있는지 목록으로 보여 준다. */}

@@ -69,6 +69,7 @@ const InventoryPage = lazy(() => import('@/app/inventory/InventoryPage'))
 const MigrationWizardPage = lazy(() => import('@/app/onboarding/MigrationWizardPage'))
 
 // 환자용 PWA — /patient 스코프로 분리되어 한의사 앱과 독립적으로 동작
+const MedicationGuidePage = lazy(() => import('@/app/guide/MedicationGuidePage'))
 const PatientLayout = lazy(() => import('@/app/patient/PatientLayout'))
 const PatientLandingPage = lazy(() => import('@/app/patient/PatientLandingPage'))
 const PatientConnectPage = lazy(() => import('@/app/patient/PatientConnectPage'))
@@ -138,6 +139,13 @@ function App() {
               </RouteBoundary>
             </ProtectedRoute>
           }
+        />
+
+        {/* 환자용 복약 안내서 — 로그인 없이 링크로 연다.
+            로그인을 요구하면 아무도 안 본다. 문서에 식별정보를 담지 않는 것으로 지킨다. */}
+        <Route
+          path="/guide/:token"
+          element={<RouteBoundary>{route(<MedicationGuidePage />)}</RouteBoundary>}
         />
 
         {/* 환자용 PWA — 별도 manifest + service worker 스코프 */}
