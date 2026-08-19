@@ -6,6 +6,7 @@ import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { Stethoscope, BookOpen, ArrowRight, ChevronRight, Zap, AlertCircle } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 import { FollowUpCard } from '@/components/followup/FollowUpCard'
+import { InactivePatientsCard } from '@/components/followup/InactivePatientsCard'
 
 /**
  * 대시보드 — Toss 식 단순화.
@@ -135,6 +136,9 @@ export default function DashboardPage() {
       {/* 경과 확인 — 처방을 낸 뒤 결과를 기록하게 만드는 자리.
           확인할 게 없으면 카드가 스스로 숨는다. */}
       <FollowUpCard />
+
+      {/* 이탈은 조용히 일어난다 — 누가 안 오고 있는지 목록으로 보여 준다. */}
+      <InactivePatientsCard />
 
       {/* 치험례 — 이 제품의 축.
           매일 여는 첫 화면에 "근거가 몇 건 쌓여 있는지" 가 보여야

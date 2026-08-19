@@ -94,6 +94,26 @@ export class PractitionerPatientsController {
     );
   }
 
+  @Get('inactive')
+  @ApiOperation({
+    summary: '한동안 안 온 환자',
+    description:
+      '마지막 내원일이 기준일보다 오래된 활성 환자를 오래된 순으로 준다. 등록만 하고 안 온 환자도 포함한다.',
+  })
+  listInactive(
+    @Req() req: AuthedRequest,
+    @Query('days') days?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : NaN;
+    const parsedLimit = limit ? parseInt(limit, 10) : NaN;
+    return this.service.listInactivePatients(
+      req.user.id,
+      Number.isFinite(parsedDays) ? parsedDays : 60,
+      Number.isFinite(parsedLimit) ? Math.min(parsedLimit, 100) : 30,
+    );
+  }
+
   @Patch('visits/:id/interaction-notice')
   @ApiOperation({
     summary: '상호작용 설명 기록',

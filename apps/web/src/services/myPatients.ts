@@ -127,6 +127,26 @@ export async function createMyVisit(payload: NewVisitPayload): Promise<MyVisit> 
   return data
 }
 
+/** 한동안 안 온 환자 — 연락 대상 목록 */
+export interface InactivePatient extends MyPatient {
+  daysSinceLastVisit: number
+  neverVisited: boolean
+}
+
+/**
+ * 마지막 내원이 기준일보다 오래된 활성 환자.
+ * 이탈은 조용히 일어나서, 목록으로 보지 않으면 알 방법이 없다.
+ */
+export async function fetchInactivePatients(
+  days = 60,
+  limit = 30,
+): Promise<InactivePatient[]> {
+  const { data } = await api.get<InactivePatient[]>('/my-patients/inactive', {
+    params: { days, limit },
+  })
+  return Array.isArray(data) ? data : []
+}
+
 /**
  * 상호작용 위험을 환자에게 설명했다고 기록한다.
  * 설명의무는 이행 사실이 남지 않으면 나중에 방어가 되지 않는다.

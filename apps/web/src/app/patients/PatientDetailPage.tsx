@@ -127,6 +127,8 @@ export default function PatientDetailPage() {
   const [isSavingVisit, setIsSavingVisit] = useState(false)
   // 타임라인에서 경과를 바로 적을 수 있게 — 대시보드까지 가지 않아도 된다.
   const [outcomeOpenId, setOutcomeOpenId] = useState<string | null>(null)
+  /** 경과와 함께 잡는 재방문 예정일 — 이 날짜가 지나면 확인 목록에 뜬다. */
+  const [followUpDate, setFollowUpDate] = useState('')
   /** 이미 치험례로 옮긴 진료 — 같은 진료를 두 번 올리지 않게 막는다. */
   const [promotedVisitIds, setPromotedVisitIds] = useState<Set<string>>(new Set())
   const [promotingId, setPromotingId] = useState<string | null>(null)
@@ -304,7 +306,11 @@ export default function PatientDetailPage() {
   /** 타임라인에서 경과 기록 — 기록하면 대시보드 확인 목록에서도 빠진다. */
   const handleRecordOutcome = async (visitId: string, outcome: VisitOutcome) => {
     try {
-      const saved = await recordVisitOutcome(visitId, { outcome })
+      const saved = await recordVisitOutcome(visitId, {
+        outcome,
+        // 날짜만 받으므로 그 날 0시로 보낸다. 지나면 확인 목록에 뜬다.
+        followUpAt: followUpDate ? new Date(followUpDate).toISOString() : null,
+      })
       setVisits((prev) =>
         prev.map((v) =>
           v.id === visitId
@@ -313,6 +319,7 @@ export default function PatientDetailPage() {
         ),
       )
       setOutcomeOpenId(null)
+      setFollowUpDate('')
     } catch (err) {
       logError(err, 'PatientDetailPage.recordOutcome')
     }
@@ -835,6 +842,17 @@ export default function PatientDetailPage() {
               ) : (
                 <div className="mt-3 border-t border-neutral-100 pt-3">
                   {outcomeOpenId === visit.id ? (
+                    <div>
+                      <label className="mb-2 flex items-center gap-2 text-[13px] text-neutral-600">
+                        재방문 예정일
+                        <input
+                          type="date"
+                          value={followUpDate}
+                          onChange={(e) => setFollowUpDate(e.target.value)}
+                          className="rounded-lg border border-neutral-200 px-2 py-1 text-[13px] focus:border-blue-500 focus:outline-none"
+                        />
+                        <span className="text-neutral-400">(선택 — 지나면 확인 목록에 뜹니다)</span>
+                      </label>
                     <div className="flex flex-wrap gap-2">
                       {(['완치', '호전', '진행중', '무효', '악화'] as VisitOutcome[]).map((o) => (
                         <button
@@ -856,6 +874,7 @@ export default function PatientDetailPage() {
                       >
                         취소
                       </button>
+                    </div>
                     </div>
                   ) : (
                     <button
