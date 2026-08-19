@@ -43,6 +43,14 @@ export interface MyVisit {
   /** 첩약 시범사업 급여 처방일 때만 채워진다 */
   cheopyakDisease: string | null
   cheopyakDays: number | null
+  /** 비급여 사전 설명 — 항목과 설명·동의 시점 */
+  nonCoveredItems: Array<{
+    name: string
+    amount: number
+    reason?: string | null
+    alternative?: string | null
+  }>
+  nonCoveredConsentAt: string | null
   /** 상호작용 위험을 환자에게 설명한 시점 */
   interactionNoticeGivenAt: string | null
   outcome: string | null
@@ -86,6 +94,14 @@ export interface NewVisitPayload {
   notes?: string | null
   cheopyakDisease?: string | null
   cheopyakDays?: number | null
+  nonCoveredItems?: Array<{
+    name: string
+    amount: number
+    reason?: string | null
+    alternative?: string | null
+  }>
+  /** true 면 지금 설명·동의를 받은 것으로 기록한다 */
+  nonCoveredConsentGiven?: boolean
 }
 
 export async function fetchMyPatients(): Promise<MyPatient[]> {

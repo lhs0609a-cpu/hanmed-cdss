@@ -10,6 +10,7 @@ import {
   PractitionerVisit,
   VisitHerb,
   VisitSymptom,
+  NonCoveredItem,
 } from '../../database/entities/practitioner-visit.entity';
 import { MedicationGuide } from '../../database/entities/medication-guide.entity';
 import { EncryptionService } from '../../common/services/encryption.service';
@@ -47,6 +48,9 @@ export interface VisitDto {
   notes: string | null;
   cheopyakDisease: string | null;
   cheopyakDays: number | null;
+  /** 비급여 사전 설명 — 항목과 설명·동의 시점 */
+  nonCoveredItems: NonCoveredItem[];
+  nonCoveredConsentAt: string | null;
   /** 상호작용 위험을 환자에게 설명한 시점 */
   interactionNoticeGivenAt: string | null;
   outcome: string | null;
@@ -82,6 +86,9 @@ export interface CreateVisitInput {
   notes?: string | null;
   cheopyakDisease?: string | null;
   cheopyakDays?: number | null;
+  nonCoveredItems?: NonCoveredItem[];
+  /** true 면 지금 설명·동의를 받은 것으로 기록한다 */
+  nonCoveredConsentGiven?: boolean;
   followUpAt?: string | null;
 }
 
@@ -193,6 +200,10 @@ export class PractitionerPatientsService {
       notes: v.notes,
       cheopyakDisease: v.cheopyakDisease,
       cheopyakDays: v.cheopyakDays,
+      nonCoveredItems: v.nonCoveredItems ?? [],
+      nonCoveredConsentAt: v.nonCoveredConsentAt
+        ? v.nonCoveredConsentAt.toISOString()
+        : null,
       interactionNoticeGivenAt: v.interactionNoticeGivenAt
         ? v.interactionNoticeGivenAt.toISOString()
         : null,
@@ -457,6 +468,10 @@ export class PractitionerPatientsService {
       notes: input.notes ?? null,
       cheopyakDisease: input.cheopyakDisease ?? null,
       cheopyakDays: input.cheopyakDays ?? null,
+      nonCoveredItems: input.nonCoveredItems ?? [],
+      // 동의는 '받았다' 고 표시했을 때만 시점을 남긴다. 항목만 적어 둔 것과
+      // 실제로 설명하고 동의를 받은 것은 다르다.
+      nonCoveredConsentAt: input.nonCoveredConsentGiven ? new Date() : null,
       followUpAt: input.followUpAt ? new Date(input.followUpAt) : null,
     });
     const saved = await this.visits.save(entity);

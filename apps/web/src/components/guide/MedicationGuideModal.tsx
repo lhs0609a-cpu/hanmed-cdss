@@ -32,6 +32,10 @@ interface Props {
   visitId: string
   formulaName: string
   defaultDays?: number | null
+  /** 진료에 기록해 둔 비급여 항목 — 안내서 비용란의 출발점이 된다 */
+  nonCoveredItems?: Array<{ name: string; amount: number }>
+  /** 사전 설명·동의를 받은 시점. null 이면 아직 안 받은 것이다 */
+  nonCoveredConsentAt?: string | null
   onClose: () => void
 }
 
@@ -39,6 +43,8 @@ export function MedicationGuideModal({
   visitId,
   formulaName,
   defaultDays,
+  nonCoveredItems,
+  nonCoveredConsentAt,
   onClose,
 }: Props) {
   const [guide, setGuide] = useState<Guide | null>(null)
@@ -52,7 +58,11 @@ export function MedicationGuideModal({
   const [cautions, setCautions] = useState('')
   const [totalDays, setTotalDays] = useState(String(defaultDays ?? 10))
   const [dispensedDays, setDispensedDays] = useState('')
-  const [costs, setCosts] = useState<CostRow[]>([{ name: '첩약', amount: '' }])
+  const [costs, setCosts] = useState<CostRow[]>(
+    nonCoveredItems && nonCoveredItems.length > 0
+      ? nonCoveredItems.map((c) => ({ name: c.name, amount: String(c.amount) }))
+      : [{ name: '첩약', amount: '' }],
+  )
 
   const guideUrl = guide ? `${window.location.origin}/guide/${guide.token}` : ''
 
@@ -364,10 +374,21 @@ export function MedicationGuideModal({
                   </div>
                 ))}
               </div>
-              <p className="text-[12px] leading-relaxed text-neutral-500">
-                비급여는 진료 전에 가격·사유·대체 항목을 설명해야 합니다(의료법 제45조의2).
-                여기 적어 두면 환자 안내서에 그대로 나갑니다.
-              </p>
+              {/* 이 모달은 처방 뒤에 열린다. 여기 금액을 적는 것으로
+                  사전 설명 의무가 충족되는 것처럼 읽히면 안 된다. */}
+              {nonCoveredConsentAt ? (
+                <p className="text-[12px] leading-relaxed text-green-700">
+                  사전 설명·동의 기록됨 —{' '}
+                  {new Date(nonCoveredConsentAt).toLocaleString('ko-KR')}
+                </p>
+              ) : (
+                <p className="text-[12px] leading-relaxed text-amber-700">
+                  이 진료에는 비급여 사전 설명·동의 기록이 없습니다. 의료법 제45조의2 는
+                  비급여를 하기 <strong>전에</strong> 가격·사유·대체 항목을 설명하도록
+                  합니다 — 여기 금액을 적는 것으로는 대신되지 않습니다. 진료 기록에서
+                  남겨 주세요.
+                </p>
+              )}
             </>
           )}
         </div>
