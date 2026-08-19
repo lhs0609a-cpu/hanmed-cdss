@@ -15,8 +15,16 @@ import { cn } from '@/lib/utils'
  *
  * 서식이 요구하는 네 부분(① 기관 ② 환자 ③ 진료 ④ 처방·조제) 중 앞의 셋은
  * 이미 우리가 가진 기록이다. 약재 구성도 처방 카탈로그에서 채운다.
- * 용량(g)과 원산지는 한의원마다 달라 우리가 지어낼 수 없으므로 빈칸으로 두고
+ * 조성(g)과 원산지는 한의원마다 달라 우리가 지어낼 수 없으므로 빈칸으로 두고
  * 채워야 할 곳임을 표시한다 — 지어낸 값을 제출하면 그게 더 큰 문제다.
+ *
+ * 서식 기재 요건(심평원 안내):
+ *   ③ 진료정보 — 총 투여일수, 상병기호(KCD, 주상병 또는 제1부상병)
+ *   ④ 처방·조제정보 — 변증 선택, 첩약명, 처방내역(조성)(g)
+ *   작성 시점 — 처방 시 작성이 원칙이고, 조성이 바뀌면 다시 작성해 제출한다.
+ *
+ * 약침은 시술 내역을 따로 남긴다. 경상환자 시술횟수 기준은 고시로 정해지므로
+ * 여기서 숫자를 만들어 내지 않는다 — 확인할 곳만 가리킨다.
  */
 
 /** 2026 자보 기준: 첩약 1회 최대 처방일수 */
@@ -52,6 +60,13 @@ export function AutoInsuranceSheet({
   const [herbs, setHerbs] = useState<HerbRow[]>([])
   const [days, setDays] = useState(String(visit.days || AUTO_INSURANCE_MAX_DAYS))
   const [preDispensed, setPreDispensed] = useState(false)
+  const [kcdCode, setKcdCode] = useState('')
+  const [pattern, setPattern] = useState(visit.diagnosis || '')
+  // 약침 — 첩약과 함께 조제내역서 제출 대상이다.
+  const [usesPharmacopuncture, setUsesPharmacopuncture] = useState(false)
+  const [phName, setPhName] = useState('')
+  const [phSite, setPhSite] = useState('')
+  const [phCount, setPhCount] = useState('1')
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
@@ -115,24 +130,49 @@ export function AutoInsuranceSheet({
       `   - 생년월일: ${patientBirthDate || '(미입력)'}`,
       '',
       '③ 진료 정보',
-      `   - 진료일: ${visit.visitedAt.slice(0, 10)}`,
-      `   - 상병(변증): ${visit.diagnosis || '(차트에 기록 없음)'}`,
+      `   - 진료일자: ${visit.visitedAt.slice(0, 10)}`,
+      `   - 상병기호: ${kcdCode || '(직접 기재 — 주상병 또는 제1부상병)'}`,
+      `   - 총 투여일수: ${dayCount}일`,
       '',
       '④ 처방·조제 정보',
-      `   - 처방명: ${visit.formulaName || '(차트에 기록 없음)'}`,
-      `   - 투여일수: ${dayCount}일분`,
+      `   - 변증: ${pattern || '(차트에 기록 없음)'}`,
+      `   - 첩약명: ${visit.formulaName || '(차트에 기록 없음)'}`,
       `   - 사전조제 여부: ${preDispensed ? '예' : '아니오'}`,
-      '   - 약재 구성:',
+      '   - 처방내역(조성):',
       ...herbs.map(
         (h) =>
-          `     · ${h.name} ${h.amount || '(용량 미기재)'} / 원산지 ${h.origin || '(미기재)'}`,
+          `     · ${h.name} ${h.amount ? `${h.amount}g` : '(조성 미기재)'} / 원산지 ${h.origin || '(미기재)'}`,
       ),
+      ...(usesPharmacopuncture
+        ? [
+            '',
+            '④-2 약침 시술 내역',
+            `   - 약침액: ${phName || '(직접 기재)'}`,
+            `   - 시술 부위: ${phSite || '(직접 기재)'}`,
+            `   - 이번 진료 시술 횟수: ${phCount || '(직접 기재)'}회`,
+          ]
+        : []),
       '',
       '※ 차트 기록과 처방 카탈로그에서 만든 초안입니다.',
-      '※ 용량·원산지·요양기관기호는 확인 후 반드시 채워 제출해 주세요.',
+      '※ 조성(g)·원산지·상병기호·요양기관기호는 확인 후 반드시 채워 제출해 주세요.',
+      '※ 처방 시 작성이 원칙이며, 조성이 바뀌면 다시 작성해 제출해야 합니다.',
     ]
     return lines.join(nl)
-  }, [user, patientName, patientBirthDate, visit, dayCount, preDispensed, herbs])
+  }, [
+    user,
+    patientName,
+    patientBirthDate,
+    visit,
+    dayCount,
+    preDispensed,
+    herbs,
+    kcdCode,
+    pattern,
+    usesPharmacopuncture,
+    phName,
+    phSite,
+    phCount,
+  ])
 
   const copy = async () => {
     try {
@@ -216,6 +256,95 @@ export function AutoInsuranceSheet({
             </div>
           </div>
 
+          {/* 서식이 요구하는 항목 — 차트에 없는 값은 여기서 받는다 */}
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label
+                htmlFor="ai-kcd"
+                className="mb-1 block text-[13px] font-medium text-neutral-700"
+              >
+                상병기호 (KCD)
+              </label>
+              <input
+                id="ai-kcd"
+                value={kcdCode}
+                onChange={(e) => setKcdCode(e.target.value)}
+                placeholder="주상병 또는 제1부상병"
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="ai-pattern"
+                className="mb-1 block text-[13px] font-medium text-neutral-700"
+              >
+                변증
+              </label>
+              <input
+                id="ai-pattern"
+                value={pattern}
+                onChange={(e) => setPattern(e.target.value)}
+                placeholder="차트의 변증이 들어옵니다"
+                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* 약침 — 첩약과 함께 조제내역서 제출 대상이다 */}
+          <div className="mb-4 rounded-xl border border-neutral-200 p-4">
+            <label className="flex items-center gap-2 text-[14px] font-medium text-neutral-800">
+              <input
+                type="checkbox"
+                checked={usesPharmacopuncture}
+                onChange={(e) => setUsesPharmacopuncture(e.target.checked)}
+                className="h-4 w-4 accent-blue-500"
+              />
+              약침도 시술했습니다
+            </label>
+
+            {usesPharmacopuncture && (
+              <>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <input
+                    value={phName}
+                    onChange={(e) => setPhName(e.target.value)}
+                    placeholder="약침액명"
+                    aria-label="약침액명"
+                    className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                  <input
+                    value={phSite}
+                    onChange={(e) => setPhSite(e.target.value)}
+                    placeholder="시술 부위"
+                    aria-label="약침 시술 부위"
+                    className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    value={phCount}
+                    onChange={(e) => setPhCount(e.target.value)}
+                    placeholder="시술 횟수"
+                    aria-label="약침 시술 횟수"
+                    className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none"
+                  />
+                </div>
+                <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5">
+                  <AlertTriangle
+                    className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
+                    aria-hidden="true"
+                  />
+                  <p className="text-[13px] leading-relaxed text-amber-800">
+                    경상환자(상해등급 12~14급)는 약침 시술횟수 기준이 별도로 적용되고,
+                    약침액은 무균·멸균 사용이 요구됩니다. 구체적 횟수는 고시로 정해지므로
+                    심평원 「자동차보험진료수가 기준 및 심의사례」에서 확인해 주세요 —
+                    저희가 숫자를 대신 정해 드리지 않습니다.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* 약재 표 */}
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[13px] font-medium text-neutral-700">
@@ -243,7 +372,7 @@ export function AutoInsuranceSheet({
                 <thead className="bg-neutral-50 text-neutral-600">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">약재명</th>
-                    <th className="px-3 py-2 text-left font-medium">1첩 용량</th>
+                    <th className="px-3 py-2 text-left font-medium">조성(g)</th>
                     <th className="px-3 py-2 text-left font-medium">원산지</th>
                   </tr>
                 </thead>
@@ -255,7 +384,7 @@ export function AutoInsuranceSheet({
                         <input
                           value={h.amount}
                           onChange={(e) => setHerb(i, { amount: e.target.value })}
-                          placeholder="예: 4g"
+                          placeholder="예: 4"
                           aria-label={`${h.name} 용량`}
                           className="w-24 rounded-lg border border-neutral-200 px-2 py-1 focus:border-blue-500 focus:outline-none"
                         />
