@@ -38,6 +38,9 @@ export interface MyVisit {
   painScore: number | null
   pulseNote: string | null
   notes: string | null
+  /** 첩약 시범사업 급여 처방일 때만 채워진다 */
+  cheopyakDisease: string | null
+  cheopyakDays: number | null
   outcome: string | null
   outcomeNotes: string | null
   outcomeRecordedAt: string | null
@@ -76,6 +79,8 @@ export interface NewVisitPayload {
   painScore?: number | null
   pulseNote?: string | null
   notes?: string | null
+  cheopyakDisease?: string | null
+  cheopyakDays?: number | null
 }
 
 export async function fetchMyPatients(): Promise<MyPatient[]> {
@@ -114,6 +119,35 @@ export async function fetchMyVisits(patientId?: string, limit = 50): Promise<MyV
 
 export async function createMyVisit(payload: NewVisitPayload): Promise<MyVisit> {
   const { data } = await api.post<MyVisit>('/my-patients/visits', payload)
+  return data
+}
+
+/** 첩약 시범사업 연간 한도 사용 현황 */
+export interface CheopyakQuota {
+  year: number
+  diseases: Array<{
+    disease: string
+    daysUsed: number
+    daysRemaining: number
+    lastPrescribedAt: string | null
+  }>
+  diseaseSlotsTotal: number
+  diseaseSlotsUsed: number
+  daysPerDisease: number
+}
+
+/**
+ * 이 환자의 올해 첩약 급여 사용량.
+ * 연간 2개 질환·질환당 20일 한도를 넘겨 처방하면 그대로 삭감된다.
+ */
+export async function fetchCheopyakQuota(
+  patientId: string,
+  year?: number,
+): Promise<CheopyakQuota> {
+  const { data } = await api.get<CheopyakQuota>(
+    `/my-patients/${patientId}/cheopyak-quota`,
+    { params: year ? { year } : undefined },
+  )
   return data
 }
 

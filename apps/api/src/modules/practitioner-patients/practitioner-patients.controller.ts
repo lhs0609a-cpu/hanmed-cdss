@@ -94,6 +94,26 @@ export class PractitionerPatientsController {
     );
   }
 
+  @Get(':id/cheopyak-quota')
+  @ApiOperation({
+    summary: '첩약 시범사업 연간 한도 사용량',
+    description:
+      '2단계 시범사업은 환자 1인당 연간 2개 질환, 질환당 20일분까지 급여다. 남은 일수를 계산해 준다.',
+  })
+  cheopyakQuota(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('year') year?: string,
+  ) {
+    // 연도는 진료일 기준. 안 주면 올해.
+    const parsed = year ? parseInt(year, 10) : NaN;
+    return this.service.getCheopyakQuota(
+      req.user.id,
+      id,
+      Number.isFinite(parsed) ? parsed : new Date().getFullYear(),
+    );
+  }
+
   @Patch('visits/:id/outcome')
   @ApiOperation({ summary: '진료 경과 기록' })
   recordOutcome(
