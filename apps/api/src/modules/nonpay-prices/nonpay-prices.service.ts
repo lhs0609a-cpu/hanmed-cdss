@@ -72,6 +72,12 @@ export class NonPayPricesService {
   private static readonly CACHE_PREFIX = 'nonpay';
   /** 원자료는 월 1회 갱신이라 하루만 캐시해도 충분하다. */
   private static readonly CACHE_TTL = 60 * 60 * 24;
+  /** 심평원이 답을 못 줄 때 내보낼 직전 결과. 원자료가 월 1회 갱신이라 길게 둔다. */
+  private static readonly SNAPSHOT_TTL = 60 * 60 * 24 * 45;
+  private static readonly PAGE_SIZE = 200;
+  private static readonly MAX_PAGES = 10;
+  private static readonly MAX_ATTEMPTS = 3;
+  private static readonly REQUEST_TIMEOUT_MS = 20000;
 
   constructor(
     private readonly config: ConfigService,
@@ -91,26 +97,66 @@ export class NonPayPricesService {
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
-  private async fetchRaw(): Promise<string> {
+  private serviceKey(): string {
     const key =
       this.config.get<string>('HIRA_NONPAY_API_KEY') ??
       this.config.get<string>('PUBLIC_DATA_API_KEY');
     if (!key) {
       throw new ServiceUnavailableException('비급여 가격 조회 키가 설정되지 않았습니다.');
     }
+    return key;
+  }
+
+  /**
+   * 한 페이지를 받아온다.
+   *
+   * 655건을 한 번에 달라고 하면 심평원 게이트웨이가 504 를 낸다(실제로 겪었다).
+   * 나눠서 받고, 실패하면 잠깐 쉬었다 다시 시도한다.
+   */
+  private async fetchPage(page: number, rows: number, attempt = 1): Promise<string> {
     const url =
-      `${ENDPOINT}?serviceKey=${encodeURIComponent(key)}` +
-      `&pageNo=1&numOfRows=2000`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new ServiceUnavailableException(`심평원 응답 오류 (${res.status})`);
+      `${ENDPOINT}?serviceKey=${encodeURIComponent(this.serviceKey())}` +
+      `&pageNo=${page}&numOfRows=${rows}`;
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(NonPayPricesService.REQUEST_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const xml = await res.text();
+      if (!xml.includes('<resultCode>00</resultCode>')) {
+        const msg = this.tag(xml, 'errMsg') ?? this.tag(xml, 'resultMsg') ?? '알 수 없음';
+        // 키 문제 같은 건 다시 시도해도 똑같다.
+        throw new ServiceUnavailableException(`심평원 조회 실패: ${msg}`);
+      }
+      return xml;
+    } catch (e) {
+      if (e instanceof ServiceUnavailableException) throw e;
+      if (attempt >= NonPayPricesService.MAX_ATTEMPTS) {
+        throw new ServiceUnavailableException(
+          `심평원 응답 오류: ${(e as Error).message}`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+      return this.fetchPage(page, rows, attempt + 1);
     }
-    const xml = await res.text();
-    if (!xml.includes('<resultCode>00</resultCode>')) {
-      const msg = this.tag(xml, 'errMsg') ?? this.tag(xml, 'resultMsg') ?? '알 수 없음';
-      throw new ServiceUnavailableException(`심평원 조회 실패: ${msg}`);
+  }
+
+  /** 전체 항목을 페이지로 나눠 받는다. */
+  private async fetchAllItems(): Promise<string[]> {
+    const rows = NonPayPricesService.PAGE_SIZE;
+    const first = await this.fetchPage(1, rows);
+    const total = Number(this.tag(first, 'totalCount') ?? '0');
+    const items: string[] = first.match(/<item>[\s\S]*?<\/item>/g) ?? [];
+
+    const pages = Math.min(
+      Math.ceil(total / rows),
+      NonPayPricesService.MAX_PAGES,
+    );
+    for (let p = 2; p <= pages; p++) {
+      const xml = await this.fetchPage(p, rows);
+      items.push(...(xml.match(/<item>[\s\S]*?<\/item>/g) ?? []));
     }
-    return xml;
+    return items;
   }
 
   /**
@@ -120,11 +166,11 @@ export class NonPayPricesService {
   async getKoreanMedicinePrices(region = 'All'): Promise<NonPayRegionResult> {
     const chosen = NONPAY_REGIONS.find((r) => r.code === region) ?? NONPAY_REGIONS[0];
 
-    return this.cache.getOrSet(
+    try {
+      return await this.cache.getOrSet(
       `km:${chosen.code}`,
       async () => {
-        const xml = await this.fetchRaw();
-        const items = xml.match(/<item>[\s\S]*?<\/item>/g) ?? [];
+        const items = await this.fetchAllItems();
 
         let appliedOn: string | null = null;
         const rows: NonPayItemPrice[] = [];
@@ -157,10 +203,34 @@ export class NonPayPricesService {
 
         rows.sort((a, b) => (b.median ?? 0) - (a.median ?? 0));
         this.logger.log(`비급여 한방 가격 ${chosen.name}: ${rows.length}개 항목`);
-        return { region: chosen.code, regionName: chosen.name, appliedOn, items: rows };
+        const result = {
+          region: chosen.code,
+          regionName: chosen.name,
+          appliedOn,
+          items: rows,
+        };
+        // 심평원이 답을 못 줄 때 내보낼 직전 결과를 따로 남긴다.
+        await this.cache.set(`snapshot:${chosen.code}`, result, {
+          prefix: NonPayPricesService.CACHE_PREFIX,
+          ttl: NonPayPricesService.SNAPSHOT_TTL,
+        });
+        return result;
       },
       { prefix: NonPayPricesService.CACHE_PREFIX, ttl: NonPayPricesService.CACHE_TTL },
-    );
+      );
+    } catch (e) {
+      // 심평원이 답을 못 주면 직전 결과라도 보여준다. 월 1회 갱신 자료라
+      // 며칠 지난 값이 빈 화면보다 낫다.
+      const snapshot = await this.cache.get<NonPayRegionResult>(
+        `snapshot:${chosen.code}`,
+        { prefix: NonPayPricesService.CACHE_PREFIX },
+      );
+      if (snapshot) {
+        this.logger.warn(`심평원 조회 실패 — 직전 결과로 응답: ${(e as Error).message}`);
+        return snapshot;
+      }
+      throw e;
+    }
   }
 
   listRegions() {
