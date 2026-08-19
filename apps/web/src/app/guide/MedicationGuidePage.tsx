@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { saveGuide } from '@/lib/patientGuides'
+import {
+  saveGuide,
+  getDoseLog,
+  startDosing,
+  toggleTakenToday,
+  daysSinceStart,
+  todayKey,
+  type DoseLog,
+} from '@/lib/patientGuides'
 import axios from 'axios'
 import {
   Leaf,
@@ -9,6 +17,8 @@ import {
   Receipt,
   ClipboardCheck,
   Check,
+  CalendarCheck,
+  TrendingDown,
   AlertTriangle,
   Info,
 } from 'lucide-react'
@@ -41,6 +51,14 @@ interface GuideInteraction {
   herb: string
   severity: string
   advice?: string | null
+}
+
+interface MyReport {
+  id: string
+  symptomScore: number | null
+  adverseFlags: string[]
+  note: string | null
+  reportedAt: string
 }
 
 interface Guide {
@@ -80,6 +98,9 @@ export default function MedicationGuidePage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
+  const [reports, setReports] = useState<MyReport[]>([])
+  const [dose, setDose] = useState<DoseLog>({ startedOn: null, takenDates: [] })
+
   const load = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/public/guides/${token}`)
@@ -94,6 +115,14 @@ export default function MedicationGuidePage() {
           clinicName: loaded.clinicName,
           issuedAt: loaded.issuedAt,
         })
+        setDose(getDoseLog(token))
+        // 내 기록은 없어도 안내서는 떠야 한다.
+        try {
+          const res = await axios.get(`${API_BASE}/public/guides/${token}/reports`)
+          setReports(res.data?.data ?? res.data ?? [])
+        } catch {
+          setReports([])
+        }
       }
     } catch {
       setError('안내서를 찾을 수 없습니다. 링크가 만료되었거나 한의원에서 닫았을 수 있습니다.')
@@ -116,6 +145,12 @@ export default function MedicationGuidePage() {
         note: note.trim() || null,
       })
       setSent(true)
+      try {
+        const res = await axios.get(`${API_BASE}/public/guides/${token}/reports`)
+        setReports(res.data?.data ?? res.data ?? [])
+      } catch {
+        /* 목록 갱신 실패는 무시 — 기록은 이미 전달됐다 */
+      }
     } catch {
       setError('기록을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
@@ -144,6 +179,17 @@ export default function MedicationGuidePage() {
   const remaining =
     guide.totalDays != null && guide.dispensedDays != null
       ? guide.totalDays - guide.dispensedDays
+      : null
+
+  const takenToday = dose.takenDates.includes(todayKey())
+
+  // 내가 남긴 증상 점수 추이. 점수를 안 고른 기록은 그래프에서 뺀다.
+  const scored = reports.filter((r) => r.symptomScore != null)
+  const firstScore = scored[0]?.symptomScore ?? null
+  const lastScore = scored[scored.length - 1]?.symptomScore ?? null
+  const scoreDelta =
+    firstScore != null && lastScore != null && scored.length >= 2
+      ? lastScore - firstScore
       : null
 
   return (
@@ -217,7 +263,7 @@ export default function MedicationGuidePage() {
         </section>
       )}
 
-      {/* 복용법 */}
+      {/* 복용법 + 복용 진행 */}
       {(guide.instructions || guide.totalDays != null) && (
         <section className="mb-6 rounded-2xl bg-neutral-50 p-5">
           <h2 className="mb-2 text-[15px] font-bold">어떻게 드시나요?</h2>
@@ -240,6 +286,59 @@ export default function MedicationGuidePage() {
               )}
             </p>
           )}
+
+          {/* 며칠째인지는 복용 시작일을 알아야 셀 수 있다. 처방일이 곧 시작일은
+              아니므로 환자가 직접 누른 날부터 센다. */}
+          <div className="mt-4 border-t border-neutral-200 pt-4">
+            {dose.startedOn ? (
+              <>
+                <p className="text-[15px] text-neutral-800">
+                  복용 <strong>{daysSinceStart(dose.startedOn)}일째</strong>
+                  {guide.totalDays != null &&
+                    daysSinceStart(dose.startedOn) != null && (
+                      <span className="text-neutral-500">
+                        {' '}
+                        · {Math.max(0, guide.totalDays - (daysSinceStart(dose.startedOn) as number))}일
+                        남음
+                      </span>
+                    )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => token && setDose(toggleTakenToday(token))}
+                  className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[16px] font-semibold ${
+                    takenToday
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-neutral-900 text-white'
+                  }`}
+                >
+                  {takenToday ? (
+                    <>
+                      <Check className="h-5 w-5" aria-hidden="true" />
+                      오늘 복용 완료
+                    </>
+                  ) : (
+                    <>
+                      <CalendarCheck className="h-5 w-5" aria-hidden="true" />
+                      오늘 먹었어요
+                    </>
+                  )}
+                </button>
+                <p className="mt-2 text-[13px] text-neutral-500">
+                  지금까지 {dose.takenDates.length}일 복용하셨습니다. 이 기록은 이
+                  기기에만 저장되고 한의원으로 자동 전송되지 않습니다.
+                </p>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => token && setDose(startDosing(token))}
+                className="w-full rounded-xl border border-neutral-300 py-3.5 text-[16px] font-semibold text-neutral-800"
+              >
+                오늘부터 복용 시작
+              </button>
+            )}
+          </div>
         </section>
       )}
 
@@ -318,6 +417,62 @@ export default function MedicationGuidePage() {
         </section>
       )}
 
+      {/* 내 경과 — 기록을 보내기만 하고 다시 볼 수 없으면
+          좋아지고 있는지 본인이 알 수 없다. */}
+      {scored.length > 0 && (
+        <section className="mb-6">
+          <div className="mb-3 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-neutral-500" aria-hidden="true" />
+            <h2 className="text-[15px] font-bold">내 경과</h2>
+          </div>
+
+          {scoreDelta != null && (
+            <p className="mb-3 text-[15px] leading-relaxed text-neutral-700">
+              {scoreDelta < 0 ? (
+                <>
+                  처음 기록보다 <strong className="text-green-700">{-scoreDelta}점</strong>{' '}
+                  낮아졌습니다.
+                </>
+              ) : scoreDelta > 0 ? (
+                <>
+                  처음 기록보다 <strong className="text-red-700">{scoreDelta}점</strong>{' '}
+                  높아졌습니다. 불편이 계속되면 한의원에 알려 주세요.
+                </>
+              ) : (
+                <>처음 기록과 같습니다.</>
+              )}
+            </p>
+          )}
+
+          <div className="flex items-end gap-1.5 rounded-2xl border border-neutral-200 p-4">
+            {scored.slice(-14).map((r) => (
+              <div key={r.id} className="flex flex-1 flex-col items-center gap-1">
+                <span className="text-[11px] text-neutral-500">{r.symptomScore}</span>
+                <div
+                  className={`w-full rounded-t ${
+                    (r.symptomScore as number) <= 3
+                      ? 'bg-green-400'
+                      : (r.symptomScore as number) <= 6
+                        ? 'bg-amber-400'
+                        : 'bg-red-400'
+                  }`}
+                  style={{ height: `${Math.max(4, (r.symptomScore as number) * 10)}px` }}
+                />
+                <span className="text-[10px] text-neutral-400">
+                  {r.reportedAt.slice(5, 10).replace('-', '/')}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {reports.some((r) => r.adverseFlags.length > 0) && (
+            <p className="mt-2 text-[13px] leading-relaxed text-neutral-500">
+              이상반응을 표시하신 기록이 있습니다. 한의원에서 확인합니다.
+            </p>
+          )}
+        </section>
+      )}
+
       {/* 자가 기록 — 부작용을 다음 내원까지 묵히지 않게 */}
       <section className="rounded-2xl border-2 border-neutral-900 p-5">
         <div className="mb-2 flex items-center gap-2">
@@ -328,10 +483,24 @@ export default function MedicationGuidePage() {
         {sent ? (
           <div className="flex items-start gap-2 py-2">
             <Check className="mt-0.5 h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
-            <p className="text-[15px] leading-relaxed text-neutral-700">
-              한의원에 전달했습니다. 이상반응을 표시하셨다면 한의원에서 먼저 확인합니다.
-              불편이 심하면 복용을 멈추고 바로 연락해 주세요.
-            </p>
+            <div>
+              <p className="text-[15px] leading-relaxed text-neutral-700">
+                한의원에 전달했습니다. 이상반응을 표시하셨다면 한의원에서 먼저
+                확인합니다. 불편이 심하면 복용을 멈추고 바로 연락해 주세요.
+              </p>
+              {/* 매일 먹는 약이다. 다시 남기려고 새로고침하게 두지 않는다. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSent(false)
+                  setFlags([])
+                  setNote('')
+                }}
+                className="mt-3 text-[15px] font-semibold text-neutral-900 underline"
+              >
+                다시 기록하기
+              </button>
+            </div>
           </div>
         ) : (
           <>
