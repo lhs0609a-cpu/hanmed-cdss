@@ -28,7 +28,7 @@ export interface GuideInteraction {
 
 export interface GuideEvidence {
   caseCount: number;
-  /** 채점 가능한 사례가 적으면 성공률을 내지 않는다(null) */
+  /** 완치·호전 비율(0~100). 채점 가능한 사례가 적으면 내지 않는다(null). */
   successRate: number | null;
   source?: string | null;
 }
