@@ -94,6 +94,19 @@ export class PractitionerPatientsController {
     );
   }
 
+  @Patch('visits/:id/interaction-notice')
+  @ApiOperation({
+    summary: '상호작용 설명 기록',
+    description:
+      '한약-양약 상호작용 위험을 환자에게 설명했다는 사실을 진료 단위로 남긴다.',
+  })
+  recordInteractionNotice(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.service.recordInteractionNotice(req.user.id, id);
+  }
+
   @Get(':id/cheopyak-quota')
   @ApiOperation({
     summary: '첩약 시범사업 연간 한도 사용량',

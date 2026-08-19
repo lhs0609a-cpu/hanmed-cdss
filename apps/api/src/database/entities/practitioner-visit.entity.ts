@@ -120,6 +120,15 @@ export class PractitionerVisit {
   @Column({ type: 'smallint', nullable: true })
   cheopyakDays: number | null;
 
+  /**
+   * 한약-양약 상호작용 위험을 환자에게 설명한 시점.
+   *
+   * 대법원이 인정한 설명의무는 이행 사실을 남겨 두지 않으면 다툴 때 방어가 안 된다.
+   * "설명했다" 는 주장만으로는 부족하고, 진료 단위로 시점이 남아야 한다.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  interactionNoticeGivenAt: Date | null;
+
   // ── 경과 추적 ────────────────────────────────────────────────
   // 처방을 내는 것으로 진료가 끝나지 않는다. 그 처방이 어떻게 됐는지가
   // 다음 진료의 근거이고, 쌓이면 이 한의사 자신의 치험례가 된다.

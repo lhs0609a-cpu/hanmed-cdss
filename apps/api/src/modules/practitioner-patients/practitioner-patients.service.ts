@@ -22,6 +22,8 @@ export interface PatientDto {
   constitution: string | null;
   mainComplaint: string | null;
   memo: string | null;
+  /** 복용 중인 양약 — 한약 상호작용 설명의무의 출발점 */
+  medications: string[];
   status: 'active' | 'inactive';
   lastVisitAt: string | null;
   totalVisits: number;
@@ -44,6 +46,8 @@ export interface VisitDto {
   notes: string | null;
   cheopyakDisease: string | null;
   cheopyakDays: number | null;
+  /** 상호작용 위험을 환자에게 설명한 시점 */
+  interactionNoticeGivenAt: string | null;
   outcome: string | null;
   outcomeNotes: string | null;
   outcomeRecordedAt: string | null;
@@ -58,6 +62,7 @@ export interface UpsertPatientInput {
   constitution?: string | null;
   mainComplaint?: string | null;
   memo?: string | null;
+  medications?: string[];
   status?: 'active' | 'inactive';
 }
 
@@ -140,6 +145,7 @@ export class PractitionerPatientsService {
       constitution: p.constitution,
       mainComplaint: p.mainComplaint,
       memo: p.memo,
+      medications: p.medications ?? [],
       status: p.status,
       lastVisitAt: p.lastVisitAt ? p.lastVisitAt.toISOString() : null,
       totalVisits: p.totalVisits,
@@ -178,6 +184,9 @@ export class PractitionerPatientsService {
       notes: v.notes,
       cheopyakDisease: v.cheopyakDisease,
       cheopyakDays: v.cheopyakDays,
+      interactionNoticeGivenAt: v.interactionNoticeGivenAt
+        ? v.interactionNoticeGivenAt.toISOString()
+        : null,
       outcome: v.outcome,
       outcomeNotes: v.outcomeNotes,
       outcomeRecordedAt: v.outcomeRecordedAt ? v.outcomeRecordedAt.toISOString() : null,
@@ -201,6 +210,27 @@ export class PractitionerPatientsService {
   }
 
   /** 소유자 검증을 한 곳으로 모은다 — 여기를 지나지 않는 조회를 만들지 말 것. */
+  /**
+   * 상호작용 위험을 환자에게 설명했다고 기록한다.
+   *
+   * 대법원이 인정한 설명의무는 이행 사실이 남지 않으면 방어가 안 된다.
+   * 이미 기록돼 있으면 시점을 덮어쓰지 않는다 — 최초 설명 시점이 근거다.
+   */
+  async recordInteractionNotice(
+    practitionerId: string,
+    visitId: string,
+  ): Promise<VisitDto> {
+    const visit = await this.visits.findOne({
+      where: { id: visitId, practitionerId, deletedAt: IsNull() },
+    });
+    if (!visit) throw new NotFoundException('진료 기록을 찾을 수 없습니다.');
+    if (!visit.interactionNoticeGivenAt) {
+      visit.interactionNoticeGivenAt = new Date();
+      await this.visits.save(visit);
+    }
+    return this.toVisitDto(visit);
+  }
+
   // ── 첩약 시범사업 한도 ───────────────────────────────────────
 
   /**
@@ -275,6 +305,7 @@ export class PractitionerPatientsService {
       constitution: input.constitution ?? null,
       mainComplaint: input.mainComplaint ?? null,
       memo: input.memo ?? null,
+      medications: input.medications ?? [],
       status: input.status ?? 'active',
       totalVisits: 0,
     });
@@ -305,6 +336,7 @@ export class PractitionerPatientsService {
     if (input.constitution !== undefined) row.constitution = input.constitution;
     if (input.mainComplaint !== undefined) row.mainComplaint = input.mainComplaint;
     if (input.memo !== undefined) row.memo = input.memo;
+    if (input.medications !== undefined) row.medications = input.medications;
     if (input.status !== undefined) row.status = input.status;
 
     const saved = await this.patients.save(row);
