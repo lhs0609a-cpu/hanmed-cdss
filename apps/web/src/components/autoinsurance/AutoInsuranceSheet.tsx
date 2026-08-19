@@ -71,12 +71,16 @@ export function AutoInsuranceSheet({
       const { data: detail } = await api.get<{
         herbs?: Array<{ name?: string }>
       }>(`/formulas/${hit.id}`)
-      setHerbs(
-        (detail.herbs ?? [])
-          // 이름 없는 행이 카탈로그에 섞여 있다(용량만 있는 행). 서식에 못 쓴다.
-          .filter((h): h is { name: string } => Boolean(h.name))
-          .map((h) => ({ name: h.name, amount: '', origin: '' })),
+      // 이름 없는 행(용량만 있는 행)과 중복 약재가 카탈로그에 섞여 있다.
+      // 서식에 그대로 옮기면 같은 약재를 두 번 신고하는 꼴이 된다.
+      const names = Array.from(
+        new Set(
+          (detail.herbs ?? [])
+            .map((h) => h.name)
+            .filter((n): n is string => Boolean(n)),
+        ),
       )
+      setHerbs(names.map((name) => ({ name, amount: '', origin: '' })))
     } catch (err) {
       logError(err, 'AutoInsuranceSheet.loadHerbs')
     } finally {
