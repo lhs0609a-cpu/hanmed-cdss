@@ -17,6 +17,15 @@ export interface VisitSymptom {
   severity?: number;
 }
 
+export interface NonCoveredItem {
+  name: string;
+  amount: number;
+  /** 왜 이 비급여가 필요한지 */
+  reason?: string | null;
+  /** 대체 가능한 항목 — 없으면 '없음' 을 적는다 */
+  alternative?: string | null;
+}
+
 export interface VisitHerb {
   name: string;
   amount?: string;
@@ -119,6 +128,21 @@ export class PractitionerVisit {
   /** 이번 처방의 일수. 연간 한도(질환당 20일) 계산의 단위다. */
   @Column({ type: 'smallint', nullable: true })
   cheopyakDays: number | null;
+
+  // ── 비급여 사전 설명 ─────────────────────────────────────────
+  // 의료법 제45조의2·시행규칙 제42조의3 은 비급여를 하기 **전에** 항목·가격·
+  // 사유·대체 항목을 설명하고 동의를 받도록 한다. 대상은 623개 공개 항목에서
+  // 전체 비급여로 확대됐다.
+  //
+  // 복약 안내서에 금액을 적어 환자에게 보여주는 것으로는 이 의무가 충족되지
+  // 않는다 — 안내서는 처방 뒤에 나가기 때문이다. 설명한 시점이 따로 남아야 한다.
+
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  nonCoveredItems: NonCoveredItem[];
+
+  /** 설명하고 동의를 받은 시점. null 이면 아직 안 받은 것이다. */
+  @Column({ type: 'timestamptz', nullable: true })
+  nonCoveredConsentAt: Date | null;
 
   /**
    * 한약-양약 상호작용 위험을 환자에게 설명한 시점.

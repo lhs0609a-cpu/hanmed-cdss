@@ -61,6 +61,8 @@ interface VisitRecord {
   notes: string
   cheopyakDisease?: string | null
   cheopyakDays?: number | null
+  nonCoveredItems?: Array<{ name: string; amount: number }>
+  nonCoveredConsentAt?: string | null
   interactionNoticeGivenAt?: string | null
   /** 서버 진료 기록의 경과 — 미기록이면 null */
   outcome?: string | null
@@ -84,6 +86,12 @@ interface NewVisitForm {
   /** 첩약 시범사업 급여 처방일 때만 채운다 — 연간 한도 계산의 근거가 된다. */
   cheopyakDisease: string
   cheopyakDays: string
+  /** 비급여 사전 설명 — 항목·금액·사유·대체항목 */
+  nonCoveredName: string
+  nonCoveredAmount: string
+  nonCoveredReason: string
+  nonCoveredAlternative: string
+  nonCoveredConsent: boolean
 }
 
 const defaultDemoPatient: {
@@ -185,6 +193,8 @@ export default function PatientDetailPage() {
           notes: v.notes ?? '',
           cheopyakDisease: v.cheopyakDisease,
           cheopyakDays: v.cheopyakDays,
+          nonCoveredItems: v.nonCoveredItems,
+          nonCoveredConsentAt: v.nonCoveredConsentAt,
           interactionNoticeGivenAt: v.interactionNoticeGivenAt,
           outcome: v.outcome,
           outcomeNotes: v.outcomeNotes,
@@ -213,6 +223,11 @@ export default function PatientDetailPage() {
     notes: '',
     cheopyakDisease: '',
     cheopyakDays: '10',
+    nonCoveredName: '',
+    nonCoveredAmount: '',
+    nonCoveredReason: '',
+    nonCoveredAlternative: '',
+    nonCoveredConsent: false,
   })
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof NewVisitForm, string>>>({})
 
@@ -370,6 +385,17 @@ export default function PatientDetailPage() {
         cheopyakDays: newVisit.cheopyakDisease
           ? parseInt(newVisit.cheopyakDays, 10) || null
           : null,
+        nonCoveredItems: newVisit.nonCoveredName.trim()
+          ? [
+              {
+                name: newVisit.nonCoveredName.trim(),
+                amount: parseInt(newVisit.nonCoveredAmount, 10) || 0,
+                reason: newVisit.nonCoveredReason.trim() || null,
+                alternative: newVisit.nonCoveredAlternative.trim() || null,
+              },
+            ]
+          : [],
+        nonCoveredConsentGiven: newVisit.nonCoveredConsent,
       })
       setVisits((prev) => [
         {
@@ -383,6 +409,8 @@ export default function PatientDetailPage() {
           notes: saved.notes ?? '',
           cheopyakDisease: saved.cheopyakDisease,
           cheopyakDays: saved.cheopyakDays,
+          nonCoveredItems: saved.nonCoveredItems,
+          nonCoveredConsentAt: saved.nonCoveredConsentAt,
           interactionNoticeGivenAt: saved.interactionNoticeGivenAt,
           outcome: saved.outcome,
           outcomeNotes: saved.outcomeNotes,
@@ -412,6 +440,11 @@ export default function PatientDetailPage() {
       notes: '',
       cheopyakDisease: '',
       cheopyakDays: '10',
+      nonCoveredName: '',
+      nonCoveredAmount: '',
+      nonCoveredReason: '',
+      nonCoveredAlternative: '',
+      nonCoveredConsent: false,
     })
     setFormErrors({})
 
@@ -1024,6 +1057,8 @@ export default function PatientDetailPage() {
           visitId={guideVisit.id}
           formulaName={guideVisit.prescription}
           defaultDays={guideVisit.cheopyakDays ?? null}
+          nonCoveredItems={guideVisit.nonCoveredItems}
+          nonCoveredConsentAt={guideVisit.nonCoveredConsentAt}
           onClose={() => setGuideVisit(null)}
         />
       )}
@@ -1173,6 +1208,70 @@ export default function PatientDetailPage() {
                 </div>
               </div>
 
+              {/* 비급여 사전 설명 — 의료법 제45조의2 는 비급여를 하기 '전에'
+                  항목·가격·사유·대체 항목을 설명하고 동의를 받도록 한다.
+                  복약 안내서에 금액을 적어 보여주는 건 처방 뒤라 이 의무를
+                  대신하지 못한다. 설명한 시점이 진료 단위로 남아야 한다. */}
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="mb-3 text-sm font-medium text-gray-700">
+                  비급여 사전 설명
+                  <span className="ml-1 text-xs font-normal text-gray-400">
+                    (비급여 항목이 있을 때)
+                  </span>
+                </p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input
+                    value={newVisit.nonCoveredName}
+                    onChange={(e) => setNewVisit({ ...newVisit, nonCoveredName: e.target.value })}
+                    placeholder="항목명 (예: 첩약 10일분)"
+                    aria-label="비급여 항목명"
+                    className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <input
+                    type="number"
+                    value={newVisit.nonCoveredAmount}
+                    onChange={(e) => setNewVisit({ ...newVisit, nonCoveredAmount: e.target.value })}
+                    placeholder="금액 (원)"
+                    aria-label="비급여 금액"
+                    className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <input
+                    value={newVisit.nonCoveredReason}
+                    onChange={(e) => setNewVisit({ ...newVisit, nonCoveredReason: e.target.value })}
+                    placeholder="필요한 사유"
+                    aria-label="비급여 사유"
+                    className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <input
+                    value={newVisit.nonCoveredAlternative}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, nonCoveredAlternative: e.target.value })
+                    }
+                    placeholder="대체 가능 항목 (없으면 '없음')"
+                    aria-label="대체 가능 항목"
+                    className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+                <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={newVisit.nonCoveredConsent}
+                    onChange={(e) =>
+                      setNewVisit({ ...newVisit, nonCoveredConsent: e.target.checked })
+                    }
+                    className="mt-0.5 h-4 w-4 accent-blue-500"
+                  />
+                  <span>
+                    위 항목의 <strong>가격·사유·대체 항목을 진료 전에 설명하고 동의를
+                    받았습니다.</strong>
+                    <span className="mt-0.5 block text-xs text-gray-500">
+                      체크하면 설명 시점이 기록됩니다. 항목만 적어 두는 것과 실제로
+                      설명·동의를 받은 것은 다르게 남습니다.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               {/* 첩약 급여 처방이면 여기서 남긴다 — 안 남기면 연간 한도를
                   계산할 근거가 없고, 결국 한의사가 지난 처방을 기억해서 세게 된다. */}
               <div>
@@ -1239,6 +1338,11 @@ export default function PatientDetailPage() {
                     notes: '',
                     cheopyakDisease: '',
                     cheopyakDays: '10',
+                    nonCoveredName: '',
+                    nonCoveredAmount: '',
+                    nonCoveredReason: '',
+                    nonCoveredAlternative: '',
+                    nonCoveredConsent: false,
                   })
                 }}
                 className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
