@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { CheopyakAssistant } from '@/components/cheopyak/CheopyakAssistant'
+import { AutoInsuranceSheet } from '@/components/autoinsurance/AutoInsuranceSheet'
 import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
 import { logError } from '@/lib/errors'
 import {
@@ -127,6 +128,8 @@ export default function PatientDetailPage() {
   /** 이미 치험례로 옮긴 진료 — 같은 진료를 두 번 올리지 않게 막는다. */
   const [promotedVisitIds, setPromotedVisitIds] = useState<Set<string>>(new Set())
   const [promotingId, setPromotingId] = useState<string | null>(null)
+  /** 자보 내역서를 열어 둔 진료 */
+  const [autoSheetVisit, setAutoSheetVisit] = useState<VisitRecord | null>(null)
 
   // 환자·진료 기록 로드 — 서버에서.
   //
@@ -769,6 +772,20 @@ export default function PatientDetailPage() {
                 </div>
               )}
 
+              {/* 자보 진료였다면 내역서가 필요하다. 2026년부터 첩약·약침
+                  조제내역서 제출이 의무라 차트에서 바로 뽑을 수 있어야 한다. */}
+              {visit.prescription && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setAutoSheetVisit(visit)}
+                    className="text-[13px] font-semibold text-neutral-600 hover:text-neutral-900"
+                  >
+                    자보 내역서 만들기 →
+                  </button>
+                </div>
+              )}
+
               {/* 경과 — 기록돼 있으면 보여주고, 없으면 여기서 바로 적게 한다.
                   대시보드까지 가지 않아도 환자를 보면서 남길 수 있어야 실제로 적는다. */}
               {visit.outcome ? (
@@ -955,6 +972,20 @@ export default function PatientDetailPage() {
             </>
           )}
         </div>
+      )}
+
+      {autoSheetVisit && (
+        <AutoInsuranceSheet
+          patientName={patient.name}
+          patientBirthDate={patient.birthDate || undefined}
+          visit={{
+            visitedAt: autoSheetVisit.date,
+            diagnosis: autoSheetVisit.diagnosis,
+            formulaName: autoSheetVisit.prescription,
+            days: autoSheetVisit.cheopyakDays ?? 7,
+          }}
+          onClose={() => setAutoSheetVisit(null)}
+        />
       )}
 
       {/* New Visit Modal */}
