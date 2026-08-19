@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { saveGuide } from '@/lib/patientGuides'
 import axios from 'axios'
 import {
   Leaf,
@@ -82,7 +83,18 @@ export default function MedicationGuidePage() {
   const load = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/public/guides/${token}`)
-      setGuide(data?.data ?? data)
+      const loaded: Guide = data?.data ?? data
+      setGuide(loaded)
+      // 한 번 연 안내서는 이 기기의 보관함(/patient/home)에 담아 둔다.
+      // 약봉투를 버린 뒤에도 다시 찾을 수 있어야 한다.
+      if (token) {
+        saveGuide({
+          token,
+          formulaName: loaded.formulaName,
+          clinicName: loaded.clinicName,
+          issuedAt: loaded.issuedAt,
+        })
+      }
     } catch {
       setError('안내서를 찾을 수 없습니다. 링크가 만료되었거나 한의원에서 닫았을 수 있습니다.')
     } finally {

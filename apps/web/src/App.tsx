@@ -153,11 +153,8 @@ function App() {
           <Route index element={route(<PatientLandingPage />)} />
           <Route path="connect" element={route(<PatientConnectPage />)} />
           <Route path="home" element={route(<PatientHomePage />)} />
-          <Route path="appointments" element={route(<PatientHomePage />)} />
-          <Route path="appointments/:id" element={route(<PatientHomePage />)} />
-          <Route path="prescriptions" element={route(<PatientHomePage />)} />
-          <Route path="prescriptions/:id" element={route(<PatientHomePage />)} />
-          <Route path="notifications" element={route(<PatientHomePage />)} />
+          {/* 예약·알림 라우트는 지웠다. 뒤에 아무 기능도 없는데 주소만 있으면
+              '있는 기능' 으로 읽힌다. 실제로 만들 때 다시 연다. */}
         </Route>
 
         {/* B2C Health Platform (Public) */}
