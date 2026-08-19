@@ -394,6 +394,36 @@ export class MedicationGuidesService {
     };
   }
 
+  /**
+   * 내가 보낸 기록 다시 보기.
+   *
+   * 기록을 보내기만 하고 다시 볼 수 없으면, 좋아지고 있는지 본인이 알 수 없다.
+   * 한의원 기피 이유 4위가 "효과가 불확실하다" 인데 정작 본인의 호전을 본인
+   * 눈으로 볼 자리가 없었다.
+   *
+   * 열람 권한은 안내서 본문과 같다 — 링크를 아는 사람은 이미 전부 볼 수 있다.
+   * 한의사의 확인 여부(reviewedAt)는 내보내지 않는다. 환자가 알 일이 아니고,
+   * '아직 안 봤다' 가 보이면 불필요한 불안만 만든다.
+   */
+  async getPublicReports(token: string) {
+    const guide = await this.guides.findOne({ where: { token } });
+    if (!guide || guide.revokedAt) {
+      throw new NotFoundException('안내서를 찾을 수 없습니다.');
+    }
+    const rows = await this.reports.find({
+      where: { guideId: guide.id },
+      order: { reportedAt: 'ASC' },
+      take: 100,
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      symptomScore: r.symptomScore,
+      adverseFlags: r.adverseFlags ?? [],
+      note: r.note,
+      reportedAt: r.reportedAt.toISOString(),
+    }));
+  }
+
   /** 환자 자가 기록 등록 — 인증 없이 링크만으로 쓴다. */
   async addPublicReport(
     token: string,

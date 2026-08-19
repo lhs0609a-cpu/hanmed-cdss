@@ -99,6 +99,13 @@ export class PublicMedicationGuidesController {
   }
 
   @Public()
+  @Get(':token/reports')
+  @ApiOperation({ summary: '내가 보낸 기록 다시 보기' })
+  reports(@Param('token') token: string) {
+    return this.service.getPublicReports(token);
+  }
+
+  @Public()
   @Post(':token/reports')
   // 링크만 있으면 누구나 쓸 수 있는 자리라 분당 한도를 좁게 둔다.
   @Throttle({ long: { ttl: 60000, limit: 10 } })

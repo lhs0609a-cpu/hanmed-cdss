@@ -64,3 +64,91 @@ export function extractGuideToken(input: string): string | null {
   const token = fromUrl ? fromUrl[1] : raw
   return /^[A-Za-z0-9_-]{16,64}$/.test(token) ? token : null
 }
+
+// ── 복용 기록 (기기 저장) ──────────────────────────────────────
+// 복용 시작일과 오늘 먹었는지는 서버가 알 수 없다. 처방일이 곧 복용 시작일은
+// 아니고(며칠 뒤부터 먹는 경우가 흔하다), 발행일로 추정하면 틀린 날짜를
+// 자신 있게 보여주게 된다. 그래서 환자가 직접 누른 값만 쓴다.
+//
+// 서버로 보내지 않는다. 복약 순응도를 한의사에게 자동으로 넘기는 건
+// 환자가 동의한 적 없는 감시다. 알릴지 말지는 환자가 자가 기록에서 정한다.
+
+const DOSE_KEY = 'ongojisin:patient:doses'
+
+export interface DoseLog {
+  /** 복용 시작일 (YYYY-MM-DD). 안 눌렀으면 null */
+  startedOn: string | null
+  /** 복용한 날짜들 (YYYY-MM-DD) */
+  takenDates: string[]
+}
+
+type DoseMap = Record<string, DoseLog>
+
+function readDoseMap(): DoseMap {
+  try {
+    const raw = localStorage.getItem(DOSE_KEY)
+    if (!raw) return {}
+    const parsed: unknown = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? (parsed as DoseMap) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeDoseMap(map: DoseMap): void {
+  try {
+    localStorage.setItem(DOSE_KEY, JSON.stringify(map))
+  } catch {
+    /* 저장 실패는 무시 — 안내서 본문은 그대로 보인다 */
+  }
+}
+
+/** 오늘 날짜를 기기 시간대 기준 YYYY-MM-DD 로. UTC 로 자르면 하루가 밀린다. */
+export function todayKey(): string {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+export function getDoseLog(token: string): DoseLog {
+  return readDoseMap()[token] ?? { startedOn: null, takenDates: [] }
+}
+
+export function startDosing(token: string): DoseLog {
+  const map = readDoseMap()
+  const today = todayKey()
+  const next: DoseLog = {
+    startedOn: today,
+    takenDates: Array.from(new Set([...(map[token]?.takenDates ?? []), today])),
+  }
+  map[token] = next
+  writeDoseMap(map)
+  return next
+}
+
+/** 오늘 복용 체크를 켜고 끈다. */
+export function toggleTakenToday(token: string): DoseLog {
+  const map = readDoseMap()
+  const today = todayKey()
+  const current = map[token] ?? { startedOn: today, takenDates: [] }
+  const taken = current.takenDates.includes(today)
+  const next: DoseLog = {
+    startedOn: current.startedOn ?? today,
+    takenDates: taken
+      ? current.takenDates.filter((d) => d !== today)
+      : [...current.takenDates, today],
+  }
+  map[token] = next
+  writeDoseMap(map)
+  return next
+}
+
+/** 복용 시작일로부터 오늘이 며칠째인지(시작일이 1일째). */
+export function daysSinceStart(startedOn: string | null): number | null {
+  if (!startedOn) return null
+  const start = new Date(`${startedOn}T00:00:00`)
+  const today = new Date(`${todayKey()}T00:00:00`)
+  const diff = Math.floor((today.getTime() - start.getTime()) / 86400000)
+  return diff >= 0 ? diff + 1 : null
+}
