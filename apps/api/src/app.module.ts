@@ -12,6 +12,7 @@ import { PatientsModule } from './modules/patients/patients.module';
 import { PractitionerPatientsModule } from './modules/practitioner-patients/practitioner-patients.module';
 import { PractitionerCasesModule } from './modules/practitioner-cases/practitioner-cases.module';
 import { MedicationGuidesModule } from './modules/medication-guides/medication-guides.module';
+import { NonPayPricesModule } from './modules/nonpay-prices/nonpay-prices.module';
 import { NoticesModule } from './modules/notices/notices.module';
 import { CasesModule } from './modules/cases/cases.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
@@ -165,6 +166,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     PractitionerPatientsModule,
     PractitionerCasesModule,
     MedicationGuidesModule,
+    NonPayPricesModule,
     NoticesModule,
     CasesModule,
     PrescriptionsModule,
