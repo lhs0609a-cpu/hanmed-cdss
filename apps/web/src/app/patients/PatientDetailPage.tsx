@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
+import { CheopyakAssistant } from '@/components/cheopyak/CheopyakAssistant'
+import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
 import { logError } from '@/lib/errors'
 import {
   fetchMyPatient,
@@ -54,6 +56,8 @@ interface VisitRecord {
   /** 통증 점수 — 안 물어본 진료는 null. 0(통증 없음)과 구분해야 한다. */
   painScore: number | null
   notes: string
+  cheopyakDisease?: string | null
+  cheopyakDays?: number | null
   /** 서버 진료 기록의 경과 — 미기록이면 null */
   outcome?: string | null
   outcomeNotes?: string | null
@@ -73,6 +77,9 @@ interface NewVisitForm {
   pulseNote: string
   painScore: number
   notes: string
+  /** 첩약 시범사업 급여 처방일 때만 채운다 — 연간 한도 계산의 근거가 된다. */
+  cheopyakDisease: string
+  cheopyakDays: string
 }
 
 const defaultDemoPatient: {
@@ -166,6 +173,8 @@ export default function PatientDetailPage() {
           pulseNote: v.pulseNote ?? '',
           painScore: v.painScore,
           notes: v.notes ?? '',
+          cheopyakDisease: v.cheopyakDisease,
+          cheopyakDays: v.cheopyakDays,
           outcome: v.outcome,
           outcomeNotes: v.outcomeNotes,
           outcomeRecordedAt: v.outcomeRecordedAt,
@@ -191,6 +200,8 @@ export default function PatientDetailPage() {
     pulseNote: '',
     painScore: 5,
     notes: '',
+    cheopyakDisease: '',
+    cheopyakDays: '10',
   })
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof NewVisitForm, string>>>({})
 
@@ -338,6 +349,11 @@ export default function PatientDetailPage() {
         pulseNote: newVisit.pulseNote.trim() || null,
         painScore: newVisit.painScore,
         notes: newVisit.notes.trim() || null,
+        // 질환을 고르지 않았으면 급여 처방이 아니다 — 일수도 보내지 않는다.
+        cheopyakDisease: newVisit.cheopyakDisease || null,
+        cheopyakDays: newVisit.cheopyakDisease
+          ? parseInt(newVisit.cheopyakDays, 10) || null
+          : null,
       })
       setVisits((prev) => [
         {
@@ -349,6 +365,8 @@ export default function PatientDetailPage() {
           pulseNote: saved.pulseNote ?? '',
           painScore: saved.painScore,
           notes: saved.notes ?? '',
+          cheopyakDisease: saved.cheopyakDisease,
+          cheopyakDays: saved.cheopyakDays,
           outcome: saved.outcome,
           outcomeNotes: saved.outcomeNotes,
           outcomeRecordedAt: saved.outcomeRecordedAt,
@@ -375,6 +393,8 @@ export default function PatientDetailPage() {
       pulseNote: '',
       painScore: 5,
       notes: '',
+      cheopyakDisease: '',
+      cheopyakDays: '10',
     })
     setFormErrors({})
 
@@ -639,6 +659,27 @@ export default function PatientDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* 첩약 시범사업 — 남은 한도와 체크리스트 초안.
+              설문에서 76%가 '체크리스트 등 번거로운 행정절차' 를 애로로 꼽았다. */}
+          <CheopyakAssistant
+            patientId={patient.id}
+            patientName={patient.name}
+            patientAgeGender={patientSubtitle || undefined}
+            latestVisit={
+              hasVisits
+                ? {
+                    visitedAt: latestVisit.date,
+                    symptoms: latestVisit.symptoms,
+                    diagnosis: latestVisit.diagnosis,
+                    formulaName: latestVisit.prescription,
+                    pulseNote: latestVisit.pulseNote,
+                    painScore: latestVisit.painScore,
+                  }
+                : null
+            }
+            className="lg:col-span-2"
+          />
         </div>
       )}
 
@@ -1047,6 +1088,42 @@ export default function PatientDetailPage() {
                 </div>
               </div>
 
+              {/* 첩약 급여 처방이면 여기서 남긴다 — 안 남기면 연간 한도를
+                  계산할 근거가 없고, 결국 한의사가 지난 처방을 기억해서 세게 된다. */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-1">
+                    첩약 건강보험
+                    <span className="text-xs text-gray-400 font-normal">(급여 처방일 때만)</span>
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={newVisit.cheopyakDisease}
+                    onChange={(e) => setNewVisit({ ...newVisit, cheopyakDisease: e.target.value })}
+                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  >
+                    <option value="">해당 없음 (비급여)</option>
+                    {CHEOPYAK_DISEASES.filter((d) => d.isPilotCovered !== false).map((d) => (
+                      <option key={d.pilotCode} value={d.name}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={newVisit.cheopyakDays}
+                    onChange={(e) => setNewVisit({ ...newVisit, cheopyakDays: e.target.value })}
+                    disabled={!newVisit.cheopyakDisease}
+                    aria-label="첩약 처방 일수"
+                    className="w-24 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
+                  />
+                  <span className="self-center text-sm text-gray-500">일분</span>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <span className="flex items-center gap-1">
@@ -1075,6 +1152,8 @@ export default function PatientDetailPage() {
                     pulseNote: '',
                     painScore: 5,
                     notes: '',
+                    cheopyakDisease: '',
+                    cheopyakDays: '10',
                   })
                 }}
                 className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"

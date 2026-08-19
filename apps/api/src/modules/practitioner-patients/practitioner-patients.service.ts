@@ -42,6 +42,8 @@ export interface VisitDto {
   painScore: number | null;
   pulseNote: string | null;
   notes: string | null;
+  cheopyakDisease: string | null;
+  cheopyakDays: number | null;
   outcome: string | null;
   outcomeNotes: string | null;
   outcomeRecordedAt: string | null;
@@ -72,7 +74,29 @@ export interface CreateVisitInput {
   painScore?: number | null;
   pulseNote?: string | null;
   notes?: string | null;
+  cheopyakDisease?: string | null;
+  cheopyakDays?: number | null;
   followUpAt?: string | null;
+}
+
+/**
+ * 첩약 건강보험 2단계 시범사업 한도.
+ * 환자 1인당 연간 2개 질환, 질환당 20일분. (보건복지부 2단계 시범사업 기준)
+ */
+export const CHEOPYAK_DISEASES_PER_YEAR = 2;
+export const CHEOPYAK_DAYS_PER_DISEASE = 20;
+
+export interface CheopyakQuotaDto {
+  year: number;
+  diseases: Array<{
+    disease: string;
+    daysUsed: number;
+    daysRemaining: number;
+    lastPrescribedAt: string | null;
+  }>;
+  diseaseSlotsTotal: number;
+  diseaseSlotsUsed: number;
+  daysPerDisease: number;
 }
 
 /** 경과 기록 입력 — 처방 이후 어떻게 됐는지. */
@@ -152,6 +176,8 @@ export class PractitionerPatientsService {
       painScore: v.painScore,
       pulseNote: v.pulseNote,
       notes: v.notes,
+      cheopyakDisease: v.cheopyakDisease,
+      cheopyakDays: v.cheopyakDays,
       outcome: v.outcome,
       outcomeNotes: v.outcomeNotes,
       outcomeRecordedAt: v.outcomeRecordedAt ? v.outcomeRecordedAt.toISOString() : null,
@@ -175,6 +201,52 @@ export class PractitionerPatientsService {
   }
 
   /** 소유자 검증을 한 곳으로 모은다 — 여기를 지나지 않는 조회를 만들지 말 것. */
+  // ── 첩약 시범사업 한도 ───────────────────────────────────────
+
+  /**
+   * 이 환자의 올해 첩약 급여 사용량.
+   *
+   * 2단계 시범사업 규칙: 연간 2개 질환까지, 질환당 20일분까지.
+   * 넘겨 처방하면 삭감되는데 지금은 한의사가 지난 처방을 기억해서 센다.
+   * 연도 경계는 진료일(visitedAt) 기준이다.
+   */
+  async getCheopyakQuota(
+    practitionerId: string,
+    patientId: string,
+    year: number,
+  ): Promise<CheopyakQuotaDto> {
+    // 남의 환자 id 로는 조회되지 않아야 한다.
+    await this.findOwned(practitionerId, patientId);
+
+    const rows = await this.visits
+      .createQueryBuilder('v')
+      .select('v."cheopyakDisease"', 'disease')
+      .addSelect('SUM(COALESCE(v."cheopyakDays", 0))', 'days')
+      .addSelect('MAX(v."visitedAt")', 'lastAt')
+      .where('v."practitionerId" = :practitionerId', { practitionerId })
+      .andWhere('v."patientId" = :patientId', { patientId })
+      .andWhere('v."deletedAt" IS NULL')
+      .andWhere('v."cheopyakDisease" IS NOT NULL')
+      .andWhere('EXTRACT(YEAR FROM v."visitedAt") = :year', { year })
+      .groupBy('v."cheopyakDisease"')
+      .getRawMany<{ disease: string; days: string; lastAt: Date }>();
+
+    const diseases = rows.map((r) => ({
+      disease: r.disease,
+      daysUsed: Number(r.days) || 0,
+      daysRemaining: Math.max(0, CHEOPYAK_DAYS_PER_DISEASE - (Number(r.days) || 0)),
+      lastPrescribedAt: r.lastAt ? new Date(r.lastAt).toISOString() : null,
+    }));
+
+    return {
+      year,
+      diseases,
+      diseaseSlotsTotal: CHEOPYAK_DISEASES_PER_YEAR,
+      diseaseSlotsUsed: diseases.length,
+      daysPerDisease: CHEOPYAK_DAYS_PER_DISEASE,
+    };
+  }
+
   private async findOwned(
     practitionerId: string,
     id: string,
@@ -289,6 +361,8 @@ export class PractitionerPatientsService {
       painScore: input.painScore ?? null,
       pulseNote: input.pulseNote ?? null,
       notes: input.notes ?? null,
+      cheopyakDisease: input.cheopyakDisease ?? null,
+      cheopyakDays: input.cheopyakDays ?? null,
       followUpAt: input.followUpAt ? new Date(input.followUpAt) : null,
     });
     const saved = await this.visits.save(entity);

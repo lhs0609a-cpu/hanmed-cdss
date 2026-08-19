@@ -107,6 +107,19 @@ export class PractitionerVisit {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  // ── 첩약 건강보험 시범사업 ───────────────────────────────────
+  // 2단계 시범사업은 환자 1인당 연간 2개 질환, 질환당 20일분까지만 급여다.
+  // 한도를 넘겨 처방하면 그대로 삭감되는데, 지금은 한의사가 지난 처방을
+  // 기억해서 세고 있다. 처방할 때 남은 일수를 계산하려면 이 두 값이 필요하다.
+
+  /** 시범사업 대상 질환명(6개 중 하나). 첩약 급여 처방이 아니면 null. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  cheopyakDisease: string | null;
+
+  /** 이번 처방의 일수. 연간 한도(질환당 20일) 계산의 단위다. */
+  @Column({ type: 'smallint', nullable: true })
+  cheopyakDays: number | null;
+
   // ── 경과 추적 ────────────────────────────────────────────────
   // 처방을 내는 것으로 진료가 끝나지 않는다. 그 처방이 어떻게 됐는지가
   // 다음 진료의 근거이고, 쌓이면 이 한의사 자신의 치험례가 된다.
