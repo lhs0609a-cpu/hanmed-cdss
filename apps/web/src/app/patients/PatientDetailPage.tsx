@@ -25,6 +25,7 @@ import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSucces
 import { CheopyakAssistant } from '@/components/cheopyak/CheopyakAssistant'
 import { AutoInsuranceSheet } from '@/components/autoinsurance/AutoInsuranceSheet'
 import { DrugInteractionPanel } from '@/components/interactions/DrugInteractionPanel'
+import { MedicationGuideModal } from '@/components/guide/MedicationGuideModal'
 import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
 import { logError } from '@/lib/errors'
 import {
@@ -134,6 +135,8 @@ export default function PatientDetailPage() {
   const [promotingId, setPromotingId] = useState<string | null>(null)
   /** 자보 내역서를 열어 둔 진료 */
   const [autoSheetVisit, setAutoSheetVisit] = useState<VisitRecord | null>(null)
+  /** 복약 안내서를 열어 둔 진료 */
+  const [guideVisit, setGuideVisit] = useState<VisitRecord | null>(null)
 
   // 환자·진료 기록 로드 — 서버에서.
   //
@@ -796,7 +799,16 @@ export default function PatientDetailPage() {
               {/* 자보 진료였다면 내역서가 필요하다. 2026년부터 첩약·약침
                   조제내역서 제출이 의무라 차트에서 바로 뽑을 수 있어야 한다. */}
               {visit.prescription && (
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-4">
+                  {/* 환자가 뭘 먹는지 모른다는 게 한의원 기피 이유 상위였다.
+                      차트에 있는 내용이니 버튼 한 번으로 넘겨 준다. */}
+                  <button
+                    type="button"
+                    onClick={() => setGuideVisit(visit)}
+                    className="text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    환자 복약 안내서 →
+                  </button>
                   <button
                     type="button"
                     onClick={() => setAutoSheetVisit(visit)}
@@ -1005,6 +1017,15 @@ export default function PatientDetailPage() {
             </>
           )}
         </div>
+      )}
+
+      {guideVisit && (
+        <MedicationGuideModal
+          visitId={guideVisit.id}
+          formulaName={guideVisit.prescription}
+          defaultDays={guideVisit.cheopyakDays ?? null}
+          onClose={() => setGuideVisit(null)}
+        />
       )}
 
       {autoSheetVisit && (
