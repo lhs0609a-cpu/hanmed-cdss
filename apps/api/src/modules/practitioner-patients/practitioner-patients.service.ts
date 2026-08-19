@@ -91,6 +91,12 @@ export interface CreateVisitInput {
 export const CHEOPYAK_DISEASES_PER_YEAR = 2;
 export const CHEOPYAK_DAYS_PER_DISEASE = 20;
 
+/** 한동안 안 온 환자 — 연락 대상 목록용 */
+export interface InactivePatientDto extends PatientDto {
+  daysSinceLastVisit: number;
+  neverVisited: boolean;
+}
+
 export interface CheopyakQuotaDto {
   year: number;
   diseases: Array<{
@@ -210,6 +216,46 @@ export class PractitionerPatientsService {
   }
 
   /** 소유자 검증을 한 곳으로 모은다 — 여기를 지나지 않는 조회를 만들지 말 것. */
+  /**
+   * 한동안 안 온 환자.
+   *
+   * 신환을 데려오는 비용보다 이미 온 환자가 다시 오게 하는 쪽이 훨씬 싸다.
+   * 그런데 "누가 안 오고 있는지" 는 아무 화면에도 없어서, 이탈은 조용히 일어난다.
+   *
+   * 마지막 내원일이 기준일보다 오래된 활성 환자를 오래된 순으로 준다.
+   * 한 번도 안 온 환자(lastVisitAt IS NULL)는 등록일을 기준으로 본다 —
+   * 등록만 해 두고 안 온 경우도 연락 대상이다.
+   */
+  async listInactivePatients(
+    practitionerId: string,
+    days = 60,
+    limit = 30,
+  ): Promise<InactivePatientDto[]> {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const rows = await this.patients
+      .createQueryBuilder('p')
+      .where('p."practitionerId" = :practitionerId', { practitionerId })
+      .andWhere('p."deletedAt" IS NULL')
+      .andWhere(`p."status" = 'active'`)
+      .andWhere('COALESCE(p."lastVisitAt", p."createdAt") <= :cutoff', { cutoff })
+      .orderBy('COALESCE(p."lastVisitAt", p."createdAt")', 'ASC')
+      .take(limit)
+      .getMany();
+
+    const now = Date.now();
+    return rows.map((p) => {
+      const since = p.lastVisitAt ?? p.createdAt;
+      return {
+        ...this.toDto(p),
+        daysSinceLastVisit: Math.floor(
+          (now - new Date(since).getTime()) / (24 * 60 * 60 * 1000),
+        ),
+        neverVisited: !p.lastVisitAt,
+      };
+    });
+  }
+
   /**
    * 상호작용 위험을 환자에게 설명했다고 기록한다.
    *
