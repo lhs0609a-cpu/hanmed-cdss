@@ -78,6 +78,16 @@ export class PractitionerPatient {
   @Column({ type: 'text', nullable: true })
   memo: string | null;
 
+  /**
+   * 환자가 복용 중인 양약.
+   *
+   * 대법원은 양약 복용 환자에게 한약을 처방할 때 상호작용 위험을 설명할 의무를
+   * 인정했다. 설명하려면 먼저 무엇을 먹고 있는지 알아야 하는데, 그동안 이 값은
+   * 화면에만 있고 저장되지 않아 다음 진료에서 다시 물어야 했다.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  medications: string[];
+
   @Column({ type: 'varchar', length: 16, default: 'active' })
   status: 'active' | 'inactive';
 

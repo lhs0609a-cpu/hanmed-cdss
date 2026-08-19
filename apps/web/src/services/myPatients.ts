@@ -17,6 +17,8 @@ export interface MyPatient {
   constitution: string | null
   mainComplaint: string | null
   memo: string | null
+  /** 복용 중인 양약 — 한약 상호작용 대조에 쓴다 */
+  medications: string[]
   status: 'active' | 'inactive'
   lastVisitAt: string | null
   totalVisits: number
@@ -41,6 +43,8 @@ export interface MyVisit {
   /** 첩약 시범사업 급여 처방일 때만 채워진다 */
   cheopyakDisease: string | null
   cheopyakDays: number | null
+  /** 상호작용 위험을 환자에게 설명한 시점 */
+  interactionNoticeGivenAt: string | null
   outcome: string | null
   outcomeNotes: string | null
   outcomeRecordedAt: string | null
@@ -64,6 +68,7 @@ export interface NewPatientPayload {
   mainComplaint?: string | null
   memo?: string | null
   status?: 'active' | 'inactive'
+  medications?: string[]
 }
 
 export interface NewVisitPayload {
@@ -119,6 +124,17 @@ export async function fetchMyVisits(patientId?: string, limit = 50): Promise<MyV
 
 export async function createMyVisit(payload: NewVisitPayload): Promise<MyVisit> {
   const { data } = await api.post<MyVisit>('/my-patients/visits', payload)
+  return data
+}
+
+/**
+ * 상호작용 위험을 환자에게 설명했다고 기록한다.
+ * 설명의무는 이행 사실이 남지 않으면 나중에 방어가 되지 않는다.
+ */
+export async function recordInteractionNotice(visitId: string): Promise<MyVisit> {
+  const { data } = await api.patch<MyVisit>(
+    `/my-patients/visits/${visitId}/interaction-notice`,
+  )
   return data
 }
 

@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { CheopyakAssistant } from '@/components/cheopyak/CheopyakAssistant'
 import { AutoInsuranceSheet } from '@/components/autoinsurance/AutoInsuranceSheet'
+import { DrugInteractionPanel } from '@/components/interactions/DrugInteractionPanel'
 import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
 import { logError } from '@/lib/errors'
 import {
@@ -59,6 +60,7 @@ interface VisitRecord {
   notes: string
   cheopyakDisease?: string | null
   cheopyakDays?: number | null
+  interactionNoticeGivenAt?: string | null
   /** 서버 진료 기록의 경과 — 미기록이면 null */
   outcome?: string | null
   outcomeNotes?: string | null
@@ -162,7 +164,7 @@ export default function PatientDetailPage() {
         address: '',
         constitution: p.constitution ?? '',
         allergies: [],
-        medications: [],
+        medications: p.medications ?? [],
         mainComplaint: p.mainComplaint ?? '',
         medicalHistory: '',
       })
@@ -178,6 +180,7 @@ export default function PatientDetailPage() {
           notes: v.notes ?? '',
           cheopyakDisease: v.cheopyakDisease,
           cheopyakDays: v.cheopyakDays,
+          interactionNoticeGivenAt: v.interactionNoticeGivenAt,
           outcome: v.outcome,
           outcomeNotes: v.outcomeNotes,
           outcomeRecordedAt: v.outcomeRecordedAt,
@@ -370,6 +373,7 @@ export default function PatientDetailPage() {
           notes: saved.notes ?? '',
           cheopyakDisease: saved.cheopyakDisease,
           cheopyakDays: saved.cheopyakDays,
+          interactionNoticeGivenAt: saved.interactionNoticeGivenAt,
           outcome: saved.outcome,
           outcomeNotes: saved.outcomeNotes,
           outcomeRecordedAt: saved.outcomeRecordedAt,
@@ -650,16 +654,6 @@ export default function PatientDetailPage() {
                   ))}
                 </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-2">복용 약물</p>
-                <div className="flex flex-wrap gap-2">
-                  {patient.medications.map((med, i) => (
-                    <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-lg">
-                      {med}
-                    </span>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -678,6 +672,26 @@ export default function PatientDetailPage() {
                     formulaName: latestVisit.prescription,
                     pulseNote: latestVisit.pulseNote,
                     painScore: latestVisit.painScore,
+                  }
+                : null
+            }
+            className="lg:col-span-2"
+          />
+
+          {/* 한약-양약 병용 점검 — 대법원이 인정한 설명의무의 출발점이다.
+              무엇을 먹고 있는지 모르면 설명할 수도, 남길 수도 없다. */}
+          <DrugInteractionPanel
+            patientId={patient.id}
+            medications={patient.medications}
+            onMedicationsChange={(next) =>
+              setPatient((prev) => (prev ? { ...prev, medications: next } : prev))
+            }
+            visit={
+              hasVisits
+                ? {
+                    id: latestVisit.id,
+                    formulaName: latestVisit.prescription,
+                    interactionNoticeGivenAt: latestVisit.interactionNoticeGivenAt,
                   }
                 : null
             }
