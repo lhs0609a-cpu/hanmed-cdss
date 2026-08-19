@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search,
@@ -167,32 +167,56 @@ export default function CasesPage() {
   // 디바운스된 검색어
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch)
 
-  // URL 파라미터 업데이트 함수
+  /**
+   * URL 파라미터 업데이트.
+   *
+   * searchParams 를 의존성에 넣으면 안 된다 — 페이지를 바꿀 때마다 이 함수의
+   * 정체성이 바뀌고, 이 함수를 의존하는 아래 useEffect 들이 다시 돌면서
+   * setCurrentPage(1) 로 되돌려 버린다. 실제로 2페이지로 넘어가지지 않았다.
+   * 갱신 함수 형태를 쓰면 이전 값을 인자로 받으므로 의존성이 필요 없다.
+   */
   const updateSearchParams = useCallback((updates: Record<string, string | number>) => {
-    const newParams = new URLSearchParams(searchParams)
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== '' && value !== 'all' && value !== 1) {
-        newParams.set(key, String(value))
-      } else {
-        newParams.delete(key)
-      }
-    })
-    // replace: true로 설정하여 히스토리 스택 오염 방지
-    setSearchParams(newParams, { replace: true })
-  }, [searchParams, setSearchParams])
+    setSearchParams(
+      (prev) => {
+        const newParams = new URLSearchParams(prev)
+        Object.entries(updates).forEach(([key, value]) => {
+          if (value && value !== '' && value !== 'all' && value !== 1) {
+            newParams.set(key, String(value))
+          } else {
+            newParams.delete(key)
+          }
+        })
+        return newParams
+      },
+      // replace: true로 설정하여 히스토리 스택 오염 방지
+      { replace: true },
+    )
+  }, [setSearchParams])
 
   // 검색어 디바운스 + URL 업데이트
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
-      setCurrentPage(1)
-      updateSearchParams({ q: searchQuery, page: 1 })
+      // 검색어가 실제로 바뀐 게 아니면 페이지를 건드리지 않는다.
+      // (첫 렌더에서도 돌기 때문에 ?page=3 으로 들어온 링크가 1페이지로 튄다)
+      setDebouncedSearch((prev) => {
+        if (prev === searchQuery) return prev
+        setCurrentPage(1)
+        updateSearchParams({ q: searchQuery, page: 1 })
+        return searchQuery
+      })
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery, updateSearchParams])
 
-  // 필터 변경 시 첫 페이지로 + URL 업데이트
+  // 필터 변경 시 첫 페이지로 + URL 업데이트.
+  // 첫 렌더에서는 건너뛴다 — 필터를 바꾼 게 아니라 화면이 처음 뜬 것뿐인데
+  // 페이지를 1로 돌리면 ?page=3 링크로 들어온 사람이 1페이지를 보게 된다.
+  const filtersMounted = useRef(false)
   useEffect(() => {
+    if (!filtersMounted.current) {
+      filtersMounted.current = true
+      return
+    }
     setCurrentPage(1)
     updateSearchParams({
       category: searchCategory,
