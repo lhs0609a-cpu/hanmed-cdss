@@ -14,9 +14,15 @@ test('자보 내역서 · 병용 점검 · 재진 관리', async ({ page }) => {
   // 대시보드 — 한동안 안 온 환자
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(6000)
+  // 카드 기본값은 2개월+ 이라 30일 지난 환자는 안 뜬다. 1개월+ 로 바꿔서 본다.
+  const range = page.getByRole('button', { name: '1개월+' })
+  if (await range.count()) {
+    await range.click()
+    await page.waitForTimeout(2500)
+  }
   const dash = await page.locator('body').innerText()
   console.log(`[안 온 환자 카드] ${dash.includes('한동안 안 온 환자') ? '있음 ✓' : '없음 ✗'}`)
-  console.log(`[대상 표시] ${dash.includes('최첩약') ? '있음 ✓' : '없음 ✗'}`)
+  console.log(`[대상 표시] ${dash.includes('마지막 내원') ? '있음 ✓' : '없음 ✗'}`)
   await page.screenshot({ path: `${OUT}/대시보드.png`, fullPage: true })
 
   // 환자 상세 — 병용 점검
