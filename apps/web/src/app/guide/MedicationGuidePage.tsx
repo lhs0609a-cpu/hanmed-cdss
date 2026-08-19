@@ -162,7 +162,7 @@ export default function MedicationGuidePage() {
               <>
                 {' '}
                 그중 호전 이상으로 기록된 비율은{' '}
-                <strong>{Math.round(guide.evidence.successRate * 100)}%</strong>입니다.
+                <strong>{guide.evidence.successRate}%</strong>입니다.
               </>
             )}
           </p>
