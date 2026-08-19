@@ -168,6 +168,55 @@ export class ClinicalCase {
     dosage?: string;
   }>;
 
+  // ── 구조화 요약 (현대 한의사가 빠르게 읽고 자기 케이스와 대조하기 위한 것) ──
+  //
+  // 원문은 한 덩어리다. 한 행에 이 케이스 + 다른 사람 시험복용례 + 고전 인용 +
+  // 다른 처방 해설 + 또 다른 활용사례가 섞여 있는 경우가 흔하다(4천자 초과 817건).
+  // 그대로 두면 임상에서 못 읽는다. 아래 필드에 이 케이스만 뽑아 단계로 정리한다.
+
+  /** 한 줄 요약 — 누가, 무엇으로, 어떻게 됐나 */
+  @Column({ type: 'text', nullable: true })
+  summaryOneLine: string | null;
+
+  /** 변증의 결정적 근거가 된 소견 (원문에서 뽑은 짧은 항목들) */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  keyFindings: string[];
+
+  /** 왜 이 변증인가 — 한 문단 */
+  @Column({ type: 'text', nullable: true })
+  patternReasoning: string | null;
+
+  /** 원방 대비 가감과 그 이유 */
+  @Column({ type: 'text', nullable: true })
+  modification: string | null;
+
+  /** 복용 경과 단계 — [{ step: '5번째 복용', change: '...' }] */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  courseSteps: Array<{ step: string; change: string }>;
+
+  /** 이 치험례만의 특징 — 흔한 케이스와 무엇이 다른가 */
+  @Column({ type: 'text', nullable: true })
+  distinctive: string | null;
+
+  /**
+   * 본문에서 실제로 쓴 처방명. herbalFormulas 의 이름과 다를 수 있다.
+   * (예: 저장된 이름은 보중익기탕인데 본문은 사군자탕)
+   */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  verifiedFormulaName: string | null;
+
+  /** 저장된 처방명과 본문이 어긋나는가 — 화면에서 경고로 쓴다 */
+  @Column({ type: 'boolean', default: false })
+  formulaMismatch: boolean;
+
+  /** 원문에 다른 사례·처방 해설이 섞여 있는가 */
+  @Column({ type: 'boolean', default: false })
+  hasMixedContent: boolean;
+
+  /** 구조화 요약을 만든 시점 — null 이면 아직 안 돌린 것 */
+  @Column({ type: 'timestamptz', nullable: true })
+  summarizedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

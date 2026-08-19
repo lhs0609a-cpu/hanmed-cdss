@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   Loader2,
 } from 'lucide-react'
+import { CaseSummaryPanel } from '@/components/evidence/CaseSummaryPanel'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
@@ -569,8 +570,12 @@ export default function CasesPage() {
                       {formulaName || '처방 미기재'}
                     </h3>
                   </div>
+                  {/* 정리된 한 줄 요약이 있으면 그걸 쓴다. 원문에서 잘라 온
+                      주소증은 문장 중간에서 시작하는 경우가 많다("은 풍치와…"). */}
                   <p className="text-[12px] text-neutral-500 mt-0.5 line-clamp-1">
-                    {stripHanja(caseItem.chiefComplaint || '') || '주소증 미기재'}
+                    {(caseItem as { summaryOneLine?: string | null }).summaryOneLine ||
+                      stripHanja(caseItem.chiefComplaint || '') ||
+                      '주소증 미기재'}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -758,6 +763,24 @@ export default function CasesPage() {
 
               {/* 본문 */}
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+                {/* 정리된 요약이 먼저 — 원문은 한 덩어리라 진료 중에 읽을 수 없다.
+                    아직 정리 전인 치험례에서는 아무것도 그리지 않는다. */}
+                <CaseSummaryPanel
+                  summary={{
+                    summaryOneLine: c.summaryOneLine,
+                    keyFindings: c.keyFindings,
+                    patternReasoning: c.patternReasoning,
+                    modification: c.modification,
+                    courseSteps: c.courseSteps,
+                    distinctive: c.distinctive,
+                    verifiedFormulaName: c.verifiedFormulaName,
+                    formulaMismatch: c.formulaMismatch,
+                    hasMixedContent: c.hasMixedContent,
+                  }}
+                  storedFormulaName={formulaName}
+                  className="pb-1"
+                />
+
                 {/* 해시태그 한 줄 — 가장 빠른 컨텍스트 */}
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
