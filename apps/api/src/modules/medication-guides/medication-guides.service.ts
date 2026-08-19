@@ -321,6 +321,9 @@ export class MedicationGuidesService {
       .innerJoin('medication_guides', 'g', 'g."id" = r."guideId"')
       .where('g."practitionerId" = :practitionerId', { practitionerId })
       .andWhere('r."reviewedAt" IS NULL')
+      // 닫힌 안내서의 기록은 목록에 남기지 않는다. 환자를 지우면 안내서도
+      // 닫히는데, 그 기록이 계속 떠 있으면 지운 환자가 화면에 남는 셈이다.
+      .andWhere('g."revokedAt" IS NULL')
       .select([
         'r."id" AS id',
         'r."guideId" AS "guideId"',
