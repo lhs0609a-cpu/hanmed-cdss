@@ -73,6 +73,7 @@ const MedicationGuidePage = lazy(() => import('@/app/guide/MedicationGuidePage')
 const PatientLayout = lazy(() => import('@/app/patient/PatientLayout'))
 const PatientLandingPage = lazy(() => import('@/app/patient/PatientLandingPage'))
 const PatientConnectPage = lazy(() => import('@/app/patient/PatientConnectPage'))
+const PatientCostPage = lazy(() => import('@/app/patient/PatientCostPage'))
 const PatientHomePage = lazy(() => import('@/app/patient/PatientHomePage'))
 
 // B2C Health Platform (lazy)
@@ -153,6 +154,7 @@ function App() {
           <Route index element={route(<PatientLandingPage />)} />
           <Route path="connect" element={route(<PatientConnectPage />)} />
           <Route path="home" element={route(<PatientHomePage />)} />
+          <Route path="cost" element={route(<PatientCostPage />)} />
           {/* 예약·알림 라우트는 지웠다. 뒤에 아무 기능도 없는데 주소만 있으면
               '있는 기능' 으로 읽힌다. 실제로 만들 때 다시 연다. */}
         </Route>
