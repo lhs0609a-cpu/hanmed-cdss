@@ -389,8 +389,15 @@ export class PractitionerPatientsService {
     return this.toDto(saved);
   }
 
+  /**
+   * 환자 삭제 — 그 환자의 진료 기록도 함께 내린다.
+   *
+   * 진료를 남겨 두면 환자 이름을 못 찾아 대시보드 경과 확인 목록에
+   * "이름 없는 진료" 로 떠다닌다. 지운 환자가 화면에 계속 나오는 셈이다.
+   */
   async deletePatient(practitionerId: string, id: string): Promise<void> {
     const row = await this.findOwned(practitionerId, id);
+    await this.visits.softDelete({ practitionerId, patientId: id });
     await this.patients.softRemove(row);
   }
 
@@ -514,6 +521,14 @@ export class PractitionerPatientsService {
            OR (v."followUpAt" IS NULL AND v."visitedAt" <= :cutoff)
          )`,
         { cutoff },
+      )
+      // 지운 환자의 진료는 목록에 남기지 않는다. 삭제 시 함께 내리지만
+      // 그 전에 쌓인 기록이 있어 조회에서도 한 번 더 거른다.
+      .andWhere(
+        `(v."patientId" IS NULL OR EXISTS (
+            SELECT 1 FROM "practitioner_patients" p
+             WHERE p."id" = v."patientId" AND p."deletedAt" IS NULL
+          ))`,
       )
       .orderBy('v."visitedAt"', 'ASC')
       .take(50)
