@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 import { Check, ExternalLink, Info, ShieldCheck } from 'lucide-react'
 import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
 
@@ -20,7 +21,30 @@ import { CHEOPYAK_DISEASES } from '@/data/cheopyak-codes'
  *     참여 환자 조사에서 1인당 84,860원 경감
  *   - 비급여 진료비용 공개: 693개 항목, 2025-09-03 부터 (심평원 누리집·건강e음)
  *   - 비급여 사전 설명 의무: 의료법 제45조의2
+ *   - 한방 비급여 지역별 가격: 심평원 비급여진료비정보서비스(월 1회 갱신).
+ *     개별 한의원이 아니라 지역 통계만 쓴다.
  */
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.kr/api/v1'
+
+interface PriceItem {
+  code: string
+  name: string
+  category: string
+  min: number | null
+  median: number | null
+  average: number | null
+  max: number | null
+}
+
+interface PriceResult {
+  region: string
+  regionName: string
+  appliedOn: string | null
+  items: PriceItem[]
+}
+
+const won = (n: number | null) => (n === null ? '-' : `${n.toLocaleString()}원`)
 
 const HIRA_NONPAY_URL = 'https://www.hira.or.kr/npay/index.do'
 const HIRA_SPECIAL_ORG_URL =
@@ -30,6 +54,36 @@ const PILOT_DISEASES = CHEOPYAK_DISEASES.filter((d) => d.isPilotCovered !== fals
 
 export default function PatientCostPage() {
   const [selected, setSelected] = useState<string | null>(null)
+  const [regions, setRegions] = useState<Array<{ code: string; name: string }>>([])
+  const [region, setRegion] = useState('All')
+  const [prices, setPrices] = useState<PriceResult | null>(null)
+  const [pricesError, setPricesError] = useState(false)
+
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/public/nonpay-prices/regions`)
+      .then((r) => setRegions(r.data?.data ?? r.data ?? []))
+      .catch(() => setRegions([]))
+  }, [])
+
+  const loadPrices = useCallback(async () => {
+    setPricesError(false)
+    try {
+      const { data } = await axios.get(
+        `${API_BASE}/public/nonpay-prices/korean-medicine`,
+        { params: { region } },
+      )
+      setPrices(data?.data ?? data)
+    } catch {
+      // 가격을 못 불러와도 제도 안내는 그대로 보여야 한다.
+      setPrices(null)
+      setPricesError(true)
+    }
+  }, [region])
+
+  useEffect(() => {
+    void loadPrices()
+  }, [loadPrices])
 
   const covered = selected !== null && selected !== 'other'
 
@@ -127,22 +181,89 @@ export default function PatientCostPage() {
         </section>
       )}
 
-      {/* 가격 확인처 — 우리가 값을 지어내지 않고 공개된 곳으로 보낸다 */}
-      <section className="mb-6 rounded-2xl bg-gray-50 p-5">
-        <h2 className="mb-2 text-[15px] font-bold">가격은 어디서 확인하나요?</h2>
-        <p className="text-[14px] leading-relaxed text-gray-700">
-          심평원 누리집과 「건강e음」 앱에서 의료기관별 비급여 가격을 공개합니다. 지역별로
-          비교해 볼 수 있습니다.
-        </p>
+      {/* 한방 비급여 지역별 가격 — 심평원 공개 통계.
+          개별 한의원 가격이 아니라 그 지역의 범위다. */}
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-[15px] font-bold">우리 지역은 얼마쯤 하나요?</h2>
+          {regions.length > 0 && (
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              aria-label="지역 선택"
+              className="rounded-lg border border-gray-300 px-2 py-1.5 text-[14px]"
+            >
+              {regions.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {pricesError ? (
+          <p className="rounded-xl bg-gray-50 p-4 text-[14px] leading-relaxed text-gray-600">
+            지금은 가격을 불러오지 못했습니다. 아래 심평원 누리집에서 직접 확인하실 수
+            있습니다.
+          </p>
+        ) : prices && prices.items.length > 0 ? (
+          <>
+            <div className="overflow-hidden rounded-2xl border border-gray-200">
+              <table className="w-full text-[14px]">
+                <thead className="bg-gray-50 text-[13px] text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">항목</th>
+                    <th className="px-3 py-2 text-right font-medium">보통</th>
+                    <th className="px-3 py-2 text-right font-medium">범위</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prices.items.slice(0, 10).map((it) => (
+                    <tr key={it.code} className="border-t border-gray-100">
+                      <td className="px-3 py-2.5">
+                        <span className="font-medium text-gray-900">{it.name}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold tabular-nums">
+                        {won(it.median)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-[13px] tabular-nums text-gray-500">
+                        {won(it.min)}~{won(it.max)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+              심평원이 공개한 {prices.regionName} 지역 통계입니다
+              {prices.appliedOn && ` (${prices.appliedOn.slice(0, 4)}년 ${Number(
+                prices.appliedOn.slice(4, 6),
+              )}월 기준)`}
+              . 한의원마다 다르므로 실제 금액은 가시는 곳에서 확인해 주세요.
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-gray-500">
+              한약(첩약) 가격은 이 공개 자료에 포함되지 않아 표시하지 못합니다.
+            </p>
+          </>
+        ) : (
+          <p className="rounded-xl bg-gray-50 p-4 text-[14px] text-gray-600">
+            불러오는 중…
+          </p>
+        )}
+
         <a
           href={HIRA_NONPAY_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-gray-400 py-3 text-[15px] font-semibold text-gray-800"
         >
-          비급여 가격 조회하기
+          한의원별 가격 직접 조회
           <ExternalLink className="h-4 w-4" aria-hidden="true" />
         </a>
+        <p className="mt-2 text-[12px] leading-relaxed text-gray-400">
+          심평원 누리집과 「건강e음」 앱에서 의료기관별로 볼 수 있습니다.
+        </p>
       </section>
 
       {/* 환자가 잘 모르는 권리 — 알아야 요구할 수 있다 */}
@@ -169,8 +290,8 @@ export default function PatientCostPage() {
 
       <p className="mt-8 text-[12px] leading-relaxed text-gray-400">
         여기 적힌 제도 내용은 보건복지부·심평원이 공개한 자료를 정리한 것입니다. 개별
-        한의원의 가격은 저희가 알 수 없어 표시하지 않습니다. 실제 적용 여부와 금액은
-        진료받으실 한의원에서 확인해 주세요.
+        한의원별 가격은 저희가 매기지 않습니다 — 심평원이 공개한 지역 통계를 그대로
+        보여 드립니다. 실제 적용 여부와 금액은 진료받으실 한의원에서 확인해 주세요.
       </p>
     </div>
   )
