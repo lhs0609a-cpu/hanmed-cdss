@@ -23,7 +23,9 @@ const RANGES = [
 ]
 
 export function InactivePatientsCard() {
-  const [days, setDays] = useState(60)
+  // 기본값은 가장 민감한 1개월. 기간 버튼이 카드 안에 있어서, 기본값을 넓게
+  // 잡으면 정작 대상이 있는데도 카드가 숨어 버려 기간을 좁힐 방법이 없다.
+  const [days, setDays] = useState(30)
   const [items, setItems] = useState<InactivePatient[]>([])
   const [loading, setLoading] = useState(true)
 
