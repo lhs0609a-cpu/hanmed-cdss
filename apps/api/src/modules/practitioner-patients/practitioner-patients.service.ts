@@ -11,6 +11,7 @@ import {
   VisitHerb,
   VisitSymptom,
 } from '../../database/entities/practitioner-visit.entity';
+import { MedicationGuide } from '../../database/entities/medication-guide.entity';
 import { EncryptionService } from '../../common/services/encryption.service';
 
 export interface PatientDto {
@@ -126,6 +127,8 @@ export class PractitionerPatientsService {
     private readonly patients: Repository<PractitionerPatient>,
     @InjectRepository(PractitionerVisit)
     private readonly visits: Repository<PractitionerVisit>,
+    @InjectRepository(MedicationGuide)
+    private readonly guides: Repository<MedicationGuide>,
     private readonly encryption: EncryptionService,
     private readonly configService: ConfigService,
   ) {}
@@ -398,6 +401,12 @@ export class PractitionerPatientsService {
   async deletePatient(practitionerId: string, id: string): Promise<void> {
     const row = await this.findOwned(practitionerId, id);
     await this.visits.softDelete({ practitionerId, patientId: id });
+    // 발행한 복약 안내서도 닫는다. 안 닫으면 환자를 지운 뒤에도 링크가 계속
+    // 열린다 — 식별정보는 없지만 한의사가 내린 조치와 화면이 어긋난다.
+    await this.guides.update(
+      { practitionerId, patientId: id, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
     await this.patients.softRemove(row);
   }
 
