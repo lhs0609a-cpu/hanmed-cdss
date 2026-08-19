@@ -186,14 +186,10 @@ export default function MedicationGuidePage() {
           <ul className="divide-y divide-neutral-100 rounded-2xl border border-neutral-200">
             {guide.herbs.map((h) => (
               <li key={h.name} className="px-4 py-3">
-                <p className="text-[15px] font-semibold">
-                  {h.name}
-                  {h.amount && (
-                    <span className="ml-2 text-[13px] font-normal text-neutral-500">
-                      {h.amount}
-                    </span>
-                  )}
-                </p>
+                {/* 용량은 일부러 빼 둔다. 카탈로그의 용량은 고전 표기(一錢半, 各五分)
+                    라 환자에게는 읽히지 않고, 지금 드시는 첩약의 실제 용량과도
+                    다를 수 있다. 잘못 읽히느니 없는 편이 낫다. */}
+                <p className="text-[15px] font-semibold">{h.name}</p>
                 {h.effect && (
                   <p className="mt-0.5 text-[14px] leading-relaxed text-neutral-600">
                     {h.effect}
