@@ -96,11 +96,17 @@ export class RecommendationService {
       const rows: any[] = Array.isArray(found?.results) ? found.results : [];
       return rows.map((r) => ({
         caseId: String(r.id ?? r.caseId ?? ''),
-        title: r.title ?? r.chiefComplaint ?? '',
-        summary: [r.chiefComplaint, r.patternDiagnosis, r.treatmentResult, r.result]
-          .filter(Boolean)
-          .join(' / ')
-          .slice(0, 400),
+        // 한 줄 요약이 있으면 제목으로 쓴다 — 원문 주소증은 문장 중간에서 잘려
+        // "은 풍치와…" 처럼 읽히지 않는 채로 나온다.
+        title: r.summaryOneLine || r.title || r.chiefComplaint || '',
+        // 제목이 요약이면 본문은 "이 사례의 특징" 을 쓴다. 같은 문장을 두 번
+        // 보여주지 않으면서, 내 환자에게 가져다 쓸 수 있는지 판단할 근거가 된다.
+        summary:
+          (r.summaryOneLine && r.distinctive) ||
+          [r.chiefComplaint, r.patternDiagnosis, r.treatmentResult, r.result]
+            .filter(Boolean)
+            .join(' / ')
+            .slice(0, 400),
         formulaName: r.formulaName ?? r.herbalFormulas?.[0]?.formulaName ?? '',
         outcome: r.treatmentOutcome ?? r.outcome ?? '',
         matchPercent: typeof r.matchPercent === 'number' ? r.matchPercent : undefined,

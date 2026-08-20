@@ -160,6 +160,9 @@ export class CasesService {
             ? c.herbalFormulas[0].formulaName
             : '',
         chiefComplaint: c.chiefComplaint,
+        // 구조화 요약 — 잘린 주소증 대신 이걸 읽게 한다.
+        summaryOneLine: c.summaryOneLine,
+        distinctive: c.distinctive,
         patternDiagnosis: c.patternDiagnosis,
         treatmentOutcome: c.treatmentOutcome,
         constitution: c.patientConstitution,
@@ -460,6 +463,8 @@ export class CasesService {
           cases: rows.map((c) => ({
             id: c.id,
             chiefComplaint: c.chiefComplaint,
+            // 원문 주소증은 문장 중간에서 잘려 읽히지 않는다. 요약이 있으면 그쪽을 쓴다.
+            summaryOneLine: c.summaryOneLine,
             patternDiagnosis: c.patternDiagnosis,
             outcome: c.treatmentOutcome,
             constitution: c.patientConstitution,

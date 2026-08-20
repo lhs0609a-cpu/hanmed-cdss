@@ -19,6 +19,8 @@ import { cn } from '@/lib/utils'
 interface EvidenceCase {
   id: string
   chiefComplaint: string
+  /** 구조화 한 줄 요약. 있으면 주소증 대신 이걸 읽힌다. */
+  summaryOneLine?: string | null
   patternDiagnosis: string
   outcome: string | null
   constitution: string | null
@@ -184,7 +186,7 @@ export function CaseEvidencePanel({
           <li key={c.id} className="rounded-xl border border-neutral-200 p-3.5">
             <div className="flex items-start justify-between gap-3">
               <p className="min-w-0 flex-1 line-clamp-2 text-[13.5px] font-medium leading-snug text-neutral-900">
-                {c.chiefComplaint || '(주소증 기록 없음)'}
+                {c.summaryOneLine || c.chiefComplaint || '(주소증 기록 없음)'}
               </p>
               {c.outcome && (
                 <span
