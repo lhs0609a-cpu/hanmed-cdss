@@ -162,8 +162,10 @@ export default function DashboardLayout() {
   // 즐겨찾기 / 최근 방문 섹션은 단순화 시점에는 노출하지 않는다.
   // 검색(⌘K)으로 빠른 도달 가능하고, 또 다른 시각 노이즈가 됨.
 
+  // 한지 바탕은 CDSS 표면에만 쓴다.
+  // 환자 포털(/patient)·사주(/health)는 대상이 다른 제품이라 건드리지 않는다.
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen hanji">
       {/* 온보딩 플로우 (신규 사용자) */}
       {showOnboarding && (
         <OnboardingFlow
@@ -202,7 +204,7 @@ export default function DashboardLayout() {
           </button>
           <div className="flex items-center gap-2">
             <LogoMark size={26} />
-            <span className="font-extrabold text-[17px] tracking-tight text-neutral-900">온고지신</span>
+            <span className="brush-ko text-[22px] leading-none text-ink">온고지신</span>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -223,7 +225,10 @@ export default function DashboardLayout() {
           <div className={cn('flex items-center justify-between px-4 py-4', isMinimized && 'lg:px-2 lg:justify-center')}>
             <div className={cn('flex items-center gap-2', isMinimized && 'lg:hidden')}>
               <LogoMark size={28} />
-              <h1 className="font-extrabold text-[18px] tracking-tight text-neutral-900">온고지신</h1>
+              <div className="flex items-baseline gap-2">
+                <h1 className="brush-ko text-[24px] leading-none text-ink">온고지신</h1>
+                <span className="hanja text-[11px] tracking-[0.2em] text-ink-faint">溫故知新</span>
+              </div>
             </div>
 
             {/* Mini logo for minimized state — 첫 글자 한 자만 */}

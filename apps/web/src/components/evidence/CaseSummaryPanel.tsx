@@ -69,8 +69,10 @@ export function CaseSummaryPanel({ summary, storedFormulaName, className }: Prop
 
   return (
     <div className={className}>
+      {/* 표제 위의 작은 한자 — 이 화면이 무엇인지 한 눈에 말한다. */}
+      <div className="hanja mb-1.5 text-[10.5px] tracking-[0.3em] text-ink-faint">治 驗 例</div>
       {summaryOneLine && (
-        <p className="text-[16px] font-semibold leading-relaxed text-neutral-900">
+        <p className="font-serif text-[17px] font-bold leading-relaxed text-ink">
           {summaryOneLine}
         </p>
       )}
@@ -102,7 +104,7 @@ export function CaseSummaryPanel({ summary, storedFormulaName, className }: Prop
 
       {findings.length > 0 && (
         <section className="mt-5">
-          <h4 className="mb-2 text-[13px] font-bold text-neutral-900">결정적 소견</h4>
+          <h4 className="mb-2 font-serif text-[14px] font-bold text-ink-soft">결정적 소견</h4>
           <ul className="space-y-1.5">
             {findings.map((f, i) => (
               <li key={i} className="flex gap-2 text-[14px] leading-relaxed text-neutral-700">
@@ -116,7 +118,7 @@ export function CaseSummaryPanel({ summary, storedFormulaName, className }: Prop
 
       {patternReasoning && (
         <section className="mt-5">
-          <h4 className="mb-1.5 text-[13px] font-bold text-neutral-900">변증 논리</h4>
+          <h4 className="mb-1.5 font-serif text-[14px] font-bold text-ink-soft">변증 논리</h4>
           <p className="text-[14px] leading-relaxed text-neutral-700">{patternReasoning}</p>
         </section>
       )}
@@ -140,7 +142,7 @@ export function CaseSummaryPanel({ summary, storedFormulaName, className }: Prop
 
       {steps.length > 0 && (
         <section className="mt-5">
-          <h4 className="mb-2.5 text-[13px] font-bold text-neutral-900">복용 경과</h4>
+          <h4 className="mb-2.5 font-serif text-[14px] font-bold text-ink-soft">복용 경과</h4>
           <ol className="relative space-y-3 border-l border-neutral-200 pl-4">
             {steps.map((s, i) => (
               <li key={i} className="relative">
