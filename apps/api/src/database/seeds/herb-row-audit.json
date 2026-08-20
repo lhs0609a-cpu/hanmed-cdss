@@ -1,0 +1,317 @@
+[
+  {
+    "id": "4c49db45-0296-48b5-92e6-c9e297950a54",
+    "korean": "갈근",
+    "hanja": "乾葛",
+    "correctHanja": "葛根",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "c28b26f8-4582-453b-9352-561553de1a9f",
+    "korean": "검화",
+    "hanja": "芡仁",
+    "correctHanja": "芡花",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "ea915a74-9cc1-46f0-b7f0-3bfa63a4f5e1",
+    "korean": "관계",
+    "hanja": "官桂",
+    "correctHanja": "桂",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "55e89a19-e393-495f-9ade-8d9b13681345",
+    "korean": "나팔꽃씨",
+    "hanja": "蘿菔子",
+    "correctHanja": "牽牛子",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "295aab6f-258f-4086-a9a7-35ba58a9c1cf",
+    "korean": "남성",
+    "hanja": "南星",
+    "correctHanja": "南星",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "6dbb355f-feae-4aaa-8f50-b424945f6f2a",
+    "korean": "녹각교",
+    "hanja": "鹿角膠",
+    "correctHanja": "鹿角膠",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "b3a524c0-a788-4d6c-bb8c-30f07823fa34",
+    "korean": "대감초",
+    "hanja": "大甘草",
+    "correctHanja": "大甘草",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "a74326d0-c2ca-406e-899f-907645f8b628",
+    "korean": "대두",
+    "hanja": "大豆黃卷炒",
+    "correctHanja": "大豆",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "0c36ddb6-1197-4b1b-9ec2-61bb57ca9843",
+    "korean": "두창",
+    "hanja": "豆豉",
+    "correctHanja": "豆豉",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "80076d55-562c-48d2-b909-d6672e17327b",
+    "korean": "등심",
+    "hanja": "燈心",
+    "correctHanja": "燈心",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "3322f23c-6d6a-40e5-a22b-dc8778887c4d",
+    "korean": "마늘",
+    "hanja": "山藥",
+    "correctHanja": "大蒜",
+    "reason": "한글명과 한자명이 다릅니다."
+  },
+  {
+    "id": "8760bd9e-3039-490c-ba2e-1f6e868fcc5a",
+    "korean": "매실",
+    "hanja": "梅一箇",
+    "correctHanja": "梅實",
+    "reason": "매실의 한자는 '梅實'입니다."
+  },
+  {
+    "id": "6e03bc4e-f9c6-42f9-9c62-f5276c4e5fb2",
+    "korean": "모근",
+    "hanja": "生茅根",
+    "correctHanja": "茅根",
+    "reason": "모근의 한자는 '茅根'입니다."
+  },
+  {
+    "id": "1b15970f-1bc4-46a8-a003-9f1f8593e414",
+    "korean": "백선피",
+    "hanja": "白鮮皮",
+    "correctHanja": "白鮮皮",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "182566bf-cd53-4a7f-881b-3828de381d15",
+    "korean": "복숭아씨",
+    "hanja": "桃仁",
+    "correctHanja": "桃核",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "f08837a5-0b92-4b7b-b007-fd915c60d092",
+    "korean": "봉출",
+    "hanja": "蓬朮",
+    "correctHanja": "蓬朮",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "df299cad-3230-40a4-b5fc-8b4de0730a6e",
+    "korean": "부추",
+    "hanja": "生韭菜",
+    "correctHanja": "韭菜",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "dc3df322-6dbf-4936-a89a-2357e03006c5",
+    "korean": "사군자",
+    "hanja": "使君子肉煨",
+    "correctHanja": "使君子",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "8d936d20-fa3c-4c93-9bef-885e4dcce688",
+    "korean": "상산",
+    "hanja": "常山",
+    "correctHanja": "常山",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "670e62c0-6214-4899-86ae-0505b08a047e",
+    "korean": "상표초",
+    "hanja": "桑螵蛸蒸",
+    "correctHanja": "桑螵蛸",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "0386edaa-23a2-49d0-9427-21003147f685",
+    "korean": "석각",
+    "hanja": "犀角屑",
+    "correctHanja": "犀角屑",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "ced46da9-e44d-42ed-9ac6-302f7ef030da",
+    "korean": "선퇴",
+    "hanja": "蟬退",
+    "correctHanja": "蟬退",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "5b8e872e-f2ef-4285-8728-8bb094125d91",
+    "korean": "소합향",
+    "hanja": "蘇合香元",
+    "correctHanja": "蘇合香",
+    "reason": "한자명이 잘못되었습니다."
+  },
+  {
+    "id": "9618c1e4-5394-4a2e-af03-50dc495a48d7",
+    "korean": "신계",
+    "hanja": "辣桂",
+    "correctHanja": "辛桂",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "d3d0c814-444d-4f50-8920-8290d1ea727e",
+    "korean": "쑥",
+    "hanja": "熟艾",
+    "correctHanja": "艾",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "8c101837-5f0d-44f6-9a71-341d38145d58",
+    "korean": "아교",
+    "hanja": "阿膠珠",
+    "correctHanja": "阿膠",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "3092f5e0-41ea-4095-ad3b-f4fd5e698e96",
+    "korean": "연엽",
+    "hanja": "生荷葉",
+    "correctHanja": "荷葉",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "1eed9659-31bf-47ea-93fc-9862d91834cc",
+    "korean": "연절",
+    "hanja": "生藕節",
+    "correctHanja": "藕節",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "466a1b90-098a-4416-83c8-66a7d2e9745b",
+    "korean": "엿기름",
+    "hanja": "薏苡仁",
+    "correctHanja": "薏苡",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "5889eb4f-16b5-4996-94d2-035ade59f7b8",
+    "korean": "육두구",
+    "hanja": "肉豆蔲煨",
+    "correctHanja": "肉豆蔲",
+    "reason": "한자에 '煨'가 포함되어 있어 다름."
+  },
+  {
+    "id": "09c1aee2-30ed-4e59-ae67-220bbe0d914a",
+    "korean": "잉어",
+    "hanja": "鯉魚",
+    "correctHanja": "鯉魚",
+    "reason": "한자에 '魚'가 포함되어 있어 다름."
+  },
+  {
+    "id": "125901bd-9939-49e1-9e68-a2649de718c1",
+    "korean": "작약",
+    "hanja": "澤瀉",
+    "correctHanja": "白芍藥",
+    "reason": "한자에 '澤'가 포함되어 있어 다름."
+  },
+  {
+    "id": "1c14fc2f-27ff-4cd1-b40b-126ab1107b92",
+    "korean": "지각",
+    "hanja": "枳殼",
+    "correctHanja": "枳殼",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "18430783-1409-43fb-aa36-ca94a31666c1",
+    "korean": "지골피",
+    "hanja": "地骨皮",
+    "correctHanja": "地骨皮",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "a800a2d2-8561-4339-b4db-722f362e6a25",
+    "korean": "지유",
+    "hanja": "地楡",
+    "correctHanja": "地楡",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "35e44ff4-e7d2-4e28-b0a2-c705147078fb",
+    "korean": "창출",
+    "hanja": "蒼朮",
+    "correctHanja": "蒼朮",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "9a383bef-91a4-40c8-8a21-89f53f82300e",
+    "korean": "창출자",
+    "hanja": "川楝子",
+    "correctHanja": "川楝子",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "e16e70f0-5232-40da-917a-48aa87b9dec2",
+    "korean": "천산갑",
+    "hanja": "穿山甲黃",
+    "correctHanja": "穿山甲",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "63284850-95e3-41dc-a6e5-2f7e397df7cb",
+    "korean": "천산갑초초",
+    "hanja": "穿山甲炒焦",
+    "correctHanja": "穿山甲",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "74cf200e-d79e-413a-ab32-2fef0a3c86f7",
+    "korean": "천오",
+    "hanja": "川烏",
+    "correctHanja": "川烏",
+    "reason": "한글명과 한자명이 다른 약재를 가리킴."
+  },
+  {
+    "id": "3f75aa59-7c2b-4abd-b3d6-13379109e6aa",
+    "korean": "택사",
+    "hanja": "澤瀉酒浸",
+    "correctHanja": "澤瀉",
+    "reason": "'酒浸'은 불필요한 부분입니다."
+  },
+  {
+    "id": "a17d98b3-3afd-492c-a261-1c2c4976b921",
+    "korean": "편귤",
+    "hanja": "片芩",
+    "correctHanja": "片橘",
+    "reason": "'芩'은 잘못된 한자입니다."
+  },
+  {
+    "id": "de03cbf1-8885-423c-a06e-0064097e5ac3",
+    "korean": "피묘",
+    "hanja": "蒲黃炒",
+    "correctHanja": "蒲黃",
+    "reason": "'炒'는 불필요한 부분입니다."
+  },
+  {
+    "id": "15cf7397-71b0-4e0d-9b09-e24cb52b1210",
+    "korean": "향유",
+    "hanja": "香薷",
+    "correctHanja": "香油",
+    "reason": "한자명이 다른 약재를 가리킵니다."
+  },
+  {
+    "id": "5a3b4804-498c-4108-8781-ff3567d73d23",
+    "korean": "황금",
+    "hanja": "黃芩",
+    "correctHanja": "黃金",
+    "reason": "한자명이 다른 약재를 가리킵니다."
+  }
+]
