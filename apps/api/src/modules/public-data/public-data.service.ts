@@ -21,9 +21,9 @@ const ENDPOINTS: Record<string, string> = {
   // 의약품개요정보(e약은요)
   DRUG_INFO:
     'https://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList',
-  // 의약품 낱알식별
+  // 의약품 낱알식별 — 01 은 폐기됐다. 03 이 현행.
   DRUG_IDENTIFICATION:
-    'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService01/getMdcinGrnIdntfcInfoList01',
+    'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03',
   // DUR 품목정보
   DUR_CONTRAINDICATION:
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getUsjntTabooInfoList03',
@@ -33,14 +33,20 @@ const ENDPOINTS: Record<string, string> = {
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getOdsnAtentInfoList03',
   DUR_AGE:
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSpcifyAgrdeTabooInfoList03',
+  // 용량주의 — getMdctnDosgeCautInfoList03 은 없는 오퍼레이션이라 계속 404 였다.
   DUR_DOSAGE:
-    'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getMdctnDosgeCautInfoList03',
+    'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getCpctyAtentInfoList03',
   DUR_DURATION:
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getMdctnPdAtentInfoList03',
   DUR_DUPLICATE:
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getEfcyDplctInfoList03',
+  // 서방정분할주의 — Divide 가 아니라 Partitn 이다.
   DUR_EXTENDED_RELEASE:
-    'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSeobangjeongDivideAtentInfoList03',
+    'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSeobangjeongPartitnAtentInfoList03',
+  // ── 아래 그룹은 2026-08-20 확인 시 전부 NO_OPENAPI_SERVICE_ERROR 다.
+  // 키 문제가 아니라 서비스 자체가 폐기·이전된 것으로 보이며, 버전 접미사를
+  // 바꿔봐도(없음/1/2/01/02) 살아나지 않는다. 대체 API 를 찾기 전까지
+  // herb-api.ts 의 약재 검색과 insurance-api.ts 의 수가 조회는 동작하지 않는다.
   // 식약처 생약 약재정보
   MFDS_HERB: 'https://apis.data.go.kr/1471057/HerbMdntfService/getMdntfList',
   // 지식재산처 한국전통 약재/처방
@@ -60,12 +66,14 @@ const ENDPOINTS: Record<string, string> = {
   FEE_PHARMACY:
     'https://apis.data.go.kr/B551182/mdfeeCrtrInfoService/getPhmcCrtrList',
   // 건강보험심사평가원 질병정보
+  // 서비스명에 붙어 있던 1 이 없어졌다(diseaseInfoService1 → diseaseInfoService).
   DISEASE_INFO:
-    'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList',
+    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissNameCodeList',
+  // 아래 둘은 서비스명을 고쳐도 응답이 없다. 폐기된 것으로 보이며 대체 API 미확인.
   DISEASE_INOUT:
-    'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissInoStatsList',
+    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissInoStatsList',
   DISEASE_GENDER_AGE:
-    'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissSexAggrStatsList',
+    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissSexAggrStatsList',
 };
 
 export interface ProxyResult {
