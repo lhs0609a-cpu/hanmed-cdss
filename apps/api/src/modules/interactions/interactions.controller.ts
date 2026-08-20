@@ -17,9 +17,15 @@ export class InteractionsController {
     body: {
       herbs: string[];
       drugs: string[];
+      /** 임신 여부. 넘기지 않으면 임신금기 판정을 하지 않는다. */
+      pregnant?: boolean;
     },
   ) {
-    return this.interactionsService.checkInteractions(body.herbs, body.drugs);
+    return this.interactionsService.checkInteractions(
+      body.herbs,
+      body.drugs,
+      body.pregnant === true,
+    );
   }
 
   @Get('drug/:drugName')
