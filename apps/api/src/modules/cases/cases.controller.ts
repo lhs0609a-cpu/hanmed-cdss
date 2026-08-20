@@ -52,7 +52,12 @@ export class CasesController {
         : [];
       return {
         id: c.id,
-        title: c.chiefComplaint?.slice(0, 80) || '(주소증 미기재)',
+        // 정리된 요약이 있으면 제목으로 쓴다. 원문 주소증은 "은 풍치와…" 처럼
+        // 문장 중간에서 잘려 시작하는 경우가 많다.
+        title:
+          c.summaryOneLine ||
+          c.chiefComplaint?.slice(0, 80) ||
+          '(주소증 미기재)',
         chiefComplaint: c.chiefComplaint || '',
         symptoms: symptomNames,
         formulaName: firstFormula?.formulaName || '',
@@ -65,6 +70,16 @@ export class CasesController {
         result: c.clinicalNotes || '',
         originalText: c.originalText || '',
         dataSource: c.recorderName || '온고지신 DB',
+        // 구조화 요약 — 원문이 한 덩어리라 목록·상세에서 이것부터 보여준다.
+        summaryOneLine: c.summaryOneLine || null,
+        keyFindings: c.keyFindings || [],
+        patternReasoning: c.patternReasoning || null,
+        modification: c.modification || null,
+        courseSteps: c.courseSteps || [],
+        distinctive: c.distinctive || null,
+        verifiedFormulaName: c.verifiedFormulaName || null,
+        formulaMismatch: c.formulaMismatch === true,
+        hasMixedContent: c.hasMixedContent === true,
       };
     });
 
