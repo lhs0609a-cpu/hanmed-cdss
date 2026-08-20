@@ -19,7 +19,7 @@ import { logError } from '@/lib/errors'
 import { checkDurComprehensive } from '@/services/public-data-api'
 import DrugSearchModal from '@/components/drug/DrugSearchModal'
 import DurCheckResult from '@/components/drug/DurCheckResult'
-import type { InteractionResult, DrugSearchResult, DurCheckResult as DurCheckResultType } from '@/types'
+import type { InteractionResult, InteractionItem, DrugSearchResult, DurCheckResult as DurCheckResultType } from '@/types'
 
 // 포괄적인 양약-한약 상호작용 데이터베이스
 interface InteractionData {
@@ -769,6 +769,40 @@ function findInteractions(herbs: string[], drugs: string[]) {
   return results
 }
 
+/**
+ * 서버 응답을 화면이 읽는 모양으로 맞춘다.
+ *
+ * 서버는 bySeverity / drug / herb 로 주는데 화면 타입은 by_severity /
+ * drug_name / herb_name 이다. 그대로 넣으면 by_severity 가 undefined 라
+ * 렌더에서 터지거나 조용히 로컬 폴백으로 떨어진다 — 이 화면이 서버 결과를
+ * 쓴 적이 없었던 이유다. 한쪽 이름으로 통일하는 게 옳지만 양쪽 참조가
+ * 많아 우선 경계에서 맞춘다.
+ */
+function normalizeServerResult(raw: any): InteractionResult {
+  const sev = raw?.bySeverity ?? raw?.by_severity ?? {}
+  const map = (list: any[]): InteractionItem[] =>
+    (Array.isArray(list) ? list : []).map((i) => ({
+      ...i,
+      drug_name: i.drug_name ?? i.drug ?? '',
+      herb_name: i.herb_name ?? i.herb ?? '',
+      mechanism: i.mechanism ?? '',
+      recommendation: i.recommendation ?? i.clinicalManagement ?? '',
+    }))
+
+  return {
+    has_interactions: raw?.has_interactions ?? raw?.hasInteractions ?? false,
+    total_count: raw?.total_count ?? raw?.totalCount ?? 0,
+    by_severity: {
+      critical: map(sev.critical),
+      warning: map(sev.warning),
+      info: map(sev.info),
+    },
+    overall_safety: raw?.overall_safety ?? raw?.overallSafety ?? '',
+    recommendations: raw?.recommendations ?? [],
+    herb_taboos: Array.isArray(raw?.herbTaboos) ? raw.herbTaboos : [],
+  }
+}
+
 export default function InteractionsPage() {
   const [herbs, setHerbs] = useState<string[]>([])
   const [medications, setMedications] = useState<string[]>([])
@@ -839,7 +873,7 @@ export default function InteractionsPage() {
         herbs,
         drugs: medications,
       })
-      setResult(response.data)
+      setResult(normalizeServerResult(response.data))
     } catch (err: unknown) {
       logError(err, 'InteractionsPage')
       // 포괄적인 상호작용 데이터베이스를 사용한 검색
@@ -1109,6 +1143,41 @@ export default function InteractionsPage() {
               </div>
 
               {/* Critical Interactions */}
+              {/* 한약재끼리의 배합 금기 — 양약 상호작용과 근거의 성격이 다르다.
+                  고전 목록이라 PMID·근거등급을 붙일 수 없고, 임상에서 의도적으로
+                  함께 쓰기도 한다. 그래서 '금지'가 아니라 '확인'으로 띄운다. */}
+              {(result.herb_taboos?.length ?? 0) > 0 && (
+                <div className="surface-card rounded-2xl overflow-hidden">
+                  <div className="bg-neutral-900 text-white px-5 py-3 font-semibold flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    한약재 배합 확인 ({result.herb_taboos?.length}건)
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {result.herb_taboos?.map((t, i) => (
+                      <div
+                        key={i}
+                        className={`rounded-xl border p-4 ${
+                          t.severity === 'caution'
+                            ? 'border-neutral-200 bg-neutral-50'
+                            : 'border-red-200 bg-red-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {t.herbs.map((h, k) => (
+                            <span key={k} className="flex items-center gap-2">
+                              {k > 0 && <span className="text-red-600 font-bold">×</span>}
+                              <span className="font-semibold text-gray-900">{h}</span>
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-1.5 text-sm leading-relaxed text-gray-700">{t.note}</p>
+                        <p className="mt-1 text-xs text-gray-500">출전 · {t.source}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {result.by_severity.critical.length > 0 && (
                 <div className="surface-card rounded-2xl overflow-hidden">
                   <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-5 py-3 font-semibold flex items-center gap-2">

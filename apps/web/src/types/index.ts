@@ -280,6 +280,18 @@ export interface InteractionResult {
   }
   overall_safety: string
   recommendations: string[]
+  /** 한약재끼리의 배합 금기 — 십팔반·십구외·임신금기. 양약 상호작용과 별개. */
+  herb_taboos?: HerbTabooItem[]
+}
+
+export interface HerbTabooItem {
+  kind: 'ban' | 'oe' | 'pregnancy'
+  /** 임신 관련만 등급이 있다. 배합 금기는 null. */
+  severity: 'forbidden' | 'caution' | null
+  /** 짝이면 두 개, 임신금기면 하나. */
+  herbs: string[]
+  note: string
+  source: string
 }
 
 export interface InteractionItem {

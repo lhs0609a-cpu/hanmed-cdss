@@ -4,6 +4,7 @@ import { Repository, In, ILike } from 'typeorm';
 import { DrugHerbInteraction, Severity, InteractionType, EvidenceLevel } from '../../database/entities/drug-herb-interaction.entity';
 import { Herb } from '../../database/entities/herb.entity';
 import { CacheService } from '../cache/cache.service';
+import { findHerbTaboos, type HerbTaboo } from './herb-herb-taboo';
 
 const CACHE_PREFIX = 'interactions';
 const CACHE_TTL = 3600; // 1 hour - interactions data changes rarely
@@ -242,13 +243,19 @@ export class InteractionsService {
    * 2. 데이터베이스 검색 (사용자 정의 데이터)
    * 3. 결과 통합 및 중복 제거
    */
-  async checkInteractions(herbNames: string[], drugNames: string[]) {
+  async checkInteractions(
+    herbNames: string[],
+    drugNames: string[],
+    // 임신 여부는 모르면 false 로 둔다 — 모른다고 경고를 지어내지 않는다.
+    pregnant = false,
+  ) {
     this.logger.log(`상호작용 검사: 약재 ${herbNames.length}개, 양약 ${drugNames.length}개`);
 
     // 캐시 키 생성 (정렬된 입력 기반)
     const sortedHerbs = [...herbNames].sort().join(',');
     const sortedDrugs = [...drugNames].sort().join(',');
-    const cacheKey = `check:${sortedHerbs}:${sortedDrugs}`;
+    // 임신 여부를 키에 넣지 않으면 먼저 조회한 비임신 결과가 임신 환자에게 나간다.
+    const cacheKey = `check:${sortedHerbs}:${sortedDrugs}:${pregnant ? 'pg' : 'np'}`;
 
     // 캐시 확인
     const cached = await this.cacheService.get(cacheKey, { prefix: CACHE_PREFIX });
@@ -294,8 +301,13 @@ export class InteractionsService {
     }));
     const requiresOverride = critical.length > 0;
 
+    // 한약재끼리의 배합 금기 — 십팔반·십구외·임신금기.
+    // 양약 상호작용과 성격이 달라 섞지 않고 따로 싣는다. 근거가 고전이라
+    // 근거등급·PMID 를 붙일 수 없고, 판정도 '금지' 가 아니라 '확인' 이다.
+    const herbTaboos: HerbTaboo[] = findHerbTaboos(herbNames, pregnant);
+
     const result = {
-      hasInteractions: allInteractions.length > 0,
+      hasInteractions: allInteractions.length > 0 || herbTaboos.length > 0,
       totalCount: allInteractions.length,
       checkedAt: new Date().toISOString(),
       inputs: {
@@ -308,6 +320,13 @@ export class InteractionsService {
         warning: warning.map(this.formatInteraction),
         info: info.map(this.formatInteraction),
       },
+      herbTaboos: herbTaboos.map((t) => ({
+        kind: t.kind,
+        severity: t.severity ?? null,
+        herbs: t.second ? [t.first, t.second] : [t.first],
+        note: t.note,
+        source: t.source,
+      })),
       // 한의사가 명시적으로 동의해야만 처방 진행 가능 — UI 차단/감사로그 필수.
       requiresOverride,
       overrideRequiredReason: requiresOverride
