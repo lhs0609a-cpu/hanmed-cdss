@@ -118,7 +118,10 @@ export default function WritePostPage() {
   )
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [tags, setTags] = useState<string[]>([])
+  // ?tag=건의사항 처럼 채널을 지정해 들어오는 경우. 이 태그가 곧 분류라서
+  // 사용자가 지우면 목록에서 사라진다 — 고정으로 두고 삭제 버튼을 감춘다.
+  const lockedTag = searchParams.get('tag') || ''
+  const [tags, setTags] = useState<string[]>(lockedTag ? [lockedTag] : [])
   const [tagInput, setTagInput] = useState('')
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [forumCategory, setForumCategory] = useState('')
@@ -138,7 +141,11 @@ export default function WritePostPage() {
       if (savedDraft) {
         const draft: PostDraft = JSON.parse(savedDraft)
         // Only load draft if we don't have URL params overriding
-        if (!searchParams.get('type') && !searchParams.get('caseId')) {
+        if (
+          !searchParams.get('type') &&
+          !searchParams.get('caseId') &&
+          !searchParams.get('tag')
+        ) {
           setPostType(draft.postType)
           setTitle(draft.title)
           setContent(draft.content)
@@ -275,10 +282,14 @@ export default function WritePostPage() {
       // 포럼 카테고리는 슬러그라 백엔드 categoryId(UUID)로 보낼 수 없으므로
       // 카테고리명을 태그로 보존한다. linkedCaseId 는 UUID 형식일 때만 전송.
       const categoryName = forumCategories.find((c) => c.slug === forumCategory)?.name
-      const finalTags =
+      let finalTags =
         postType === 'forum' && categoryName && !tags.includes(categoryName)
           ? [categoryName, ...tags]
           : tags
+      // 고정 태그는 분류 그 자체다. 어떤 경로로든 빠지면 목록에 안 잡힌다.
+      if (lockedTag && !finalTags.includes(lockedTag)) {
+        finalTags = [lockedTag, ...finalTags]
+      }
 
       const payload: Record<string, unknown> = {
         type: postType,
@@ -496,15 +507,21 @@ export default function WritePostPage() {
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full"
+              className={
+                tag === lockedTag
+                  ? 'inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full'
+                  : 'inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full'
+              }
             >
               #{tag}
-              <button
-                onClick={() => handleRemoveTag(tag)}
-                className="hover:text-blue-900 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              {tag !== lockedTag && (
+                <button
+                  onClick={() => handleRemoveTag(tag)}
+                  className="hover:text-blue-900 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </span>
           ))}
           {tags.length < 5 && (

@@ -120,7 +120,13 @@ export class CommunityService {
     }
 
     if (tag) {
-      qb.andWhere(':tag = ANY(post.tags)', { tag });
+      // tags 는 simple-array — 실제 컬럼은 콤마로 이어붙인 text 다.
+      // 배열 연산자(= ANY)를 그대로 쓰면 "requires array on right side" 로 터진다.
+      // 부분일치(LIKE)로 때우면 '건의' 가 '건의사항' 을 잡아 다른 글까지 끌려온다.
+      qb.andWhere(
+        ":tag = ANY(string_to_array(COALESCE(post.tags, ''), ','))",
+        { tag },
+      );
     }
 
     if (authorId) {

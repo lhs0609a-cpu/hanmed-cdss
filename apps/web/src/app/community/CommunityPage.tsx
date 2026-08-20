@@ -16,6 +16,7 @@ import {
   Shield,
   ChevronRight,
   Loader2,
+  Lightbulb,
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
@@ -31,6 +32,14 @@ const postTypeConfig = {
   forum: { label: '포럼', icon: Users, color: 'text-purple-600 bg-purple-100' },
 }
 
+/**
+ * 건의사항은 별도 게시판 유형을 만들지 않고 예약 태그로 모은다.
+ * post.type 은 Postgres enum(post_type_enum)이라 값을 늘리려면 운영 DB 에
+ * ALTER TYPE 이 필요한데, 이 DB 는 마이그레이션 이력이 이미 어긋나 있다.
+ * 전문 포럼의 분과도 같은 방식(태그)으로 보존하고 있어 흐름도 일관된다.
+ */
+export const SUGGESTION_TAG = '건의사항'
+
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -42,6 +51,8 @@ export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<PostType | ''>('')
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
+
+  const isSuggestions = location.pathname.includes('/community/suggestions')
 
   // 현재 라우트가 "내 글"/"내 북마크" 인지 판별
   const viewMode: 'all' | 'mine' | 'bookmarks' = location.pathname.includes('/community/my/bookmarks')
@@ -67,6 +78,7 @@ export default function CommunityPage() {
         const params: Record<string, string> = {}
         if (viewMode !== 'bookmarks') {
           if (selectedType) params.type = selectedType
+          if (isSuggestions) params.tag = SUGGESTION_TAG
           if (sortBy) params.sortBy = sortBy
           if (viewMode === 'mine' && user?.id) params.authorId = user.id
         }
@@ -83,7 +95,7 @@ export default function CommunityPage() {
     }
 
     fetchPosts()
-  }, [selectedType, sortBy, token, viewMode, user?.id])
+  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions])
 
   // URL 경로에 따라 selectedType 설정
   useEffect(() => {
@@ -96,6 +108,9 @@ export default function CommunityPage() {
       setSelectedType('general')
     } else if (path.includes('/community/forum')) {
       setSelectedType('forum')
+    } else if (path.includes('/community/suggestions')) {
+      // 건의사항은 태그로 모으므로 유형 필터를 걸지 않는다.
+      setSelectedType('')
     } else {
       // 전체/내 글/내 북마크 — 타입 필터 없음
       setSelectedType('')
@@ -131,6 +146,11 @@ export default function CommunityPage() {
     return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
   }
 
+  // 건의사항 화면에서 글쓰기를 누르면 건의사항으로 미리 채워 보낸다.
+  const writePath = isSuggestions
+    ? `/dashboard/community/write?type=general&tag=${encodeURIComponent(SUGGESTION_TAG)}`
+    : '/dashboard/community/write'
+
   // 글쓰기 버튼 클릭 핸들러 - 로그인 여부 확인
   const handleWriteClick = () => {
     if (!isAuthenticated && isGuest) {
@@ -139,7 +159,7 @@ export default function CommunityPage() {
         description: '글을 작성하려면 로그인해 주세요.',
         variant: 'destructive',
       })
-      navigate('/login', { state: { from: '/dashboard/community/write' } })
+      navigate('/login', { state: { from: writePath } })
       return
     }
     if (!isAuthenticated) {
@@ -148,10 +168,10 @@ export default function CommunityPage() {
         description: '글을 작성하려면 로그인해 주세요.',
         variant: 'destructive',
       })
-      navigate('/login', { state: { from: '/dashboard/community/write' } })
+      navigate('/login', { state: { from: writePath } })
       return
     }
-    navigate('/dashboard/community/write')
+    navigate(writePath)
   }
 
   return (
@@ -160,10 +180,12 @@ export default function CommunityPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
-            커뮤니티
+            {isSuggestions ? '건의사항' : '커뮤니티'}
           </h1>
           <p className="mt-1 text-[14px] text-neutral-500">
-            한의사들과 사례·지식을 공유합니다.
+            {isSuggestions
+              ? '쓰면서 불편했던 점, 있었으면 하는 기능을 남겨주세요. 다른 분 건의에 공감과 댓글도 달 수 있습니다.'
+              : '한의사들과 사례·지식을 공유합니다.'}
           </p>
         </div>
         <button
@@ -171,12 +193,12 @@ export default function CommunityPage() {
           className="inline-flex items-center gap-2 h-11 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-[14px] font-semibold rounded-md transition-colors active:scale-[0.99]"
         >
           <Plus className="h-4 w-4" />
-          글쓰기
+          {isSuggestions ? '건의하기' : '글쓰기'}
         </button>
       </div>
 
       {/* Quick Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Link
           to="/dashboard/community/cases"
           className="surface-card rounded-2xl p-4 hover:border-amber-300 hover:shadow-md transition-all group"
@@ -208,6 +230,14 @@ export default function CommunityPage() {
           <Users className="h-6 w-6 text-purple-500 mb-2" />
           <span className="font-medium text-gray-900 group-hover:text-purple-600">전문 포럼</span>
           <p className="text-xs text-gray-500 mt-1">분과별 토론</p>
+        </Link>
+        <Link
+          to="/dashboard/community/suggestions"
+          className="surface-card rounded-2xl p-4 hover:border-emerald-300 hover:shadow-md transition-all group"
+        >
+          <Lightbulb className="h-6 w-6 text-emerald-500 mb-2" />
+          <span className="font-medium text-gray-900 group-hover:text-emerald-600">건의사항</span>
+          <p className="text-xs text-gray-500 mt-1">불편한 점·바라는 기능</p>
         </Link>
         <Link
           to="/dashboard/community/my/bookmarks"
