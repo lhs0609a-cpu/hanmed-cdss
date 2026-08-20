@@ -28,17 +28,36 @@ jobs:
         working-directory: apps/api
         run: flyctl deploy --remote-only
 
-      - name: Run pending DB migrations
-        # 배포 직후 마이그레이션 자동 실행 — 새 entity 가 요구하는 컬럼이
-        # DB 에 없어 로그인이 폭발하는 사고 재발 방지.
-        # 멱등(이미 적용된 마이그레이션은 스킵)이라 매 배포 실행해도 안전.
-        run: |
-          flyctl ssh console -a hanmed-api -C "sh -c 'cd /app && pnpm migration:run'"
+      # 마이그레이션은 앱이 부팅하면서 스스로 적용한다.
+      # app.module.ts 의 migrationsRun 이 기본 켜짐이고 migrations 경로가
+      # __dirname 기준이라 dist 에서도 찾는다. 실제로 29개가 모두 적용돼 있다.
+      #
+      # 예전에는 여기서 `flyctl ssh console -C "cd /app && pnpm migration:run"`
+      # 을 돌렸는데 한 번도 성공한 적이 없다 — 운영 이미지는 npm 으로 만들어져
+      # pnpm 이 없고(exit 127), 설령 고쳐도 migration:run 은 src/*.ts 를 읽는데
+      # 운영 이미지에는 dist 만 있고 ts-node 도 없다. 세 겹으로 어긋나 있었다.
+      #
+      # 그 단계를 지운 이유는 중복이라서만이 아니다. 앱 배포는 성공했는데
+      # 뒤따르는 단계가 늘 실패하니 배포 결과가 항상 빨간색이었고, 그러면
+      # 진짜 실패를 아무도 못 알아본다.
+      #
+      # DB_MIGRATIONS_RUN=false 를 운영에 넣으면 이 자동 적용이 꺼진다. 주의.
 
       - name: Health Check
+        # 실패를 삼키지 않는다. 예전에는 `|| echo "..."` 로 넘겨서
+        # 앱이 안 떠도 배포가 성공으로 보였다.
         run: |
-          sleep 5
-          curl -sf https://api.ongojisin.co.kr/api/v1/health || echo "Health check pending..."
+          for i in 1 2 3 4 5 6; do
+            if curl -sf --max-time 10 https://api.ongojisin.co.kr/api/v1/health; then
+              echo ""
+              echo "health ok (attempt $i)"
+              exit 0
+            fi
+            echo "health 대기중... ($i/6)"
+            sleep 10
+          done
+          echo "1분 동안 health 응답 없음 — 배포 실패로 처리한다."
+          exit 1
 
       - name: Notify deployment result
         if: always()
