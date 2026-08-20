@@ -176,8 +176,15 @@ export default function CasesPage() {
    * setCurrentPage(1) 로 되돌려 버린다. 실제로 2페이지로 넘어가지지 않았다.
    * 갱신 함수 형태를 쓰면 이전 값을 인자로 받으므로 의존성이 필요 없다.
    */
+  // setSearchParams 는 react-router 안에서 렌더마다 새로 만들어진다. 의존성에 넣으면
+  // 이 함수도 같이 불안정해지고, 결국 아래 effect 들이 다시 돌아 페이지를 1로
+  // 되돌린다(2페이지를 눌러도 page=2 요청 직후 page=1 이 다시 나갔다).
+  // ref 로 최신 것을 들고만 있고 의존성은 비운다.
+  const setSearchParamsRef = useRef(setSearchParams)
+  setSearchParamsRef.current = setSearchParams
+
   const updateSearchParams = useCallback((updates: Record<string, string | number>) => {
-    setSearchParams(
+    setSearchParamsRef.current(
       (prev) => {
         const newParams = new URLSearchParams(prev)
         Object.entries(updates).forEach(([key, value]) => {
@@ -192,7 +199,7 @@ export default function CasesPage() {
       // replace: true로 설정하여 히스토리 스택 오염 방지
       { replace: true },
     )
-  }, [setSearchParams])
+  }, [])
 
   // 검색어 디바운스 + URL 업데이트
   useEffect(() => {
