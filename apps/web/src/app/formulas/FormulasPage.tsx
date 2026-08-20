@@ -15,7 +15,7 @@ import { MedicineSchool } from '@/types'
 import { SchoolBadge } from '@/components/formula/SchoolBadge'
 import { SchoolFilter } from '@/components/formula/SchoolFilter'
 import { useMfdsDrugSearch, type MfdsListItem } from '@/hooks/useMfdsDrug'
-import { koreanContains } from '@/lib/hangul'
+import { koreanContains, normalizeForSearch } from '@/lib/hangul'
 import { api } from '@/services/api'
 
 interface FormulaHerb {
@@ -32,8 +32,31 @@ interface Formula {
   category: string
   source: string
   indication: string
+  /** 해설에서 뽑아낸 적응증. 검색과 카드 요약에 쓴다. */
+  indications?: string[]
+  patternKeywords?: string[]
+  patientSummary?: string
+  /** 한자명 처방의 한글 독음 — 검색·표시 보조 */
+  koreanName?: string
+  /** 검색 전용 — 해설 본문까지 미리 정규화해 둔 덩어리. 화면에는 쓰지 않는다. */
+  searchText?: string
   herbs: FormulaHerb[]
   school?: MedicineSchool
+}
+
+/**
+ * 해설에서 뽑아낸 색인. structure-formulas.ts 가 만든다.
+ * 원본 6MB JSON 을 덮어쓰지 않고 옆에 두는 이유는 변경분을 검토하기 위해서다.
+ */
+interface StructuredFormula {
+  /** 한자로만 된 처방명의 한글 독음. 18건이 이게 없으면 한글로 안 찾힌다. */
+  koreanName?: string
+  indications: string[]
+  category: string
+  patternKeywords: string[]
+  contraindications: string[]
+  modification: string
+  patientSummary: string
 }
 
 interface JsonFormulaData {
@@ -51,6 +74,10 @@ interface JsonFormulaData {
   }>
   indicationText?: string
   indications?: string[]
+  compositionExplanation?: string
+  comparisonText?: string
+  cautions?: string
+  usage?: string
   description?: string
   dataSource?: string
 }
@@ -60,18 +87,31 @@ const categoryMap: Record<string, string> = {
   'etc': '기타',
   '해표': '해표제',
   '청열': '청열제',
-  '보익': '보익제',
-  '이기': '이기제',
-  '화담': '화담제',
-  '이수': '이수제',
+  '사하': '사하제',
+  '화해': '화해제',
   '온리': '온리제',
+  '보익': '보익제',
+  '고섭': '고삽제',
+  '안신': '안신제',
+  '이기': '이기제',
+  '이혈': '이혈제',
+  '치풍': '치풍제',
+  '이수': '이수제',
+  '화담': '화담제',
   '소도': '소도제',
-  '고섭': '고섭제',
+  '옹양': '옹양제',
+  '기타': '기타',
 }
 
 // JSON 데이터를 Formula 형식으로 변환
-function transformJsonToFormula(json: JsonFormulaData): Formula {
-  const category = categoryMap[json.category] || json.categoryLabel || json.category || '기타'
+function transformJsonToFormula(
+  json: JsonFormulaData,
+  structured?: StructuredFormula,
+): Formula {
+  // 원본의 category 는 429건 전부 'etc' 라 필터가 '기타' 한 칸이 된다.
+  // 해설에서 뽑은 분류가 있으면 그쪽을 쓴다.
+  const rawCategory = structured?.category || json.category
+  const category = categoryMap[rawCategory] || json.categoryLabel || rawCategory || '기타'
 
   return {
     id: json.id,
@@ -79,7 +119,36 @@ function transformJsonToFormula(json: JsonFormulaData): Formula {
     hanja: json.hanja || '',
     category: category,
     source: json.source || '',
-    indication: json.indicationText || json.indications?.join(', ') || json.description?.slice(0, 100) || '',
+    // 적응증은 뽑아낸 것을 우선한다. 원본은 429건 중 388건이 비어 있어서
+    // 해설 앞 100자로 때우고 있었다 — 문장 중간에서 잘려 읽히지도 않는다.
+    indication:
+      structured?.indications?.join(', ') ||
+      json.indicationText ||
+      json.indications?.join(', ') ||
+      json.description?.slice(0, 100) ||
+      '',
+    indications: structured?.indications,
+    koreanName: structured?.koreanName,
+    patternKeywords: structured?.patternKeywords,
+    patientSummary: structured?.patientSummary,
+    // 적응증 필드가 429건 중 388건 비어 있어서 화면은 해설 앞 100자로 때운다.
+    // 검색까지 그 100자만 보면 본문에 있는 증상이 안 잡힌다 — '소화불량' 이
+    // 본문에 128건 나오는데 검색은 52건만 찾았다. 그래서 본문 전체를 따로 쌓는다.
+    // koreanContains 는 자모 levenshtein 이라 수 KB 문자열에 쓰면 안 된다.
+    // 여기서는 미리 정규화해 두고 단순 부분일치로만 본다.
+    searchText: normalizeForSearch(
+      [
+        json.indicationText,
+        json.indications?.join(' '),
+        json.description,
+        json.compositionExplanation,
+        json.comparisonText,
+        json.cautions,
+        json.usage,
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
     herbs: json.composition?.map((comp, idx) => ({
       id: String(idx + 1),
       name: comp.herb?.replace(/各[\d\w]+/g, '').trim() || '',
@@ -90,12 +159,26 @@ function transformJsonToFormula(json: JsonFormulaData): Formula {
 }
 
 async function fetchAllFormulas(): Promise<Formula[]> {
-  const res = await fetch('/data/formulas/all-formulas.json')
+  // 색인 파일이 아직 없거나 못 읽어도 처방 목록 자체는 떠야 한다.
+  const [res, structuredRes] = await Promise.all([
+    fetch('/data/formulas/all-formulas.json'),
+    fetch('/data/formulas/formula-structured.json').catch(() => null),
+  ])
   if (!res.ok) {
     throw new Error(`처방 데이터를 불러오지 못했습니다 (${res.status})`)
   }
   const data = (await res.json()) as JsonFormulaData[]
-  return data.map(transformJsonToFormula)
+
+  let structured: Record<string, StructuredFormula> = {}
+  if (structuredRes?.ok) {
+    try {
+      structured = (await structuredRes.json()) as Record<string, StructuredFormula>
+    } catch {
+      structured = {}
+    }
+  }
+
+  return data.map((f) => transformJsonToFormula(f, structured[f.id]))
 }
 
 const categories = [
@@ -150,12 +233,25 @@ export default function FormulasPage() {
     // 검색어 필터 — 자모 정규화/초성/오타 1-2개 포용 (lib/hangul.koreanContains).
     if (searchQuery.trim()) {
       const query = searchQuery.trim()
-      result = result.filter(f =>
-        koreanContains(f.name, query) ||
-        koreanContains(f.hanja, query) ||
-        koreanContains(f.indication, query) ||
-        f.herbs.some(h => koreanContains(h.name, query))
-      )
+      // 이름·한자·적응증·약재명은 오타를 포용하는 퍼지 일치.
+      // 해설 본문(searchText)은 뽑아낸 적응증이 없는 처방에만 보조로 쓴다.
+      // 본문을 항상 훑으면 429건 중 143건이 걸려 정밀도가 무너진다 —
+      // 해설이 긴 임상 에세이라 증상이 스치듯 언급된 것까지 잡히기 때문이다.
+      const normalized = normalizeForSearch(query)
+      result = result.filter(f => {
+        if (
+          koreanContains(f.name, query) ||
+          koreanContains(f.koreanName ?? '', query) ||
+          koreanContains(f.hanja, query) ||
+          koreanContains(f.indication, query) ||
+          f.patternKeywords?.some(k => koreanContains(k, query)) ||
+          f.herbs.some(h => koreanContains(h.name, query))
+        ) {
+          return true
+        }
+        if (f.indications?.length) return false
+        return !!normalized && !!f.searchText && f.searchText.includes(normalized)
+      })
     }
 
     return result
@@ -396,10 +492,14 @@ export default function FormulasPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
+                    {/* 18건은 이름이 한자뿐이다. 독음이 있으면 그걸 제목으로
+                        올리고 한자는 아래로 내린다 — 한의사는 한글로 읽는다. */}
                     <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {formula.name}
+                      {formula.koreanName || formula.name}
                     </h3>
-                    <p className="text-sm text-gray-500">{formula.hanja}</p>
+                    <p className="text-sm text-gray-500">
+                      {formula.koreanName ? formula.name : formula.hanja}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg">
