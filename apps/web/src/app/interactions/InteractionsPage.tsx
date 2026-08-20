@@ -940,7 +940,8 @@ export default function InteractionsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+        <div className="hanja mb-1 text-[10.5px] tracking-[0.3em] text-ink-faint">相 互 作 用</div>
+        <h1 className="font-serif text-[27px] font-bold tracking-tight text-ink">
           상호작용 검사
         </h1>
         <p className="mt-1 text-[14px] text-neutral-500">

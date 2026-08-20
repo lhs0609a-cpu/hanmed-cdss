@@ -317,7 +317,8 @@ export default function FormulasPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <div className="hanja mb-1 text-[10.5px] tracking-[0.3em] text-ink-faint">方 劑</div>
+        <h1 className="font-serif text-[27px] font-bold text-ink flex items-center gap-2">
           <BookOpen className="h-7 w-7 text-blue-500" />
           처방(방제) 검색
         </h1>
@@ -494,10 +495,11 @@ export default function FormulasPage() {
                   <div>
                     {/* 18건은 이름이 한자뿐이다. 독음이 있으면 그걸 제목으로
                         올리고 한자는 아래로 내린다 — 한의사는 한글로 읽는다. */}
-                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-serif text-[19px] font-bold text-ink group-hover:text-blue-600 transition-colors">
                       {formula.koreanName || formula.name}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    {/* 한자는 전용 서체로. 한글보다 작게, 회색으로 — 읽는 순서를 흐리지 않는다. */}
+                    <p className="hanja text-[14px] text-ink-faint">
                       {formula.koreanName ? formula.name : formula.hanja}
                     </p>
                   </div>

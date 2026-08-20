@@ -391,7 +391,8 @@ export default function CasesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+        <div className="hanja mb-1 text-[10.5px] tracking-[0.3em] text-ink-faint">治 驗 例</div>
+        <h1 className="font-serif text-[27px] font-bold tracking-tight text-ink">
           치험례
         </h1>
         <p className="mt-1 text-[14px] text-neutral-500">

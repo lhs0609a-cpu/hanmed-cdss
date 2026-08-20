@@ -153,7 +153,8 @@ export default function HerbsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <div className="hanja mb-1 text-[10.5px] tracking-[0.3em] text-ink-faint">本 草</div>
+        <h1 className="font-serif text-[27px] font-bold text-ink flex items-center gap-2">
           <Leaf className="h-7 w-7 text-blue-500" />
           약재 검색
         </h1>
