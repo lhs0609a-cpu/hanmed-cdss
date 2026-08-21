@@ -1,764 +1,395 @@
-import { useState } from 'react'
-import {
-  Search,
-  ArrowLeftRight,
-  CheckCircle2,
-  XCircle,
-  Pill,
-  Target,
-  AlertTriangle,
-  Lightbulb,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeftRight, Loader2, Search, BookOpen } from 'lucide-react'
+import { koreanContains } from '@/lib/hangul'
 import { cn } from '@/lib/utils'
 
-interface Formula {
+/**
+ * 처방 비교 — 방약합편 해설에 있는 "○○과 비교하면" 대목을 그대로 보여준다.
+ *
+ * 예전 이 화면은 처방 8개와 비교쌍 4개가 코드에 박혀 있었다. 데이터 파일도
+ * DB 도 읽지 않아서 "왜 이렇게 적으냐" 는 말이 나올 수밖에 없었다.
+ *
+ * 그런데 해설에는 비교 대목이 274,000자 들어 있었다. 이미 가진 것을 안 쓰고
+ * 있었던 것이다. build-formula-comparisons.ts 가 1,246쌍으로 뽑아 두었다.
+ *
+ * 지어낸 문장은 없다 — 본문에 있는 대목을 잘라 담았을 뿐이다. 그래서 감별
+ * 설명은 원문 그대로 인용하고, 우리가 계산한 것(구성 약재의 공통/차이)만
+ * 따로 표시한다. 무엇이 문헌이고 무엇이 계산인지 섞으면 안 된다.
+ */
+
+interface ComparisonRow {
+  fromId: string
+  from: string
+  to: string
+  toId: string | null
+  text: string
+}
+
+interface FormulaLite {
   id: string
   name: string
-  hanja: string
-  category: string
-  source: string
-  indication: string
-  pattern: string
-  keySymptoms: string[]
-  herbs: { name: string; role: string; amount: string }[]
-  contraindications: string[]
-  characteristics: string[]
+  hanja?: string
+  composition?: Array<{ herb: string; amount?: string }>
 }
 
-interface ComparisonPair {
-  id: string
-  formulas: [Formula, Formula]
-  differences: {
-    category: string
-    items: { aspect: string; formula1: string; formula2: string; recommendation: string }[]
-  }[]
-  selectionGuide: {
-    chooseFirst: string[]
-    chooseSecond: string[]
+interface StructuredLite {
+  koreanName?: string
+  indications?: string[]
+  category?: string
+}
+
+async function fetchAll(): Promise<{
+  formulas: FormulaLite[]
+  comparisons: ComparisonRow[]
+  structured: Record<string, StructuredLite>
+}> {
+  const [fRes, cRes, sRes] = await Promise.all([
+    fetch('/data/formulas/all-formulas.json'),
+    fetch('/data/formulas/formula-comparisons.json'),
+    fetch('/data/formulas/formula-structured.json').catch(() => null),
+  ])
+  if (!fRes.ok) throw new Error(`처방 데이터를 불러오지 못했습니다 (${fRes.status})`)
+  if (!cRes.ok) throw new Error(`비교 데이터를 불러오지 못했습니다 (${cRes.status})`)
+
+  const formulas = (await fRes.json()) as FormulaLite[]
+  const comparisons = (await cRes.json()) as ComparisonRow[]
+  let structured: Record<string, StructuredLite> = {}
+  if (sRes?.ok) {
+    try {
+      structured = (await sRes.json()) as Record<string, StructuredLite>
+    } catch {
+      structured = {}
+    }
   }
+  return { formulas, comparisons, structured }
 }
 
-const formulas: Formula[] = [
-  {
-    id: 'sosihho',
-    name: '소시호탕',
-    hanja: '小柴胡湯',
-    category: '화해제',
-    source: '상한론',
-    indication: '소양병, 한열왕래, 흉협고만, 구고인건, 목현',
-    pattern: '소양증, 반표반리',
-    keySymptoms: ['한열왕래', '흉협고만', '구고', '인건', '목현', '심번'],
-    herbs: [
-      { name: '시호', role: '군', amount: '12g' },
-      { name: '황금', role: '신', amount: '9g' },
-      { name: '반하', role: '좌', amount: '9g' },
-      { name: '인삼', role: '좌', amount: '6g' },
-      { name: '자감초', role: '사', amount: '3g' },
-      { name: '생강', role: '사', amount: '6g' },
-      { name: '대조', role: '사', amount: '4매' },
-    ],
-    contraindications: ['음허화왕', '간양상항', '실열증'],
-    characteristics: ['시호 위주', '인삼 포함', '사하약 無'],
-  },
-  {
-    id: 'daesihho',
-    name: '대시호탕',
-    hanja: '大柴胡湯',
-    category: '화해제',
-    source: '상한론',
-    indication: '소양양명합병, 한열왕래, 흉협고만, 복만, 변비, 구토',
-    pattern: '소양양명합병, 담열내결',
-    keySymptoms: ['한열왕래', '흉협고만', '복만', '변비', '구토', '심하비경'],
-    herbs: [
-      { name: '시호', role: '군', amount: '12g' },
-      { name: '황금', role: '신', amount: '9g' },
-      { name: '작약', role: '신', amount: '9g' },
-      { name: '반하', role: '좌', amount: '9g' },
-      { name: '대황', role: '좌', amount: '6g' },
-      { name: '지실', role: '좌', amount: '6g' },
-      { name: '생강', role: '사', amount: '9g' },
-      { name: '대조', role: '사', amount: '4매' },
-    ],
-    contraindications: ['허약체질', '비위허한', '임신'],
-    characteristics: ['시호 위주', '대황 포함 (사하)', '인삼 無'],
-  },
-  {
-    id: 'samultang',
-    name: '사물탕',
-    hanja: '四物湯',
-    category: '보혈제',
-    source: '태평혜민화제국방',
-    indication: '혈허, 안면창백, 두훈, 심계, 월경부조',
-    pattern: '혈허',
-    keySymptoms: ['안면창백', '두훈', '심계', '월경부조', '손발저림'],
-    herbs: [
-      { name: '숙지황', role: '군', amount: '12g' },
-      { name: '백작약', role: '신', amount: '9g' },
-      { name: '당귀', role: '신', amount: '9g' },
-      { name: '천궁', role: '좌', amount: '6g' },
-    ],
-    contraindications: ['비위허약', '식욕부진', '설사'],
-    characteristics: ['보혈 위주', '4미 구성', '온성'],
-  },
-  {
-    id: 'sagunjatang',
-    name: '사군자탕',
-    hanja: '四君子湯',
-    category: '보기제',
-    source: '태평혜민화제국방',
-    indication: '비기허, 안면위황, 언어무력, 식욕부진, 대변당',
-    pattern: '비기허',
-    keySymptoms: ['피로', '식욕부진', '복부팽만', '대변당', '안면위황'],
-    herbs: [
-      { name: '인삼', role: '군', amount: '9g' },
-      { name: '백출', role: '신', amount: '9g' },
-      { name: '복령', role: '좌', amount: '9g' },
-      { name: '자감초', role: '사', amount: '6g' },
-    ],
-    contraindications: ['실열증', '음허'],
-    characteristics: ['보기 위주', '4미 구성', '평화'],
-  },
-  {
-    id: 'yookmi',
-    name: '육미지황환',
-    hanja: '六味地黃丸',
-    category: '보음제',
-    source: '소아약증직결',
-    indication: '신음허, 요슬산연, 두훈이명, 도한, 조열',
-    pattern: '신음허',
-    keySymptoms: ['요슬산연', '두훈이명', '도한', '조열', '구건'],
-    herbs: [
-      { name: '숙지황', role: '군', amount: '24g' },
-      { name: '산수유', role: '신', amount: '12g' },
-      { name: '산약', role: '신', amount: '12g' },
-      { name: '택사', role: '좌', amount: '9g' },
-      { name: '목단피', role: '좌', amount: '9g' },
-      { name: '복령', role: '좌', amount: '9g' },
-    ],
-    contraindications: ['비위허한', '담습'],
-    characteristics: ['삼보삼사', '자음 위주', '신을 보함'],
-  },
-  {
-    id: 'palmi',
-    name: '팔미지황환',
-    hanja: '八味地黃丸',
-    category: '보양제',
-    source: '금궤요략',
-    indication: '신양허, 요슬냉통, 하지무력, 소변불리, 야간빈뇨',
-    pattern: '신양허',
-    keySymptoms: ['요슬냉통', '하지무력', '야간빈뇨', '사지냉', '발기부전'],
-    herbs: [
-      { name: '숙지황', role: '군', amount: '24g' },
-      { name: '산수유', role: '신', amount: '12g' },
-      { name: '산약', role: '신', amount: '12g' },
-      { name: '택사', role: '좌', amount: '9g' },
-      { name: '목단피', role: '좌', amount: '9g' },
-      { name: '복령', role: '좌', amount: '9g' },
-      { name: '부자', role: '좌', amount: '3g' },
-      { name: '육계', role: '좌', amount: '3g' },
-    ],
-    contraindications: ['음허화왕', '실열증'],
-    characteristics: ['육미 + 부자, 육계', '온신양', '명문화 보충'],
-  },
-  {
-    id: 'banhabaekchul',
-    name: '반하백출천마탕',
-    hanja: '半夏白朮天麻湯',
-    category: '치풍제',
-    source: '의학심오',
-    indication: '풍담상요, 현훈두통, 흉민, 오심구토',
-    pattern: '담음, 비허생담',
-    keySymptoms: ['현훈', '두통', '오심', '구토', '흉민'],
-    herbs: [
-      { name: '반하', role: '군', amount: '9g' },
-      { name: '천마', role: '군', amount: '6g' },
-      { name: '백출', role: '신', amount: '9g' },
-      { name: '복령', role: '좌', amount: '6g' },
-      { name: '진피', role: '좌', amount: '6g' },
-      { name: '감초', role: '사', amount: '3g' },
-      { name: '생강', role: '사', amount: '3g' },
-      { name: '대조', role: '사', amount: '2매' },
-    ],
-    contraindications: ['음허화왕', '간양화풍'],
-    characteristics: ['화담식풍', '비위 중시', '담훈에 적합'],
-  },
-  {
-    id: 'cheonmagouteng',
-    name: '천마구등음',
-    hanja: '天麻鉤藤飮',
-    category: '치풍제',
-    source: '잡병증치신의',
-    indication: '간양상항, 두통현훈, 이명, 면홍, 조급',
-    pattern: '간양상항, 간풍내동',
-    keySymptoms: ['두통', '현훈', '이명', '면홍', '조급', '실면'],
-    herbs: [
-      { name: '천마', role: '군', amount: '9g' },
-      { name: '구등', role: '군', amount: '12g' },
-      { name: '석결명', role: '신', amount: '18g' },
-      { name: '치자', role: '신', amount: '9g' },
-      { name: '황금', role: '좌', amount: '9g' },
-      { name: '우슬', role: '좌', amount: '12g' },
-      { name: '두충', role: '좌', amount: '9g' },
-      { name: '익모초', role: '좌', amount: '9g' },
-      { name: '상기생', role: '좌', amount: '9g' },
-      { name: '야교등', role: '사', amount: '9g' },
-      { name: '복신', role: '사', amount: '9g' },
-    ],
-    contraindications: ['기혈허약', '양허'],
-    characteristics: ['평간잠양', '청열', '보간신'],
-  },
-]
-
-const comparisonPairs: ComparisonPair[] = [
-  {
-    id: 'sihho-compare',
-    formulas: [formulas[0], formulas[1]], // 소시호탕 vs 대시호탕
-    differences: [
-      {
-        category: '변증',
-        items: [
-          {
-            aspect: '병기',
-            formula1: '소양증 (반표반리)',
-            formula2: '소양양명합병 (담열내결)',
-            recommendation: '변비, 복만 유무가 핵심 감별점',
-          },
-          {
-            aspect: '허실',
-            formula1: '허증 경향 (인삼 포함)',
-            formula2: '실증 경향 (대황 사하)',
-            recommendation: '체력, 대변 상태로 판단',
-          },
-        ],
-      },
-      {
-        category: '증상',
-        items: [
-          {
-            aspect: '복부',
-            formula1: '흉협고만 위주',
-            formula2: '흉협고만 + 복만, 심하비경',
-            recommendation: '복부 팽만, 압통 확인',
-          },
-          {
-            aspect: '대변',
-            formula1: '정상 또는 약간 무른 변',
-            formula2: '변비, 대변 불통',
-            recommendation: '대변 상태가 결정적',
-          },
-        ],
-      },
-      {
-        category: '구성 약물',
-        items: [
-          {
-            aspect: '핵심 차이',
-            formula1: '인삼 有, 대황 無',
-            formula2: '대황, 지실 有, 인삼 無',
-            recommendation: '사하 필요 여부로 선택',
-          },
-        ],
-      },
-    ],
-    selectionGuide: {
-      chooseFirst: [
-        '한열왕래만 있고 변비가 없을 때',
-        '체력이 허약한 환자',
-        '식욕부진, 피로감 동반 시',
-        '대변이 정상이거나 무를 때',
-      ],
-      chooseSecond: [
-        '변비가 동반될 때',
-        '복부가 팽만하고 단단할 때',
-        '체력이 충실한 환자',
-        '구토, 심하비경이 심할 때',
-      ],
-    },
-  },
-  {
-    id: 'yookpal-compare',
-    formulas: [formulas[4], formulas[5]], // 육미지황환 vs 팔미지황환
-    differences: [
-      {
-        category: '변증',
-        items: [
-          {
-            aspect: '음양',
-            formula1: '신음허 (滋陰)',
-            formula2: '신양허 (溫陽)',
-            recommendation: '열증/한증 여부로 구분',
-          },
-          {
-            aspect: '허열',
-            formula1: '조열, 도한, 오심번열',
-            formula2: '사지냉, 요슬냉통',
-            recommendation: '열감/냉감이 핵심',
-          },
-        ],
-      },
-      {
-        category: '증상',
-        items: [
-          {
-            aspect: '체온',
-            formula1: '몸에 열감, 손발바닥 열',
-            formula2: '몸이 차고 추위를 탐',
-            recommendation: '오심번열 vs 사지냉',
-          },
-          {
-            aspect: '소변',
-            formula1: '소변 황적, 양 적음',
-            formula2: '야간빈뇨, 소변청장',
-            recommendation: '소변 색과 빈도 확인',
-          },
-        ],
-      },
-      {
-        category: '구성 약물',
-        items: [
-          {
-            aspect: '핵심 차이',
-            formula1: '6미 구성 (자음)',
-            formula2: '육미 + 부자, 육계 (온양)',
-            recommendation: '온열약 포함 여부',
-          },
-        ],
-      },
-    ],
-    selectionGuide: {
-      chooseFirst: [
-        '손발바닥에 열감이 있을 때',
-        '도한(식은땀)이 있을 때',
-        '입이 마르고 갈증이 있을 때',
-        '소변이 노랗고 양이 적을 때',
-      ],
-      chooseSecond: [
-        '손발이 차고 추위를 탈 때',
-        '야간에 소변을 자주 볼 때',
-        '허리와 무릎이 시리고 아플 때',
-        '발기부전, 성기능 저하 시',
-      ],
-    },
-  },
-  {
-    id: 'hyunhun-compare',
-    formulas: [formulas[6], formulas[7]], // 반하백출천마탕 vs 천마구등음
-    differences: [
-      {
-        category: '변증',
-        items: [
-          {
-            aspect: '병기',
-            formula1: '담음 (痰飮), 비허생담',
-            formula2: '간양상항, 간풍내동',
-            recommendation: '담 vs 간양의 차이',
-          },
-          {
-            aspect: '성질',
-            formula1: '허증 + 담',
-            formula2: '실증 + 양항',
-            recommendation: '허실 구분이 중요',
-          },
-        ],
-      },
-      {
-        category: '증상',
-        items: [
-          {
-            aspect: '현훈 특징',
-            formula1: '머리가 무겁고 몽롱함, 오심 동반',
-            formula2: '머리가 팽팽하고 조급, 면홍 동반',
-            recommendation: '무거움 vs 팽창감',
-          },
-          {
-            aspect: '동반 증상',
-            formula1: '오심, 구토, 흉민, 식욕부진',
-            formula2: '이명, 면홍, 조급, 실면',
-            recommendation: '소화기 vs 간화 증상',
-          },
-        ],
-      },
-      {
-        category: '구성 약물',
-        items: [
-          {
-            aspect: '핵심 차이',
-            formula1: '반하, 백출 위주 (화담건비)',
-            formula2: '구등, 석결명 위주 (평간잠양)',
-            recommendation: '화담 vs 평간 치법',
-          },
-        ],
-      },
-    ],
-    selectionGuide: {
-      chooseFirst: [
-        '현훈과 함께 오심, 구토가 있을 때',
-        '머리가 무겁고 몽롱한 느낌',
-        '비위가 약하고 소화불량',
-        '담이 많고 목에 가래 느낌',
-      ],
-      chooseSecond: [
-        '현훈과 함께 면홍, 이명이 있을 때',
-        '머리가 팽팽하고 터질 것 같은 느낌',
-        '화를 잘 내고 조급함',
-        '혈압이 높은 경향',
-      ],
-    },
-  },
-]
+/** "各五分" 같은 표기를 걷어내고 약재명만 남긴다. 구성 대조에 쓴다. */
+function herbName(raw: string): string {
+  return raw
+    .replace(/各[\d\w一二三四五六七八九十半]+/g, '')
+    .replace(/[(（][^)）]*[)）]/g, '')
+    .trim()
+}
 
 export default function FormulaComparePage() {
-  const [selectedPair, setSelectedPair] = useState<ComparisonPair | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['formula-compare'],
+    queryFn: fetchAll,
+    staleTime: 1000 * 60 * 30,
+  })
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) =>
-      prev.includes(sectionId) ? prev.filter((id) => id !== sectionId) : [...prev, sectionId]
+  const [query, setQuery] = useState('')
+  const [baseId, setBaseId] = useState<string | null>(null)
+  const [targetKey, setTargetKey] = useState<string | null>(null)
+
+  const formulas = data?.formulas ?? []
+  const comparisons = data?.comparisons ?? []
+  const structured = data?.structured ?? {}
+
+  const byId = useMemo(() => {
+    const m = new Map<string, FormulaLite>()
+    for (const f of formulas) m.set(f.id, f)
+    return m
+  }, [formulas])
+
+  const byName = useMemo(() => {
+    const m = new Map<string, FormulaLite>()
+    for (const f of formulas) m.set(f.name, f)
+    return m
+  }, [formulas])
+
+  /** 비교 대목을 가진 처방만 고를 수 있게 한다 — 골라도 볼 게 없으면 안 된다. */
+  const comparableIds = useMemo(() => {
+    const s = new Set<string>()
+    for (const c of comparisons) s.add(c.fromId)
+    return s
+  }, [comparisons])
+
+  const selectable = useMemo(() => {
+    const list = formulas.filter((f) => comparableIds.has(f.id))
+    if (!query.trim()) return list
+    return list.filter(
+      (f) =>
+        koreanContains(f.name, query) ||
+        koreanContains(structured[f.id]?.koreanName ?? '', query) ||
+        koreanContains(f.hanja ?? '', query),
+    )
+  }, [formulas, comparableIds, query, structured])
+
+  /** 첫 진입에 아무것도 안 고른 화면을 주지 않는다. */
+  useEffect(() => {
+    if (!baseId && selectable.length > 0) setBaseId(selectable[0].id)
+  }, [baseId, selectable])
+
+  const base = baseId ? byId.get(baseId) : undefined
+  const baseComparisons = useMemo(
+    () => comparisons.filter((c) => c.fromId === baseId),
+    [comparisons, baseId],
+  )
+
+  useEffect(() => {
+    setTargetKey(baseComparisons.length ? baseComparisons[0].to : null)
+  }, [baseId, baseComparisons])
+
+  const active = baseComparisons.find((c) => c.to === targetKey) ?? baseComparisons[0]
+  const target = active ? (active.toId ? byId.get(active.toId) : byName.get(active.to)) : undefined
+
+  /** 구성 약재 대조 — 이건 우리가 계산한 것이라 문헌 인용과 구분해 표시한다. */
+  const herbDiff = useMemo(() => {
+    if (!base || !target) return null
+    const a = new Set((base.composition ?? []).map((c) => herbName(c.herb)).filter(Boolean))
+    const b = new Set((target.composition ?? []).map((c) => herbName(c.herb)).filter(Boolean))
+    if (a.size === 0 || b.size === 0) return null
+    return {
+      shared: [...a].filter((h) => b.has(h)),
+      onlyA: [...a].filter((h) => !b.has(h)),
+      onlyB: [...b].filter((h) => !a.has(h)),
+    }
+  }, [base, target])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-neutral-500">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        처방 비교 자료를 불러오는 중…
+      </div>
     )
   }
 
-  const filteredFormulas = formulas.filter(
-    (f) =>
-      f.name.includes(searchQuery) ||
-      f.hanja.includes(searchQuery) ||
-      f.indication.includes(searchQuery)
-  )
+  if (error) {
+    return (
+      <div className="surface-card rounded-2xl p-6 text-[14px] text-red-700">
+        {(error as Error).message}
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
       <div>
-        <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <ArrowLeftRight className="h-7 w-7 text-blue-500" />
           처방 비교
         </h1>
         <p className="mt-1 text-[14px] text-neutral-500">
-          유사 처방의 차이점을 한눈에 비교합니다.
+          방약합편 해설의 감별 대목 {comparisons.length.toLocaleString()}건 · 처방{' '}
+          {comparableIds.size.toLocaleString()}건
         </p>
       </div>
 
-      {selectedPair ? (
-        // Comparison View
-        <div className="space-y-6">
-          <button
-            onClick={() => setSelectedPair(null)}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← 목록으로
-          </button>
-
-          {/* Comparison Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
-            <div className="flex items-center justify-center gap-4">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold">{selectedPair.formulas[0].name}</h2>
-                <p className="text-indigo-200">{selectedPair.formulas[0].hanja}</p>
-              </div>
-              <div className="p-3 bg-white/20 rounded-full">
-                <ArrowLeftRight className="h-6 w-6" />
-              </div>
-              <div className="text-center">
-                <h2 className="text-2xl font-bold">{selectedPair.formulas[1].name}</h2>
-                <p className="text-indigo-200">{selectedPair.formulas[1].hanja}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {selectedPair.formulas.map((formula, index) => (
-              <div
-                key={formula.id}
-                className={cn(
-                  'surface-card rounded-2xl p-6',
-                  index === 0 ? 'border-indigo-200' : 'border-purple-200'
-                )}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Pill className={index === 0 ? 'text-indigo-500' : 'text-purple-500'} />
-                  <h3 className="font-bold text-gray-900">{formula.name}</h3>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="text-gray-500">변증:</span>{' '}
-                    <span className="text-gray-900">{formula.pattern}</span>
-                  </p>
-                  <p>
-                    <span className="text-gray-500">주치:</span>{' '}
-                    <span className="text-gray-900">{formula.indication}</span>
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {formula.keySymptoms.slice(0, 4).map((symptom) => (
-                      <span
-                        key={symptom}
-                        className={cn(
-                          'px-2 py-0.5 rounded text-xs',
-                          index === 0
-                            ? 'bg-indigo-100 text-indigo-700'
-                            : 'bg-purple-100 text-purple-700'
-                        )}
-                      >
-                        {symptom}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Detailed Comparison */}
-          <div className="surface-card rounded-2xl overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">상세 비교</h3>
-            </div>
-            {selectedPair.differences.map((diff, diffIndex) => (
-              <div key={diff.category} className={diffIndex > 0 ? 'border-t border-gray-100' : ''}>
-                <button
-                  onClick={() => toggleSection(diff.category)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
-                >
-                  <span className="font-semibold text-gray-900">{diff.category}</span>
-                  {expandedSections.includes(diff.category) ? (
-                    <ChevronUp className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                {expandedSections.includes(diff.category) && (
-                  <div className="px-4 pb-4">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-xs text-gray-500 uppercase">
-                          <th className="text-left py-2 w-24">항목</th>
-                          <th className="text-left py-2 text-indigo-600">
-                            {selectedPair.formulas[0].name}
-                          </th>
-                          <th className="text-left py-2 text-purple-600">
-                            {selectedPair.formulas[1].name}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {diff.items.map((item, itemIndex) => (
-                          <tr key={itemIndex} className="border-t border-gray-100">
-                            <td className="py-3 text-sm font-medium text-gray-600">
-                              {item.aspect}
-                            </td>
-                            <td className="py-3 text-sm text-gray-900">{item.formula1}</td>
-                            <td className="py-3 text-sm text-gray-900">{item.formula2}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="mt-3 p-3 bg-amber-50 rounded-xl">
-                      <p className="text-sm text-amber-800 flex items-start gap-2">
-                        <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        {diff.items[0].recommendation}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Selection Guide */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="h-5 w-5 text-indigo-600" />
-                <h3 className="font-bold text-indigo-900">
-                  {selectedPair.formulas[0].name} 선택
-                </h3>
-              </div>
-              <ul className="space-y-2">
-                {selectedPair.selectionGuide.chooseFirst.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-indigo-800">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-purple-50 rounded-2xl border border-purple-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="h-5 w-5 text-purple-600" />
-                <h3 className="font-bold text-purple-900">
-                  {selectedPair.formulas[1].name} 선택
-                </h3>
-              </div>
-              <ul className="space-y-2">
-                {selectedPair.selectionGuide.chooseSecond.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-purple-800">
-                    <CheckCircle2 className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Herb Comparison */}
-          <div className="surface-card rounded-2xl p-6">
-            <h3 className="font-bold text-gray-900 mb-4">구성 약물 비교</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {selectedPair.formulas.map((formula, index) => (
-                <div key={formula.id}>
-                  <p className={cn(
-                    'text-sm font-semibold mb-3',
-                    index === 0 ? 'text-indigo-600' : 'text-purple-600'
-                  )}>
-                    {formula.name}
-                  </p>
-                  <div className="space-y-2">
-                    {formula.herbs.map((herb) => {
-                      const otherFormula = selectedPair.formulas[1 - index]
-                      const isUnique = !otherFormula.herbs.some((h) => h.name === herb.name)
-                      return (
-                        <div
-                          key={herb.name}
-                          className={cn(
-                            'flex items-center justify-between p-2 rounded-lg text-sm',
-                            isUnique
-                              ? index === 0
-                                ? 'bg-indigo-100 text-indigo-900'
-                                : 'bg-purple-100 text-purple-900'
-                              : 'bg-gray-50 text-gray-700'
-                          )}
-                        >
-                          <span>
-                            {herb.name}
-                            {isUnique && (
-                              <span className="ml-1 text-xs opacity-75">(고유)</span>
-                            )}
-                          </span>
-                          <span className="text-gray-500">
-                            {herb.role} · {herb.amount}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Contraindications */}
-          <div className="bg-red-50 rounded-2xl border border-red-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <h3 className="font-bold text-red-900">금기 사항</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {selectedPair.formulas.map((formula) => (
-                <div key={formula.id}>
-                  <p className="text-sm font-semibold text-red-800 mb-2">{formula.name}</p>
-                  <ul className="space-y-1">
-                    {formula.contraindications.map((contra, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-red-700">
-                        <XCircle className="h-3 w-3" />
-                        {contra}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        // List View
-        <div className="space-y-6">
-          {/* Search */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_1fr]">
+        {/* 기준 처방 고르기 */}
+        <div className="surface-card rounded-2xl p-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="처방명, 한자, 증상으로 검색..."
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="처방명으로 찾기"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-3 text-[14px] focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 
-          {/* Pre-made Comparisons */}
-          <div>
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-500" />
-              자주 비교하는 처방
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {comparisonPairs.map((pair) => (
-                <button
-                  key={pair.id}
-                  onClick={() => {
-                    setSelectedPair(pair)
-                    setExpandedSections(pair.differences.map((d) => d.category))
-                  }}
-                  className="surface-card rounded-2xl p-6 text-left hover:shadow-lg hover:border-indigo-200 transition-all group"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded">
-                        {pair.formulas[0].name}
-                      </span>
-                      <ArrowLeftRight className="h-4 w-4 text-gray-400" />
-                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
-                        {pair.formulas[1].name}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">
-                    {pair.differences[0].items[0].recommendation}
-                  </p>
-                  <p className="text-sm text-indigo-600 group-hover:text-indigo-700 font-medium">
-                    비교하기 →
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* All Formulas */}
-          <div>
-            <h3 className="font-bold text-gray-900 mb-4">전체 처방 목록</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredFormulas.map((formula) => (
-                <div
-                  key={formula.id}
-                  className="surface-card rounded-2xl p-5"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-bold text-gray-900">{formula.name}</h4>
-                      <p className="text-sm text-gray-500">{formula.hanja}</p>
-                    </div>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                      {formula.category}
+          <ul className="mt-3 max-h-[560px] space-y-0.5 overflow-y-auto">
+            {selectable.map((f) => {
+              const n = comparisons.filter((c) => c.fromId === f.id).length
+              return (
+                <li key={f.id}>
+                  <button
+                    onClick={() => setBaseId(f.id)}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[14px] transition-colors',
+                      f.id === baseId
+                        ? 'bg-blue-50 font-semibold text-blue-700'
+                        : 'text-neutral-700 hover:bg-neutral-50',
+                    )}
+                  >
+                    <span className="truncate">
+                      {structured[f.id]?.koreanName || f.name}
                     </span>
+                    <span className="shrink-0 text-[12px] text-neutral-400">{n}</span>
+                  </button>
+                </li>
+              )
+            })}
+            {selectable.length === 0 && (
+              <li className="px-3 py-6 text-center text-[13.5px] text-neutral-500">
+                찾는 처방이 없습니다
+              </li>
+            )}
+          </ul>
+        </div>
+
+        {/* 비교 내용 */}
+        <div className="space-y-4">
+          {!base || !active ? (
+            <div className="surface-card rounded-2xl p-8 text-center text-[14px] text-neutral-500">
+              왼쪽에서 처방을 고르면 문헌에 기록된 감별 내용을 보여드립니다.
+            </div>
+          ) : (
+            <>
+              {/* 상대 처방 탭 — 한 처방에 여러 비교가 있다 */}
+              <div className="surface-card rounded-2xl p-4">
+                <div className="mb-2 text-[13px] font-semibold text-neutral-500">
+                  {structured[base.id]?.koreanName || base.name}과(와) 견주어 볼 처방
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {baseComparisons.map((c) => (
+                    <button
+                      key={c.to}
+                      onClick={() => setTargetKey(c.to)}
+                      className={cn(
+                        'rounded-full border px-3.5 py-1.5 text-[13.5px] font-medium transition-colors',
+                        c.to === active.to
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300',
+                      )}
+                    >
+                      {c.to}
+                      {!c.toId && (
+                        <span className="ml-1 text-[11px] opacity-70">미수록</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 문헌 감별 — 원문 인용 */}
+              <div className="surface-card rounded-2xl p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-neutral-400" />
+                  <h2 className="text-[15px] font-bold text-neutral-900">
+                    {base.name} vs {active.to}
+                  </h2>
+                </div>
+                <p className="whitespace-pre-line text-[15px] leading-[1.9] text-neutral-800">
+                  {active.text}
+                </p>
+                <p className="mt-4 border-t border-neutral-100 pt-3 text-[12px] leading-relaxed text-neutral-400">
+                  방약합편 해설에서 인용했습니다. 원문 그대로이며 요약하지 않았습니다.
+                </p>
+              </div>
+
+              {/* 구성 대조 — 계산한 값이라 위와 구분한다.
+                  423건 중 44건은 원본에 구성 약재가 없어 대조가 뜨지 않는다.
+                  조용히 빼면 왜 없는지 알 수 없으므로 이유를 적는다. */}
+              {!herbDiff && (
+                <div className="surface-card rounded-2xl px-5 py-4 text-[13.5px] leading-relaxed text-neutral-500">
+                  두 처방 중 한쪽의 구성 약재가 원본에 없어 대조를 만들지 못했습니다.
+                </div>
+              )}
+              {herbDiff && (
+                <div className="surface-card rounded-2xl p-5">
+                  <h3 className="mb-3 text-[15px] font-bold text-neutral-900">
+                    구성 약재 대조
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <div className="mb-2 text-[12.5px] font-semibold text-neutral-500">
+                        공통 {herbDiff.shared.length}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {herbDiff.shared.map((h) => (
+                          <span
+                            key={h}
+                            className="rounded-md bg-neutral-100 px-2 py-1 text-[13px] text-neutral-700"
+                          >
+                            {h}
+                          </span>
+                        ))}
+                        {herbDiff.shared.length === 0 && (
+                          <span className="text-[13px] text-neutral-400">없음</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[12.5px] font-semibold text-blue-600">
+                        {base.name}에만 {herbDiff.onlyA.length}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {herbDiff.onlyA.map((h) => (
+                          <span
+                            key={h}
+                            className="rounded-md bg-blue-50 px-2 py-1 text-[13px] text-blue-700"
+                          >
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[12.5px] font-semibold text-amber-600">
+                        {active.to}에만 {herbDiff.onlyB.length}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {herbDiff.onlyB.map((h) => (
+                          <span
+                            key={h}
+                            className="rounded-md bg-amber-50 px-2 py-1 text-[13px] text-amber-700"
+                          >
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-3">{formula.indication}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {formula.keySymptoms.slice(0, 3).map((symptom) => (
-                      <span
-                        key={symptom}
-                        className="px-2 py-0.5 bg-gray-50 text-gray-600 text-xs rounded"
-                      >
-                        {symptom}
-                      </span>
-                    ))}
+                  <p className="mt-4 border-t border-neutral-100 pt-3 text-[12px] leading-relaxed text-neutral-400">
+                    이 대조는 두 처방의 구성에서 계산한 것입니다. 위 감별 설명과 달리 문헌 인용이 아닙니다.
+                  </p>
+                </div>
+              )}
+
+              {/* 적응증 — 색인이 있을 때만 */}
+              {(structured[base.id]?.indications?.length ||
+                (target && structured[target.id]?.indications?.length)) && (
+                <div className="surface-card rounded-2xl p-5">
+                  <h3 className="mb-3 text-[15px] font-bold text-neutral-900">적응증</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-[12.5px] font-semibold text-blue-600">
+                        {base.name}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(structured[base.id]?.indications ?? []).map((s) => (
+                          <span
+                            key={s}
+                            className="rounded-md bg-blue-50 px-2 py-1 text-[13px] text-blue-700"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[12.5px] font-semibold text-amber-600">
+                        {active.to}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {target ? (
+                          (structured[target.id]?.indications ?? []).map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-md bg-amber-50 px-2 py-1 text-[13px] text-amber-700"
+                            >
+                              {s}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[13px] text-neutral-400">
+                            카탈로그에 아직 없는 처방입니다
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
