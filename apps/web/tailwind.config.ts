@@ -70,21 +70,6 @@ export default {
           800: '#0D3D80',
           900: '#082A5A',
         },
-        // 한의학 표면 — 기존 팔레트를 대체하지 않고 더한다.
-        hanji: {
-          DEFAULT: 'hsl(var(--hanji))',
-          line: 'hsl(var(--hanji-line))',
-        },
-        ink: {
-          DEFAULT: 'hsl(var(--ink))',
-          soft: 'hsl(var(--ink-soft))',
-          faint: 'hsl(var(--ink-faint))',
-        },
-        // 주사(朱砂) — 금기 전용. '중요' 강조에 쓰지 말 것.
-        cinnabar: {
-          DEFAULT: 'hsl(var(--cinnabar))',
-          surface: 'hsl(var(--cinnabar-surface))',
-        },
         // 회색 9단계 — 토스가 명도 단계로 거의 모든 위계를 만든다
         neutral: {
           50: '#F9FAFB',
@@ -108,12 +93,6 @@ export default {
       },
       fontFamily: {
         sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        // 제목·한자 병기용 명조. 본문은 Pretendard 그대로 — 읽는 속도가 안전이다.
-        serif: ['"Gowun Batang"', '"Noto Serif KR"', 'serif'],
-        // 붓글씨(正風毛筆體 행서). 28px 이상에서만 쓴다.
-        brush: ['MasaBrush', '"Noto Serif KR"', 'serif'],
-        // 본문 한자(全字庫 正楷體)
-        hanja: ['TWKai', '"Noto Serif KR"', 'serif'],
       },
       fontSize: {
         // Toss 8/13/15/17/19/22/26/32 단계

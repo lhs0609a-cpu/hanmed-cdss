@@ -1004,8 +1004,7 @@ export default function PatternDiagnosisPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="hanja mb-1 text-[10.5px] tracking-[0.3em] text-ink-faint">辨 證</div>
-        <h1 className="font-serif text-[27px] font-bold tracking-tight text-ink">
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900">
             변증 추론
             <span className="ml-2 text-[12px] font-medium text-neutral-400 align-middle">참고용</span>
           </h1>
