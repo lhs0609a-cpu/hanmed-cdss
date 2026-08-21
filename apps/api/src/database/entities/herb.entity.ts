@@ -62,6 +62,16 @@ export class Herb {
   @Column({ type: 'text', nullable: true })
   pharmacopoeia: string | null;
 
+  /**
+   * 식물분류학 과명 — "벼과 (Poaceae)" 형태.
+   *
+   * category(청열약·보기약)와는 다른 축이다. 이건 기원 식물의 학술 분류이고
+   * category 는 본초학 효능 분류다. 섞으면 안 되므로 칸을 따로 둔다.
+   * 같은 과 약재에 알레르기가 있는 환자를 거를 때, 기원 식물을 확인할 때 쓴다.
+   */
+  @Column({ type: 'text', nullable: true })
+  taxonomy: string | null;
+
   @Column('text', { nullable: true })
   efficacy: string; // 효능 설명 (자유 텍스트)
 
