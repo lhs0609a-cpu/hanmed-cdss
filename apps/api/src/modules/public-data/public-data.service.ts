@@ -43,12 +43,17 @@ const ENDPOINTS: Record<string, string> = {
   // 서방정분할주의 — Divide 가 아니라 Partitn 이다.
   DUR_EXTENDED_RELEASE:
     'https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getSeobangjeongPartitnAtentInfoList03',
-  // ── 아래 그룹은 2026-08-20 확인 시 전부 NO_OPENAPI_SERVICE_ERROR 다.
-  // 키 문제가 아니라 서비스 자체가 폐기·이전된 것으로 보이며, 버전 접미사를
-  // 바꿔봐도(없음/1/2/01/02) 살아나지 않는다. 대체 API 를 찾기 전까지
-  // herb-api.ts 의 약재 검색과 insurance-api.ts 의 수가 조회는 동작하지 않는다.
-  // 식약처 생약 약재정보
-  MFDS_HERB: 'https://apis.data.go.kr/1471057/HerbMdntfService/getMdntfList',
+  // 식약처 생약 약재정보 — 2,060건. 폐기된 게 아니라 오퍼레이션명이 틀렸다.
+  // getMdntfList 로 부르면 NO_OPENAPI_SERVICE 가 떠서 서비스가 없어진 줄 알았다.
+  // 실제 이름은 getMdntf 다. DUR 용량주의·서방정분할과 같은 유형의 오류였다.
+  MFDS_HERB: 'https://apis.data.go.kr/1471057/HerbMdntfService/getMdntf',
+  // 국내공정서 생약정보 — URL 은 정상, 활용신청만 하면 열린다.
+  MFDS_HERB_OFFICIAL:
+    'https://apis.data.go.kr/1471057/HerbDmstcOfcmService/getDmstcOfcm',
+
+  // ── 아래 그룹은 2026-08-20 확인 시 NO_OPENAPI_SERVICE_ERROR 다.
+  // 특허청·심평원 쪽은 아직 대체를 찾지 못했다. 식약처 생약처럼
+  // 오퍼레이션명 문제일 수 있으니 폐기로 단정하지 말 것.
   // 지식재산처 한국전통 약재/처방
   KIPO_HERB_SEARCH:
     'https://apis.data.go.kr/1430000/MatInfoService/getMatInfoList',
