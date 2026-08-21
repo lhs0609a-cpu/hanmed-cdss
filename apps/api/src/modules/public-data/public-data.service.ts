@@ -71,14 +71,21 @@ const ENDPOINTS: Record<string, string> = {
   FEE_PHARMACY:
     'https://apis.data.go.kr/B551182/mdfeeCrtrInfoService/getPhmcCrtrList',
   // 건강보험심사평가원 질병정보
-  // 서비스명에 붙어 있던 1 이 없어졌다(diseaseInfoService1 → diseaseInfoService).
+  // 심평원 질병정보 — 서비스명과 오퍼레이션명 양쪽에 1 이 붙는다.
+  // 한때 diseaseInfoService(1 없음)로 고쳤는데 그게 잘못된 수정이었다.
+  // 미신청 상태에서는 diseaseInfoService 가 '키 미등록'(30), 정본인
+  // diseaseInfoService1 이 '서비스 없음'(12)을 반환해 반대로 읽었다.
+  // 에러 코드만 보고 주소를 판단하면 안 된다는 사례가 하나 더 늘었다.
+  //
+  // 한방 상병은 sickType=2 & medTp=2 조합으로 1,592건 조회된다.
+  // 응답은 XML 만 제공한다(JSON 없음).
   DISEASE_INFO:
-    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissNameCodeList',
-  // 아래 둘은 서비스명을 고쳐도 응답이 없다. 폐기된 것으로 보이며 대체 API 미확인.
-  DISEASE_INOUT:
-    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissInoStatsList',
-  DISEASE_GENDER_AGE:
-    'https://apis.data.go.kr/B551182/diseaseInfoService/getDissSexAggrStatsList',
+    'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList1',
+  // 입원외래·성별연령 통계는 오퍼레이션명을 아직 확인하지 못했다.
+  // 추측한 주소를 남기면 다음 사람이 그걸 정답으로 읽는다 — 이번 세션에서
+  // getMdntfList·getDissNameCodeList 가 정확히 그렇게 사람을 헷갈리게 했다.
+  // 실제로 쓸 때 활용가이드 문서에서 확인하고 넣을 것.
+  //   참고: https://www.data.go.kr/data/15119055/openapi.do
 };
 
 export interface ProxyResult {
