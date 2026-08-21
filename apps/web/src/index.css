@@ -1,39 +1,5 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-/* 제목용 명조. 한자는 자체 호스팅한 TWKai 가 맡으므로 한글만 받으면 된다. */
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Brush+Script&display=swap');
 @import './styles/print.css';
-
-/*
- * 한의학 서체 — 셋을 역할로 나눠 쓴다.
- *
- * 붓글씨(masa, 正風毛筆體 행서)는 크게 쓸 때만 아름답다. 작으면 획이 얽혀
- * 一과 二, 五와 三이 구별되지 않는다. 용량 오독은 사고라서 28px 미만 금지.
- * 원본 18MB 를 화면에 크게 나올 만한 97자로 추려 47KB 로 줄였다.
- *
- * 한자 본문(twkai, 全字庫 正楷體)은 처방명·약재명 병기용이다. 처방 데이터에
- * 실제로 나오는 한자 743자만 담았다(36MB → 407KB).
- *
- * 둘 다 SIL OFL / 정부개방데이터 라이선스로 상업적 이용이 허용된다.
- * font-display: swap — 폰트 때문에 임상 정보가 늦게 뜨면 안 된다.
- */
-@font-face {
-  font-family: 'MasaBrush';
-  src: url('/fonts/masa-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'MasaBrush';
-  src: url('/fonts/masa-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'TWKai';
-  src: url('/fonts/twkai-subset.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
 
 @tailwind base;
 @tailwind components;
@@ -78,18 +44,6 @@
     --ring: 215 92% 58%;                /* primary 와 동일 */
 
     --radius: 12px;
-
-    /* 한의학 표면 — 기존 블루/회색 토큰은 그대로 두고 위에 얹는다.
-       순백(#FFFFFF) 대신 아주 옅은 미색. 갈색 종이색은 쓰지 않는다(촌스러워진다). */
-    --hanji: 40 33% 93%;              /* #F4EFE3 종이 바탕 */
-    --hanji-line: 40 12% 82%;         /* 종이 위의 괘선 */
-    --ink: 60 4% 10%;                 /* #1A1A18 먹 */
-    --ink-soft: 45 12% 27%;           /* 본문 회색 대체 */
-    --ink-faint: 45 10% 45%;          /* 보조 텍스트 */
-    /* 주사(朱砂) — 인장의 붉은색이자 금기의 색. 전통과 기능이 겹치는 유일한 지점.
-       그래서 장식이 아니다. '중요' 강조에 쓰면 금기 경고가 배경이 된다. */
-    --cinnabar: 4 63% 44%;            /* #B7332A */
-    --cinnabar-surface: 12 60% 95%;   /* #FBEDEA */
   }
 
   .dark {
@@ -759,64 +713,5 @@
     background: hsl(var(--surface-1));
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-1);
-  }
-
-  /*
-   * 한지 바탕 — 색만 바꾸면 종이로 안 보인다. 섬유결과 미세한 얼룩이 있어야 한다.
-   * 텍스처 이미지를 쓰면 타일 이음매가 보이고 고해상도에서 뭉개지므로
-   * SVG 난수로 만든다: ① 가로로 늘인 섬유결 ② 고운 입자.
-   * 파일 용량 0, 확대해도 안 깨지고, 어느 화면에서나 같게 나온다.
-   */
-  .hanji {
-    background-color: hsl(var(--hanji));
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.16'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.09'/%3E%3C/svg%3E");
-  }
-  /* 다크 모드에서는 종이가 아니라 먹빛이다. 난수를 얹으면 노이즈만 보인다. */
-  .dark .hanji {
-    background-color: hsl(var(--background));
-    background-image: none;
-  }
-
-  /* 종이 위의 카드 — 흰색을 그대로 올리면 플라스틱처럼 뜬다. */
-  .paper-card {
-    background: rgba(255, 255, 255, 0.66);
-    border: 1px solid rgba(26, 26, 24, 0.14);
-  }
-  .dark .paper-card {
-    background: hsl(var(--surface-1));
-    border-color: hsl(var(--border));
-  }
-
-  /* 붓글씨 — 크게 쓸 때만. 28px 미만에서는 쓰지 않는다. */
-  /*
-   * 붓글씨는 96자만 담겨 있다(큰 장식 글자 전용). 실수로 처방명에 쓰면
-   * 蟠蔥散 처럼 글자가 빠지므로, 다음 순위를 TWKai 로 둬서 한자는 반드시
-   * 나오게 한다. 모양이 섞이면 눈에 띄어 잘못 쓴 것을 바로 알 수 있다.
-   */
-  .brush {
-    font-family: 'MasaBrush', 'TWKai', 'Noto Serif KR', serif;
-    font-weight: 400;
-  }
-  /* 화면 뒤에 크게 깔리는 글자. 읽으라고 있는 게 아니라 성격을 말한다. */
-  .brush-mark {
-    font-family: 'MasaBrush', 'TWKai', 'Noto Serif KR', serif;
-    line-height: 0.78;
-    user-select: none;
-    pointer-events: none;
-    color: hsl(var(--ink));
-    opacity: 0.09;
-  }
-  .dark .brush-mark { opacity: 0.07; }
-
-  /* 본문에 병기하는 한자 — 한글보다 작게, 회색으로. */
-  .hanja {
-    font-family: 'TWKai', 'Noto Serif KR', serif;
-  }
-
-  /* 한글 붓글씨 — MasaBrush 는 중문 폰트라 한글이 없다. 로고 전용. */
-  .brush-ko {
-    font-family: 'Nanum Brush Script', cursive;
   }
 }
