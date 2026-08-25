@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RecommendationService, RecommendationRequest } from './recommendation.service';
 import { LlmService } from './llm.service';
 import { AiEngineClient } from './ai-engine.client';
+import { CasesService } from '../../cases/cases.service';
 import { BodyHeat, BodyStrength } from '../../../database/entities/clinical-case.entity';
 
 describe('RecommendationService', () => {
@@ -48,11 +49,19 @@ describe('RecommendationService', () => {
       getRecommendation: jest.fn().mockRejectedValue(new Error('AI Engine unavailable (test)')),
     };
 
+    // RecommendationService 는 근거 치험례를 CasesService 에서 가져온다.
+    // 빈 결과를 주어 "근거 없음" 경로로 두 자체는 이 스펙의 관심사가 아니고,
+    // 여기서 검증하려는 것은 LLM 폴백과 체열/근실도 로직이다.
+    const mockCasesService = {
+      searchSimilar: jest.fn().mockResolvedValue({ results: [] }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecommendationService,
         { provide: AiEngineClient, useValue: mockAiEngine },
         { provide: LlmService, useValue: mockLlmService },
+        { provide: CasesService, useValue: mockCasesService },
       ],
     }).compile();
 

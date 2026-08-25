@@ -83,7 +83,7 @@ export class AdminDashboardService {
     };
 
     subscriptionCounts.forEach((item) => {
-      if (subscriptionsByTier.hasOwnProperty(item.tier)) {
+      if (Object.prototype.hasOwnProperty.call(subscriptionsByTier, item.tier)) {
         subscriptionsByTier[item.tier] = parseInt(item.count, 10);
       }
     });

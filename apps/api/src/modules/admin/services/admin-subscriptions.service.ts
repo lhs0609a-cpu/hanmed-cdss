@@ -52,7 +52,7 @@ export class AdminSubscriptionsService {
     };
 
     tierCounts.forEach((item) => {
-      if (byTier.hasOwnProperty(item.tier)) {
+      if (Object.prototype.hasOwnProperty.call(byTier, item.tier)) {
         byTier[item.tier] = parseInt(item.count, 10);
       }
     });

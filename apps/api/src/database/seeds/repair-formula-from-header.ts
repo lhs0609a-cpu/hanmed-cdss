@@ -25,7 +25,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 
 // 방제 접미사 — 한글/한자 모두. 이걸로 끝나는 첫 토큰만 처방명으로 인정한다.
 const SUFFIX = '(탕|산|환|음|원|고|단|음자|전|첩|湯|散|丸|飮|元|膏|丹)';
-const HEADER_RE = new RegExp(`^[\s●○◆■□*・\-]*([가-힣A-Za-z]{2,12}${SUFFIX})`, 'u');
+const HEADER_RE = new RegExp(`^[\\s●○◆■□*・-]*([가-힣A-Za-z]{2,12}${SUFFIX})`, 'u');
 
 function extractHeaderFormula(text: string): string | null {
   if (!text) return null;

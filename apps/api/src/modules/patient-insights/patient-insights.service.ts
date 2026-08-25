@@ -554,7 +554,7 @@ export class PatientInsightsService {
     const suggestedQuestions: string[] = [];
 
     // 요약 생성
-    let summaryParts: string[] = [];
+    const summaryParts: string[] = [];
 
     if (daysSinceLastVisit !== null) {
       summaryParts.push(`마지막 진료 후 ${daysSinceLastVisit}일이 경과했습니다.`);
