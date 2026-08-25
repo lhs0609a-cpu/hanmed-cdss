@@ -192,7 +192,20 @@ export class ClinicalCase {
 
   /** 복용 경과 단계 — [{ step: '5번째 복용', change: '...' }] */
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
-  courseSteps: Array<{ step: string; change: string }>;
+  courseSteps: Array<{
+    step: string;
+    change: string;
+    /**
+     * 이 시점에 증상이 어느 쪽으로 갔는지. enrich-course-steps.ts 가 채운다.
+     * 없으면 아직 분류 전이다.
+     */
+    direction?: 'improved' | 'unchanged' | 'worse' | 'none';
+    /**
+     * 복용 단계. 회차와 일수를 한 축에 섞지 않으려고 단계로 묶는다 —
+     * 한약은 하루 두세 번 먹으므로 "5회 복용" 과 "5일 후" 는 다른 척도다.
+     */
+    phase?: 'baseline' | 'early' | 'mid' | 'late' | 'post' | 'followup';
+  }>;
 
   /** 이 치험례만의 특징 — 흔한 케이스와 무엇이 다른가 */
   @Column({ type: 'text', nullable: true })
