@@ -267,7 +267,9 @@ export default function ConsultationPage() {
   const { toast } = useToast()
   const currentUser = useAuthStore((state) => state.user)
   const [searchParams] = useSearchParams()
-  const [chiefComplaint, setChiefComplaint] = useState('')
+  // 대시보드 입력창에서 넘어온 주소증(?cc=). 마법사 1단계가 주소증 입력이라
+  // 값만 채워 두면 바로 다음으로 넘어갈 수 있다.
+  const [chiefComplaint, setChiefComplaint] = useState(() => searchParams.get('cc') ?? '')
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [newSymptom, setNewSymptom] = useState('')
   const [constitution, setConstitution] = useState('')
