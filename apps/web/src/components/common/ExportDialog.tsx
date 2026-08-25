@@ -41,27 +41,33 @@ export function ExportDialog({ trigger, defaultType = 'consultations' }: ExportD
 
     setEndDate(formatDate(today))
 
+    // case 마다 블록으로 묶는다. switch 본문은 스코프가 하나라서
+    // 블록이 없으면 네 개의 const 가 같은 스코프를 공유한다.
     switch (preset) {
-      case 'week':
+      case 'week': {
         const weekAgo = new Date(today)
         weekAgo.setDate(weekAgo.getDate() - 7)
         setStartDate(formatDate(weekAgo))
         break
-      case 'month':
+      }
+      case 'month': {
         const monthAgo = new Date(today)
         monthAgo.setMonth(monthAgo.getMonth() - 1)
         setStartDate(formatDate(monthAgo))
         break
-      case 'quarter':
+      }
+      case 'quarter': {
         const quarterAgo = new Date(today)
         quarterAgo.setMonth(quarterAgo.getMonth() - 3)
         setStartDate(formatDate(quarterAgo))
         break
-      case 'year':
+      }
+      case 'year': {
         const yearAgo = new Date(today)
         yearAgo.setFullYear(yearAgo.getFullYear() - 1)
         setStartDate(formatDate(yearAgo))
         break
+      }
       case 'all':
         setStartDate('')
         setEndDate('')

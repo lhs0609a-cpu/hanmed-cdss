@@ -35,7 +35,40 @@ export default function CelebDetailPage() {
   const navigate = useNavigate()
   const celeb = useMemo(() => getCelebrityById(id || ''), [id])
 
-  if (!celeb) {
+  // 훅은 전부 early return 위에 있어야 한다.
+  // 예전에는 `if (!celeb) return` 아래에 useMemo 네 개가 있었다. 유효한
+  // 셀럽을 보다가 없는 id 로 이동하면 훅이 5개에서 1개로 줄어서 React 가
+  // "Rendered fewer hooks than expected" 로 죽는다. 훅 순서는 렌더마다
+  // 같아야 하므로, celeb 이 없을 때도 같은 개수를 부르고 각자 빈 값을
+  // 돌려준 뒤 아래에서 한 번에 걸러낸다.
+  const analysis = useMemo(
+    () => (celeb ? analyzeProfile(celeb.birthDate, celeb.birthHour) : null),
+    [celeb]
+  )
+  const funFacts = useMemo(
+    () =>
+      celeb && analysis
+        ? generateFunFacts(analysis.health.constitution, analysis.balance, celeb.name)
+        : [],
+    [celeb, analysis]
+  )
+  const evidence = useMemo(
+    () =>
+      celeb && analysis
+        ? generateConstitutionEvidence(analysis.health.constitution, analysis.balance, celeb.name)
+        : [],
+    [celeb, analysis]
+  )
+
+  // 같은 체질 셀럽 - O(1) precomputed index lookup
+  const sameCelebs = useMemo(() => {
+    if (!celeb || !analysis) return []
+    return getCelebsByConstitution(analysis.health.constitution)
+      .filter(c => c.id !== celeb.id)
+      .slice(0, 8)
+  }, [celeb, analysis])
+
+  if (!celeb || !analysis) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <span className="text-4xl block mb-4">😕</span>
@@ -47,29 +80,8 @@ export default function CelebDetailPage() {
     )
   }
 
-  const analysis = useMemo(
-    () => analyzeProfile(celeb.birthDate, celeb.birthHour),
-    [celeb.birthDate, celeb.birthHour]
-  )
-
   const { saju, balance, health, risk } = analysis
   const constitution = CONSTITUTIONS[health.constitution]
-  const funFacts = useMemo(
-    () => generateFunFacts(health.constitution, balance, celeb.name),
-    [health.constitution, balance, celeb.name]
-  )
-  const evidence = useMemo(
-    () => generateConstitutionEvidence(health.constitution, balance, celeb.name),
-    [health.constitution, balance, celeb.name]
-  )
-
-  // 같은 체질 셀럽 - O(1) precomputed index lookup
-  const sameCelebs = useMemo(() => {
-    return getCelebsByConstitution(health.constitution)
-      .filter(c => c.id !== celeb.id)
-      .slice(0, 8)
-  }, [celeb.id, health.constitution])
-
   const catInfo = CATEGORY_INFO[celeb.category]
 
   // 사주 주(柱) 배열

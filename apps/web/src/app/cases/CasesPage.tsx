@@ -84,7 +84,7 @@ function stripHanja(text: string): string {
   if (!text) return ''
   let out = text
   // 한자(괄호) 제거
-  out = out.replace(/[\(（]([\u4e00-\u9fff]+)[\)）]/g, '')
+  out = out.replace(/[(（]([\u4e00-\u9fff]+)[)）]/g, '')
   // 연속된 한자 뒤 바로 같은 의미의 한글이 오면 한자 부분 제거 — '大病後대병후' → '대병후'
   out = out.replace(/[\u4e00-\u9fff]+([가-힣]+)/g, '$1')
   // 양옆 공백 정리
