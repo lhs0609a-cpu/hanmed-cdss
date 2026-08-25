@@ -1,24 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3182F6"/>
-      <stop offset="50%" stop-color="#4B74FF"/>
-      <stop offset="100%" stop-color="#7856FF"/>
-    </linearGradient>
-    <radialGradient id="hl" cx="30%" cy="10%" r="75%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
-      <stop offset="38%" stop-color="#ffffff" stop-opacity="0.12"/>
-      <stop offset="66%" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#1a0f5a" stop-opacity="0.30"/>
-    </linearGradient>
-  </defs>
-  <!-- 3D 스쿼클: 그라디언트 바디 + 상단 하이라이트 + 하단 내부 음영 -->
-  <rect x="3" y="3" width="58" height="58" rx="17" fill="url(#g)"/>
-  <rect x="3" y="3" width="58" height="58" rx="17" fill="url(#sh)"/>
-  <rect x="3" y="3" width="58" height="58" rx="17" fill="url(#hl)"/>
-  <rect x="3.5" y="3.5" width="57" height="57" rx="16.5" fill="none" stroke="#ffffff" stroke-opacity="0.20" stroke-width="1"/>
-  <text x="32" y="45" font-family="-apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif" font-weight="900" font-size="34" text-anchor="middle" fill="#ffffff">온</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="온고지신 AI">
+  <title>온고지신 AI</title>
+  <!--
+    스쿼클은 단일 브랜드 블루 한 겹이다.
+    전에는 블루→퍼플 그라디언트에 하이라이트·내부음영을 얹어 3D 로 냈는데,
+    디자인 토큰이 "그라데이션·다채색 사용 안 함"(index.css) 이라 마크만 정책 밖에 있었다.
+    16px 파비콘에서는 어차피 그라디언트가 뭉개져 단색으로 보이기도 했다.
+  -->
+  <rect x="3" y="3" width="58" height="58" rx="17" fill="#3182F6"/>
+
+  <!--
+    촌관척(寸關尺) — 진맥할 때 손목에 얹는 세 자리.
+    아래 선은 끊이지 않고 흘러온 맥(故), 위 점 셋은 거기서 값을 읽는 자리(新).
+
+    점 셋은 15° 기울어진 한 직선 위에 놓는다. 아치로 배열하면 웃는 얼굴이 되고,
+    수평으로 놓으면 말줄임표(…)로 읽힌다. 직선 + 기울기라야 둘 다 피한다.
+    크기는 촌 3.0 / 관 3.7 / 척 3.2 — 관(關)이 기준 자리라 가장 크다.
+
+    폰트를 쓰지 않는다. 예전 "온" 글자 마크는 기기마다 자형이 달랐고
+    한글 폰트가 없는 환경에서는 두부(□)로 깨졌다.
+    좌표는 maskable 안전영역(중심 32,32 에서 반경 25.6) 안에 들어간다.
+  -->
+  <g fill="#ffffff">
+    <path d="M13.3 40.2 H50.7" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="23" cy="30.9" r="3"/>
+    <circle cx="32" cy="28.5" r="3.7"/>
+    <circle cx="41" cy="26.1" r="3.2"/>
+  </g>
 </svg>

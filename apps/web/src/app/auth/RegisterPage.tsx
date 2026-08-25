@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Loader2 } from 'lucide-react'
+import { LogoMark } from '@/components/common'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import api from '@/services/api'
@@ -103,7 +104,8 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex items-start justify-center px-5 py-12">
       <div className="w-full max-w-[440px]">
-        <Link to="/" className="inline-block mb-12">
+        <Link to="/" className="inline-flex items-center gap-2.5 mb-12">
+          <LogoMark size={32} />
           <span className="text-2xl font-extrabold tracking-tight text-neutral-900">온고지신 AI</span>
         </Link>
 

@@ -32,7 +32,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(135deg, #3182F6 0%, #1456B0 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -50,16 +50,12 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     }
 
+    /* 브랜드 마크는 인라인 SVG 다. 이모지는 OS 마다 그림이 달라서 로고로 못 쓴다. */
     .logo {
       width: 80px;
       height: 80px;
-      background: #10b981;
-      border-radius: 20px;
       margin: 0 auto 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
+      display: block;
     }
 
     h1 {
@@ -94,13 +90,20 @@
     .feature-icon {
       width: 40px;
       height: 40px;
-      background: #ecfdf5;
+      background: #EBF3FE;
+      color: #1B64DA;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-right: 12px;
-      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .feature-icon svg {
+      width: 20px;
+      height: 20px;
+      display: block;
     }
 
     .feature-text {
@@ -186,7 +189,7 @@
       width: 40px;
       height: 40px;
       border: 3px solid #e5e7eb;
-      border-top-color: #10b981;
+      border-top-color: #3182F6;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin: 0 auto 16px;
@@ -209,7 +212,17 @@
 
     <!-- 메인 콘텐츠 -->
     <div id="content">
-      <div class="logo">🏥</div>
+      <!-- 촌관척(寸關尺) — apps/web/public/favicon.svg 와 같은 기하 -->
+      <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="온고지신">
+        <title>온고지신</title>
+        <rect x="3" y="3" width="58" height="58" rx="17" fill="#3182F6"/>
+        <g fill="#ffffff">
+          <path d="M13.3 40.2 H50.7" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="23" cy="30.9" r="3"/>
+          <circle cx="32" cy="28.5" r="3.7"/>
+          <circle cx="41" cy="26.1" r="3.2"/>
+        </g>
+      </svg>
       <h1>HanMed 환자</h1>
       <p class="subtitle">
         한의원 진료 기록과 처방을 한눈에 확인하고<br>
@@ -218,28 +231,44 @@
 
       <div class="features">
         <div class="feature">
-          <div class="feature-icon">📋</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/>
+            </svg>
+          </div>
           <div class="feature-text">
             <div class="feature-title">진료 기록 확인</div>
             <div class="feature-desc">AI가 쉽게 설명해주는 진료 내용</div>
           </div>
         </div>
         <div class="feature">
-          <div class="feature-icon">💊</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>
+            </svg>
+          </div>
           <div class="feature-text">
             <div class="feature-title">처방 & 복약 관리</div>
             <div class="feature-desc">약재 정보와 과학적 근거 확인</div>
           </div>
         </div>
         <div class="feature">
-          <div class="feature-icon">📊</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/>
+            </svg>
+          </div>
           <div class="feature-text">
             <div class="feature-title">건강 일지</div>
             <div class="feature-desc">매일 건강 상태를 기록하고 트렌드 확인</div>
           </div>
         </div>
         <div class="feature">
-          <div class="feature-icon">🔔</div>
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </div>
           <div class="feature-text">
             <div class="feature-title">알림 서비스</div>
             <div class="feature-desc">복약 시간, 진료 기록 공유 알림</div>

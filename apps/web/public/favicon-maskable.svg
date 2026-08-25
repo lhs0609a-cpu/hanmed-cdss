@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="온고지신 AI">
+  <title>온고지신 AI</title>
+  <!--
+    maskable 전용 아이콘.
+    안드로이드/PWA 는 아이콘을 원·스쿼클 등 임의 모양으로 잘라낸다.
+    그래서 배경을 모서리 여백 없이 꽉 채우고(full-bleed), 마크는
+    안전영역(중심에서 반경 25.6 = 캔버스의 80%) 안에만 둔다.
+
+    favicon.svg 는 모서리에 3px 투명 여백이 있어 maskable 로 쓰면
+    잘린 자리에 투명이 드러난다. 그래서 파일을 나눈다.
+    마크 기하는 favicon.svg / Logo.tsx 와 완전히 동일하다.
+  -->
+  <!-- 배경은 단일 브랜드 블루 — favicon.svg 와 같은 정책. -->
+  <rect width="64" height="64" fill="#3182F6"/>
+
+  <!-- 촌관척(寸關尺) — favicon.svg / Logo.tsx 와 동일한 기하 -->
+  <g fill="#ffffff">
+    <path d="M13.3 40.2 H50.7" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="23" cy="30.9" r="3"/>
+    <circle cx="32" cy="28.5" r="3.7"/>
+    <circle cx="41" cy="26.1" r="3.2"/>
+  </g>
+</svg>

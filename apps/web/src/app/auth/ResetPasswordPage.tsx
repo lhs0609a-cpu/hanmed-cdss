@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
-import { Sparkles, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { LogoMark } from '@/components/common'
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
@@ -66,9 +67,7 @@ export default function ResetPasswordPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
+            <LogoMark size={44} variant="bare" className="text-white" />
             <span className="text-2xl font-bold text-white">온고지신 AI</span>
           </div>
         </div>
@@ -95,9 +94,7 @@ export default function ResetPasswordPage() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
+              <LogoMark size={48} />
               <span className="text-2xl font-bold text-gray-900">온고지신 AI</span>
             </div>
           </div>
