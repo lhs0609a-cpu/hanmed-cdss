@@ -11,6 +11,9 @@ import { PatientReportsCard } from '@/components/guide/PatientReportsCard'
 import { ConsultationLauncher } from '@/components/dashboard/ConsultationLauncher'
 import { CorpusBand } from '@/components/dashboard/CorpusBand'
 import { DailyCaseCard } from '@/components/dashboard/DailyCaseCard'
+import { DailyFormulaCard } from '@/components/dashboard/DailyFormulaCard'
+import { DailyHerbCard } from '@/components/dashboard/DailyHerbCard'
+import { CommunityPulseCard } from '@/components/dashboard/CommunityPulseCard'
 
 /**
  * 대시보드 — Toss 식 단순화.
@@ -215,13 +218,23 @@ export default function DashboardPage() {
               )}
             </div>
           </section>
+
+          {/* 내 데이터가 비어도 여기는 바뀐다 — 매일 열 이유를 만드는 건
+              결국 "내가 모르는 사이에 뭔가 있었다" 쪽이다. */}
+          <CommunityPulseCard />
         </div>
 
         {/* 오른쪽 = 근거. 사용자 데이터와 무관해서 가입 첫날에도 비지 않는다.
-            xl 미만에서는 왼쪽 열 아래로 그대로 쌓인다. */}
+            xl 미만에서는 왼쪽 열 아래로 그대로 쌓인다.
+
+            매일 하나씩 펴 두는 셋(치험례·처방·약재)을 여기 모은다. 왼쪽 카드는
+            전부 사용자 데이터에 의존해서 신규 한의사에게는 동시에 비는데,
+            카탈로그는 첫날에도 비지 않는 유일한 자산이라 그 구멍을 메운다. */}
         <aside className="min-w-0 space-y-6">
           <CorpusBand />
           <DailyCaseCard />
+          <DailyFormulaCard />
+          <DailyHerbCard />
         </aside>
       </div>
     </div>
