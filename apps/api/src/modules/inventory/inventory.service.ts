@@ -418,8 +418,15 @@ export class InventoryService {
   /**
    * 알림 해결
    */
-  async resolveAlert(alertId: string, resolvedById: string): Promise<HerbInventoryAlert> {
-    const alert = await this.alertRepository.findOne({ where: { id: alertId } });
+  async resolveAlert(
+    alertId: string,
+    resolvedById: string,
+    clinicId: string,
+  ): Promise<HerbInventoryAlert> {
+    // 소유 한의원 조건이 없으면 남의 재고 알림을 대신 '해결' 처리할 수 있다.
+    const alert = await this.alertRepository.findOne({
+      where: { id: alertId, clinicId },
+    });
 
     if (!alert) {
       throw new NotFoundException('알림을 찾을 수 없습니다.');

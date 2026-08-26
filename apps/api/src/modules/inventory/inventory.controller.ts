@@ -207,7 +207,11 @@ export class InventoryController {
     @Request() req: any,
     @Param('id') id: string,
   ) {
-    const result = await this.inventoryService.resolveAlert(id, req.user.id);
+    const result = await this.inventoryService.resolveAlert(
+      id,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return { success: true, data: result };
   }
 

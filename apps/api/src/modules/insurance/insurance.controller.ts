@@ -135,8 +135,11 @@ export class InsuranceController {
     description: '특정 청구서의 상세 정보를 조회합니다.',
   })
   @ApiParam({ name: 'claimId', description: '청구서 ID' })
-  async getClaim(@Param('claimId') claimId: string) {
-    const result = await this.insuranceService.getClaim(claimId);
+  async getClaim(@Request() req: any, @Param('claimId') claimId: string) {
+    const result = await this.insuranceService.getClaim(
+      claimId,
+      req.user.clinicId || req.user.id,
+    );
     return { success: true, data: result };
   }
 
@@ -150,10 +153,11 @@ export class InsuranceController {
   })
   @ApiParam({ name: 'claimId', description: '청구서 ID' })
   async updateClaim(
+    @Request() req: any,
     @Param('claimId') claimId: string,
     @Body() dto: UpdateClaimDto,
   ) {
-    const result = await this.insuranceService.updateClaim(claimId, {
+    const result = await this.insuranceService.updateClaim(claimId, req.user.clinicId || req.user.id, {
       diagnosisCodes: dto.diagnosisCodes,
       treatmentItems: dto.treatmentItems?.map(item => ({
         ...item,
@@ -177,7 +181,11 @@ export class InsuranceController {
     @Request() req: any,
     @Body() dto: SubmitClaimDto,
   ) {
-    const result = await this.insuranceService.submitClaims(dto.claimIds, req.user.id);
+    const result = await this.insuranceService.submitClaims(
+      dto.claimIds,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return {
       success: true,
       data: {
@@ -198,10 +206,15 @@ export class InsuranceController {
   })
   @ApiParam({ name: 'claimId', description: '청구서 ID' })
   async recordReviewResult(
+    @Request() req: any,
     @Param('claimId') claimId: string,
     @Body() dto: RecordReviewResultDto,
   ) {
-    const result = await this.insuranceService.recordReviewResult(claimId, dto);
+    const result = await this.insuranceService.recordReviewResult(
+      claimId,
+      req.user.clinicId || req.user.id,
+      dto,
+    );
     return { success: true, data: result };
   }
 

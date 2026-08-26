@@ -99,12 +99,33 @@ export class PatientInsightsService {
   /**
    * 환자 증상 트렌드 요약 (한의사용)
    */
+  /**
+   * 이 환자를 내가 본 적이 있는지 — 진료 기록으로 확인한다.
+   *
+   * 이 모듈이 돌려주는 것은 전부 환자 개인 정보다(이름·증상 추이·복약 순응도).
+   * id 만으로 조회하면 로그인한 누구나 남의 환자를 열 수 있다.
+   * 남의 환자일 때 403 이 아니라 404 를 준다 — 존재 여부 자체가 정보다.
+   */
+  private async assertMyPatient(
+    patientId: string,
+    practitionerId: string,
+  ): Promise<void> {
+    const seen = await this.patientRecordRepository.findOne({
+      where: { patientId, practitionerId },
+      select: ['id'],
+    });
+    if (!seen) {
+      throw new NotFoundException('환자를 찾을 수 없습니다.');
+    }
+  }
+
   async getPatientSymptomSummary(
     patientId: string,
     practitionerId: string,
     startDate?: Date,
     endDate?: Date,
   ): Promise<SymptomSummary> {
+    await this.assertMyPatient(patientId, practitionerId);
     const end = endDate || new Date();
     const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000); // 기본 30일
 
@@ -206,8 +227,10 @@ export class PatientInsightsService {
    */
   async generatePreVisitAnalysis(
     patientId: string,
+    practitionerId: string,
     upcomingReservationId?: string,
   ): Promise<PreVisitAnalysis> {
+    await this.assertMyPatient(patientId, practitionerId);
     // 마지막 진료 기록 조회
     const lastRecord = await this.patientRecordRepository.findOne({
       where: { patientId },
@@ -262,7 +285,10 @@ export class PatientInsightsService {
     const resolvedSymptoms = Array.from(previousSymptoms).filter(s => !recentSymptoms.has(s));
 
     // 복약 순응도 조회
-    const adherenceReport = await this.getMedicationAdherenceReport(patientId);
+    const adherenceReport = await this.getMedicationAdherenceReport(
+      patientId,
+      practitionerId,
+    );
 
     // 건강 점수 변화 조회
     const healthScores = await this.healthScoreRepository.find({
@@ -315,8 +341,10 @@ export class PatientInsightsService {
    */
   async getMedicationAdherenceReport(
     patientId: string,
+    practitionerId: string,
     prescriptionId?: string,
   ): Promise<AdherenceReport> {
+    await this.assertMyPatient(patientId, practitionerId);
     // 복약 기록 조회
     const queryBuilder = this.medicationLogRepository.createQueryBuilder('log')
       .where('log.patientId = :patientId', { patientId });
@@ -414,7 +442,11 @@ export class PatientInsightsService {
   /**
    * 환자별 알림 트리거 (이상 징후 감지)
    */
-  async checkPatientAlerts(patientId: string): Promise<Alert[]> {
+  async checkPatientAlerts(
+    patientId: string,
+    practitionerId: string,
+  ): Promise<Alert[]> {
+    await this.assertMyPatient(patientId, practitionerId);
     const alerts: Alert[] = [];
 
     const patient = await this.patientRepository.findOne({
@@ -428,7 +460,7 @@ export class PatientInsightsService {
     const patientName = patient.name || '환자';
 
     // 1. 증상 악화 체크
-    const symptomSummary = await this.getPatientSymptomSummary(patientId, '');
+    const symptomSummary = await this.getPatientSymptomSummary(patientId, practitionerId);
     const worseningSymptoms = symptomSummary.symptomTrends.filter(t => t.trend === 'worsening');
 
     if (worseningSymptoms.length > 0) {
@@ -444,7 +476,10 @@ export class PatientInsightsService {
     }
 
     // 2. 복약 순응도 체크
-    const adherence = await this.getMedicationAdherenceReport(patientId);
+    const adherence = await this.getMedicationAdherenceReport(
+      patientId,
+      practitionerId,
+    );
     if (adherence.adherenceRate < 70) {
       alerts.push({
         id: `alert-adherence-${patientId}-${Date.now()}`,
@@ -499,7 +534,7 @@ export class PatientInsightsService {
     // 각 환자의 알림 수집
     const allAlerts: Alert[] = [];
     for (const patientId of patientIds.slice(0, 50)) { // 최대 50명 체크
-      const alerts = await this.checkPatientAlerts(patientId);
+      const alerts = await this.checkPatientAlerts(patientId, practitionerId);
       allAlerts.push(...alerts);
     }
 

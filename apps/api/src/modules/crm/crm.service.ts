@@ -105,11 +105,14 @@ export class CrmService {
   /**
    * 캠페인 상세 조회
    */
-  async getCampaign(campaignId: string): Promise<CrmCampaign> {
+  async getCampaign(campaignId: string, clinicId: string): Promise<CrmCampaign> {
+    // 캠페인은 그 한의원의 환자 명단 위에서 돈다. 소유 조건 없이 id 로만 찾으면
+    // 로그인한 누구나 남의 캠페인을 열고, 고치고, 발송까지 시작할 수 있다.
     const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId },
+      where: { id: campaignId, clinicId },
     });
 
+    // 남의 캠페인일 때 403 이 아니라 404 를 준다 — 존재 여부 자체가 정보다.
     if (!campaign) {
       throw new NotFoundException('캠페인을 찾을 수 없습니다.');
     }
@@ -122,9 +125,10 @@ export class CrmService {
    */
   async updateCampaign(
     campaignId: string,
+    clinicId: string,
     data: Partial<CrmCampaign>,
   ): Promise<CrmCampaign> {
-    const campaign = await this.getCampaign(campaignId);
+    const campaign = await this.getCampaign(campaignId, clinicId);
 
     Object.assign(campaign, data);
     return this.campaignRepository.save(campaign);
@@ -133,8 +137,8 @@ export class CrmService {
   /**
    * 캠페인 시작
    */
-  async startCampaign(campaignId: string): Promise<CrmCampaign> {
-    const campaign = await this.getCampaign(campaignId);
+  async startCampaign(campaignId: string, clinicId: string): Promise<CrmCampaign> {
+    const campaign = await this.getCampaign(campaignId, clinicId);
 
     if (campaign.status !== CampaignStatus.DRAFT && campaign.status !== CampaignStatus.SCHEDULED) {
       throw new BadRequestException('시작할 수 없는 상태입니다.');
@@ -153,8 +157,8 @@ export class CrmService {
   /**
    * 캠페인 일시정지
    */
-  async pauseCampaign(campaignId: string): Promise<CrmCampaign> {
-    const campaign = await this.getCampaign(campaignId);
+  async pauseCampaign(campaignId: string, clinicId: string): Promise<CrmCampaign> {
+    const campaign = await this.getCampaign(campaignId, clinicId);
     campaign.status = CampaignStatus.PAUSED;
     return this.campaignRepository.save(campaign);
   }
@@ -212,9 +216,12 @@ export class CrmService {
   /**
    * 자동 메시지 토글
    */
-  async toggleAutoMessage(messageId: string): Promise<CrmAutoMessage> {
+  async toggleAutoMessage(
+    messageId: string,
+    clinicId: string,
+  ): Promise<CrmAutoMessage> {
     const message = await this.autoMessageRepository.findOne({
-      where: { id: messageId },
+      where: { id: messageId, clinicId },
     });
 
     if (!message) {
@@ -492,7 +499,7 @@ export class CrmService {
   /**
    * 캠페인 성과 분석
    */
-  async getCampaignAnalytics(campaignId: string): Promise<{
+  async getCampaignAnalytics(campaignId: string, clinicId: string): Promise<{
     campaign: CrmCampaign;
     metrics: {
       deliveryRate: number;
@@ -502,7 +509,7 @@ export class CrmService {
     };
     timeline: Array<{ date: string; sent: number; opened: number; clicked: number }>;
   }> {
-    const campaign = await this.getCampaign(campaignId);
+    const campaign = await this.getCampaign(campaignId, clinicId);
 
     const logs = await this.messageLogRepository.find({
       where: { campaignId },

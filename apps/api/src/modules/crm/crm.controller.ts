@@ -80,8 +80,8 @@ export class CrmController {
   @Get('campaigns/:id')
   @ApiOperation({ summary: '캠페인 상세 조회' })
   @ApiParam({ name: 'id', description: '캠페인 ID' })
-  async getCampaign(@Param('id') id: string) {
-    const result = await this.crmService.getCampaign(id);
+  async getCampaign(@Request() req: any, @Param('id') id: string) {
+    const result = await this.crmService.getCampaign(id, req.user.clinicId || req.user.id);
     return { success: true, data: result };
   }
 
@@ -89,10 +89,15 @@ export class CrmController {
   @ApiOperation({ summary: '캠페인 수정' })
   @ApiParam({ name: 'id', description: '캠페인 ID' })
   async updateCampaign(
+    @Request() req: any,
     @Param('id') id: string,
     @Body() dto: UpdateCampaignDto,
   ) {
-    const result = await this.crmService.updateCampaign(id, dto);
+    const result = await this.crmService.updateCampaign(
+      id,
+      req.user.clinicId || req.user.id,
+      dto,
+    );
     return { success: true, data: result };
   }
 
@@ -100,8 +105,8 @@ export class CrmController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '캠페인 시작' })
   @ApiParam({ name: 'id', description: '캠페인 ID' })
-  async startCampaign(@Param('id') id: string) {
-    const result = await this.crmService.startCampaign(id);
+  async startCampaign(@Request() req: any, @Param('id') id: string) {
+    const result = await this.crmService.startCampaign(id, req.user.clinicId || req.user.id);
     return { success: true, data: result };
   }
 
@@ -109,16 +114,16 @@ export class CrmController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '캠페인 일시정지' })
   @ApiParam({ name: 'id', description: '캠페인 ID' })
-  async pauseCampaign(@Param('id') id: string) {
-    const result = await this.crmService.pauseCampaign(id);
+  async pauseCampaign(@Request() req: any, @Param('id') id: string) {
+    const result = await this.crmService.pauseCampaign(id, req.user.clinicId || req.user.id);
     return { success: true, data: result };
   }
 
   @Get('campaigns/:id/analytics')
   @ApiOperation({ summary: '캠페인 성과 분석' })
   @ApiParam({ name: 'id', description: '캠페인 ID' })
-  async getCampaignAnalytics(@Param('id') id: string) {
-    const result = await this.crmService.getCampaignAnalytics(id);
+  async getCampaignAnalytics(@Request() req: any, @Param('id') id: string) {
+    const result = await this.crmService.getCampaignAnalytics(id, req.user.clinicId || req.user.id);
     return { success: true, data: result };
   }
 
@@ -158,8 +163,8 @@ export class CrmController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '자동 메시지 활성화/비활성화' })
   @ApiParam({ name: 'id', description: '자동 메시지 ID' })
-  async toggleAutoMessage(@Param('id') id: string) {
-    const result = await this.crmService.toggleAutoMessage(id);
+  async toggleAutoMessage(@Request() req: any, @Param('id') id: string) {
+    const result = await this.crmService.toggleAutoMessage(id, req.user.clinicId || req.user.id);
     return { success: true, data: result };
   }
 

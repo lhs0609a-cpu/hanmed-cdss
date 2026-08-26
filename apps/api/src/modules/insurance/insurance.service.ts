@@ -89,9 +89,14 @@ export class InsuranceService {
     recordId: string,
     insuranceType: InsuranceType = InsuranceType.NATIONAL_HEALTH,
   ): Promise<InsuranceClaim> {
-    // 진료 기록 조회
+    // 진료 기록 조회 — 반드시 내 한의원(또는 내가 본 진료)의 것이어야 한다.
+    // 여기서 막지 않으면 남의 진료 기록으로 내 청구서를 만들 수 있고,
+    // 그 순간 환자 정보가 통째로 내 쪽으로 복사된다.
     const record = await this.patientRecordRepository.findOne({
-      where: { id: recordId },
+      where: [
+        { id: recordId, clinicId },
+        { id: recordId, practitionerId },
+      ],
       relations: ['patient', 'prescription'],
     });
 
@@ -206,12 +211,15 @@ export class InsuranceService {
   /**
    * 청구서 조회
    */
-  async getClaim(claimId: string): Promise<InsuranceClaim> {
+  async getClaim(claimId: string, clinicId: string): Promise<InsuranceClaim> {
+    // 청구서에는 금액과 환자 정보가 함께 붙는다. 소유 한의원 조건 없이
+    // id 만으로 찾으면 로그인한 누구나 남의 청구서를 열 수 있다.
     const claim = await this.claimRepository.findOne({
-      where: { id: claimId },
+      where: { id: claimId, clinicId },
       relations: ['patient', 'record'],
     });
 
+    // 남의 청구서일 때 403 이 아니라 404 를 준다 — 존재 여부 자체가 정보다.
     if (!claim) {
       throw new NotFoundException('청구서를 찾을 수 없습니다.');
     }
@@ -264,13 +272,14 @@ export class InsuranceService {
    */
   async updateClaim(
     claimId: string,
+    clinicId: string,
     data: {
       diagnosisCodes?: DiagnosisCode[];
       treatmentItems?: TreatmentItem[];
       notes?: string;
     },
   ): Promise<InsuranceClaim> {
-    const claim = await this.getClaim(claimId);
+    const claim = await this.getClaim(claimId, clinicId);
 
     if (claim.status !== ClaimStatus.DRAFT) {
       throw new BadRequestException('제출된 청구서는 수정할 수 없습니다.');
@@ -300,9 +309,13 @@ export class InsuranceService {
   /**
    * 청구서 제출
    */
-  async submitClaims(claimIds: string[], submittedBy: string): Promise<InsuranceClaim[]> {
+  async submitClaims(
+    claimIds: string[],
+    submittedBy: string,
+    clinicId: string,
+  ): Promise<InsuranceClaim[]> {
     const claims = await this.claimRepository.find({
-      where: { id: In(claimIds), status: ClaimStatus.DRAFT },
+      where: { id: In(claimIds), status: ClaimStatus.DRAFT, clinicId },
     });
 
     if (claims.length !== claimIds.length) {
@@ -325,13 +338,14 @@ export class InsuranceService {
    */
   async recordReviewResult(
     claimId: string,
+    clinicId: string,
     result: {
       status: 'approved' | 'rejected' | 'partial';
       approvedAmount: number;
       rejectionReason?: string;
     },
   ): Promise<InsuranceClaim> {
-    const claim = await this.getClaim(claimId);
+    const claim = await this.getClaim(claimId, clinicId);
 
     if (claim.status !== ClaimStatus.SUBMITTED && claim.status !== ClaimStatus.UNDER_REVIEW) {
       throw new BadRequestException('심사 결과를 기록할 수 없는 상태입니다.');

@@ -126,11 +126,13 @@ export class PatientInsightsController {
     },
   })
   async getPreVisitAnalysis(
+    @Request() req: any,
     @Param('patientId') patientId: string,
     @Query('reservationId') reservationId?: string,
   ) {
     const result = await this.patientInsightsService.generatePreVisitAnalysis(
       patientId,
+      req.user.id,
       reservationId,
     );
 
@@ -177,11 +179,13 @@ export class PatientInsightsController {
     },
   })
   async getAdherenceReport(
+    @Request() req: any,
     @Param('patientId') patientId: string,
     @Query('prescriptionId') prescriptionId?: string,
   ) {
     const result = await this.patientInsightsService.getMedicationAdherenceReport(
       patientId,
+      req.user.id,
       prescriptionId,
     );
 
@@ -220,8 +224,11 @@ export class PatientInsightsController {
       },
     },
   })
-  async getPatientAlerts(@Param('patientId') patientId: string) {
-    const result = await this.patientInsightsService.checkPatientAlerts(patientId);
+  async getPatientAlerts(@Request() req: any, @Param('patientId') patientId: string) {
+    const result = await this.patientInsightsService.checkPatientAlerts(
+      patientId,
+      req.user.id,
+    );
 
     return {
       success: true,

@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Request,
   Res,
 } from '@nestjs/common';
 import {
@@ -72,8 +73,12 @@ export class PrognosisController {
       },
     },
   })
-  async predictPrognosis(@Param('recordId') recordId: string) {
-    const result = await this.prognosisService.predictPrognosis(recordId);
+  async predictPrognosis(@Request() req: any, @Param('recordId') recordId: string) {
+    const result = await this.prognosisService.predictPrognosis(
+      recordId,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return {
       success: true,
       data: result,
@@ -90,8 +95,12 @@ export class PrognosisController {
   })
   @ApiParam({ name: 'predictionId', description: '예측 ID' })
   @ApiResponse({ status: 200, description: '예측 결과 조회 성공' })
-  async getPrediction(@Param('predictionId') predictionId: string) {
-    const result = await this.prognosisService.getPrediction(predictionId);
+  async getPrediction(@Request() req: any, @Param('predictionId') predictionId: string) {
+    const result = await this.prognosisService.getPrediction(
+      predictionId,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return {
       success: true,
       data: result,
@@ -108,8 +117,12 @@ export class PrognosisController {
   })
   @ApiParam({ name: 'recordId', description: '진료 기록 ID' })
   @ApiResponse({ status: 200, description: '예측 결과 조회 성공' })
-  async getPredictionByRecord(@Param('recordId') recordId: string) {
-    const result = await this.prognosisService.getPredictionByRecord(recordId);
+  async getPredictionByRecord(@Request() req: any, @Param('recordId') recordId: string) {
+    const result = await this.prognosisService.getPredictionByRecord(
+      recordId,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return {
       success: true,
       data: result,
@@ -172,14 +185,20 @@ export class PrognosisController {
   @ApiParam({ name: 'predictionId', description: '예측 ID' })
   @ApiResponse({ status: 200, description: '실제 결과 기록 성공' })
   async recordActualOutcome(
+    @Request() req: any,
     @Param('predictionId') predictionId: string,
     @Body() dto: RecordActualOutcomeDto,
   ) {
-    const result = await this.prognosisService.recordActualOutcome(predictionId, {
-      actualDuration: dto.actualDuration,
-      actualImprovement: dto.actualImprovement,
-      notes: dto.notes,
-    });
+    const result = await this.prognosisService.recordActualOutcome(
+      predictionId,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+      {
+        actualDuration: dto.actualDuration,
+        actualImprovement: dto.actualImprovement,
+        notes: dto.notes,
+      },
+    );
     return {
       success: true,
       data: result,
@@ -196,8 +215,12 @@ export class PrognosisController {
   })
   @ApiParam({ name: 'predictionId', description: '예측 ID' })
   @ApiResponse({ status: 200, description: '리포트 데이터 조회 성공' })
-  async getPrognosisReport(@Param('predictionId') predictionId: string) {
-    const result = await this.prognosisService.generatePrognosisReportData(predictionId);
+  async getPrognosisReport(@Request() req: any, @Param('predictionId') predictionId: string) {
+    const result = await this.prognosisService.generatePrognosisReportData(
+      predictionId,
+      req.user.id,
+      req.user.clinicId || req.user.id,
+    );
     return {
       success: true,
       data: result,

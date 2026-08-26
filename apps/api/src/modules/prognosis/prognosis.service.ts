@@ -42,16 +42,40 @@ export class PrognosisService {
    * 예후 예측 생성
    * 진료 기록을 기반으로 AI 예후 예측을 생성
    */
-  async predictPrognosis(recordId: string): Promise<PrognosisPrediction> {
-    // 진료 기록 조회
+  /**
+   * 이 진료 기록이 요청자의 것인지.
+   *
+   * 예측 자체에는 소유 컬럼이 없고 진료 기록에 매달려 있다. 그래서 소유 확인은
+   * 언제나 기록을 거쳐야 한다. 여기서 막지 않으면 예측 결과에 딸려 나오는
+   * 환자 정보가 로그인한 누구에게나 열린다.
+   *
+   * 남의 것이면 403 이 아니라 404 를 준다 — 존재 여부 자체가 정보다.
+   */
+  private async findOwnedRecord(
+    recordId: string,
+    practitionerId: string,
+    clinicId: string,
+  ): Promise<PatientRecord> {
     const record = await this.patientRecordRepository.findOne({
-      where: { id: recordId },
+      where: [
+        { id: recordId, practitionerId },
+        { id: recordId, clinicId },
+      ],
       relations: ['patient', 'prescription'],
     });
-
     if (!record) {
       throw new NotFoundException('진료 기록을 찾을 수 없습니다.');
     }
+    return record;
+  }
+
+  async predictPrognosis(
+    recordId: string,
+    practitionerId: string,
+    clinicId: string,
+  ): Promise<PrognosisPrediction> {
+    // 진료 기록 조회 — 내 것이어야 한다.
+    const record = await this.findOwnedRecord(recordId, practitionerId, clinicId);
 
     // 기존 예측이 있는지 확인
     const existingPrediction = await this.prognosisRepository.findOne({
@@ -87,7 +111,11 @@ export class PrognosisService {
   /**
    * 예측 결과 조회
    */
-  async getPrediction(predictionId: string): Promise<PrognosisPrediction> {
+  async getPrediction(
+    predictionId: string,
+    practitionerId: string,
+    clinicId: string,
+  ): Promise<PrognosisPrediction> {
     const prediction = await this.prognosisRepository.findOne({
       where: { id: predictionId },
       relations: ['record', 'patient'],
@@ -96,6 +124,8 @@ export class PrognosisService {
     if (!prediction) {
       throw new NotFoundException('예측 결과를 찾을 수 없습니다.');
     }
+    // 예측에는 소유 컬럼이 없다. 매달린 진료 기록으로 확인한다.
+    await this.findOwnedRecord(prediction.recordId, practitionerId, clinicId);
 
     return prediction;
   }
@@ -103,7 +133,12 @@ export class PrognosisService {
   /**
    * 진료 기록의 예측 조회
    */
-  async getPredictionByRecord(recordId: string): Promise<PrognosisPrediction | null> {
+  async getPredictionByRecord(
+    recordId: string,
+    practitionerId: string,
+    clinicId: string,
+  ): Promise<PrognosisPrediction | null> {
+    await this.findOwnedRecord(recordId, practitionerId, clinicId);
     return this.prognosisRepository.findOne({
       where: { recordId },
     });
@@ -203,6 +238,8 @@ export class PrognosisService {
    */
   async recordActualOutcome(
     predictionId: string,
+    practitionerId: string,
+    clinicId: string,
     outcome: { actualDuration: number; actualImprovement: number; notes?: string },
   ): Promise<PrognosisPrediction> {
     const prediction = await this.prognosisRepository.findOne({
@@ -212,6 +249,7 @@ export class PrognosisService {
     if (!prediction) {
       throw new NotFoundException('예측 결과를 찾을 수 없습니다.');
     }
+    await this.findOwnedRecord(prediction.recordId, practitionerId, clinicId);
 
     if (prediction.actualOutcome) {
       throw new BadRequestException('이미 실제 결과가 기록되어 있습니다.');
@@ -232,7 +270,11 @@ export class PrognosisService {
   /**
    * 예후 리포트 PDF 데이터 생성
    */
-  async generatePrognosisReportData(predictionId: string): Promise<{
+  async generatePrognosisReportData(
+    predictionId: string,
+    practitionerId: string,
+    clinicId: string,
+  ): Promise<{
     prediction: PrognosisPrediction;
     reportData: {
       title: string;
@@ -242,7 +284,7 @@ export class PrognosisService {
       recommendations: string[];
     };
   }> {
-    const prediction = await this.getPrediction(predictionId);
+    const prediction = await this.getPrediction(predictionId, practitionerId, clinicId);
 
     const timeline = [
       { week: 1, expectedImprovement: prediction.prediction.improvementRate.week1 },
