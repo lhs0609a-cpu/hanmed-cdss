@@ -29,6 +29,11 @@ export class SmsService {
     }
   }
 
+  /** 실제로 나갈 수 있는 상태인지 — 미설정이면 send() 는 모의 성공을 돌려준다. */
+  isConfigured(): boolean {
+    return this.enabled;
+  }
+
   async send(dto: SendSmsDto): Promise<MessageResult> {
     const { to, message, from } = dto;
     const sendNo = from || this.sendNo;

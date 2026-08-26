@@ -1055,8 +1055,10 @@ export default function PatientDetailPage() {
       {guideVisit && (
         <MedicationGuideModal
           visitId={guideVisit.id}
+          patientId={patient.id}
           formulaName={guideVisit.prescription}
           defaultDays={guideVisit.cheopyakDays ?? null}
+          visitDiagnosis={guideVisit.diagnosis || null}
           nonCoveredItems={guideVisit.nonCoveredItems}
           nonCoveredConsentAt={guideVisit.nonCoveredConsentAt}
           onClose={() => setGuideVisit(null)}

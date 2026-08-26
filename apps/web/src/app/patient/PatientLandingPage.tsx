@@ -21,8 +21,8 @@ export default function PatientLandingPage() {
         </div>
         <h1 className="text-[24px] font-bold">내가 먹는 한약, 제대로 알기</h1>
         <p className="mt-2 text-[14px] leading-relaxed text-gray-600">
-          한의원에서 받은 복약 안내서를 열고 모아 둡니다. 약봉투의 QR 코드를 찍으면
-          바로 열립니다.
+          한의원에서 받은 복약 안내서를 열고 모아 둡니다. 카카오톡으로 받으신
+          링크나 약봉투의 QR 코드로 바로 열립니다.
         </p>
       </header>
 

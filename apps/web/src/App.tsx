@@ -70,6 +70,7 @@ const MigrationWizardPage = lazy(() => import('@/app/onboarding/MigrationWizardP
 
 // 환자용 PWA — /patient 스코프로 분리되어 한의사 앱과 독립적으로 동작
 const MedicationGuidePage = lazy(() => import('@/app/guide/MedicationGuidePage'))
+const PatientTrackPage = lazy(() => import('@/app/patient/PatientTrackPage'))
 const PatientLayout = lazy(() => import('@/app/patient/PatientLayout'))
 const PatientLandingPage = lazy(() => import('@/app/patient/PatientLandingPage'))
 const PatientConnectPage = lazy(() => import('@/app/patient/PatientConnectPage'))
@@ -147,6 +148,15 @@ function App() {
         <Route
           path="/guide/:token"
           element={<RouteBoundary>{route(<MedicationGuidePage />)}</RouteBoundary>}
+        />
+
+        {/* 환자 복약 추적 — 한의원이 카톡으로 보내는 주소가 이것이다.
+            안내서(/guide/:token)는 진료 한 건이라 처방이 바뀌면 링크도 바뀐다.
+            여기는 환자 단위 토큰이라 처방이 바뀌어도 같은 주소에서 이어진다.
+            짧아야 문자 한 통에 들어가므로 /t 로 둔다. */}
+        <Route
+          path="/t/:trackToken"
+          element={<RouteBoundary>{route(<PatientTrackPage />)}</RouteBoundary>}
         />
 
         {/* 환자용 PWA — 별도 manifest + service worker 스코프 */}

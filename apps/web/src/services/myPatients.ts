@@ -23,6 +23,12 @@ export interface MyPatient {
   lastVisitAt: string | null
   totalVisits: number
   createdAt: string
+  /** 알림 수신 동의 시점 — 없으면 카톡·문자를 보낼 수 없다(정통법 제50조) */
+  notifyConsentAt: string | null
+  /** 환자가 직접 누른 수신 거부 — 있으면 동의가 있어도 보내지 않는다 */
+  notifyOptOutAt: string | null
+  /** 환자 단위 추적 링크 토큰. 안 보냈거나 회수했으면 null */
+  trackToken: string | null
 }
 
 export interface MyVisit {

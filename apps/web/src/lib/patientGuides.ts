@@ -65,90 +65,47 @@ export function extractGuideToken(input: string): string | null {
   return /^[A-Za-z0-9_-]{16,64}$/.test(token) ? token : null
 }
 
-// ── 복용 기록 (기기 저장) ──────────────────────────────────────
-// 복용 시작일과 오늘 먹었는지는 서버가 알 수 없다. 처방일이 곧 복용 시작일은
-// 아니고(며칠 뒤부터 먹는 경우가 흔하다), 발행일로 추정하면 틀린 날짜를
-// 자신 있게 보여주게 된다. 그래서 환자가 직접 누른 값만 쓴다.
+// ── 예전 복용 기록 (기기 저장) ────────────────────────────────
 //
-// 서버로 보내지 않는다. 복약 순응도를 한의사에게 자동으로 넘기는 건
-// 환자가 동의한 적 없는 감시다. 알릴지 말지는 환자가 자가 기록에서 정한다.
+// 복용 체크는 서버로 옮겼다. 기기에만 두면 휴대폰을 바꾸거나 카톡 링크를
+// 다른 기기에서 열었을 때 며칠째인지가 사라지고, 한의사도 환자가 실제로
+// 먹었는지 알 수 없어 "효과가 없다" 를 미복용과 구분하지 못했다.
+//
+// 여기 남은 것은 옮기기 전 기록을 한 번 꺼내 오기 위한 것뿐이다.
+// 꺼내면 지운다 — 두 곳에 같은 기록이 남으면 어느 쪽이 맞는지 알 수 없다.
 
 const DOSE_KEY = 'ongojisin:patient:doses'
 
-export interface DoseLog {
-  /** 복용 시작일 (YYYY-MM-DD). 안 눌렀으면 null */
+export interface LegacyDoseLog {
   startedOn: string | null
-  /** 복용한 날짜들 (YYYY-MM-DD) */
   takenDates: string[]
 }
 
-type DoseMap = Record<string, DoseLog>
-
-function readDoseMap(): DoseMap {
+/** 이 기기에 남아 있던 복용 기록을 꺼내고 지운다. 없으면 null. */
+export function takeLegacyDoseLog(token: string): LegacyDoseLog | null {
   try {
     const raw = localStorage.getItem(DOSE_KEY)
-    if (!raw) return {}
+    if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? (parsed as DoseMap) : {}
+    if (!parsed || typeof parsed !== 'object') return null
+
+    const map = parsed as Record<string, LegacyDoseLog>
+    const log = map[token]
+    if (!log || !Array.isArray(log.takenDates) || log.takenDates.length === 0) {
+      return null
+    }
+
+    delete map[token]
+    if (Object.keys(map).length === 0) localStorage.removeItem(DOSE_KEY)
+    else localStorage.setItem(DOSE_KEY, JSON.stringify(map))
+
+    return {
+      startedOn: typeof log.startedOn === 'string' ? log.startedOn : null,
+      takenDates: log.takenDates.filter(
+        (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d),
+      ),
+    }
   } catch {
-    return {}
+    return null
   }
-}
-
-function writeDoseMap(map: DoseMap): void {
-  try {
-    localStorage.setItem(DOSE_KEY, JSON.stringify(map))
-  } catch {
-    /* 저장 실패는 무시 — 안내서 본문은 그대로 보인다 */
-  }
-}
-
-/** 오늘 날짜를 기기 시간대 기준 YYYY-MM-DD 로. UTC 로 자르면 하루가 밀린다. */
-export function todayKey(): string {
-  const d = new Date()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${m}-${day}`
-}
-
-export function getDoseLog(token: string): DoseLog {
-  return readDoseMap()[token] ?? { startedOn: null, takenDates: [] }
-}
-
-export function startDosing(token: string): DoseLog {
-  const map = readDoseMap()
-  const today = todayKey()
-  const next: DoseLog = {
-    startedOn: today,
-    takenDates: Array.from(new Set([...(map[token]?.takenDates ?? []), today])),
-  }
-  map[token] = next
-  writeDoseMap(map)
-  return next
-}
-
-/** 오늘 복용 체크를 켜고 끈다. */
-export function toggleTakenToday(token: string): DoseLog {
-  const map = readDoseMap()
-  const today = todayKey()
-  const current = map[token] ?? { startedOn: today, takenDates: [] }
-  const taken = current.takenDates.includes(today)
-  const next: DoseLog = {
-    startedOn: current.startedOn ?? today,
-    takenDates: taken
-      ? current.takenDates.filter((d) => d !== today)
-      : [...current.takenDates, today],
-  }
-  map[token] = next
-  writeDoseMap(map)
-  return next
-}
-
-/** 복용 시작일로부터 오늘이 며칠째인지(시작일이 1일째). */
-export function daysSinceStart(startedOn: string | null): number | null {
-  if (!startedOn) return null
-  const start = new Date(`${startedOn}T00:00:00`)
-  const today = new Date(`${todayKey()}T00:00:00`)
-  const diff = Math.floor((today.getTime() - start.getTime()) / 86400000)
-  return diff >= 0 ? diff + 1 : null
 }

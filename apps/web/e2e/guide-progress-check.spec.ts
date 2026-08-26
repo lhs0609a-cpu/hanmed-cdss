@@ -28,11 +28,11 @@ test('복용 진행 · 내 경과', async ({ page }) => {
   const t3 = await page.locator('body').innerText()
   console.log(`[다시 기록하기] ${t3.includes('다시 기록하기') ? '있음 ✓' : '없음 ✗'}`)
 
-  // 보관함에 복용 일차가 뜨는지
+  // 보관함 — 복용 일차는 여기서 다시 세지 않는다(서버 기록과 어긋난 숫자가
+  // 두 곳에 남는 것을 막는다). 안내서가 담겼는지만 본다.
   await page.goto('/patient/home', { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(3000)
   const t4 = await page.locator('body').innerText()
   console.log(`[보관함 등록] ${t4.includes('보중익기탕') ? '있음 ✓' : '없음 ✗'}`)
-  console.log(`[보관함 복용일차] ${t4.includes('복용 1일째') ? '있음 ✓' : '없음 ✗'}`)
   await page.screenshot({ path: `${OUT}/보관함.png`, fullPage: true })
 })

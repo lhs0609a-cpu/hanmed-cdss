@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, FindOptionsWhere } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -30,6 +35,12 @@ export interface PatientDto {
   lastVisitAt: string | null;
   totalVisits: number;
   createdAt: string;
+  /** 알림 수신 동의 시점 — 없으면 카톡·문자를 보낼 수 없다(정통법 제50조). */
+  notifyConsentAt: string | null;
+  /** 환자가 직접 누른 수신 거부. 있으면 동의가 있어도 보내지 않는다. */
+  notifyOptOutAt: string | null;
+  /** 환자 단위 추적 링크 토큰. 아직 안 보냈거나 회수했으면 null. */
+  trackToken: string | null;
 }
 
 export interface VisitDto {
@@ -166,6 +177,9 @@ export class PractitionerPatientsService {
       lastVisitAt: p.lastVisitAt ? p.lastVisitAt.toISOString() : null,
       totalVisits: p.totalVisits,
       createdAt: p.createdAt.toISOString(),
+      notifyConsentAt: p.notifyConsentAt ? p.notifyConsentAt.toISOString() : null,
+      notifyOptOutAt: p.notifyOptOutAt ? p.notifyOptOutAt.toISOString() : null,
+      trackToken: p.trackToken && !p.trackRevokedAt ? p.trackToken : null,
     };
   }
 
@@ -409,6 +423,51 @@ export class PractitionerPatientsService {
    * 진료를 남겨 두면 환자 이름을 못 찾아 대시보드 경과 확인 목록에
    * "이름 없는 진료" 로 떠다닌다. 지운 환자가 화면에 계속 나오는 셈이다.
    */
+  /**
+   * 알림 수신 동의 기록.
+   *
+   * 동의는 환자가 하는 것이고 한의사는 받아서 적는 것이다. 그래서 이 API 는
+   * "동의를 받았다" 를 기록할 뿐 동의를 만들어 내지 않는다. 환자가 직접 거부한
+   * 뒤에는(notifyOptOutAt) 한의사가 다시 켜는 것으로 풀리지 않게 한다 —
+   * 그렇게 되면 수신 거부가 아무 의미가 없다.
+   */
+  async setNotifyConsent(
+    practitionerId: string,
+    id: string,
+    consented: boolean,
+  ): Promise<PatientDto> {
+    const row = await this.findOwned(practitionerId, id);
+    if (consented) {
+      if (row.notifyOptOutAt) {
+        throw new BadRequestException(
+          '환자가 직접 수신을 거부했습니다. 환자 본인이 링크에서 다시 켜야 합니다.',
+        );
+      }
+      row.notifyConsentAt = row.notifyConsentAt ?? new Date();
+    } else {
+      row.notifyConsentAt = null;
+    }
+    return this.toDto(await this.patients.save(row));
+  }
+
+  /**
+   * 추적 링크 회수.
+   *
+   * 이 링크는 그 환자의 처방 이력 전체를 여는 열쇠다. 환자가 휴대폰을 잃어버렸다고
+   * 하면 즉시 끊을 수 있어야 하고, 다시 보낼 때는 새 토큰이 나가야 한다.
+   */
+  async revokeTrackLink(
+    practitionerId: string,
+    id: string,
+  ): Promise<PatientDto> {
+    const row = await this.findOwned(practitionerId, id);
+    if (row.trackToken && !row.trackRevokedAt) {
+      row.trackRevokedAt = new Date();
+      await this.patients.save(row);
+    }
+    return this.toDto(row);
+  }
+
   async deletePatient(practitionerId: string, id: string): Promise<void> {
     const row = await this.findOwned(practitionerId, id);
     await this.visits.softDelete({ practitionerId, patientId: id });

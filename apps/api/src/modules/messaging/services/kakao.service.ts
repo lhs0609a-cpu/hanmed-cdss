@@ -60,6 +60,31 @@ export class KakaoService {
 
 방문 시 보험증을 지참해주세요.`,
     },
+    [KakaoTemplates.MEDICATION_TRACK]: {
+      title: '복약 안내서',
+      content: `[#{clinicName}]
+#{patientName}님, 이번에 처방받으신 한약 안내서입니다.
+
+📋 처방: #{formulaName}
+
+아래 링크에서 무엇이 들어 있는지, 어떻게 드시는지, 얼마인지 확인하실 수 있습니다.
+복용 중 불편한 점도 같은 곳에 남겨 주시면 한의원에서 확인합니다.
+#{trackLink}
+
+※ 수신 거부는 위 링크 하단에서 하실 수 있습니다.`,
+    },
+    [KakaoTemplates.MEDICATION_CHECKIN]: {
+      title: '복약 경과 확인',
+      content: `[#{clinicName}]
+#{patientName}님, #{dayLabel} 어떠신가요?
+
+오늘 상태를 남겨 주시면 다음 진료 때 한의사가 참고합니다.
+#{trackLink}
+
+불편이 심하시면 복용을 멈추고 한의원으로 연락 주세요.
+
+※ 수신 거부는 위 링크 하단에서 하실 수 있습니다.`,
+    },
     [KakaoTemplates.MEDICATION_REMINDER]: {
       title: '복약 알림',
       content: `[한메드]
@@ -86,6 +111,17 @@ export class KakaoService {
     if (!this.enabled) {
       this.logger.warn('카카오 알림톡 서비스가 비활성화되어 있습니다. 환경변수를 확인하세요.');
     }
+  }
+
+  /**
+   * 실제로 나갈 수 있는 상태인지.
+   *
+   * 키가 없으면 sendAlimtalk 은 성공을 돌려준다(개발 편의). 그대로 "보냈습니다"
+   * 를 화면에 띄우면 아무것도 안 갔는데 보낸 줄 알게 되므로, 호출부가 이 값을
+   * 보고 '모의 발송' 임을 구분할 수 있어야 한다.
+   */
+  isConfigured(): boolean {
+    return this.enabled;
   }
 
   async sendAlimtalk(dto: SendKakaoAlimtalkDto): Promise<MessageResult> {

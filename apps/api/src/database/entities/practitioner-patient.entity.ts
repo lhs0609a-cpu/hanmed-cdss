@@ -88,6 +88,39 @@ export class PractitionerPatient {
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   medications: string[];
 
+  // ── 복약 추적 링크 / 알림 수신 ───────────────────────────────
+  //
+  // 카톡으로 보내는 링크는 진료 단위가 아니라 환자 단위다. 처방이 바뀔 때마다
+  // 새 링크를 보내면 환자는 지난 경과와 이어서 보지 못하고, 옛 링크와 새 링크
+  // 중 무엇을 열어야 하는지도 알 수 없다.
+  //
+  // 대신 이 토큰은 그 환자의 처방 이력 전체를 여는 열쇠라서 진료 단위 토큰보다
+  // 무겁다. 그래서 언제든 회수하고 다시 발급할 수 있어야 한다.
+
+  /** 환자 단위 추적 링크 토큰(/t/:token). 아직 안 보냈으면 null. */
+  @Column({ type: 'varchar', length: 64, nullable: true, unique: true })
+  trackToken: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  trackIssuedAt: Date | null;
+
+  /** 회수 시점. 값이 있으면 링크가 열리지 않는다(재발급하면 풀린다). */
+  @Column({ type: 'timestamptz', nullable: true })
+  trackRevokedAt: Date | null;
+
+  /**
+   * 알림 수신 동의 시점.
+   *
+   * 정보통신망법 제50조 — 동의 없는 전송은 위법이다. 광고성이 아니어도
+   * 환자가 받기로 한 적이 없는 번호로 보내면 안 된다. null 이면 발송을 막는다.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  notifyConsentAt: Date | null;
+
+  /** 수신 거부 시점. 환자가 링크에서 직접 누를 수 있다. 값이 있으면 발송 중단. */
+  @Column({ type: 'timestamptz', nullable: true })
+  notifyOptOutAt: Date | null;
+
   @Column({ type: 'varchar', length: 16, default: 'active' })
   status: 'active' | 'inactive';
 

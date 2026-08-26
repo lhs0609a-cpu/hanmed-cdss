@@ -4,8 +4,6 @@ import { BookOpen, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import {
   listSavedGuides,
   removeGuide,
-  getDoseLog,
-  daysSinceStart,
   type SavedGuide,
 } from '@/lib/patientGuides'
 
@@ -66,12 +64,9 @@ export default function PatientHomePage() {
                       {g.formulaName || '복약 안내서'}
                     </p>
                     <p className="mt-0.5 truncate text-[13px] text-gray-500">
+                      {/* 복용 며칠째인지는 안내서를 열면 나온다. 여기서 다시
+                          세면 서버 기록과 어긋난 숫자가 두 곳에 남는다. */}
                       {g.clinicName || '한의원'} · {g.issuedAt.slice(0, 10)}
-                      {(() => {
-                        // 복용 시작을 누른 안내서는 며칠째인지 같이 보여준다.
-                        const day = daysSinceStart(getDoseLog(g.token).startedOn)
-                        return day != null ? ` · 복용 ${day}일째` : ''
-                      })()}
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-300" />

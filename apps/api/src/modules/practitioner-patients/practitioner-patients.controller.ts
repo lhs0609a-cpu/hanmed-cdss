@@ -185,6 +185,37 @@ export class PractitionerPatientsController {
     return this.service.updatePatient(req.user.id, id, body);
   }
 
+  @Patch(':id/notify-consent')
+  @ApiOperation({
+    summary: '알림 수신 동의 기록',
+    description:
+      '동의 없이는 카톡·문자를 보낼 수 없다(정보통신망법 제50조). 환자가 직접 거부한 뒤에는 한의사가 다시 켤 수 없다.',
+  })
+  setNotifyConsent(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { consented?: boolean },
+  ) {
+    return this.service.setNotifyConsent(
+      req.user.id,
+      id,
+      body?.consented !== false,
+    );
+  }
+
+  @Delete(':id/track-link')
+  @ApiOperation({
+    summary: '추적 링크 회수',
+    description:
+      '링크가 즉시 열리지 않게 된다. 다시 보내면 새 토큰이 발급된다.',
+  })
+  revokeTrackLink(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.service.revokeTrackLink(req.user.id, id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: '환자 삭제' })
   async remove(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string) {

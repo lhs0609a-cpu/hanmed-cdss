@@ -64,6 +64,16 @@ export class MedicationGuidesController {
     return this.service.createFromVisit(req.user.id, visitId, body ?? {});
   }
 
+  @Post(':id/send')
+  @ApiOperation({
+    summary: '환자 카톡으로 추적 링크 보내기',
+    description:
+      '알림톡 우선, 실패하면 문자로 내려간다. 수신 동의가 없으면 보내지 않는다(정보통신망법 제50조).',
+  })
+  send(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.sendGuideLink(req.user.id, id);
+  }
+
   @Patch(':id/reviewed')
   @ApiOperation({ summary: '환자 자가 기록 확인 처리' })
   markReviewed(
@@ -106,6 +116,36 @@ export class PublicMedicationGuidesController {
   }
 
   @Public()
+  @Post(':token/doses/start')
+  @Throttle({ long: { ttl: 60000, limit: 20 } })
+  @ApiOperation({ summary: '복용 시작 — 오늘을 시작일로 기록' })
+  startDosing(@Param('token') token: string) {
+    return this.service.startDosing(token);
+  }
+
+  @Public()
+  @Post(':token/doses/toggle')
+  @Throttle({ long: { ttl: 60000, limit: 20 } })
+  @ApiOperation({ summary: '오늘 복용 체크 토글 (날짜는 서버가 KST 로 정한다)' })
+  toggleDose(@Param('token') token: string) {
+    return this.service.toggleDoseToday(token);
+  }
+
+  @Public()
+  @Post(':token/doses/import')
+  @Throttle({ long: { ttl: 60000, limit: 5 } })
+  @ApiOperation({
+    summary: '기기에 남아 있던 복용 기록 1회 이관',
+    description: '서버에 기록이 하나도 없을 때만 받는다. 최대 60일, 미래 날짜는 버린다.',
+  })
+  importDoses(
+    @Param('token') token: string,
+    @Body() body: { dates?: string[] },
+  ) {
+    return this.service.importDoses(token, body?.dates ?? []);
+  }
+
+  @Public()
   @Post(':token/reports')
   // 링크만 있으면 누구나 쓸 수 있는 자리라 분당 한도를 좁게 둔다.
   @Throttle({ long: { ttl: 60000, limit: 10 } })
@@ -116,5 +156,33 @@ export class PublicMedicationGuidesController {
     body: { symptomScore?: number | null; adverseFlags?: string[]; note?: string | null },
   ) {
     return this.service.addPublicReport(token, body ?? {});
+  }
+}
+
+/**
+ * 환자 단위 추적 링크 — 카톡으로 보내는 것이 이 주소다.
+ *
+ * 안내서(진료 단위)와 달리 이 토큰은 그 환자의 처방 이력 전체를 연다.
+ * 그만큼 무거우므로 한의사가 언제든 회수할 수 있고, 환자도 여기서 직접
+ * 수신 거부를 할 수 있어야 한다.
+ */
+@ApiTags('medication-guides-public')
+@Controller('public/track')
+export class PublicPatientTrackController {
+  constructor(private readonly service: MedicationGuidesService) {}
+
+  @Public()
+  @Get(':trackToken')
+  @ApiOperation({ summary: '내 복약 현황 — 지금 먹는 약·경과·지난 처방' })
+  track(@Param('trackToken') trackToken: string) {
+    return this.service.getTrack(trackToken);
+  }
+
+  @Public()
+  @Post(':trackToken/opt-out')
+  @Throttle({ long: { ttl: 60000, limit: 10 } })
+  @ApiOperation({ summary: '알림 수신 거부' })
+  optOut(@Param('trackToken') trackToken: string) {
+    return this.service.optOutOfNotifications(trackToken);
   }
 }
