@@ -46,6 +46,23 @@ interface PriceResult {
 
 const won = (n: number | null) => (n === null ? '-' : `${n.toLocaleString()}원`)
 
+/**
+ * 자료 기준일이 6개월보다 오래됐는지.
+ *
+ * 원자료는 월 1회 갱신인데 우리 쪽 동기화가 멈춰 있으면 화면에는 옛 가격이
+ * 아무 표시 없이 계속 뜬다. 값이 오래됐다는 사실 자체가 정보다.
+ */
+const isStale = (appliedOn: string | null): boolean => {
+  if (!appliedOn || appliedOn.length < 6) return false
+  const year = Number(appliedOn.slice(0, 4))
+  const month = Number(appliedOn.slice(4, 6))
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return false
+  const applied = new Date(year, month - 1, 1)
+  const sixMonthsAgo = new Date()
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+  return applied < sixMonthsAgo
+}
+
 const HIRA_NONPAY_URL = 'https://www.hira.or.kr/npay/index.do'
 const HIRA_SPECIAL_ORG_URL =
   'https://www.hira.or.kr/ra/spclMgtAdmInfm/spclMgtAdmInfm.do?pgmid=HIRAA030003000000'
@@ -245,6 +262,14 @@ export default function PatientCostPage() {
             <p className="mt-1 text-[13px] leading-relaxed text-gray-500">
               한약(첩약) 가격은 이 공개 자료에 포함되지 않아 표시하지 못합니다.
             </p>
+            {/* 심평원 원자료는 월 1회 바뀐다. 오래된 값을 기준일만 작게 적어
+                두고 그대로 보여주면, 읽는 사람은 지금 가격으로 받아들인다. */}
+            {isStale(prices.appliedOn) && (
+              <p className="mt-2 rounded-xl bg-amber-50 p-3 text-[13px] leading-relaxed text-amber-800">
+                이 자료는 갱신된 지 오래되었습니다. 그동안 가격이 달라졌을 수 있으니
+                아래 심평원 누리집에서 최신 값을 확인해 주세요.
+              </p>
+            )}
           </>
         ) : (
           <p className="rounded-xl bg-gray-50 p-4 text-[14px] text-gray-600">
