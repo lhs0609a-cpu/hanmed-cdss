@@ -1,4 +1,4 @@
-$file = "G:\내 드라이브\developer\hanmed-cdss\apps\web\src\app\consultation\ConsultationPage.tsx"
+$file = Join-Path $PSScriptRoot "../apps/web/src/app/consultation/ConsultationPage.tsx"
 $content = [System.IO.File]::ReadAllText($file, [System.Text.Encoding]::UTF8)
 
 $content = $content -replace 'violet-500', 'slate-600'

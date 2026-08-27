@@ -2,7 +2,7 @@
 # Hanmed CDSS - Deploy + Migration + Embedding (PowerShell 5.1 compatible)
 # =============================================================================
 # Run:
-#   cd "G:\내 드라이브\developer\hanmed-cdss"
+#   cd "D:/developer/hanmed-cdss"
 #   powershell -ExecutionPolicy Bypass -File .\scripts\deploy-and-embed.ps1
 # =============================================================================
 

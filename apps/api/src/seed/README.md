@@ -11,7 +11,7 @@
 
 ### 로컬에서 운영 DB로 시드 실행 (권장)
 ```powershell
-cd "G:\내 드라이브\developer\hanmed-cdss\apps\api"
+cd "D:/developer/hanmed-cdss/apps/api"
 
 # 1. 환경변수 — apps/api/.env.local에 운영 DATABASE_URL이 이미 있다면 자동 로드됨
 # 그렇지 않으면 명시적으로:
