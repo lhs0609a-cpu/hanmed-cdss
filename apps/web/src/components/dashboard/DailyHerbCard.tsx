@@ -2,7 +2,12 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, Leaf } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
 import { useCorpusStats } from '@/hooks/useCorpusStats'
-import { useDailyHerb, type DailyHerb } from '@/hooks/useDailyPicks'
+import { useDailyHerbs, type DailyHerb } from '@/hooks/useDailyPicks'
+import {
+  RotationCounter,
+  RotationDots,
+  useDailyRotation,
+} from '@/components/dashboard/DailyRotation'
 
 /**
  * 오늘의 약재.
@@ -10,6 +15,8 @@ import { useDailyHerb, type DailyHerb } from '@/hooks/useDailyPicks'
  * 처방보다 단위가 작아 가볍게 읽힌다. 성미귀경은 한 줄로 묶어 보여준다 —
  * 표로 만들면 자리를 많이 먹고, 어차피 여기서 하는 일은 "아, 이 약재가
  * 이런 거였지" 를 되살리는 것까지다.
+ *
+ * 하루 다섯 종이 한 자리에서 돌아간다(치험례·처방과 같은 규칙, DailyRotation).
  *
  * 효능은 자유 텍스트라 길이가 들쭉날쭉하다. 첫 문장만 쓴다 — 카드가 길어지면
  * 오른쪽 열 전체가 스크롤 덩어리가 된다.
@@ -54,7 +61,10 @@ function efficacyLine(h: DailyHerb): string {
 
 export function DailyHerbCard() {
   const { data: corpus, isLoading: corpusLoading } = useCorpusStats()
-  const { data: h, isLoading } = useDailyHerb(corpus?.herbs)
+  const { data: herbs, isLoading } = useDailyHerbs(corpus?.herbs)
+
+  const count = herbs?.length ?? 0
+  const { index, setIndex, holdProps } = useDailyRotation(count, herbs?.[0]?.id)
 
   if (corpusLoading || isLoading) {
     return (
@@ -66,42 +76,56 @@ export function DailyHerbCard() {
     )
   }
 
+  if (!herbs || count === 0) return null
+
+  const h = herbs[index]
   if (!h?.standardName) return null
 
   const props = propertyLine(h)
   const efficacy = efficacyLine(h)
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[var(--shadow-2)]">
+    <section
+      {...holdProps}
+      className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[var(--shadow-2)]"
+    >
       <div className="flex items-center gap-2">
         <Toss3DIcon icon={Leaf} tone="green" size="xs" />
         <p className="text-[13px] font-medium text-neutral-500">오늘의 약재</p>
+        <RotationCounter index={index} count={count} />
       </div>
 
-      <p className="mt-3 text-[16px] font-bold leading-snug tracking-tight text-neutral-900">
-        {h.standardName}
-        {h.hanjaName && (
-          <span className="ml-1.5 text-[14px] font-medium text-neutral-400">
-            {h.hanjaName}
-          </span>
-        )}
-      </p>
-
-      {props && <p className="mt-1 text-[13px] text-neutral-500">{props}</p>}
-
-      {efficacy && (
-        <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-neutral-700">
-          {efficacy}
+      {/* 효능 길이가 종마다 달라 카드 높이가 튀면 아래 카드까지 흔들린다. */}
+      <div key={h.id} className="mt-3 min-h-[104px] animate-fade-in">
+        <p className="text-[16px] font-bold leading-snug tracking-tight text-neutral-900">
+          {h.standardName}
+          {h.hanjaName && (
+            <span className="ml-1.5 text-[14px] font-medium text-neutral-400">
+              {h.hanjaName}
+            </span>
+          )}
         </p>
-      )}
 
-      <Link
-        to={`/dashboard/herbs/${h.id}`}
-        className="group mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 hover:text-blue-700"
-      >
-        이 약재 자세히 보기
-        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-      </Link>
+        {props && <p className="mt-1 text-[13px] text-neutral-500">{props}</p>}
+
+        {efficacy && (
+          <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-neutral-700">
+            {efficacy}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <Link
+          to={`/dashboard/herbs/${h.id}`}
+          className="group inline-flex items-center gap-1 text-[13px] font-semibold text-blue-600 hover:text-blue-700"
+        >
+          이 약재 자세히 보기
+          <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+
+        <RotationDots count={count} index={index} onSelect={setIndex} label="약재" />
+      </div>
     </section>
   )
 }
