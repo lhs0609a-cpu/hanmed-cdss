@@ -15,6 +15,18 @@ from ...services.case_search_service import (
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
+# ── 목록 열람 한도 ────────────────────────────────────────────────
+# NestJS API(apps/api/src/modules/cases/case-browse.ts)의 무료 티어 한도와 같은 값.
+#
+# 이 서비스에는 인증이 없다. 그래서 티어를 알 수 없고, 알 수 없으면 가장 낮은
+# 티어로 취급한다 — 익명 호출자가 무료 회원보다 많이 볼 수 있으면 유료화가
+# 성립하지 않는다. 유료 회원의 전체 열람은 인증이 있는 NestJS API 로만 나간다.
+#
+# 두 파일의 값이 어긋나면 낮은 쪽이 실질 한도가 되므로, 고칠 때는 같이 고친다.
+CASE_LIST_PAGE_SIZE_MAX = 20
+CASE_BROWSE_FREE_PAGES = 3
+CASE_BROWSE_FREE_CASES = CASE_LIST_PAGE_SIZE_MAX * CASE_BROWSE_FREE_PAGES
+
 
 # ============ Request/Response Models ============
 
@@ -192,7 +204,12 @@ async def search_cases(request: CaseSearchRequestModel):
 @router.get("/list")
 async def list_cases(
     page: int = Query(1, ge=1, description="페이지 번호"),
-    limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
+    limit: int = Query(
+        CASE_LIST_PAGE_SIZE_MAX,
+        ge=1,
+        le=CASE_LIST_PAGE_SIZE_MAX,
+        description="페이지당 항목 수 (상한 고정 — 크게 잡아 한 번에 긁는 것을 막는다)",
+    ),
     search: Optional[str] = Query(None, description="검색어 (증상, 처방명, 변증)"),
     constitution: Optional[str] = Query(None, description="체질 필터"),
     outcome: Optional[str] = Query(None, description="결과 필터 (완치/호전/무효)"),
@@ -202,6 +219,17 @@ async def list_cases(
     외부 데이터베이스 의존 없음.
     """
     try:
+        # 무료 창 너머는 인증이 있는 NestJS API 로 보낸다. 여기서 열어 주면
+        # 로그인조차 없이 6,000건을 페이지네이션으로 가져갈 수 있다.
+        if (page - 1) * limit >= CASE_BROWSE_FREE_CASES:
+            raise HTTPException(
+                status_code=402,
+                detail=(
+                    f"목록은 {CASE_BROWSE_FREE_PAGES}페이지({CASE_BROWSE_FREE_CASES}건)까지 공개됩니다. "
+                    "전체 열람은 로그인 후 유료 요금제에서 가능합니다."
+                ),
+            )
+
         rows = case_search_service._load_local_cases()
 
         # 필터링
@@ -262,8 +290,10 @@ async def list_cases(
                 "patientAge": row.get("patient_age"),
                 "patientGender": gender,
                 "outcome": None,
-                "result": row.get("result") or "",
-                "originalText": row.get("full_text") or "",
+                # 원문(full_text)·임상노트(result)는 목록 응답에 넣지 않는다.
+                # 본문은 NestJS API 의 GET /cases/:id/full 로만 나간다 —
+                # 그쪽에만 속도제한·열람로그·워터마크가 걸려 있다.
+                "locked": True,
                 "dataSource": row.get("data_source") or row.get("source_file") or "local",
             })
 
@@ -275,6 +305,9 @@ async def list_cases(
             "total_pages": total_pages
         }
 
+    except HTTPException:
+        # 위에서 낸 402 를 500 으로 덮어쓰지 않는다.
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching cases: {str(e)}")
 

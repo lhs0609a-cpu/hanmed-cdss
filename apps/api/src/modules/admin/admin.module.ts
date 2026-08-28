@@ -31,6 +31,10 @@ import { AdminDashboardController } from './controllers/admin-dashboard.controll
 import { AdminAuditLogsController } from './controllers/admin-audit-logs.controller';
 import { AdminClinicsController } from './controllers/admin-clinics.controller';
 import { AdminContentController } from './controllers/admin-content.controller';
+import { AdminCaseAccessController } from './controllers/admin-case-access.controller';
+
+// 치험례 열람 통제 — 유출 역추적·잠금 해제를 관리자 화면에서 쓰려면 필요하다.
+import { CasesModule } from '../cases/cases.module';
 
 @Module({
   imports: [
@@ -48,6 +52,7 @@ import { AdminContentController } from './controllers/admin-content.controller';
       Herb,
       DrugHerbInteraction,
     ]),
+    CasesModule,
   ],
   controllers: [
     AdminUsersController,
@@ -56,6 +61,7 @@ import { AdminContentController } from './controllers/admin-content.controller';
     AdminAuditLogsController,
     AdminClinicsController,
     AdminContentController,
+    AdminCaseAccessController,
   ],
   providers: [
     AuditLogService,

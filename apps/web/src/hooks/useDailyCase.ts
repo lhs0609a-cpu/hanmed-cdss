@@ -33,12 +33,10 @@ export interface DailyCase {
   patientGender: string | null
   outcome: string | null
   summaryOneLine: string | null
-  distinctive: string | null
+  /** 감별 포인트 앞부분만 — 전문은 GET /cases/:id/full 로만 나간다 */
+  distinctivePreview: string | null
   keyFindings: string[]
 }
-
-/** 한 번에 받아 오는 창. 읽을 내용 없는 건을 걸러내고도 5건이 남을 만큼 넉넉히. */
-const WINDOW = 10
 
 /** 카드 하나가 하루에 돌리는 건수. 치험례·처방·약재가 같은 수로 돈다. */
 export const DAILY_PICK_COUNT = 5
@@ -69,22 +67,25 @@ function readable(c: DailyCase): boolean {
 }
 
 /**
- * total 이 정해진 뒤에만 돈다 — 몇 건 중에서 뽑을지 알아야 페이지를 정할 수 있다.
- * 목록은 createdAt DESC 로 정렬이 고정돼 있어 page N 은 매번 같은 묶음을 준다.
+ * 서버 전용 엔드포인트를 쓴다 — 목록 페이지네이션으로 뽑지 않는다.
+ *
+ * 목록(`/cases`)은 무료 회원에게 앞 3페이지까지만 열려 있다. 예전처럼 page N 을
+ * 계산해서 부르면 무료 회원 대시보드에서 402 가 떨어지고 카드가 통째로 사라진다.
+ * 반대로 뽑는 범위를 앞 60건으로 좁히면 매일 같은 사례가 돌아 "이게 다인가" 가
+ * 된다 — 첫 화면에서 그 인상은 치명적이다.
+ *
+ * 그래서 서버가 날짜 시드로 코퍼스 전체에서 뽑아 주는 `/cases/daily` 를 쓴다.
+ * 시드를 서버가 만들기 때문에 이걸로 전량을 긁을 수는 없다.
  */
-export function useDailyCases(total: number | null | undefined) {
+export function useDailyCases() {
   const seed = daySeed()
-  const usable = typeof total === 'number' && total > 0
 
   return useQuery({
-    queryKey: ['daily-cases', seed, total],
-    enabled: usable,
+    queryKey: ['daily-cases', seed],
     queryFn: async (): Promise<DailyCase[]> => {
-      const pages = fullPages(total as number, WINDOW)
-      const page = (seed % pages) + 1
-      const { data } = await api.get(`/cases?page=${page}&limit=${WINDOW}`)
+      const { data } = await api.get(`/cases/daily?count=${DAILY_PICK_COUNT}`)
       const rows: DailyCase[] = Array.isArray(data?.data) ? data.data : []
-      return rows.filter(readable).slice(0, DAILY_PICK_COUNT)
+      return rows.filter(readable)
     },
     staleTime: 60 * 60_000,
     retry: 1,

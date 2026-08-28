@@ -8,9 +8,39 @@ import {
   TreatmentOutcome,
 } from '../../database/entities/clinical-case.entity';
 import { CacheService } from '../cache/cache.service';
+import { DISTINCTIVE_TEASER_CHARS } from './case-content';
 
 const CACHE_PREFIX = 'cases';
 const CACHE_TTL = 600; // 10 minutes
+
+/**
+ * 목록·미끼 응답에서 DB 로부터 읽을 컬럼.
+ *
+ * 원문·변증추론·경과·임베딩은 여기 없다 — 응답 매핑에서 빼는 것만으로는
+ * 캐시와 로그에 남을 여지가 있어서, 애초에 꺼내지 않는다.
+ * 목록을 반환하는 새 메서드를 만들 때는 반드시 이 목록을 쓴다.
+ */
+const TEASER_COLUMNS = [
+  'c.id',
+  'c.sourceId',
+  'c.summaryOneLine',
+  'c.chiefComplaint',
+  'c.patternDiagnosis',
+  'c.treatmentOutcome',
+  'c.patientGender',
+  'c.patientAgeRange',
+  'c.patientConstitution',
+  'c.keyFindings',
+  'c.distinctive',
+  'c.symptoms',
+  'c.herbalFormulas',
+  'c.verifiedFormulaName',
+  'c.formulaMismatch',
+  'c.hasMixedContent',
+  'c.recorderName',
+  'c.recordedYear',
+  'c.createdAt',
+] as const;
 const EMBED_MODEL = 'text-embedding-3-small';
 const SIMILAR_CACHE_TTL = 300; // 5분 — 같은 쿼리 반복 호출 방지
 
@@ -162,7 +192,12 @@ export class CasesService {
         chiefComplaint: c.chiefComplaint,
         // 구조화 요약 — 잘린 주소증 대신 이걸 읽게 한다.
         summaryOneLine: c.summaryOneLine,
-        distinctive: c.distinctive,
+        // 감별 포인트는 앞부분만 흘린다. 전문은 본문 열람에서만 나간다.
+        distinctivePreview: c.distinctive
+          ? c.distinctive.length > DISTINCTIVE_TEASER_CHARS
+            ? `${c.distinctive.slice(0, DISTINCTIVE_TEASER_CHARS)}…`
+            : c.distinctive
+          : null,
         patternDiagnosis: c.patternDiagnosis,
         treatmentOutcome: c.treatmentOutcome,
         constitution: c.patientConstitution,
@@ -171,7 +206,8 @@ export class CasesService {
         symptoms: Array.isArray(c.symptoms)
           ? c.symptoms.map((s: any) => (typeof s === 'string' ? s : s?.name)).filter(Boolean)
           : [],
-        originalText: c.originalText,
+        // originalText 는 여기서 나가지 않는다 — 검색 응답은 미끼까지다.
+        locked: true,
         dataSource: c.recorderName,
       })),
       meta: {
@@ -573,6 +609,13 @@ export class CasesService {
       async () => {
         const qb = this.casesRepository.createQueryBuilder('c');
 
+        // 목록에 필요한 컬럼만 읽는다. 원문·변증추론·경과는 DB 에서 꺼내지도 않는다 —
+        // 응답 매핑에서 빼는 것만으로는 캐시·로그에 남을 여지가 있고,
+        // 임베딩(1536 float)까지 매 행 딸려 오면 목록 쿼리가 무거워진다.
+        // 여기서 검색(WHERE)에는 originalText 를 계속 쓴다. 본문을 주지 않으면서
+        // 본문 안을 찾아주는 것이 검색의 값어치다.
+        qb.select([...TEASER_COLUMNS]);
+
         // 텍스트 검색
         if (filters?.search) {
           const searchParam = `%${filters.search}%`;
@@ -622,6 +665,53 @@ export class CasesService {
         };
       },
       { prefix: CACHE_PREFIX, ttl: CACHE_TTL },
+    );
+  }
+
+  /**
+   * 오늘의 치험례 — 날짜 시드로 코퍼스 전체에서 몇 건을 뽑는다.
+   *
+   * 목록 유료화(무료 앞 3페이지)의 예외다. 예외로 둔 이유:
+   *   - 하루 다섯 건은 수집 경로가 아니다. 6,000건을 이걸로 모으려면 3년 걸린다.
+   *   - 무료 회원에게 코퍼스 깊은 곳의 사례를 보여주는 것이 벽을 넘게 만드는
+   *     가장 강한 이유다. 앞 60건만 계속 돌려 보여주면 "이게 다인가" 로 읽힌다.
+   *
+   * 시드를 클라이언트에서 받지 않고 서버가 날짜로 만든다. 받으면 시드를 1씩
+   * 올려 가며 다섯 건씩 전량을 긁을 수 있다 — 유료화를 그대로 우회하는 구멍이 된다.
+   */
+  async findDailySample(count = 5) {
+    const now = new Date();
+    const seed =
+      now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    // 읽을 내용이 없는 건을 걸러내고도 count 가 남도록 넉넉히 뜬다.
+    const window = count * 2;
+
+    return this.cacheService.getOrSet(
+      `daily:${seed}:${count}`,
+      async () => {
+        const total = await this.casesRepository.count();
+        if (total === 0) return [];
+
+        // 자투리 페이지(마지막 window 미만)는 버린다 — 걸리는 날 카드가 초라해진다.
+        const pages = Math.max(1, Math.floor(total / window));
+        const offset = (seed % pages) * window;
+
+        const rows = await this.casesRepository
+          .createQueryBuilder('c')
+          .select([...TEASER_COLUMNS])
+          .orderBy('c.createdAt', 'DESC')
+          .skip(offset)
+          .take(window)
+          .getMany();
+
+        // 제목도 본문도 없는 건은 카드에서 빈 칸으로 보인다 — 돌릴 대상에서 뺀다.
+        return rows
+          .filter((c) => (c.summaryOneLine || c.chiefComplaint || '').trim().length > 0)
+          .slice(0, count);
+      },
+      // 자정에 바뀌는 값이라 길게 잡아도 되지만, 시드가 키에 들어 있어 하루가
+      // 바뀌면 키 자체가 달라진다. 한 시간이면 충분하다.
+      { prefix: CACHE_PREFIX, ttl: 3600 },
     );
   }
 

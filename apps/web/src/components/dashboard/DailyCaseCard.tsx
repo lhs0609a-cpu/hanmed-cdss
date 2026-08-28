@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, ChevronRight } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
-import { useCorpusStats } from '@/hooks/useCorpusStats'
 import { useDailyCases, type DailyCase } from '@/hooks/useDailyCase'
 import {
   RotationCounter,
@@ -45,11 +44,14 @@ function headline(c: DailyCase): string {
   return c.summaryOneLine || c.title || c.chiefComplaint || '(주소증 미기재)'
 }
 
-/** 본문 — 제목이 요약이면 같은 문장을 두 번 보여주지 않도록 특징을 쓴다. */
+/**
+ * 본문 — 제목이 요약이면 같은 문장을 두 번 보여주지 않도록 특징을 쓴다.
+ *
+ * 감별 포인트는 앞부분만 온다(미끼). 첫 화면 카드에는 어차피 한 줄만 들어가므로
+ * 잘린 것이 손해가 아니다 — 더 읽으려면 치험례 목록에서 본문을 열어야 한다.
+ */
 function body(c: DailyCase): string {
-  if (c.summaryOneLine && c.distinctive) return c.distinctive
-  if (c.distinctive) return c.distinctive
-  return c.chiefComplaint || ''
+  return c.distinctivePreview || c.chiefComplaint || ''
 }
 
 function chipsOf(c: DailyCase): string[] {
@@ -71,16 +73,15 @@ function Chip({ children }: { children: React.ReactNode }) {
 }
 
 export function DailyCaseCard() {
-  const { data: corpus, isLoading: corpusLoading } = useCorpusStats()
-  const { data: cases, isLoading } = useDailyCases(corpus?.cases)
+  const { data: cases, isLoading } = useDailyCases()
 
   const count = cases?.length ?? 0
   const { index, setIndex, holdProps } = useDailyRotation(count, cases?.[0]?.id)
 
-  // 코퍼스 건수를 알아야 어느 사례를 뽑을지 정해지므로, 그동안 daily 쿼리는
-  // disabled 다. v5 에서 disabled 쿼리의 isLoading 은 false 라 이 조건을 빼면
-  // 카드가 사라졌다 나타나는 깜빡임이 생긴다.
-  if (corpusLoading || isLoading) {
+  // 코퍼스 통계를 더 기다리지 않는다. 예전에는 총 건수를 알아야 어느 페이지를
+  // 뽑을지 정할 수 있어서 그 쿼리를 기다렸는데, 이제 서버가 시드를 정하므로
+  // 사례만 오면 그릴 수 있다 — 첫 화면이 그만큼 빨리 찬다.
+  if (isLoading) {
     return (
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[var(--shadow-2)]">
         <div className="h-3 w-24 animate-pulse rounded bg-neutral-100" />

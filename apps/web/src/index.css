@@ -715,3 +715,39 @@
     box-shadow: var(--shadow-1);
   }
 }
+
+/* ──────────────────────────────────────────────────────────────
+   치험례 원문 보호 (ProtectedCaseText)
+
+   전부 우회 가능한 억제책이다. 목적은 차단이 아니라 "무심코 하는 복사·인쇄"를
+   막고, 이 자료가 가져가면 안 되는 것임을 몸으로 알리는 것이다.
+   실제 방어는 서버(속도제한·열람로그·워터마크)에 있다.
+   ────────────────────────────────────────────────────────────── */
+.ongo-protected,
+.ongo-protected * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS 길게 눌러 복사 메뉴 차단 */
+}
+
+/* 창에서 포커스가 빠지면(캡처 도구 실행 등) 본문을 가린다 */
+.ongo-protected--blurred .ongo-protected__body {
+  filter: blur(7px);
+  transition: filter 120ms ease-out;
+}
+
+/* 인쇄·PDF 저장으로 원문이 통째로 빠져나가는 경로를 막는다 */
+@media print {
+  .ongo-protected .ongo-protected__body {
+    display: none !important;
+  }
+  .ongo-protected::after {
+    content: '이 치험례 원문은 인쇄·PDF 저장이 제한된 자료입니다.';
+    display: block;
+    padding: 2rem;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+  }
+}

@@ -57,6 +57,16 @@ export class User {
   @Column({ default: 0 })
   contributionPoints: number;
 
+  /**
+   * 치험례 본문 열람 제한 해제 시각.
+   *
+   * 이상 열람(짧은 시간 대량 열람)이 감지되거나 관리자가 조치하면 채워진다.
+   * 이 시각 전까지 GET /cases/:id/full 이 거절된다. 검색·목록은 계속 쓸 수 있다 —
+   * 진료를 통째로 막지는 않는다.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  casesAccessLockedUntil: Date | null;
+
   @Column({ default: false })
   isVerified: boolean;
 

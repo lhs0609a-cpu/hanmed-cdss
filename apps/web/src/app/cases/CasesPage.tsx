@@ -7,14 +7,25 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
+  Lock,
 } from 'lucide-react'
 import { CaseSummaryPanel } from '@/components/evidence/CaseSummaryPanel'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
 import { logError } from '@/lib/errors'
+import { ProtectedCaseText, ProtectedRegion } from '@/components/cases/ProtectedCaseText'
+import { api } from '@/services/api'
+import {
+  CASE_BROWSE_FREE_PAGES,
+  CASE_BROWSE_FREE_CASES,
+  FeatureKey,
+} from '@/config/plan-features'
+import { FeatureGate } from '@/components/common/FeatureGate'
 
 // API에서 반환하는 케이스 타입
+// 목록·검색 응답 = 미끼 필드만. 원문·변증추론·경과는 여기에 없다 —
+// 서버가 GET /cases/:id/full 로만 내보낸다(속도제한·열람로그·워터마크 경유).
 interface CaseFromAPI {
   id: string
   title: string
@@ -27,9 +38,12 @@ interface CaseFromAPI {
   patientAge: number | null
   patientGender: string | null
   outcome: '완치' | '호전' | '무효' | null
-  result: string
-  originalText: string
+  summaryOneLine: string | null
+  keyFindings: string[]
+  /** 감별 포인트 앞부분만 — 전문은 잠겨 있다 */
+  distinctivePreview: string | null
   dataSource: string
+  locked: boolean
 }
 
 // 상세 보기용 확장 타입
@@ -37,8 +51,49 @@ interface CaseRecord extends CaseFromAPI {
   // 상세 정보는 추후 별도 API에서 가져올 수 있음
 }
 
-// AI Engine API URL
-const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
+/**
+ * 목록 응답 meta.access — 이 사용자가 어디까지 넘길 수 있는지.
+ *
+ * 벽을 실패한 요청으로 알게 하면 버그처럼 보인다. 서버가 미리 알려주고
+ * 화면은 그 전에 잠금을 그린다.
+ */
+interface BrowseAccess {
+  maxPage: number | null
+  maxCases: number | null
+  limited: boolean
+  nextPageLocked: boolean
+}
+
+/** GET /cases/access/remaining 응답 — 남은 본문 열람 수 */
+interface AccessRemaining {
+  hourly: { used: number; limit: number }
+  daily: { used: number; limit: number }
+}
+
+/** GET /cases/:id/full 응답 — 본문과 워터마크 */
+interface CaseFullContent {
+  originalText: string
+  patternReasoning: string | null
+  modification: string | null
+  courseSteps: Array<{ step: string; change: string }>
+  distinctive: string | null
+  clinicalNotes: string
+  watermark: { label: string; issuedAt: string; traceId: string }
+}
+
+/**
+ * 치험례 목록·검색이 붙는 곳 — NestJS API 다.
+ *
+ * 예전에는 VITE_AI_ENGINE_URL 을 썼다. 운영에서는 둘 다 api.ongojisin.co.kr 라
+ * 우연히 맞아떨어졌지만, 로컬에서는 그 변수가 FastAPI(:8000)를 가리키고
+ * 거기에는 GET /api/v1/cases 라우트가 없어서 목록이 아예 안 떴다.
+ *
+ * 여기서 부르는 /cases, /cases/search-similar 는 전부 NestJS 엔드포인트다.
+ * 이름과 실제가 어긋나 있으면 다음 사람도 같은 데서 헤맨다.
+ * (services/api.ts 의 API_BASE_URL 과 같은 값 — 그쪽은 axios 인스턴스용이다)
+ */
+const CASES_API_BASE =
+  import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.kr/api/v1'
 
 
 // 성별 표시 함수
@@ -159,11 +214,20 @@ export default function CasesPage() {
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [totalPages, setTotalPages] = useState(0)
   const [stats, setStats] = useState({ cured: 0, improved: 0, total: 0 })
+  // 목록 유료화 — 무료 회원은 앞 CASE_BROWSE_FREE_PAGES 페이지까지.
+  const [access, setAccess] = useState<BrowseAccess | null>(null)
+  const [paywalled, setPaywalled] = useState(false)
   const ITEMS_PER_PAGE = 20
 
   // 상세 모달
   const [selectedCase, setSelectedCase] = useState<CaseRecord | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  // 본문은 모달을 열 때 별도 요청으로 받아온다 — 목록에는 담겨 오지 않는다.
+  const [fullContent, setFullContent] = useState<CaseFullContent | null>(null)
+  const [fullLoading, setFullLoading] = useState(false)
+  const [fullError, setFullError] = useState<string | null>(null)
+  // 열람 잔여 수 — 한도에 부딪히고 나서 알면 늦다. 열 때마다 같이 받아 미리 보여준다.
+  const [remaining, setRemaining] = useState<AccessRemaining | null>(null)
 
   // 디바운스된 검색어
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch)
@@ -251,6 +315,7 @@ export default function CasesPage() {
     }
     setError(null)
     setAiMeta(null)
+    setPaywalled(false)
 
     try {
       const headers: HeadersInit = {}
@@ -263,7 +328,7 @@ export default function CasesPage() {
 
       // AI 유사도 검색 모드 — 검색어가 있을 때만 (빈 검색은 일반 list 로)
       if (searchMode === 'ai' && debouncedSearch && debouncedSearch.trim().length > 0) {
-        const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases/search-similar`, {
+        const response = await fetch(`${CASES_API_BASE}/cases/search-similar`, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -315,12 +380,22 @@ export default function CasesPage() {
       if (selectedConstitution) params.append('constitution', selectedConstitution)
       if (selectedOutcome) params.append('outcome', selectedOutcome)
 
-      const response = await fetch(`${AI_ENGINE_URL}/api/v1/cases?${params}`, {
+      const response = await fetch(`${CASES_API_BASE}/cases?${params}`, {
         headers,
         signal: controller.signal,
       })
 
       clearTimeout(timeoutId)
+
+      // 402 = 요금제 벽. 실패가 아니라 제품의 정상 상태다 —
+      // 빨간 에러 박스 대신 업그레이드 안내를 띄운다.
+      if (response.status === 402) {
+        setPaywalled(true)
+        setCases([])
+        setLoading(false)
+        setIsRetrying(false)
+        return
+      }
 
       if (!response.ok) {
         throw new Error(`서버 응답 오류 (${response.status})`)
@@ -336,6 +411,7 @@ export default function CasesPage() {
       setCases(cases)
       setTotalCases(meta.total || 0)
       setTotalPages(meta.totalPages || 0)
+      setAccess(meta.access || null)
       setRetryCount(0)
 
       // 통계 계산 — 백엔드는 treatmentOutcome enum 사용. 프론트 표시값과 매핑.
@@ -368,9 +444,31 @@ export default function CasesPage() {
     fetchCases(false)
   }, [fetchCases])
 
-  const openDetailModal = useCallback((caseItem: CaseRecord) => {
+  const openDetailModal = useCallback(async (caseItem: CaseRecord) => {
     setSelectedCase(caseItem)
     setShowDetailModal(true)
+    setFullContent(null)
+    setFullError(null)
+    setFullLoading(true)
+    try {
+      // 이 요청이 속도제한·이상탐지를 거치고 열람 로그를 남긴다.
+      // 본문에는 열람자를 식별하는 제로폭 워터마크가 심어져 온다.
+      const { data } = await api.get<CaseFullContent>(`/cases/${caseItem.id}/full`)
+      setFullContent(data)
+    } catch (err: any) {
+      // 403 = 속도제한 또는 열람 잠금. 서버가 준 사유를 그대로 보여준다.
+      setFullError(
+        err?.response?.data?.message ||
+          '원문을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      )
+    } finally {
+      setFullLoading(false)
+      // 성공이든 거절이든 잔여 수는 갱신한다 — 거절 화면에서 "언제 풀리나"의 근거가 된다.
+      api
+        .get<AccessRemaining>('/cases/access/remaining')
+        .then(({ data }) => setRemaining(data))
+        .catch(() => setRemaining(null))
+    }
   }, [])
 
   const getOutcomeColor = useCallback((outcome: string | null) => {
@@ -537,8 +635,41 @@ export default function CasesPage() {
           />
         )}
 
+        {/* 요금제 벽 — 무료 회원이 CASE_BROWSE_FREE_PAGES 페이지를 넘어갔다.
+            에러가 아니라 제품의 정상 상태다. 앱의 다른 잠금과 같은 카드를 쓴다.
+            총 건수를 그대로 말해 준다 — 숨기면 팔 것이 없어지고, 얼마나 남았는지가
+            곧 업그레이드할 이유다. */}
+        {!loading && paywalled && (
+          <FeatureGate
+            feature={FeatureKey.CASE_BROWSE_UNLIMITED}
+            headline={`무료로 볼 수 있는 ${CASE_BROWSE_FREE_PAGES}페이지를 모두 보셨습니다`}
+            message={
+              totalCases > 0
+                ? `치험례 ${totalCases.toLocaleString()}건 중 ${CASE_BROWSE_FREE_CASES}건까지 보셨습니다. ` +
+                  `나머지 ${Math.max(totalCases - CASE_BROWSE_FREE_CASES, 0).toLocaleString()}건은 유료 플랜에서 열립니다. ` +
+                  '치험례 검색은 계속 제한 없이 무료입니다.'
+                : `무료 회원은 목록을 ${CASE_BROWSE_FREE_PAGES}페이지까지 넘길 수 있습니다. 검색은 계속 무료입니다.`
+            }
+          >
+            <></>
+          </FeatureGate>
+        )}
+
+        {/* 벽에 부딪힌 채로 갇히지 않게 한다. ?page=5 링크로 바로 들어오면
+            목록도 페이지네이션도 없어서 돌아갈 길이 사라진다. */}
+        {!loading && paywalled && (
+          <div className="text-center">
+            <button
+              onClick={() => handlePageChange(1)}
+              className="text-[13px] font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700"
+            >
+              무료로 볼 수 있는 목록으로 돌아가기
+            </button>
+          </div>
+        )}
+
         {/* 결과 목록 — Toss 톤: 핵심 정보 + 해시태그 칩, 군더더기 제거 */}
-        {!loading && !error && cases.map((caseItem: any) => {
+        {!loading && !error && !paywalled && cases.map((caseItem: any) => {
           const formulaName = getFormulaName(caseItem)
           const constitution = getConstitution(caseItem)
           const outcome = getOutcome(caseItem)
@@ -634,7 +765,7 @@ export default function CasesPage() {
         })}
 
         {/* 빈 결과 */}
-        {!loading && !error && cases.length === 0 && (
+        {!loading && !error && !paywalled && cases.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">검색 결과가 없습니다</p>
@@ -665,17 +796,23 @@ export default function CasesPage() {
                 } else {
                   pageNum = currentPage - 2 + i
                 }
+                // 무료 한도 너머 — 막지 않고 잠금으로 보여준다. 눌러 보고 나서
+                // 알게 하는 것보다 낫고, 여기 뭔가 더 있다는 것도 같이 전해진다.
+                const locked = access?.maxPage != null && pageNum > access.maxPage
                 return (
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`w-10 h-10 rounded-lg font-medium ${
+                    title={locked ? `${CASE_BROWSE_FREE_PAGES}페이지까지 무료입니다` : undefined}
+                    className={`w-10 h-10 rounded-lg font-medium flex items-center justify-center ${
                       currentPage === pageNum
                         ? 'bg-primary text-white'
-                        : 'bg-white border border-gray-200 hover:bg-gray-50'
+                        : locked
+                          ? 'bg-gray-50 border border-gray-200 text-gray-400 hover:bg-gray-100'
+                          : 'bg-white border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
-                    {pageNum}
+                    {locked ? <Lock className="h-3.5 w-3.5" /> : pageNum}
                   </button>
                 )
               })}
@@ -692,11 +829,19 @@ export default function CasesPage() {
         )}
 
         {/* 페이지 정보 */}
-        {!loading && !error && totalCases > 0 && (
+        {!loading && !error && !paywalled && totalCases > 0 && (
           <div className="text-center text-sm text-gray-500 pt-2">
             {totalCases.toLocaleString()}건 중 {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
             {Math.min(currentPage * ITEMS_PER_PAGE, totalCases)}건 표시
           </div>
+        )}
+
+        {/* 무료 한도 안내 — 벽에 부딪히기 전에 알린다 */}
+        {!loading && !error && access?.limited && totalPages > CASE_BROWSE_FREE_PAGES && (
+          <p className="flex items-center justify-center gap-1.5 text-center text-[13px] text-gray-400">
+            <Lock className="h-3.5 w-3.5" />
+            무료 회원은 {CASE_BROWSE_FREE_PAGES}페이지까지 볼 수 있습니다 · 검색은 제한 없이 무료
+          </p>
         )}
       </div>
 
@@ -718,7 +863,7 @@ export default function CasesPage() {
           }
           return []
         })()
-        const observations = formatObservations(c.originalText || '')
+        const observations = formatObservations(fullContent?.originalText || '')
 
         return (
           <div
@@ -772,14 +917,16 @@ export default function CasesPage() {
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                 {/* 정리된 요약이 먼저 — 원문은 한 덩어리라 진료 중에 읽을 수 없다.
                     아직 정리 전인 치험례에서는 아무것도 그리지 않는다. */}
+                {/* 변증 추론·가감·경과·감별은 잠금 대상이라 목록에 실려 오지 않는다.
+                    본문 요청이 돌아오기 전에는 요약과 감별 앞부분(미끼)만 그린다. */}
                 <CaseSummaryPanel
                   summary={{
                     summaryOneLine: c.summaryOneLine,
                     keyFindings: c.keyFindings,
-                    patternReasoning: c.patternReasoning,
-                    modification: c.modification,
-                    courseSteps: c.courseSteps,
-                    distinctive: c.distinctive,
+                    patternReasoning: fullContent?.patternReasoning ?? null,
+                    modification: fullContent?.modification ?? null,
+                    courseSteps: fullContent?.courseSteps ?? null,
+                    distinctive: fullContent?.distinctive ?? c.distinctivePreview ?? null,
                     verifiedFormulaName: c.verifiedFormulaName,
                     formulaMismatch: c.formulaMismatch,
                     hasMixedContent: c.hasMixedContent,
@@ -843,49 +990,78 @@ export default function CasesPage() {
                   </section>
                 )}
 
-                {/* 치료 결과 */}
-                {c.result && (
+                {/* 치료 결과 — clinicalNotes 는 잠금 대상이라 본문 요청 결과에서 온다.
+                    원문과 같은 본문이므로 보호 영역 안에서만 그린다. */}
+                {fullContent?.clinicalNotes && (
                   <section className="pt-4 border-t border-neutral-100">
                     <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-2">
                       치료 결과 / 경과
                     </h3>
-                    <p className="text-[15px] text-neutral-800 leading-relaxed whitespace-pre-wrap">
-                      {c.result}
-                    </p>
+                    <ProtectedRegion watermark={fullContent.watermark} caseId={c.id}>
+                      <p className="text-[15px] text-neutral-800 leading-relaxed whitespace-pre-wrap">
+                        {fullContent.clinicalNotes}
+                      </p>
+                    </ProtectedRegion>
                   </section>
                 )}
 
-                {/* 세부 관찰 사항 ①②③ — 번호 위주, 시각 노이즈 줄임 */}
-                {observations.length > 0 && (
+                {/* 세부 관찰 사항 ①②③ — 번호 위주, 시각 노이즈 줄임.
+                    원문을 잘라 만든 것이라 원문과 같은 보호를 받아야 한다. 여기만
+                    평문으로 두면 "원문 전체"를 잠근 것이 아무 의미가 없다. */}
+                {observations.length > 0 && fullContent && (
                   <section className="pt-4 border-t border-neutral-100">
                     <h3 className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider mb-3">
                       세부 관찰 사항
                     </h3>
-                    <ol className="space-y-2">
-                      {observations.map((obs, idx) => (
-                        <li key={idx} className="flex gap-3 text-[14px] leading-relaxed">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center font-bold text-[13px]">
-                            {idx + 1}
-                          </span>
-                          <p className="text-neutral-800 flex-1">{stripHanja(obs.content)}</p>
-                        </li>
-                      ))}
-                    </ol>
+                    <ProtectedRegion watermark={fullContent.watermark} caseId={c.id}>
+                      <ol className="space-y-2">
+                        {observations.map((obs, idx) => (
+                          <li key={idx} className="flex gap-3 text-[14px] leading-relaxed">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-md bg-neutral-100 text-neutral-700 flex items-center justify-center font-bold text-[13px]">
+                              {idx + 1}
+                            </span>
+                            <p className="text-neutral-800 flex-1">{stripHanja(obs.content)}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </ProtectedRegion>
                   </section>
                 )}
 
-                {/* 원문 전체 — 접힘 (기본 닫힘, 클릭으로 펼침) */}
-                {c.originalText && (
-                  <details className="pt-4 border-t border-neutral-100 group">
-                    <summary className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider cursor-pointer hover:text-neutral-700 select-none flex items-center justify-between">
-                      <span>원문 전체</span>
-                      <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-                    </summary>
-                    <pre className="mt-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200 text-[13px] text-neutral-700 leading-relaxed whitespace-pre-wrap font-sans max-h-[400px] overflow-y-auto">
-                      {c.originalText}
-                    </pre>
-                  </details>
-                )}
+                {/* 원문 전체 — 접힘 (기본 닫힘, 클릭으로 펼침).
+                    본문은 목록에 실려 오지 않고 모달을 열 때 별도로 받아온다. */}
+                <details className="pt-4 border-t border-neutral-100 group">
+                  <summary className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider cursor-pointer hover:text-neutral-700 select-none flex items-center justify-between">
+                    <span>원문 전체</span>
+                    <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+                  </summary>
+                  <div className="mt-3">
+                    {fullLoading && (
+                      <p className="text-[13px] text-neutral-400">원문을 불러오는 중…</p>
+                    )}
+                    {fullError && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                        <p className="text-[13px] text-red-700">{fullError}</p>
+                      </div>
+                    )}
+                    {/* 잔여 열람 수 — 한도에 부딪히기 전에 알려 준다. 사람이 읽는
+                        속도를 넘는 열람만 막는 장치라, 정상 진료 중에는 닿지 않는다. */}
+                    {remaining && (
+                      <p className="mt-2 text-[11px] text-neutral-400">
+                        본문 열람 · 이번 시간{' '}
+                        {Math.max(remaining.hourly.limit - remaining.hourly.used, 0)}건 / 오늘{' '}
+                        {Math.max(remaining.daily.limit - remaining.daily.used, 0)}건 남음
+                      </p>
+                    )}
+                    {fullContent?.originalText && (
+                      <ProtectedCaseText
+                        text={fullContent.originalText}
+                        watermark={fullContent.watermark}
+                        caseId={c.id}
+                      />
+                    )}
+                  </div>
+                </details>
 
                 {c.dataSource && (
                   <p className="pt-2 text-[11px] text-neutral-400">

@@ -19,6 +19,8 @@ import {
   FEATURE_LABELS,
   PRACTITIONER_SEAT_LIMITS,
   CASE_SAVE_LIMITS,
+  CASE_BROWSE_FREE_PAGES,
+  CASE_VIEW_DAILY_LIMITS,
 } from '../../database/entities/plan-features';
 import {
   Subscription,
@@ -996,12 +998,16 @@ export class TossPaymentsService {
           tier: 'free',
           name: 'Free',
           description: '한의사·학생·수련생 — 핵심 임상은 영구 무료',
-          tagline: '변증·처방·치험례·커뮤니티 모두 무제한',
+          // 치험례를 "무제한" 으로 팔지 않는다. 검색은 정말 무제한이지만
+          // 목록 둘러보기와 원문 열람에는 한도가 있다 — 결제 후에 알게 되면
+          // 그건 속인 것이고, 환불보다 신뢰를 잃는 쪽이 비싸다.
+          tagline: '변증·처방·커뮤니티 무제한 · 치험례 검색 무제한',
           features: [
             `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.FREE].includedQueries}회`,
             '변증·통합진단 무제한',
             '처방 추천 + 근거 무제한',
             '증상·치험례 검색 무제한',
+            `치험례 목록 ${CASE_BROWSE_FREE_PAGES}페이지 · 원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.FREE]}건`,
             '커뮤니티 무제한',
             '한약재·DUR / 침구혈자리',
           ],
@@ -1021,8 +1027,9 @@ export class TossPaymentsService {
           description: '한약사·예비개원의 — 가볍게 시작',
           features: [
             `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.BASIC].includedQueries}회 (초과 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건)`,
+            `치험례 전체 열람 (원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.BASIC]}건)`,
             '케이스 저장 50건',
-            '케이스 내보내기 (PDF/이미지)',
+            '내 케이스 내보내기 (PDF/이미지)',
             '기본 통계',
             '이메일 지원',
           ],
@@ -1043,11 +1050,12 @@ export class TossPaymentsService {
           tagline: '환자관리 + 음성차트 + 무제한 저장',
           features: [
             `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries.toLocaleString()}회`,
+            `치험례 전체 열람 (원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.PROFESSIONAL]}건)`,
             '케이스 무제한 저장 + 통계',
             '환자 관리 (전자차트)',
             '음성차트 (Voice Chart)',
             '고급 검색 필터·학파 비교',
-            '워터마크 제거 내보내기',
+            '내 케이스 워터마크 없이 내보내기',
             '우선 지원',
           ],
           featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.PROFESSIONAL]),
