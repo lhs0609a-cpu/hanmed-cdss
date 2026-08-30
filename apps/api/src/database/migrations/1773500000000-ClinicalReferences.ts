@@ -82,38 +82,64 @@ export class ClinicalReferences1773500000000 implements MigrationInterface {
         ON "clinical_references" ("contentHash")
     `);
 
+    // ── 여기부터는 성능용 보조 인덱스다 ──────────────────────────
+    //
+    // 하나가 실패해도 마이그레이션 전체를 되돌리지 않는다. 위의 테이블과 유니크
+    // 제약은 없으면 기능이 깨지지만, 아래 인덱스는 없으면 느려질 뿐이다.
+    // 그 둘을 같은 강도로 다룰 이유가 없다. 인덱스 하나가 거절당하면
+    // 마이그레이션이 통째로 롤백되고, 앱이 못 떠서 배포가 조용히 구버전으로
+    // 남는다 — 헬스체크는 구버전이 응답하므로 초록색이고, 그래서 알아채기까지
+    // 오래 걸린다. 느려지는 것과 못 뜨는 것은 감수할 수 있는 실패가 다르다.
+    const optionalIndex = async (label: string, sql: string) => {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ${sql}
+        EXCEPTION WHEN OTHERS THEN
+          RAISE NOTICE '${label} 인덱스를 만들지 못했습니다(검색이 느려질 뿐 기능은 동작): %', SQLERRM;
+        END $$;
+      `);
+    };
+
     // 검색이 안 되면 1만 건은 자산이 아니라 짐이다.
     //
     // 'simple' 사전을 쓴다. 한국어 형태소 사전이 서버에 깔려 있지 않고,
     // 'english' 사전을 한국어에 씌우면 어간 추출이 엉뚱하게 걸린다. simple 은
     // 공백으로만 끊어 한국어 단어를 원형 그대로 남기므로, 한글은 부분일치를
     // 못 하는 대신 오검색이 없다. 영문은 어차피 원형 검색으로 대부분 잡힌다.
-    await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS "IDX_reference_fts"
-        ON "clinical_references"
-        USING GIN (
-          to_tsvector('simple',
-            coalesce("title", '') || ' ' ||
-            coalesce("titleKo", '') || ' ' ||
-            coalesce("abstract", '') || ' ' ||
-            array_to_string("keywords", ' ')
-          )
-        )
-    `);
+    //
+    // keywords 를 이 식에 넣지 않는다. array_to_string 은 IMMUTABLE 이 아니라
+    // STABLE 이고(원소 타입의 출력 함수에 기대므로), 인덱스 식에는 IMMUTABLE
+    // 함수만 쓸 수 있다. 키워드는 아래 배열 인덱스로 따로 받는다.
+    await optionalIndex(
+      '전문검색',
+      `CREATE INDEX IF NOT EXISTS "IDX_reference_fts"
+         ON "clinical_references"
+         USING GIN (
+           to_tsvector('simple',
+             coalesce("title", '') || ' ' ||
+             coalesce("titleKo", '') || ' ' ||
+             coalesce("abstract", '')
+           )
+         );`,
+    );
+
+    // 키워드(MeSH)는 배열 그대로 인덱싱해 && / @> 로 찾는다.
+    await optionalIndex(
+      '키워드',
+      `CREATE INDEX IF NOT EXISTS "IDX_reference_keywords"
+         ON "clinical_references" USING GIN ("keywords");`,
+    );
+
     // 한글 부분일치(LIKE '%관절%')를 감당하려면 트라이그램이 필요하다.
-    // pg_trgm 이 없는 환경도 있으므로 확장 생성 실패가 마이그레이션 전체를
-    // 되돌리지 않게 감싼다 — 없으면 검색이 조금 느릴 뿐, 기능은 돈다.
-    await queryRunner.query(`
-      DO $$ BEGIN
-        CREATE EXTENSION IF NOT EXISTS pg_trgm;
-        CREATE INDEX IF NOT EXISTS "IDX_reference_title_trgm"
-          ON "clinical_references" USING GIN ("title" gin_trgm_ops);
-        CREATE INDEX IF NOT EXISTS "IDX_reference_title_ko_trgm"
-          ON "clinical_references" USING GIN ("titleKo" gin_trgm_ops);
-      EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'pg_trgm 사용 불가 — 제목 부분일치 인덱스를 건너뜁니다.';
-      END $$;
-    `);
+    // 확장 생성에는 권한이 필요해서 관리형 DB 에서는 막혀 있을 수 있다.
+    await optionalIndex(
+      '제목 부분일치',
+      `CREATE EXTENSION IF NOT EXISTS pg_trgm;
+       CREATE INDEX IF NOT EXISTS "IDX_reference_title_trgm"
+         ON "clinical_references" USING GIN ("title" gin_trgm_ops);
+       CREATE INDEX IF NOT EXISTS "IDX_reference_title_ko_trgm"
+         ON "clinical_references" USING GIN ("titleKo" gin_trgm_ops);`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

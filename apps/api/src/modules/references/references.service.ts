@@ -69,18 +69,20 @@ export class ReferencesService {
 
     if (q.search?.trim()) {
       const term = q.search.trim();
-      // 두 갈래로 찾는다.
-      //  1) 전문검색 — 마이그레이션의 GIN 인덱스와 식이 정확히 같아야 인덱스를 탄다.
-      //  2) 제목 부분일치 — 'simple' 사전은 공백으로만 끊어서 "슬관절" 같은
+      // 세 갈래로 찾는다.
+      //  1) 전문검색 — 마이그레이션의 GIN 인덱스와 식이 글자 그대로 같아야
+      //     인덱스를 탄다. 한쪽만 고치면 조용히 순차 스캔으로 떨어진다.
+      //  2) 키워드(MeSH) 완전일치 — 배열 GIN 인덱스를 탄다.
+      //  3) 제목 부분일치 — 'simple' 사전은 공백으로만 끊어서 "슬관절" 같은
       //     한글 부분어를 못 잡는다. 트라이그램 인덱스가 이쪽을 받친다.
       qb.andWhere(
         `(
           to_tsvector('simple',
             coalesce(r."title", '') || ' ' ||
             coalesce(r."titleKo", '') || ' ' ||
-            coalesce(r."abstract", '') || ' ' ||
-            array_to_string(r."keywords", ' ')
+            coalesce(r."abstract", '')
           ) @@ plainto_tsquery('simple', :term)
+          OR r."keywords" && ARRAY[:term]::text[]
           OR r."title" ILIKE :like
           OR r."titleKo" ILIKE :like
         )`,
