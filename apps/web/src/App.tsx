@@ -24,6 +24,7 @@ import AdLandingPage from '@/app/landing/AdLandingPage'
 const DashboardPage = lazy(() => import('@/app/dashboard/DashboardPage'))
 const ConsultationPage = lazy(() => import('@/app/consultation/ConsultationPage'))
 const CasesPage = lazy(() => import('@/app/cases/CasesPage'))
+const ReferencesPage = lazy(() => import('@/app/references/ReferencesPage'))
 const InteractionsPage = lazy(() => import('@/app/interactions/InteractionsPage'))
 const FormulasPage = lazy(() => import('@/app/formulas/FormulasPage'))
 const FormulaDetailPage = lazy(() => import('@/app/formulas/FormulaDetailPage'))
@@ -206,6 +207,7 @@ function App() {
           <Route index element={route(<DashboardPage />)} />
           <Route path="consultation" element={route(<ConsultationPage />)} />
           <Route path="cases" element={route(<CasesPage />)} />
+          <Route path="references" element={route(<ReferencesPage />)} />
           <Route path="interactions" element={route(<InteractionsPage />)} />
           <Route path="formulas" element={route(<FormulasPage />)} />
           <Route path="formulas/:id" element={route(<FormulaDetailPage />)} />

@@ -3,6 +3,7 @@ export * from './user.entity';
 export * from './plan-features';
 export * from './clinical-case.entity';
 export * from './case-access-log.entity';
+export * from './reference.entity';
 export * from './herb.entity';
 export * from './drug-herb-interaction.entity';
 export * from './formula.entity';

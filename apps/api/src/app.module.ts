@@ -15,6 +15,7 @@ import { MedicationGuidesModule } from './modules/medication-guides/medication-g
 import { NonPayPricesModule } from './modules/nonpay-prices/nonpay-prices.module';
 import { NoticesModule } from './modules/notices/notices.module';
 import { CasesModule } from './modules/cases/cases.module';
+import { ReferencesModule } from './modules/references/references.module';
 import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { FormulasModule } from './modules/formulas/formulas.module';
@@ -169,6 +170,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     NonPayPricesModule,
     NoticesModule,
     CasesModule,
+    ReferencesModule,
     PrescriptionsModule,
     InteractionsModule,
     FormulasModule,
