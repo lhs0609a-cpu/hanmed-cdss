@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -125,5 +126,8 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "ai-engine",
-        "model": settings.GPT_MODEL
+        "model": settings.GPT_MODEL,
+        # 지금 떠 있는 것이 어느 커밋인지. 배포 워크플로가 이 값으로
+        # "정말 새 버전이 떴는가" 를 확인한다 — 200 만으로는 알 수 없다.
+        "commit": os.getenv("GIT_SHA"),
     }

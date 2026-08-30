@@ -19,6 +19,13 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date().toISOString(),
       service: 'hanmed-cdss-api',
+      // 지금 떠 있는 것이 어느 커밋인지. 배포 워크플로가 이 값으로
+      // "정말 새 버전이 떴는가" 를 확인한다.
+      //
+      // 이 필드가 없던 시절에는 확인할 방법이 없었다. 새 머신이 마이그레이션
+      // 실패로 못 떠도 Fly 가 구버전을 유지하고, 그 구버전이 200 을 돌려주니
+      // 배포는 초록색으로 끝났다. 그래서 실패를 며칠 뒤에 발견했다.
+      commit: process.env.GIT_SHA || null,
     };
   }
 

@@ -34,22 +34,39 @@ jobs:
 
       - name: Deploy to Fly.io
         working-directory: apps/ai-engine
-        run: flyctl deploy --remote-only
+        # 커밋 SHA 를 이미지에 심는다 — 아래 검증의 근거가 된다.
+        run: flyctl deploy --remote-only --build-arg GIT_SHA=${{ github.sha }}
 
       - name: Health Check
-        # 실패를 삼키지 않는다. 앱이 안 떠도 배포가 성공으로 보이면
-        # 그 초록색은 아무 의미가 없다 — deploy-backend.yml 과 같은 이유다.
+        # 200 이 왔다는 것만으로는 배포 성공이 아니다. 새 머신이 못 뜨면 Fly 는
+        # 구버전을 유지하고, 그 구버전이 200 을 돌려준다. 그래서 응답에 실린
+        # 커밋이 방금 밀어 넣은 것과 같은지까지 본다 — deploy-backend.yml 과 같다.
         run: |
-          for i in 1 2 3 4 5 6; do
-            if curl -sf --max-time 10 https://hanmed-ai-engine.fly.dev/health; then
-              echo ""
-              echo "health ok (attempt $i)"
+          expected="${{ github.sha }}"
+          echo "기대 커밋: $expected"
+
+          for i in $(seq 1 20); do
+            body=$(curl -sf --max-time 10 https://hanmed-ai-engine.fly.dev/health || true)
+            got=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+            if [ "$got" = "$expected" ]; then
+              echo "배포 확인 — 떠 있는 커밋이 $got (시도 $i)"
               exit 0
             fi
-            echo "health 대기중... ($i/6)"
-            sleep 10
+
+            if [ -z "$body" ]; then
+              echo "  [$i/20] 응답 없음 (재시작 중일 수 있음)"
+            elif [ -z "$got" ]; then
+              echo "  [$i/20] 구버전 응답 (commit 필드 없음)"
+            else
+              echo "  [$i/20] 아직 구버전 — 떠 있는 커밋 $got"
+            fi
+            sleep 15
           done
-          echo "1분 동안 health 응답 없음 — 배포 실패로 처리한다."
+
+          echo ""
+          echo "5분 동안 새 커밋이 뜨지 않았다. 배포가 롤백됐을 가능성이 높다."
+          echo "flyctl logs -a hanmed-ai-engine 로 부팅 로그를 확인할 것."
           exit 1
 
       - name: Verify case list paywall
