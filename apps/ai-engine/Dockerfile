@@ -25,12 +25,6 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 # 애플리케이션 코드 복사
 COPY . .
 
-# 배포된 커밋을 앱이 스스로 말할 수 있게 심는다 — API 쪽과 같은 이유다.
-# 새 머신이 못 떠도 구버전이 /health 에 200 을 돌려주므로, 응답 코드만 보는
-# 검사로는 롤백된 배포를 잡아낼 수 없다.
-ARG GIT_SHA=unknown
-ENV GIT_SHA=$GIT_SHA
-
 # 소유권 변경
 RUN chown -R appuser:appuser /app
 

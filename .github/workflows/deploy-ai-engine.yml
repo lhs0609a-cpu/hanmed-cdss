@@ -32,26 +32,54 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      # 커밋 SHA 를 빌드 컨텍스트에 써 넣는다.
+      #
+      # --build-arg 로 넘기려다 배포가 통째로 안 올라갔다(원인은 확인하지 못했고,
+      # 그 플래그를 뺀 순간 정상으로 돌아왔다). 배포 명령에는 손대지 않고,
+      # Dockerfile 이 COPY 하는 파일에 값을 써 넣는 방식으로 바꿨다.
+      - name: Stamp commit SHA
+        run: echo "${{ github.sha }}" > apps/ai-engine/GIT_SHA
+
       - name: Deploy to Fly.io
         working-directory: apps/ai-engine
         run: flyctl deploy --remote-only
 
       - name: Health Check
-        # commit 을 찍되 불일치로 실패시키지는 않는다 — deploy-backend.yml 과
-        # 같은 이유다. 이 배포가 제대로 갔는지는 아래 페이월 검증이 실제 동작으로
-        # 확인하므로, 여기서는 앱이 떴는지만 본다.
+        # 200 이 왔다는 것만으로는 배포 성공이 아니다.
+        #
+        # 새 머신이 마이그레이션 실패 등으로 못 뜨면 Fly 는 구버전을 그대로
+        # 유지한다. 그 구버전이 /health 에 200 을 돌려주므로, 응답 코드만 보는
+        # 검사는 롤백된 배포를 초록색으로 통과시킨다. 실제로 그렇게 실패한
+        # 배포를 한참 뒤에야 발견했다.
+        #
+        # 그래서 응답에 실린 커밋이 방금 밀어 넣은 커밋과 같은지까지 본다.
         run: |
-          for i in $(seq 1 12); do
+          expected="${{ github.sha }}"
+          echo "기대 커밋: $expected"
+
+          for i in $(seq 1 20); do
             body=$(curl -sf --max-time 10 https://hanmed-ai-engine.fly.dev/health || true)
-            if [ -n "$body" ]; then
-              commit=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
-              echo "health ok (시도 $i) — 떠 있는 커밋: ${commit:-표시없음}"
+            got=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+            if [ "$got" = "$expected" ]; then
+              echo "배포 확인 — 떠 있는 커밋이 $got (시도 $i)"
               exit 0
             fi
-            echo "health 대기중... ($i/12)"
-            sleep 10
+
+            if [ -z "$body" ]; then
+              echo "  [$i/20] 응답 없음 (재시작 중일 수 있음)"
+            elif [ -z "$got" ] || [ "$got" = "unknown" ]; then
+              echo "  [$i/20] 구버전 응답 (commit=${got:-없음})"
+            else
+              echo "  [$i/20] 아직 구버전 — 떠 있는 커밋 $got"
+            fi
+            sleep 15
           done
-          echo "2분 동안 health 응답 없음 — 배포 실패로 처리한다."
+
+          echo ""
+          echo "5분 동안 새 커밋이 뜨지 않았다. 배포가 롤백됐을 가능성이 높다."
+          echo "flyctl logs -a hanmed-ai-engine 로 부팅 로그를 확인할 것 —"
+          echo "마이그레이션 실패가 가장 흔한 원인이다."
           exit 1
 
       - name: Verify case list paywall
