@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHash } from 'crypto';
@@ -146,34 +145,16 @@ export class ReferenceIngestService {
   }
 
   /**
-   * 주 1회 갱신.
+   * 적재는 사람이 시킬 때만 돈다. 자동 스케줄은 두지 않는다.
    *
-   * 새 논문은 하루에 몇 건씩 늘어나므로 매일 돌 이유가 없다. 주 1회면
-   * 놓치는 것 없이 상류 부담도 적다. 처음 1만 건을 채우는 것은 이 크론이
-   * 아니라 관리자 트리거(POST /admin/references/harvest)로 여러 번 돌린다 —
-   * 크론이 수 시간짜리 초기 적재를 맡으면 배포할 때마다 처음부터 다시 돈다.
+   * 크론으로 주 1회 돌리던 것을 걷어냈다. 이 작업은 상류(NCBI)를 수 시간
+   * 두드리고 DB 를 늘리는 일이라, 아무도 보고 있지 않을 때 알아서 도는 것이
+   * 좋을 이유가 없다. 무엇이 언제 얼마나 들어왔는지를 사람이 알고 있어야
+   * "문헌 1만 건" 이라는 숫자에 책임질 수 있다.
+   *
+   * 초기 적재도 이걸 여러 번 돌려 쌓는다. 이미 있는 것은 갱신만 되고
+   * 중복으로 쌓이지 않으므로 몇 번을 돌려도 안전하다.
    */
-  @Cron('0 0 5 * * 1', { name: 'references-weekly', timeZone: 'Asia/Seoul' })
-  async runWeekly(): Promise<void> {
-    if (this.running) {
-      this.logger.warn('이미 수집이 돌고 있어 이번 실행은 건너뜁니다.');
-      return;
-    }
-    this.running = true;
-    try {
-      // 주간 갱신은 최근 것만 얕게 훑는다. 깊이 파는 것은 초기 적재의 몫이다.
-      const r = await this.harvestPubMed(120, new Date().getFullYear() - 1);
-      this.logger.log(
-        `문헌 주간 갱신 완료 — 신규 ${r.inserted} · 갱신 ${r.updated} · 제외 ${r.skipped}`,
-      );
-    } catch (e) {
-      this.logger.error(`문헌 주간 갱신 실패: ${(e as Error).message}`);
-    } finally {
-      this.running = false;
-    }
-  }
-
-  /** 관리자 트리거용. 초기 적재는 이걸 여러 번 돌려 쌓는다. */
   async harvestNow(perTopic: number, minYear: number): Promise<HarvestResult> {
     if (this.running) {
       throw new Error('이미 수집이 돌고 있습니다. 끝난 뒤 다시 시도해 주세요.');
