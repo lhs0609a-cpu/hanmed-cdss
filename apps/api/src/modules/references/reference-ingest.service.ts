@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { createHash } from 'crypto';
 import { Reference, ReferenceSource } from '../../database/entities/reference.entity';
 import { RawReference, HarvestResult, emptyResult } from './sources/types';
-import { PubMedClient, PUBMED_TOPICS } from './sources/pubmed';
+import { PubMedClient, ALL_TOPICS } from './sources/pubmed';
 
 /**
  * 문헌 수집·저장.
@@ -123,7 +123,9 @@ export class ReferenceIngestService {
       onProgress: (m) => this.logger.log(m),
     });
 
-    for (const topic of PUBMED_TOPICS) {
+    // 치료수단 기준 7개 + 주소증 기준 21개. 주소증 쪽이 없으면 분포가
+    // 우연에 맡겨진다 — 실제로 암 보조치료가 견비통의 10배가 됐었다.
+    for (const topic of ALL_TOPICS) {
       try {
         const raws = await client.harvestTopic(topic);
         const saved = await this.save(raws);

@@ -116,6 +116,23 @@ export class Reference {
   @Column('text', { nullable: true })
   abstract: string | null;
 
+  /**
+   * 한국어 요약 3~4줄 — 기계가 만든 것.
+   *
+   * 초록을 통째로 번역하지 않는 이유: 초록에는 용량·투여횟수·혈위·처방명이 들어
+   * 있다. "3 times daily" 를 "3일마다" 로, 황련해독탕을 황금탕으로 한 글자만
+   * 틀려도 그걸 보고 처방하는 사람이 생긴다.
+   *
+   * 그래서 요약은 "무엇을 대상으로, 무엇과 비교해, 어떤 결과가 나왔나" 까지만
+   * 담는다. 용량과 프로토콜은 원문(abstract)을 보게 한다. 번역본이 원문을
+   * 대체하지 않으므로 오역이 처방으로 이어지지 않는다.
+   *
+   * 화면에서는 기계가 만든 것임을 표시한다. 한의사가 이걸 근거로 삼기 전에
+   * 원문을 확인해야 한다는 것을 알아야 한다.
+   */
+  @Column('text', { nullable: true })
+  summaryKo: string | null;
+
   @Column('text', { array: true, default: () => "'{}'" })
   authors: string[];
 

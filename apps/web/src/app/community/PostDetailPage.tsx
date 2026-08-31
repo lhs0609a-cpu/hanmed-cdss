@@ -25,6 +25,7 @@ import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import { useToast } from '@/hooks/useToast'
 import { useAuthStore } from '@/stores/authStore'
+import { PostContent } from '@/components/community/PostContent'
 
 const POST_TYPE_LABELS: Record<string, string> = {
   qna: 'Q&A',
@@ -176,30 +177,6 @@ export default function PostDetailPage() {
     )
   }
 
-  const renderContent = (text: string) =>
-    text.split('\n').map((line, i) => {
-      if (line.startsWith('## ')) {
-        return (
-          <h2 key={i} className="text-lg font-bold text-gray-900 mt-4 mb-2">
-            {line.replace('## ', '')}
-          </h2>
-        )
-      }
-      if (line.startsWith('- ')) {
-        return (
-          <li key={i} className="text-gray-700">
-            {line.replace('- ', '')}
-          </li>
-        )
-      }
-      if (line.trim() === '') return <br key={i} />
-      return (
-        <p key={i} className="text-gray-700">
-          {line}
-        </p>
-      )
-    })
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Back Button */}
@@ -264,7 +241,7 @@ export default function PostDetailPage() {
 
         {/* Content */}
         <div className="p-6">
-          <div className="prose prose-gray max-w-none">{renderContent(post.content)}</div>
+          <PostContent text={post.content} />
 
           {/* Tags */}
           {post.tags?.length > 0 && (
