@@ -137,6 +137,89 @@ export const PUBMED_TOPICS: PubMedTopic[] = [
 ];
 
 /**
+ * 주소증 기준 수집 주제.
+ *
+ * 위의 PUBMED_TOPICS 는 치료수단(침구·한약·추나) 기준이다. 그것만 돌렸더니
+ * 주소증 분포가 우연에 맡겨졌다 — 암 보조치료가 1,173건(10.3%)으로 가장
+ * 많았고, 정작 한의원에서 흔한 견비통 118건, 안면마비 85건, 알레르기비염
+ * 96건이었다. PubMed 에 중국 암 연구가 많으니 그게 딸려온 것이다.
+ *
+ * 한의사는 "침 논문"을 찾지 않는다. "이 어깨를 어떻게 할까" 를 찾는다.
+ * 그래서 주소증 × 한의 치료수단으로 다시 짠다.
+ *
+ * 첩약 건강보험 6개 질환(월경통·안면신경마비·뇌혈관질환후유증·알레르기비염·
+ * 기능성소화불량·요추추간판탈출증)은 전부 넣었다. 급여가 되는 질환이라
+ * 한의사가 실제로 근거를 찾아볼 이유가 가장 큰 쪽이다.
+ */
+
+/** 주소증 쿼리에 공통으로 붙이는 한의 치료수단 — 없으면 양방 논문이 쏟아진다 */
+const KM_INTERVENTION =
+  ' AND (acupuncture[Title/Abstract] OR electroacupuncture[Title/Abstract]' +
+  ' OR moxibustion[Title/Abstract] OR "herbal medicine"[Title/Abstract]' +
+  ' OR "Drugs, Chinese Herbal"[MeSH Terms] OR "Acupuncture Therapy"[MeSH Terms]' +
+  ' OR "Medicine, Korean Traditional"[MeSH Terms] OR "Medicine, Chinese Traditional"[MeSH Terms]' +
+  ' OR tuina[Title/Abstract] OR "manual therapy"[Title/Abstract] OR cupping[Title/Abstract])';
+
+function symptom(
+  label: string,
+  category: ReferenceCategory,
+  condition: string,
+): PubMedTopic {
+  return { label, category, query: `(${condition})${KM_INTERVENTION}` };
+}
+
+export const SYMPTOM_TOPICS: PubMedTopic[] = [
+  // ── 근골격 — 한의원 내원 사유의 절반 이상 ──
+  symptom('요통·좌골신경통', ReferenceCategory.REHAB,
+    '"Low Back Pain"[MeSH Terms] OR "low back pain"[Title/Abstract] OR sciatica[Title/Abstract]'),
+  symptom('요추추간판탈출증', ReferenceCategory.REHAB,
+    '"Intervertebral Disc Displacement"[MeSH Terms] OR "lumbar disc herniation"[Title/Abstract] OR "herniated disc"[Title/Abstract]'),
+  symptom('경항통·거북목', ReferenceCategory.REHAB,
+    '"Neck Pain"[MeSH Terms] OR "neck pain"[Title/Abstract] OR "cervical radiculopathy"[Title/Abstract] OR whiplash[Title/Abstract]'),
+  symptom('견비통·오십견', ReferenceCategory.REHAB,
+    '"Shoulder Pain"[MeSH Terms] OR "Bursitis"[MeSH Terms] OR "frozen shoulder"[Title/Abstract] OR "adhesive capsulitis"[Title/Abstract] OR "rotator cuff"[Title/Abstract]'),
+  symptom('슬관절염·무릎', ReferenceCategory.REHAB,
+    '"Osteoarthritis, Knee"[MeSH Terms] OR "knee osteoarthritis"[Title/Abstract] OR "knee pain"[Title/Abstract]'),
+  symptom('근막통증·섬유근통', ReferenceCategory.REHAB,
+    '"Fibromyalgia"[MeSH Terms] OR "Myofascial Pain Syndromes"[MeSH Terms] OR "trigger point"[Title/Abstract]'),
+
+  // ── 첩약 급여 질환 ──
+  symptom('안면신경마비', ReferenceCategory.ACUPUNCTURE,
+    '"Bell Palsy"[MeSH Terms] OR "Facial Paralysis"[MeSH Terms] OR "bell.s palsy"[Title/Abstract] OR "facial palsy"[Title/Abstract]'),
+  symptom('알레르기비염', ReferenceCategory.HERBAL,
+    '"Rhinitis, Allergic"[MeSH Terms] OR "allergic rhinitis"[Title/Abstract]'),
+  symptom('기능성소화불량', ReferenceCategory.HERBAL,
+    '"Dyspepsia"[MeSH Terms] OR "functional dyspepsia"[Title/Abstract] OR "functional gastrointestinal"[Title/Abstract]'),
+  symptom('월경통·부인과', ReferenceCategory.HERBAL,
+    '"Dysmenorrhea"[MeSH Terms] OR dysmenorrhea[Title/Abstract] OR "premenstrual syndrome"[Title/Abstract]'),
+  symptom('뇌혈관질환 후유증', ReferenceCategory.ACUPUNCTURE,
+    '"Stroke Rehabilitation"[MeSH Terms] OR "post-stroke"[Title/Abstract] OR "stroke rehabilitation"[Title/Abstract] OR hemiplegia[Title/Abstract]'),
+
+  // ── 내과·신경정신 ──
+  symptom('불면', ReferenceCategory.HERBAL,
+    '"Sleep Initiation and Maintenance Disorders"[MeSH Terms] OR insomnia[Title/Abstract]'),
+  symptom('두통·편두통', ReferenceCategory.ACUPUNCTURE,
+    '"Headache"[MeSH Terms] OR "Migraine Disorders"[MeSH Terms] OR migraine[Title/Abstract] OR "tension-type headache"[Title/Abstract]'),
+  symptom('과민성대장·변비', ReferenceCategory.HERBAL,
+    '"Irritable Bowel Syndrome"[MeSH Terms] OR "irritable bowel"[Title/Abstract] OR "functional constipation"[Title/Abstract]'),
+  symptom('갱년기', ReferenceCategory.HERBAL,
+    '"Menopause"[MeSH Terms] OR menopausal[Title/Abstract] OR "hot flash"[Title/Abstract]'),
+  symptom('우울·불안', ReferenceCategory.HERBAL,
+    '"Depressive Disorder"[MeSH Terms] OR "Anxiety Disorders"[MeSH Terms] OR depression[Title/Abstract] OR anxiety[Title/Abstract]'),
+  symptom('이명·어지럼', ReferenceCategory.ACUPUNCTURE,
+    '"Tinnitus"[MeSH Terms] OR "Vertigo"[MeSH Terms] OR tinnitus[Title/Abstract] OR dizziness[Title/Abstract]'),
+  symptom('아토피·피부', ReferenceCategory.HERBAL,
+    '"Dermatitis, Atopic"[MeSH Terms] OR "atopic dermatitis"[Title/Abstract] OR eczema[Title/Abstract] OR urticaria[Title/Abstract]'),
+  symptom('안면홍조·다한', ReferenceCategory.HERBAL,
+    '"Hyperhidrosis"[MeSH Terms] OR hyperhidrosis[Title/Abstract] OR "night sweat"[Title/Abstract]'),
+  symptom('만성피로', ReferenceCategory.HERBAL,
+    '"Fatigue"[MeSH Terms] OR "chronic fatigue"[Title/Abstract]'),
+];
+
+/** 치료수단 기준 + 주소증 기준 전부 */
+export const ALL_TOPICS: PubMedTopic[] = [...PUBMED_TOPICS, ...SYMPTOM_TOPICS];
+
+/**
  * MEDLINE 레코드 한 건 = 태그 → 값 목록.
  *
  * 같은 태그가 여러 번 나오는 것이 정상이다(저자, MeSH, 발행유형). 그래서
