@@ -2,6 +2,7 @@ import { SeedPost } from './types';
 import { SERIES_A } from './posts-part1';
 import { SERIES_B, SERIES_C } from './posts-part2';
 import { SERIES_D } from './posts-part3';
+import { SERIES_E, SERIES_F } from './posts-part4';
 
 export { SeedPost };
 
@@ -42,4 +43,13 @@ export const SEED_POSTS: SeedPost[] = [
   SERIES_B[3], // 비급여 설명 체크리스트
   SERIES_D[4], // 처방 공개 질문
   SERIES_D[3], // 비급여 가격 질문
+  // ── 여기까지 기존 24편 ──
+  //
+  // 아래는 건강보험 첩약과 방문진료. 기존 24편이 자보 심사·삭감에 몰려 있어
+  // 게시판이 "자보 잘린 이야기" 한 색으로만 보였다. 개원의가 매일 부딪히는
+  // 쪽인데 비어 있던 자리다.
+  SERIES_E[0], // 건보 첩약 연간 2질환 한도
+  SERIES_F[0], // 방문진료 공모 — 자격이 생각보다 낮다
+  SERIES_E[1], // 첩약 종별 본인부담률
+  SERIES_F[1], // 방문진료 실제 소요시간 질문
 ];
