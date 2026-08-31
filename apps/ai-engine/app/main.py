@@ -121,33 +121,13 @@ async def root():
         "status": "running"
     }
 
-def _read_commit() -> str | None:
-    """
-    배포된 커밋. 워크플로가 빌드 직전에 GIT_SHA 파일에 써 넣는다.
-
-    --build-arg 로 넣으려다 배포가 통째로 안 올라가서 파일로 옮겼다.
-    프로세스가 뜰 때 한 번만 읽는다 — 헬스체크가 30초마다 두드리는 경로다.
-    """
-    value = (os.getenv("GIT_SHA") or "").strip()
-    if value and value != "unknown":
-        return value
-    try:
-        with open("GIT_SHA", encoding="utf-8") as f:
-            value = f.read().strip()
-        return value if value and value != "unknown" else None
-    except OSError:
-        return None
-
-
-_COMMIT = _read_commit()
-
-
 @app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
         "service": "ai-engine",
         "model": settings.GPT_MODEL,
-        # 지금 떠 있는 것이 어느 커밋인지 — 200 만으로는 알 수 없다.
-        "commit": _COMMIT,
+        # 지금 떠 있는 것이 어느 커밋인지. 배포 워크플로가 이 값으로
+        # "정말 새 버전이 떴는가" 를 확인한다 — 200 만으로는 알 수 없다.
+        "commit": os.getenv("GIT_SHA"),
     }

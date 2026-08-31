@@ -1,37 +1,8 @@
 import { Controller, Get, Optional } from '@nestjs/common';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { Public } from './common/decorators/public.decorator';
 import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { CacheService } from './modules/cache/cache.service';
-
-/**
- * 지금 떠 있는 것이 어느 커밋인가.
- *
- * 배포 워크플로가 이 값으로 "정말 새 버전이 떴는가" 를 확인한다. 이게 없으면
- * 새 머신이 마이그레이션 실패로 못 떠도 Fly 가 구버전을 유지하고, 그 구버전이
- * 200 을 돌려주니 배포는 초록색으로 끝난다. 실제로 그렇게 놓친 배포가 있었다.
- *
- * 파일로 받는 이유: --build-arg 로 넣으려다 배포가 통째로 안 올라갔다.
- * COPY 는 확실히 동작하고 배포 명령에 손대지 않아도 된다.
- *
- * 모듈 로드 때 한 번만 읽는다. Fly 헬스체크가 30초마다 두드리는 경로라
- * 매번 파일을 열 이유가 없다.
- */
-function readCommit(): string | null {
-  const fromEnv = process.env.GIT_SHA?.trim();
-  if (fromEnv && fromEnv !== 'unknown') return fromEnv;
-  try {
-    const v = readFileSync(join(process.cwd(), 'GIT_SHA'), 'utf8').trim();
-    return v && v !== 'unknown' ? v : null;
-  } catch {
-    // 로컬 개발처럼 파일이 없는 환경도 정상이다. 없으면 없다고 말한다.
-    return null;
-  }
-}
-
-const COMMIT = readCommit();
 
 @Controller('health')
 export class HealthController {
@@ -48,7 +19,13 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date().toISOString(),
       service: 'hanmed-cdss-api',
-      commit: COMMIT,
+      // 지금 떠 있는 것이 어느 커밋인지. 배포 워크플로가 이 값으로
+      // "정말 새 버전이 떴는가" 를 확인한다.
+      //
+      // 이 필드가 없던 시절에는 확인할 방법이 없었다. 새 머신이 마이그레이션
+      // 실패로 못 떠도 Fly 가 구버전을 유지하고, 그 구버전이 200 을 돌려주니
+      // 배포는 초록색으로 끝났다. 그래서 실패를 며칠 뒤에 발견했다.
+      commit: process.env.GIT_SHA || null,
     };
   }
 

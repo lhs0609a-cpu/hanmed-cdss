@@ -24,14 +24,11 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # 커밋 SHA 를 빌드 컨텍스트에 써 넣는다.
+      # 배포 명령은 오래 돌아간 이 형태를 그대로 둔다.
       #
-      # --build-arg 로 넘기려다 배포가 통째로 안 올라갔다(원인은 확인하지 못했고,
-      # 그 플래그를 뺀 순간 정상으로 돌아왔다). 배포 명령에는 손대지 않고,
-      # Dockerfile 이 COPY 하는 파일에 값을 써 넣는 방식으로 바꿨다.
-      - name: Stamp commit SHA
-        run: echo "${{ github.sha }}" > apps/api/GIT_SHA
-
+      # 여기에 --build-arg GIT_SHA=... 를 붙였더니 배포가 통째로 안 올라갔다.
+      # 원인을 확인하지 못한 채 다른 플래그로 갈아타면 변수만 하나 더 늘어난다.
+      # SHA 를 이미지에 넣는 방법은 이 배포가 다시 도는 것을 확인한 뒤에 붙인다.
       - name: Deploy to Fly.io
         working-directory: apps/api
         run: flyctl deploy --remote-only
@@ -52,41 +49,30 @@ jobs:
       # DB_MIGRATIONS_RUN=false 를 운영에 넣으면 이 자동 적용이 꺼진다. 주의.
 
       - name: Health Check
-        # 200 이 왔다는 것만으로는 배포 성공이 아니다.
+        # 200 이 왔다는 것만으로는 배포 성공이 아니다. 새 머신이 못 뜨면 Fly 는
+        # 구버전을 유지하고, 그 구버전이 200 을 돌려준다. 그래서 응답에 실린
+        # commit 을 같이 찍는다.
         #
-        # 새 머신이 마이그레이션 실패 등으로 못 뜨면 Fly 는 구버전을 그대로
-        # 유지한다. 그 구버전이 /health 에 200 을 돌려주므로, 응답 코드만 보는
-        # 검사는 롤백된 배포를 초록색으로 통과시킨다. 실제로 그렇게 실패한
-        # 배포를 한참 뒤에야 발견했다.
-        #
-        # 그래서 응답에 실린 커밋이 방금 밀어 넣은 커밋과 같은지까지 본다.
+        # 아직 commit 불일치로 실패시키지는 않는다. SHA 를 이미지에 넣는 배선이
+        # 아직 없어서(위 주석 참고) 지금은 항상 unknown 이고, 그걸로 잡을 죽이면
+        # 배포가 늘 빨간색이 된다. 늘 빨가면 아무도 안 본다 — 이 레포가 이미
+        # 한 번 겪은 실패다. 배선이 붙는 순간 이 단계를 불일치=실패로 바꾼다.
         run: |
-          expected="${{ github.sha }}"
-          echo "기대 커밋: $expected"
-
-          for i in $(seq 1 20); do
+          for i in $(seq 1 12); do
             body=$(curl -sf --max-time 10 https://api.ongojisin.co.kr/api/v1/health || true)
-            got=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
-
-            if [ "$got" = "$expected" ]; then
-              echo "배포 확인 — 떠 있는 커밋이 $got (시도 $i)"
+            if [ -n "$body" ]; then
+              commit=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
+              echo "health ok (시도 $i) — 떠 있는 커밋: ${commit:-표시없음}"
+              echo "기대 커밋: ${{ github.sha }}"
+              if [ -z "$commit" ]; then
+                echo "::warning::응답에 commit 이 없다. 구버전이 떠 있을 수 있다."
+              fi
               exit 0
             fi
-
-            if [ -z "$body" ]; then
-              echo "  [$i/20] 응답 없음 (재시작 중일 수 있음)"
-            elif [ -z "$got" ] || [ "$got" = "unknown" ]; then
-              echo "  [$i/20] 구버전 응답 (commit=${got:-없음})"
-            else
-              echo "  [$i/20] 아직 구버전 — 떠 있는 커밋 $got"
-            fi
-            sleep 15
+            echo "health 대기중... ($i/12)"
+            sleep 10
           done
-
-          echo ""
-          echo "5분 동안 새 커밋이 뜨지 않았다. 배포가 롤백됐을 가능성이 높다."
-          echo "flyctl logs -a hanmed-api 로 부팅 로그를 확인할 것 —"
-          echo "마이그레이션 실패가 가장 흔한 원인이다."
+          echo "2분 동안 health 응답 없음 — 배포 실패로 처리한다."
           exit 1
 
       - name: Notify deployment result

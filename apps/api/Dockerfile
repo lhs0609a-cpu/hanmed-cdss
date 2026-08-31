@@ -38,14 +38,10 @@ COPY --from=builder /app/dist ./dist
 # 유지해도 구버전이 /health 에 200 을 돌려주므로 배포 워크플로는 초록색으로
 # 끝난다. 실제로 그렇게 실패한 배포를 한참 뒤에야 발견했다.
 #
-# --build-arg 로 넣으려다 배포가 통째로 안 올라갔다. 그래서 파일로 옮긴다 —
-# COPY 는 확실히 동작하고, 배포 명령에 손대지 않아도 된다. 워크플로가 빌드
-# 직전에 이 파일에 커밋 SHA 를 써 넣는다. 레포에는 'unknown' 이 들어 있어서
-# 로컬 빌드도 그대로 된다.
-#
 # npm install 뒤에 두는 이유는 레이어 캐시다. 커밋마다 바뀌는 값이라 위쪽에
 # 두면 매 배포가 의존성 설치부터 다시 한다.
-COPY --from=builder /app/GIT_SHA ./GIT_SHA
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
