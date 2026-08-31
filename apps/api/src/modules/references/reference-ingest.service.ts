@@ -167,6 +167,75 @@ export class ReferenceIngestService {
     }
   }
 
+  /**
+   * 임상에서 쓸 수 없는 자료를 지운다.
+   *
+   * 주제어만으로 긁었더니 생쥐 대장염 모델, LC-MS 성분분석, 신호전달 기전
+   * 연구가 대량으로 들어왔다. 좋은 연구지만 한의사가 진료 중에 여는 자료실에
+   * 있을 것은 아니다. 열 건을 검색해 아홉 건이 쓸모없으면 그 다음부터는
+   * 자료실 자체를 안 연다 — 건수가 아니라 그게 손실이다.
+   *
+   * 지우는 기준 두 가지.
+   *
+   *  1. 근거수준 미분류 — PubMed 가 발행유형을 안 붙였다는 뜻이고, 그러면
+   *     이게 무슨 종류의 근거인지 우리도 말해 줄 수 없다. 근거 라이브러리에서
+   *     정체를 모르는 항목은 없느니만 못하다.
+   *  2. 제목이 동물·세포·성분 연구임을 드러내는 것 — 발행유형이 붙어 있어도
+   *     생쥐 실험은 생쥐 실험이다.
+   *
+   * 제목 패턴은 거칠다. "patients with ... in a rat model of" 처럼 둘 다
+   * 걸리는 제목이 있을 수 있다. 그래서 먼저 세어 보고 지운다(dryRun).
+   */
+  async purgeNonClinical(dryRun = false) {
+    // 역슬래시 단어경계(\m, \M)를 쓰지 않는다. 템플릿 문자열에서 \m 은 그냥
+    // m 으로 먹혀서 'mmice' 같은 패턴이 되고, 조용히 아무것도 안 걸린다.
+    // 실제로 그렇게 써서 동물실험이 985건으로만 잡혔다. 앞뒤 문자를 직접
+    // 지정하는 편이 길지만 확실하다.
+    const WORD = '(mice|mouse|rats?|murine|zebrafish|rodent)';
+    const ANIMAL_CELL =
+      `(r."title" ~* '(^|[^a-zA-Z])${WORD}([^a-zA-Z]|$)'` +
+      ` OR r."title" ~* '(in vitro|cell line|cells|signaling pathway|signalling pathway|` +
+      `network pharmacology|molecular docking|metabolomics|LC-MS|UPLC|HPLC)')`;
+
+    const qb = () =>
+      this.refs
+        .createQueryBuilder('r')
+        .where(`(r."evidenceType" = 'unknown' OR ${ANIMAL_CELL})`);
+
+    const unknown = await this.refs
+      .createQueryBuilder('r')
+      .where(`r."evidenceType" = 'unknown'`)
+      .getCount();
+    const animal = await this.refs
+      .createQueryBuilder('r')
+      .where(ANIMAL_CELL)
+      .getCount();
+    const target = await qb().getCount();
+    const total = await this.refs.count();
+
+    if (!dryRun && target > 0) {
+      // 서브쿼리로 id 를 뽑아 지운다 — QueryBuilder 의 delete 는 조인·정규식
+      // 조건을 그대로 못 받는 경우가 있어 id 목록을 거친다.
+      const rows = await qb().select('r.id', 'id').getRawMany<{ id: string }>();
+      const ids = rows.map((x) => x.id);
+      const CHUNK = 500;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        await this.refs.delete(ids.slice(i, i + CHUNK));
+      }
+    }
+
+    return {
+      total,
+      unknownEvidence: unknown,
+      animalOrCell: animal,
+      deleted: dryRun ? 0 : target,
+      wouldDelete: target,
+      // dry-run 에서도 "지우면 몇 건이 남는가" 를 보여준다. 실제 남은 수를
+      // 보여주면 총계가 그대로 찍혀서 판단에 아무 도움이 안 된다.
+      remaining: total - target,
+    };
+  }
+
   /** 현재 적재 현황 — "1만 건" 이 사실인지 확인하는 창구 */
   async stats() {
     const total = await this.refs.count();

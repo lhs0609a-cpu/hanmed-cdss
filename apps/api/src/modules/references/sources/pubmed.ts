@@ -54,6 +54,40 @@ export interface PubMedTopic {
   label: string;
 }
 
+/**
+ * 임상 필터 — 이게 이 파일에서 가장 중요한 부분이다.
+ *
+ * 처음에는 주제어만으로 긁었다. 그 결과 14,168건 중 한약·본초 표본 8건 가운데
+ * 6건이 생쥐 대장염 모델, LC-MS 성분분석, TGF-beta 신호전달 같은 것이었다.
+ * 좋은 연구지만 진료실에서 쓸 수 없다. 근거수준 미분류가 68% 였던 것도 같은
+ * 이유다 — 기전 연구에는 임상 발행유형 태그가 안 붙는다.
+ *
+ * 한의사가 이 자료실을 여는 이유는 "이 환자에게 무엇을 할까" 이지 "이 처방의
+ * 분자 기전은 무엇인가" 가 아니다. 그래서 두 겹으로 거른다.
+ *
+ *   1. humans[MeSH] — 사람 대상 연구만
+ *   2. 발행유형 — 체계적 고찰·RCT·임상시험·지침·관찰연구·증례보고
+ *
+ * 증례보고를 남긴 이유: 한의학은 치험례가 곧 임상 전승이다. 서양의학 기준으로
+ * 근거수준이 낮다고 빼면 이 제품이 서 있는 자리를 부정하는 셈이 된다.
+ *
+ * 부수 효과로 미분류가 거의 사라진다. 발행유형이 없는 문헌은 애초에 걸리지 않는다.
+ */
+const CLINICAL_FILTER =
+  ' AND humans[MeSH Terms]' +
+  ' AND (systematic[sb]' +
+  ' OR "Randomized Controlled Trial"[Publication Type]' +
+  ' OR "Clinical Trial"[Publication Type]' +
+  ' OR "Meta-Analysis"[Publication Type]' +
+  ' OR "Practice Guideline"[Publication Type]' +
+  ' OR "Observational Study"[Publication Type]' +
+  ' OR "Case Reports"[Publication Type])';
+
+/** 주제어에 임상 필터를 붙인 최종 쿼리 */
+export function clinicalQuery(topic: PubMedTopic): string {
+  return `(${topic.query})${CLINICAL_FILTER}`;
+}
+
 export const PUBMED_TOPICS: PubMedTopic[] = [
   {
     label: '침구',
@@ -80,10 +114,13 @@ export const PUBMED_TOPICS: PubMedTopic[] = [
       '("Herb-Drug Interactions"[MeSH Terms] OR "herb-drug interaction"[Title/Abstract] OR "herbal hepatotoxicity"[Title/Abstract])',
   },
   {
+    // 처음에는 "수기치료 AND 전통의학" 으로 두 조건을 모두 요구했더니 375건밖에
+    // 걸리지 않았다(다른 분류의 1/10). 추나는 한의사가 매일 하는 시술인데
+    // 자료실에서만 얇았다. 전통의학 조건을 떼고 수기치료 자체를 넓게 잡는다.
     label: '추나·도수치료',
     category: ReferenceCategory.REHAB,
     query:
-      '("Musculoskeletal Manipulations"[MeSH Terms] OR tuina[Title/Abstract] OR "manual therapy"[Title/Abstract]) AND ("Medicine, East Asian Traditional"[MeSH Terms] OR "traditional medicine"[Title/Abstract])',
+      '("Musculoskeletal Manipulations"[MeSH Terms] OR "Manipulation, Spinal"[MeSH Terms] OR tuina[Title/Abstract] OR "manual therapy"[Title/Abstract] OR "spinal manipulation"[Title/Abstract] OR "manipulative therapy"[Title/Abstract])',
   },
   {
     label: '변증·진단',
@@ -301,9 +338,10 @@ export class PubMedClient {
   async searchIds(topic: PubMedTopic): Promise<string[]> {
     const ids: string[] = [];
     const pageSize = Math.min(this.opts.perTopic, 500);
+    const base = clinicalQuery(topic);
     const term = this.opts.minYear
-      ? `${topic.query} AND ${this.opts.minYear}:3000[dp]`
-      : topic.query;
+      ? `${base} AND ${this.opts.minYear}:3000[dp]`
+      : base;
 
     while (ids.length < this.opts.perTopic) {
       const res = await axios.get(`${EUTILS}/esearch.fcgi`, {
