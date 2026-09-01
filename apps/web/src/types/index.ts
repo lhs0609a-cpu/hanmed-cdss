@@ -26,7 +26,12 @@ export interface ApiResponse<T> {
 }
 
 export interface ApiError {
-  message: string
+  /**
+   * 백엔드 전역 예외 필터가 늘 배열로 감싸 보낸다.
+   * string 으로만 적어 두면 배열이 그대로 화면에 흘러도 타입이
+   * 잡아 주지 못한다 — 실제로 그렇게 새고 있었다.
+   */
+  message: string | string[]
   code?: string
   status?: number
   details?: Record<string, string>

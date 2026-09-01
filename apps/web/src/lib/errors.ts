@@ -10,8 +10,14 @@ export function getErrorMessage(error: unknown): string {
     const axiosError = error as AxiosError<ApiError>
 
     // 서버에서 제공한 에러 메시지가 있는 경우
-    if (axiosError.response?.data?.message) {
-      return axiosError.response.data.message
+    //
+    // 백엔드 전역 예외 필터가 message 를 늘 배열로 감싼다
+    // (message: Array.isArray(m) ? m : [m]). 그대로 돌려주면 반환 타입은
+    // string 인데 실제 값은 배열이라, 화면에서 쉼표로 이어 붙거나
+    // 엉뚱하게 그려진다.
+    const raw = axiosError.response?.data?.message
+    if (raw) {
+      return Array.isArray(raw) ? raw.join(' ') : raw
     }
 
     // HTTP 상태 코드에 따른 기본 메시지
@@ -28,6 +34,11 @@ export function getErrorMessage(error: unknown): string {
         return '이미 존재하는 데이터입니다.'
       case 422:
         return '입력 내용이 올바르지 않습니다.'
+      case 402:
+        // 요금제 벽. 실패가 아니라 제품의 정상 상태다.
+        // 서버가 어떤 기능인지 message 에 적어 보내므로 여기까지 오는
+        // 경우는 드물지만, 문구가 없을 때도 '오류' 로 보이지 않게 한다.
+        return '현재 요금제에서는 사용할 수 없는 기능입니다. 요금제를 확인해 주세요.'
       case 429:
         return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
       case 500:
