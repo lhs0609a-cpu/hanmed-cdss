@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
+import { UploadService } from './upload.service';
 import { Post } from '../../database/entities/post.entity';
 import { Comment } from '../../database/entities/comment.entity';
 import { Category } from '../../database/entities/category.entity';
@@ -27,7 +28,7 @@ import { User } from '../../database/entities/user.entity';
     ]),
   ],
   controllers: [CommunityController],
-  providers: [CommunityService],
-  exports: [CommunityService],
+  providers: [CommunityService, UploadService],
+  exports: [CommunityService, UploadService],
 })
 export class CommunityModule {}

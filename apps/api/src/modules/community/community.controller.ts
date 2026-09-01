@@ -8,6 +8,9 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
   Request,
 } from '@nestjs/common';
 import {
@@ -18,6 +21,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadService } from './upload.service';
 import { CommunityService } from './community.service';
 import {
   CreatePostDto,
@@ -33,7 +38,7 @@ import { ReportTargetType } from '../../database/entities/report.entity';
 @ApiTags('community')
 @Controller('community')
 export class CommunityController {
-  constructor(private readonly communityService: CommunityService) {}
+  constructor(private readonly communityService: CommunityService, private readonly uploadService: UploadService) {}
 
   // ===== Posts =====
 
@@ -252,5 +257,35 @@ export class CommunityController {
     @Query('limit') limit = 20,
   ) {
     return this.communityService.getUserBookmarks(req.user.id, +page, +limit);
+  }
+
+  /**
+   * 게시글 이미지 업로드.
+   *
+   * 에디터에서 붙여넣기·드래그로 들어온 이미지를 받는다. 프론트에서 Supabase 로
+   * 직접 올리지 않고 여기를 거치는 이유는 secret key 때문이다 — 그 키는 RLS 를
+   * 우회하는 관리 권한이라 브라우저로 내보낼 수 없다. 한 번 더 도는 대신
+   * 키가 서버에만 남는다.
+   */
+  @Post('upload')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '게시글 이미지 업로드' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // 디스크를 거치지 않는다. Fly 머신은 파일시스템이 휘발성이고,
+      // 임시파일을 남기면 지우는 책임이 생긴다.
+      storage: undefined,
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadImage(
+    @UploadedFile() file: { buffer: Buffer; originalname: string } | undefined,
+    @Request() req: any,
+  ) {
+    if (!file?.buffer) {
+      throw new BadRequestException('이미지 파일이 없습니다.');
+    }
+    return this.uploadService.uploadImage(file.buffer, req.user.id);
   }
 }

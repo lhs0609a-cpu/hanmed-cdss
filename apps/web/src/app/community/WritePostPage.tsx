@@ -61,6 +61,7 @@ const forumCategories = [
 function LoginRequiredScreen({ isGuest }: { isGuest: boolean }) {
   const navigate = useNavigate()
 
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="surface-card rounded-2xl p-8 text-center">
@@ -110,6 +111,32 @@ export default function WritePostPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
+
+  /**
+   * 에디터가 이미지를 넣을 때 부른다.
+   *
+   * Supabase 로 브라우저에서 직접 올리지 않는다. 그쪽 secret key 는 RLS 를
+   * 우회하는 관리 권한이라 브라우저로 내보낼 수 없다. 서버를 한 번 거치는
+   * 대신 키가 안전한 쪽에 남는다.
+   */
+  const uploadImage = useCallback(
+    async (file: File): Promise<string> => {
+      const form = new FormData()
+      form.append('file', file)
+      try {
+        const { data } = await api.post('/community/upload', form)
+        return data.url as string
+      } catch (err) {
+        toast({
+          title: '이미지를 올리지 못했습니다',
+          description: getErrorMessage(err),
+          variant: 'destructive',
+        })
+        throw err
+      }
+    },
+    [toast],
+  )
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isGuest = useAuthStore((state) => state.isGuest)
 
@@ -482,6 +509,7 @@ export default function WritePostPage() {
           <RichEditor
             value={content}
             onChange={setContent}
+            onUploadImage={uploadImage}
             placeholder="내용을 입력하세요"
           />
         </div>
