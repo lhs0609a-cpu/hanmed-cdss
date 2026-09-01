@@ -6,6 +6,7 @@ import {
   Reference,
   ReferenceEvidenceType,
 } from '../entities/reference.entity';
+import { buildTags } from './reference-tags';
 
 /**
  * 자료실 문헌을 커뮤니티에 소개한다.
@@ -250,6 +251,8 @@ async function main(): Promise<void> {
           authorId: author.id,
           // 운영팀 글이라는 것이 보여야 한다.
           isAnonymous: false,
+          // 태그가 없으면 목록이 제목 2천 줄이 되고 아무도 못 훑는다.
+          tags: buildTags(r),
           status: PostStatus.ACTIVE,
         }),
       );
