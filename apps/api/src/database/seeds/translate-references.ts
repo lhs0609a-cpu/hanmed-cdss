@@ -47,6 +47,26 @@ const STATS_ONLY = process.argv.includes('--stats-only');
 const REDO_BAD = process.argv.includes('--redo-bad');
 
 /** 한 번에 모델에 보내는 문헌 수. 너무 크면 한 건 실패가 묶음 전체를 버린다. */
+/**
+ * 여러 개를 동시에 돌리기 위한 분할. --shard=0/4 처럼 준다.
+ *
+ * 대상 조건이 "titleKo IS NULL" 이라, 나누지 않고 여러 개를 띄우면 네
+ * 프로세스가 같은 논문을 집어 와 같은 번역을 네 번 하고 API 값만 네 배로
+ * 쓴다. 요약 생성(digest-references)에서 같은 이유로 넣었던 것과 같다.
+ *
+ * UUID 끝 한 글자로 나눈다. 16진수라 고르게 흩어지고 인덱스도 필요 없다.
+ */
+const SHARD = (() => {
+  const v = argValue('shard');
+  if (!v) return null;
+  const [i, n] = v.split('/').map((x) => parseInt(x, 10));
+  if (!Number.isFinite(i) || !Number.isFinite(n) || n < 1 || i < 0 || i >= n) {
+    console.error('--shard 는 0/4 형식입니다.');
+    process.exit(1);
+  }
+  return { i, n };
+})();
+
 const BATCH = 5;
 
 /** 초록을 이만큼만 보낸다. 뒤쪽은 대개 결론 반복이라 요약에 보태는 것이 적다. */
@@ -267,7 +287,7 @@ async function main(): Promise<void> {
     for (const ev of PRIORITY) {
       if (REDO_BAD) break;
       if (targets.length >= LIMIT) break;
-      const rows = await repo
+      const qb = repo
         .createQueryBuilder('r')
         .where('r."titleKo" IS NULL')
         .andWhere('r."abstract" IS NOT NULL')
@@ -275,8 +295,14 @@ async function main(): Promise<void> {
         .andWhere('r."evidenceType" = :ev', { ev })
         .andWhere('(r.title ~* :sx OR r.abstract ~* :sx)', { sx: CLINIC_SYMPTOMS })
         .orderBy('r."publishedAt"', 'DESC', 'NULLS LAST')
-        .take(LIMIT - targets.length)
-        .getMany();
+        .take(LIMIT - targets.length);
+      if (SHARD) {
+        qb.andWhere(`(('x' || right(r.id::text, 1))::bit(4)::int) % :n = :i`, {
+          n: SHARD.n,
+          i: SHARD.i,
+        });
+      }
+      const rows = await qb.getMany();
       targets.push(...rows);
     }
 
