@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  ArrowRight,
   User,
   CreditCard,
   Bell,
@@ -61,6 +62,7 @@ import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { exportPatientsCsv, exportAsJson } from '@/lib/dataExport';
 import api from '@/services/api';
 import { Download, Trash2, FileText as FileTextIcon } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom'
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -78,7 +80,23 @@ const planColors: Record<string, string> = {
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('profile');
+  /**
+   * 탭을 주소에 남긴다.
+   *
+   * 로컬 state 만 쓰면 /dashboard/settings 는 언제나 프로필부터 열린다.
+   * "요금제 바꾸려면 설정 들어가서 구독 탭을 누르세요" 라고 안내할 수도 없고,
+   * 잠금 카드나 사이드바에서 구독 탭으로 바로 보낼 수도 없다.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') ?? 'profile';
+  const setActiveTab = (tab: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'profile') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  };
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -573,6 +591,29 @@ export default function SettingsPage() {
                   <span>결제 카드가 등록되어 있습니다</span>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* 요금제 전체 비교는 전용 화면에 있다.
+              여기 플랜 선택과 그쪽 화면이 같은 일을 두 군데서 하고 있는데,
+              부가서비스·무료체험·플랜별 기능 대조는 그쪽에만 있다. 그래서
+              "자세히 보려면 저기" 로 잇는다 — 한쪽을 지우는 것은 결제 흐름을
+              건드리는 일이라 따로 봐야 한다. */}
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+              <div>
+                <p className="font-medium text-gray-900">플랜을 바꾸시겠어요?</p>
+                <p className="text-sm text-gray-500">
+                  플랜별 기능 비교와 부가서비스는 요금제 화면에서 볼 수 있습니다.
+                </p>
+              </div>
+              <Link
+                to="/dashboard/subscription"
+                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800"
+              >
+                요금제 보기
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </CardContent>
           </Card>
 

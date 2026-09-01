@@ -49,6 +49,8 @@ import {
   Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSubscriptionInfo } from '@/hooks'
+import { TIER_LABEL } from '@/config/plan-features'
 
 // 메뉴 아이템 — 단순화 시점엔 description/badge 제거(시각 노이즈 감소).
 interface MenuItem {
@@ -110,6 +112,9 @@ const HIDDEN_MENU: MenuItem[] = [
 
 export default function DashboardLayout() {
   const location = useLocation()
+  const { data: subscriptionInfo } = useSubscriptionInfo()
+  const currentTier = (subscriptionInfo?.tier ??
+    'free') as keyof typeof TIER_LABEL
   const { user, isGuest } = useAuthStore()
   const handleLogout = () => { void performLogout() }
   const {
@@ -412,6 +417,28 @@ export default function DashboardLayout() {
                 </div>
               )}
             </Link>
+
+            {/* 현재 플랜 배지.
+                요금제를 링크로만 두면 "내가 지금 무슨 플랜인지" 를 알려면
+                들어가 봐야 한다. 무료 회원은 자기가 무료인 줄도 모르고 잠금
+                카드를 만나서야 안다. 그러면 그때 느끼는 것은 필요가 아니라
+                당황이다. 매일 보이는 자리에 지금 상태를 적어 둔다. */}
+            {!isMinimized && (
+              <Link
+                to="/dashboard/subscription"
+                className="mt-2 flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 transition-colors hover:border-neutral-300 hover:bg-neutral-100"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-neutral-500">플랜</span>
+                  <span className="text-[12px] font-bold text-neutral-900">
+                    {TIER_LABEL[currentTier] ?? currentTier}
+                  </span>
+                </span>
+                <span className="text-[11px] font-medium text-blue-600">
+                  {currentTier === 'free' ? '업그레이드' : '변경'}
+                </span>
+              </Link>
+            )}
 
             {!isMinimized && (
               <div className="flex gap-2 mt-2">
