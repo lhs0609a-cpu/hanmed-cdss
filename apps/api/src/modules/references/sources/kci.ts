@@ -70,6 +70,21 @@ export interface KciOptions {
   /** 이번 실행에서 훑을 최대 페이지 수(한 페이지 100건) */
   maxPages: number;
   onProgress?: (msg: string) => void;
+  /**
+   * 중간 저장 지점.
+   *
+   * 이게 없으면 harvest() 가 끝나야 저장한다. --pages=5000 이면 50만 건을
+   * 메모리에 이고 몇 시간을 돌다가 마지막에 한 번 쓰는 셈인데, 그 사이
+   * 프로세스가 죽거나 창이 닫히면 그날 것이 통째로 없어진다. 실제로
+   * 20시간을 돌고도 DB 에 0건이었다.
+   *
+   * 몇 페이지마다 여기로 넘겨 저장하고 토큰까지 남긴다. 토큰을 같이 주는
+   * 이유는 저장과 이어받기 지점이 어긋나면 안 되기 때문이다 — 저장은
+   * 됐는데 토큰이 뒤처지면 다음 실행이 같은 구간을 다시 훑는다.
+   */
+  onBatch?: (refs: RawReference[], token: string | null) => Promise<void>;
+  /** 몇 페이지마다 onBatch 를 부를지. */
+  flushEvery?: number;
 }
 
 export interface KciHarvestResult {
@@ -265,6 +280,15 @@ export class KciClient {
       if ((page + 1) % 10 === 0) {
         log(`KCI ${scanned.toLocaleString()}건 훑음 · 한의학 ${refs.length}건 추출`);
       }
+
+      // 중간 저장. 걸러낸 것이 없어도 토큰은 남겨야 한다 — 한의학 논문이
+      // 한 건도 없는 구간이 수만 건씩 이어지는데, 그때 토큰을 안 남기면
+      // 다음 실행이 그 빈 구간을 처음부터 다시 훑는다.
+      const flush = this.opts.flushEvery ?? 0;
+      if (this.opts.onBatch && flush > 0 && (page + 1) % flush === 0) {
+        await this.opts.onBatch(refs.splice(0, refs.length), token);
+      }
+
       if (!token) break;
       await sleep(DELAY_MS);
     }

@@ -5,6 +5,7 @@ import { dataSourceOptions } from '../data-source';
 import { Reference, ReferenceSource } from '../entities/reference.entity';
 import { ReferenceIngestService } from '../../modules/references/reference-ingest.service';
 import { KciClient } from '../../modules/references/sources/kci';
+import { RawReference } from '../../modules/references/sources/types';
 
 /**
  * KCI 한국어 논문 수집 — OAI-PMH.
@@ -90,23 +91,50 @@ async function main(): Promise<void> {
     const until = UNTIL ?? new Date().toISOString().slice(0, 10);
     console.log(`구간 ${from} ~ ${until}`);
 
+    // 중간 저장 합계. 마지막에 한 번만 세면 도중에 죽었을 때 얼마나
+    // 건졌는지 알 수 없다.
+    let inserted = 0;
+    let updated = 0;
+    let skipped = 0;
+    let extracted = 0;
+    const errors: string[] = [];
+
+    async function flush(batch: RawReference[], token: string | null) {
+      writeToken(token);
+      if (batch.length === 0) return;
+      const r = await ingest.save(batch);
+      inserted += r.inserted;
+      updated += r.updated;
+      skipped += r.skipped;
+      extracted += batch.length;
+      errors.push(...r.errors);
+      console.log(
+        `  [중간 저장] 한의학 ${batch.length}건 · 신규 ${r.inserted} · 갱신 ${r.updated}` +
+          ` (누계 신규 ${inserted})`,
+      );
+    }
     const client = new KciClient({
       from,
       until,
       resumptionToken: resume,
       maxPages: PAGES,
       onProgress: (m) => console.log(`  ${m}`),
+      // 20페이지(2,000건)마다 저장하고 토큰을 남긴다. 한 회차가 몇 시간짜리라
+      // 끝까지 안고 가면 중간에 죽었을 때 그날 것이 통째로 없어진다.
+      flushEvery: 20,
+      onBatch: flush,
     });
 
     const { refs, nextToken, scanned } = await client.harvest();
-    writeToken(nextToken);
+    // 남은 것 마무리.
+    await flush(refs, nextToken);
 
-    const saved = await ingest.save(refs);
     const mins = ((Date.now() - started) / 60000).toFixed(1);
+    const saved = { inserted, updated, skipped, errors };
 
     console.log(
       `\n완료 (${mins}분) — 훑은 논문 ${scanned.toLocaleString()}건 중 ` +
-        `한의학 ${refs.length}건 추출 · 신규 ${saved.inserted} · 갱신 ${saved.updated} · 제외 ${saved.skipped}`,
+        `한의학 ${extracted}건 추출 · 신규 ${saved.inserted} · 갱신 ${saved.updated} · 제외 ${saved.skipped}`,
     );
     if (saved.errors.length > 0) {
       console.log(`오류 ${saved.errors.length}건 (앞 5건):`);
