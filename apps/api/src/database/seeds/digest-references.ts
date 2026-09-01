@@ -40,6 +40,27 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const STATS_ONLY = process.argv.includes('--stats-only');
 const FEATURED_ONLY = process.argv.includes('--featured-only');
 
+/**
+ * 여러 개를 동시에 돌리기 위한 분할. --shard=0/4 처럼 준다.
+ *
+ * 한 프로세스로는 1분에 20건이라 14,000건에 12시간이 걸린다. 그런데 그냥
+ * 여러 개를 띄우면 전부 같은 행을 집어 온다 — 조건이 "abstractKo IS NULL"
+ * 하나뿐이라 네 프로세스가 같은 논문을 네 번 요약하고 API 값만 네 배로 쓴다.
+ *
+ * UUID 끝 한 글자로 나눈다. 16진수라 고르게 흩어지고, 질의에 인덱스가
+ * 필요 없는 값이라 부담도 없다.
+ */
+const SHARD = (() => {
+  const v = argValue('shard');
+  if (!v) return null;
+  const [i, n] = v.split('/').map((x) => parseInt(x, 10));
+  if (!Number.isFinite(i) || !Number.isFinite(n) || n < 1 || i < 0 || i >= n) {
+    console.error('--shard 는 0/4 형식입니다.');
+    process.exit(1);
+  }
+  return { i, n };
+})();
+
 /** 한 번에 모델에 넘길 건수. 크게 잡으면 응답이 잘려 JSON 이 깨진다. */
 const BATCH = 4;
 
@@ -215,6 +236,14 @@ async function main(): Promise<void> {
       .orderBy('r."featuredInCommunity"', 'DESC')
       .take(LIMIT);
     if (FEATURED_ONLY) qb.andWhere('r."featuredInCommunity" = true');
+    if (SHARD) {
+      // UUID 끝 한 글자(16진수)를 숫자로 바꿔 나눈다.
+      qb.andWhere(
+        `(('x' || right(r.id::text, 1))::bit(4)::int) % :n = :i`,
+        { n: SHARD.n, i: SHARD.i },
+      );
+      console.log(`분할 ${SHARD.i}/${SHARD.n} 만 처리합니다.`);
+    }
 
     const rows = await qb.getMany();
     if (rows.length === 0) {
