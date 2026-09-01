@@ -112,39 +112,49 @@ export default function SubscriptionPage() {
   const currentTier = subscriptionInfo?.tier || user?.subscriptionTier || 'free';
   const hasBillingKey = subscriptionInfo?.hasBillingKey || false;
 
-  // 결제 에러 파싱 함수
-  const parsePaymentError = (error: Error | any) => {
-    // API에서 반환한 구조화된 에러인지 확인
-    if (error?.message) {
-      try {
-        // 에러 메시지가 JSON 형태일 수 있음
-        const parsed = typeof error.message === 'string' && error.message.startsWith('{')
-          ? JSON.parse(error.message)
-          : error;
+  /**
+   * 결제 실패를 사람이 읽을 말로 바꾼다.
+   *
+   * 예전에는 error.message 를 봤는데, 그건 axios 가 만든
+   * "Request failed with status code 400" 이다. 서버가 보낸 말은
+   * error.response.data 에 있다. 그래서 카드 한도든 분실 신고든 화면에는
+   * 늘 "결제 처리 중 오류가 발생했습니다" 만 떴다.
+   *
+   * 서버는 전역 예외 필터를 지나며 statusCode·error·message 만 남긴다.
+   * 식별자는 error, 사람이 읽을 말은 message 에 실려 온다.
+   */
+  const parsePaymentError = (error: any) => {
+    const body = error?.response?.data;
+    const raw = body?.message;
+    // 필터가 message 를 배열로 감싼다.
+    const message = Array.isArray(raw) ? raw.join(' ') : raw;
+    const code = body?.error;
 
-        return {
-          message: parsed.message || error.message || '결제 처리 중 오류가 발생했습니다.',
-          action: parsed.action || '잠시 후 다시 시도해 주세요.',
-          code: parsed.code || 'UNKNOWN_ERROR',
-          retryable: parsed.retryable ?? true,
-          category: parsed.category || 'unknown',
-        };
-      } catch {
-        return {
-          message: error.message || '결제 처리 중 오류가 발생했습니다.',
-          action: '잠시 후 다시 시도해 주세요.',
-          code: 'UNKNOWN_ERROR',
-          retryable: true,
-          category: 'unknown',
-        };
-      }
-    }
+    // 카드 자체 문제는 다시 눌러도 같은 결과다. 재시도를 권하면 안 된다.
+    const notRetryable = [
+      'EXCEED_MAX_CARD_INSTALLMENT_PLAN',
+      'INVALID_CARD_EXPIRATION',
+      'INVALID_STOPPED_CARD',
+      'EXCEED_MAX_DAILY_PAYMENT_COUNT',
+      'NOT_SUPPORTED_INSTALLMENT_PLAN_CARD_OR_MERCHANT',
+      'INVALID_CARD_INSTALLMENT_PLAN',
+      'NOT_AVAILABLE_BANK',
+      'INVALID_PASSWORD',
+      'INCORRECT_BASIC_AUTH_FORMAT',
+      'EXCEED_MAX_PAYMENT_AMOUNT',
+      'CARD_LIMIT_EXCEEDED',
+      'STOLEN_OR_LOST_CARD',
+      'RESTRICTED_TRANSFER_ACCOUNT',
+    ];
+
     return {
-      message: '결제 처리 중 오류가 발생했습니다.',
-      action: '잠시 후 다시 시도해 주세요.',
-      code: 'UNKNOWN_ERROR',
-      retryable: true,
-      category: 'unknown',
+      message: message || '결제 처리 중 오류가 발생했습니다.',
+      action: code && notRetryable.includes(code)
+        ? '다른 카드로 등록해 주세요.'
+        : '잠시 후 다시 시도해 주세요.',
+      code: code || 'UNKNOWN_ERROR',
+      retryable: !(code && notRetryable.includes(code)),
+      category: 'unknown' as const,
     };
   };
 
@@ -406,7 +416,10 @@ export default function SubscriptionPage() {
       )}
 
       {/* ROI Calculator */}
-      <ROICalculator />
+      {/* 이 버튼이 곧 결제 시작이다. 예전에는 요금제 페이지로 가는 Link 였는데
+          이 계산기가 그 페이지 안에만 있어서, 지금 보고 있는 화면으로 다시 가는
+          링크였다 — 눌러도 아무 일이 없었다. */}
+      <ROICalculator onSelectPlan={handleSubscribe} />
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -67,10 +67,29 @@ api.interceptors.response.use(
       const retryCount = config._retryCount || 0
       const status = error.response?.status
 
+      // 읽기 요청만 다시 보낸다.
+      //
+      // 예전에는 메서드를 가리지 않고 재시도했다. 그런데 재시도가 걸리는
+      // 가장 흔한 조건이 `!error.response` — 네트워크 오류와 타임아웃이다.
+      // 그 경우 요청이 서버에 닿지 않은 것인지, 닿아서 처리까지 됐는데
+      // 응답만 유실된 것인지 브라우저는 구분하지 못한다.
+      //
+      // 결제에서는 그 차이가 돈이다. POST /subscription/subscribe 가 서버에
+      // 닿아 카드가 승인된 뒤 응답이 끊기면, 재시도가 한 번 더 결제한다.
+      // 주문번호를 요청마다 새로 만들기 때문에 토스 쪽에서도 별개 결제로
+      // 잡힌다. MAX_RETRIES 가 3이니 최악의 경우 네 번 청구된다.
+      //
+      // 결제만 막지 않고 메서드로 막는 이유는, 진료 기록 저장·환자 등록처럼
+      // 두 번 실행되면 안 되는 요청이 결제 말고도 많기 때문이다. 안전한
+      // 쪽을 기본값으로 둔다.
+      const method = (config.method || 'get').toLowerCase()
+      const isSafeMethod = method === 'get' || method === 'head' || method === 'options'
+
       // 재시도 조건 확인
       const isRetryable =
-        !error.response || // 네트워크 에러
-        (status && RETRYABLE_STATUS_CODES.includes(status))
+        isSafeMethod &&
+        (!error.response || // 네트워크 에러
+          (status && RETRYABLE_STATUS_CODES.includes(status)))
 
       if (isRetryable && retryCount < MAX_RETRIES && isOnline()) {
         config._retryCount = retryCount + 1

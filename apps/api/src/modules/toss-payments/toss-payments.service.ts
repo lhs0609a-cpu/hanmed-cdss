@@ -245,6 +245,11 @@ export class TossPaymentsService {
     const price = PLAN_PRICES[tier];
     const amount = interval === BillingInterval.YEARLY ? price.yearly : price.monthly;
     const orderId = `order_${userId}_${Date.now()}`;
+    // 멱등키는 시각을 넣지 않는다. 넣으면 재시도마다 값이 달라져 아무것도
+    // 막지 못한다. 사람·플랜·주기·청구월로 만든다 — 같은 달에 같은 플랜을
+    // 두 번 청구하는 일이 없도록.
+    const billingPeriod = new Date().toISOString().slice(0, 7);
+    const idempotencyKey = `sub_${userId}_${tier}_${interval}_${billingPeriod}`;
     const orderName = `온고지신 AI ${price.name} 플랜 (${interval === BillingInterval.YEARLY ? '연간' : '월간'})`;
 
     // 중복 결제 방지는 DB 부분 unique index (idx_payment_user_pending) 가 강제한다.
@@ -304,6 +309,17 @@ export class TossPaymentsService {
           headers: {
             Authorization: this.getAuthHeader(),
             'Content-Type': 'application/json',
+            // 같은 사람이 같은 플랜을 같은 청구주기에 두 번 결제하지 못하게
+            // 막는다. 환불에는 이미 이 헤더가 있었는데 정작 돈이 나가는
+            // 결제에는 없었다.
+            //
+            // orderId 로는 못 막는다. 요청마다 Date.now() 로 새로 만들기
+            // 때문에 재시도가 곧 새 주문이 된다. 실제로 프론트의 axios
+            // 인터셉터가 네트워크 오류에 세 번까지 다시 보내고 있었고,
+            // 그러면 카드가 네 번 긁힌다. 그쪽도 막았지만 돈 문제는
+            // 한 겹으로 막지 않는다 — 다른 클라이언트나 스케줄러가
+            // 같은 실수를 해도 여기서 걸린다.
+            'Idempotency-Key': idempotencyKey,
           },
         },
       );
@@ -365,12 +381,19 @@ export class TossPaymentsService {
         this.logger.log(`결제 실패 알림 필요: userId=${userId}, error=${errorInfo.userMessage}`);
       }
 
+      // 전역 예외 필터가 statusCode·error·message 만 남기고 나머지 키를
+      // 버린다. 예전에는 code·action·retryable·category 를 그대로 실어
+      // 보냈는데 프론트까지 하나도 닿지 않았고, 그래서 한도초과든
+      // 분실카드든 잔액부족이든 화면에는 똑같이 "잠시 후 다시 시도해
+      // 주세요" 만 떴다. 한도초과 카드는 다시 시도해도 계속 실패한다.
+      //
+      // 살아남는 두 칸에 싣는다. 식별자는 error 로, 사람이 읽을 말은
+      // message 로. 기능 게이트(402)에서 쓴 것과 같은 방식이다.
       throw new BadRequestException({
-        message: errorInfo.userMessage,
-        action: errorInfo.actionRequired,
-        code: errorInfo.code,
-        retryable: errorInfo.retryable,
-        category: failureCategory,
+        error: errorInfo.code,
+        message: errorInfo.actionRequired
+          ? `${errorInfo.userMessage} ${errorInfo.actionRequired}`
+          : errorInfo.userMessage,
       });
     } finally {
       // QueryRunner 해제

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Delete, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Delete, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -88,8 +88,19 @@ export class TossPaymentsController {
       dto.interval,
     );
 
+    // 결제가 실패하면 서비스가 예외를 던지므로 여기까지 오면 성공이다.
+    // 그래도 success 를 그대로 흘려보내지 않는다 — 예전에는 success 가
+    // false 여도 메시지가 '구독이 시작되었습니다' 였고, 프론트는 HTTP
+    // 오류만 실패로 보므로 결제가 안 됐는데 성공 토스트가 뜰 수 있었다.
+    if (!result.success) {
+      throw new BadRequestException({
+        error: 'PAYMENT_NOT_COMPLETED',
+        message: '결제가 완료되지 않았습니다. 결제 내역을 확인해 주세요.',
+      });
+    }
+
     return {
-      success: result.success,
+      success: true,
       message: '구독이 시작되었습니다.',
       paymentKey: result.paymentKey,
     };
