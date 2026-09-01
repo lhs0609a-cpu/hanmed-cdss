@@ -157,7 +157,7 @@ function buildContent(r: Reference): string {
     : null;
   if (excerpt) {
     const quoted = excerpt
-      .split(new RegExp('\r?\n+'))
+      .split(/\r?\n+/)
       .map((line) => '> ' + line.trim())
       .filter((line) => line !== '>')
       .join(NL + '>' + NL);

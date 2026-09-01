@@ -91,7 +91,7 @@ describe('제로폭 워터마크', () => {
     const text = '정향시체산 3첩, 건강 8g 증량.';
     const marked = embedZeroWidthWatermark(text, traceId);
     // 제로폭 문자만 걷어내면 원문과 완전히 같아야 한다.
-    expect(marked.replace(/[​‌‍]/g, '')).toBe(text);
+    expect(marked.replace(/[\u200B\u200C\u200D]/g, '')).toBe(text);
   });
 
   it('문단 일부만 복사해 가도 복원된다', () => {
