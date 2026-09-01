@@ -58,3 +58,7 @@ nul
 
 # vite 가 설정을 번들할 때 남기는 임시 파일 — 윈도우에서 가끔 안 지워진다
 vite.config.*.timestamp-*.mjs
+
+# KCI 하베스트 진행 커서 — 실행 중 갱신되는 런타임 상태다. 저장소에 있으면
+# 다른 기계에서 받을 때 남의 진행 지점부터 시작한다.
+apps/api/src/database/seeds/.kci-resume-token
