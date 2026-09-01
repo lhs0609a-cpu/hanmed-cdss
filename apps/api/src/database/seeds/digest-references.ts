@@ -1,6 +1,6 @@
 import { DataSource, IsNull, Not } from 'typeorm';
 import { dataSourceOptions } from '../data-source';
-import { Reference } from '../entities/reference.entity';
+import { Reference, ReferenceSource } from '../entities/reference.entity';
 
 /**
  * 영문 초록을 한국어 구조 요약으로 다시 쓴다.
@@ -233,6 +233,16 @@ async function main(): Promise<void> {
       .where('r."abstractKo" IS NULL')
       .andWhere('r."summaryKo" IS NOT NULL')
       .andWhere('r."abstract" IS NOT NULL')
+      // KCI 는 손대지 않는다.
+      //
+      // KCI Open API 이용 약관의 '데이터 공신력 유지' 조항이 원천 데이터로
+      // 하위 정보를 생성하는 것을 금한다. 초록을 모델로 다시 쓰는 것이
+      // 정확히 거기에 걸린다.
+      //
+      // 애초에 그럴 이유도 없다. KCI 는 국문 초록을 그대로 주므로 번역도
+      // 요약도 필요 없이 원문이 이미 읽힌다. 요약이 필요한 것은 영문으로
+      // 오는 PubMed 쪽이다.
+      .andWhere('r."source" != :kci', { kci: ReferenceSource.KCI })
       .orderBy('r."featuredInCommunity"', 'DESC')
       .take(LIMIT);
     if (FEATURED_ONLY) qb.andWhere('r."featuredInCommunity" = true');
