@@ -55,11 +55,16 @@ export const PLAN_TIERS: PlanTier[] = [
     yearly: 199000,
     includedQueries: 200,
     overagePrice: 200,
+    // 예전에는 'AI 변증 추론' 과 '치험례 검색' 을 Basic 혜택으로 적었는데
+    // 둘 다 Free 에 있는 기능이다(PLAN_FEATURES 의 FREE_FEATURES). 무료로
+    // 되는 것을 유료 혜택처럼 적으면 결제하고 나서 "이거 원래 됐잖아" 가 된다.
+    // 실제로 Basic 에서 새로 열리는 것만 적는다.
     features: [
       'Free의 모든 기능',
-      'AI 변증 추론',
       'AI 챗봇 월 200회',
-      '치험례 검색',
+      '치험례 6,000건 전체 열람',
+      '내 케이스 내보내기 (PDF/이미지)',
+      '기본 통계',
       '초과 시 건당 200원',
     ],
     cta: 'Basic 시작하기',
@@ -72,11 +77,16 @@ export const PLAN_TIERS: PlanTier[] = [
     yearly: 490000,
     includedQueries: 1000,
     overagePrice: 100,
+    // '치험례 전체 열람' 은 Basic 부터 열리고, '삭감 사전 점검'(보험청구)은
+    // Clinic 전용이다. 둘 다 Pro 혜택으로 적혀 있었다 — 하나는 덜 받은 값을
+    // 받은 것처럼, 하나는 못 받는 것을 준다고 한 셈이다.
     features: [
       'Basic의 모든 기능',
       'AI 챗봇 월 1,000회',
-      '치험례 전체 열람 및 유사 사례 추천',
-      '삭감 사전 점검',
+      '환자 명부·진료 기록 서버 보관',
+      '음성 받아쓰기 (베타)',
+      '고급 검색 필터·학파 비교',
+      '케이스 무제한 저장',
       '초과 시 건당 100원',
     ],
     cta: 'Pro 시작하기',

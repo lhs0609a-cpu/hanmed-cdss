@@ -37,6 +37,14 @@ function argValue(name: string): string | null {
 const LIMIT = Number(argValue('limit') ?? '20') || 20;
 const DRY_RUN = process.argv.includes('--dry-run');
 const STATS_ONLY = process.argv.includes('--stats-only');
+/**
+ * 이미 번역된 것 중 품질이 나쁜 것만 다시 돌린다.
+ *
+ * 3,834건을 뽑아 보니 6%가 "연구의 한계가 명시되었다" 로 끝났다. 한계가
+ * 있다는 사실만 적고 무엇이 한계인지는 안 적은 문장이라 한 줄을 쓰면서
+ * 독자에게 주는 것이 없다. 프롬프트를 고쳤으니 그 건들만 다시 받는다.
+ */
+const REDO_BAD = process.argv.includes('--redo-bad');
 
 /** 한 번에 모델에 보내는 문헌 수. 너무 크면 한 건 실패가 묶음 전체를 버린다. */
 const BATCH = 5;
@@ -125,7 +133,21 @@ const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레
    (1) 무엇을 대상으로 (환자군, 몇 명 또는 몇 편)
    (2) 무엇과 비교해 (대조군)
    (3) 어떤 결과 (주요 지표와 방향)
-   (4) 한계가 명시돼 있으면 한 문장
+   (4) 한계가 있으면 그 한계가 무엇인지 구체적으로 한 문장
+
+   (4)에서 "연구의 한계가 명시되었다", "한계점이 언급되었다" 처럼 한계가
+   있다는 사실만 적는 문장은 쓰지 마십시오. 읽는 사람에게 아무것도 주지
+   않습니다. 무엇이 한계인지 적으십시오 —
+   "포함된 연구 수가 7편으로 적고 이질성이 컸다",
+   "대조군이 무처치라 위약 효과를 가릴 수 없다" 처럼 씁니다.
+   초록에 한계가 안 적혀 있으면 (4)를 아예 쓰지 말고 3문장으로 끝내십시오.
+
+8. 혈위는 한글 혈위명과 코드를 함께 적습니다. 로마자를 그대로 두지 마십시오.
+   Huantiao 환도(GB30) / Zusanli 족삼리(ST36) / Neiguan 내관(PC6)
+   Sanyinjiao 삼음교(SP6) / Hegu 합곡(LI4) / Baihui 백회(GV20)
+   Taichong 태충(LR3) / Quchi 곡지(LI11) / Fengchi 풍지(GB20)
+   Yanglingquan 양릉천(GB34) / Shenmen 신문(HT7) / Guanyuan 관원(CV4)
+   모르면 로마자를 그대로 두되 코드가 있으면 코드는 살립니다.
 
 7. 문체는 평서형 "~했다/~였다" 로 씁니다. 마크다운 기호(**, ##, -)를 쓰지 마십시오.
 
@@ -216,14 +238,34 @@ async function main(): Promise<void> {
     const provider = process.env.ANTHROPIC_API_KEY ? 'Claude' : 'OpenAI';
     console.log(`모델: ${provider}\n`);
 
+    const targets: Reference[] = [];
+
+    if (REDO_BAD) {
+      const bad = await repo
+        .createQueryBuilder('r')
+        .where('r."titleKo" IS NOT NULL')
+        .andWhere('r."abstract" IS NOT NULL')
+        .andWhere(
+          `(r."summaryKo" LIKE '%한계가 명시%'
+            OR r."summaryKo" LIKE '%한계점이 언급%'
+            OR r."summaryKo" LIKE '%한계가 언급%'
+            OR r."titleKo" ~ '(Huantiao|Zusanli|Neiguan|Sanyinjiao|Hegu|Baihui|Taichong|Quchi|Fengchi)')`,
+        )
+        .take(LIMIT)
+        .getMany();
+      console.log(`다시 번역할 대상 ${bad.length}건
+`);
+      targets.push(...bad);
+    }
+
     // 근거 수준 순서대로, 초록이 있고, 한의원에서 흔한 주소증인 것만.
     //
     // 주소증 조건을 넣은 이유: 근거 수준만 보고 뽑았더니 전립선암 안드로겐
     // 억제요법 중 열감, 카테터 절제술 후 심방세동 같은 것이 올라왔다. 좋은
     // 논문이지만 한의원 진료와 거리가 멀다. 번역 비용은 유한하고, 먼저
     // 한국어가 되어야 하는 것은 내일 진료실에서 만날 환자의 주소증이다.
-    const targets: Reference[] = [];
     for (const ev of PRIORITY) {
+      if (REDO_BAD) break;
       if (targets.length >= LIMIT) break;
       const rows = await repo
         .createQueryBuilder('r')

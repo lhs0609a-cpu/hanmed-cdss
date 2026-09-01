@@ -59,7 +59,7 @@ export const PLAN_PRICES = {
     monthly: 0,
     yearly: 0,
     name: 'Free',
-    includedQueries: 50, // AI 챗봇 월 50회 (코어 임상은 무제한)
+    includedQueries: PLAN_LIMITS[SubscriptionTier.FREE], // AI 챗봇 월 50회 (코어 임상은 무제한)
     overagePrice: 0,
     canExceed: false,
   },
@@ -67,7 +67,7 @@ export const PLAN_PRICES = {
     monthly: 19900,
     yearly: 199000, // 17% 할인 (2개월 무료)
     name: 'Basic',
-    includedQueries: 200, // AI 챗봇 월 200회
+    includedQueries: PLAN_LIMITS[SubscriptionTier.BASIC], // AI 챗봇 월 200회
     overagePrice: 200, // 초과 시 건당 200원
     canExceed: true,
   },
@@ -75,7 +75,7 @@ export const PLAN_PRICES = {
     monthly: 49000, // 한의사 1인 메인 티어 (Pro)
     yearly: 490000, // 17% 할인
     name: 'Pro',
-    includedQueries: 1000, // AI 챗봇 월 1,000회
+    includedQueries: PLAN_LIMITS[SubscriptionTier.PROFESSIONAL], // AI 챗봇 월 1,000회
     overagePrice: 100,
     canExceed: true,
   },
@@ -83,7 +83,7 @@ export const PLAN_PRICES = {
     monthly: 149000, // 한의원 단위 (원장 + 한의사 2인까지 포함)
     yearly: 1490000, // 17% 할인
     name: 'Clinic',
-    includedQueries: 5000, // Fair Use Policy: 한의원 단위 5,000회
+    includedQueries: PLAN_LIMITS[SubscriptionTier.CLINIC], // Fair Use Policy: 한의원 단위 5,000회
     overagePrice: 80,
     canExceed: true,
   },

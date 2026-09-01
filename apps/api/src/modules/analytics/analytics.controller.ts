@@ -26,6 +26,9 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PracticeAnalyticsService } from './practice-analytics.service';
 import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
 import { PeriodType } from './dto';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureKey } from '../../database/entities/plan-features';
 
 // 이벤트 타입 정의
 interface TrackedEvent {
@@ -42,7 +45,11 @@ interface TrackedEvent {
 
 @ApiTags('Analytics')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+/**
+ * 통계는 Basic 이상이다.
+ */
+@RequireFeature(FeatureKey.STATS_BASIC)
 @Controller('analytics')
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);

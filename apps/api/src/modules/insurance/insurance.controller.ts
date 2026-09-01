@@ -30,10 +30,18 @@ import {
   ClaimListQueryDto,
 } from './dto';
 import { ClaimStatus, InsuranceType } from '../../database/entities/insurance-claim.entity';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureKey } from '../../database/entities/plan-features';
 
 @ApiTags('Insurance Claims')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+/**
+ * 보험청구·삭감방지는 Clinic(또는 add-on)이다. 이 제품에서 돈을 가장 많이
+ * 받는 기능인데 아무 데서도 막고 있지 않았다.
+ */
+@RequireFeature(FeatureKey.INSURANCE_CLAIM)
 @Controller('insurance')
 export class InsuranceController {
   constructor(private readonly insuranceService: InsuranceService) {}

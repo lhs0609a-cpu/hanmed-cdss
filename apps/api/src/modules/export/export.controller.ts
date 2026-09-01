@@ -13,6 +13,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../database/entities/user.entity';
 import { ExportService } from './export.service';
 import { IsOptional, IsDateString } from 'class-validator';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureKey } from '../../database/entities/plan-features';
 
 class ExportQueryDto {
   @IsOptional()
@@ -24,8 +27,13 @@ class ExportQueryDto {
   endDate?: string;
 }
 
+/**
+ * 내보내기는 Basic 이상이다. 치험례 DB 본문은 어떤 티어에서도 내보낼 수
+ * 없다는 것은 별개 규칙이라 그쪽에서 따로 막는다.
+ */
+@RequireFeature(FeatureKey.CASE_EXPORT)
 @Controller('export')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 

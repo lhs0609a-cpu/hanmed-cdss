@@ -21,6 +21,7 @@ import { ScientificRationaleService } from './services/scientific-rationale.serv
 import { PharmacologyReportService } from './services/pharmacology-report.service';
 import { TreatmentStatisticsService } from './services/treatment-statistics.service';
 import { ComprehensiveReportService } from './services/comprehensive-report.service';
+import { AiQuotaGuard } from '../../common/guards/ai-quota.guard';
 import {
   RecommendationRequestDto,
   CaseSearchRequestDto,
@@ -67,6 +68,7 @@ export class AiController {
 
   // ============ Chat Endpoint ============
 
+  @UseGuards(AiQuotaGuard)
   @Post('chat')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'AI 챗봇 — 자유 대화 (온고지신 GPT 페르소나)' })
@@ -80,6 +82,7 @@ export class AiController {
 
   // ============ Recommendation Endpoints ============
 
+  @UseGuards(AiQuotaGuard)
   @Post('recommend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'AI 기반 처방 추천' })
@@ -103,6 +106,7 @@ export class AiController {
 
   // ============ Case Search Endpoints ============
 
+  @UseGuards(AiQuotaGuard)
   @Post('cases/search')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '치험례 검색' })

@@ -20,6 +20,9 @@ import {
   CreateVisitInput,
   RecordOutcomeInput,
 } from './practitioner-patients.service';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureKey } from '../../database/entities/plan-features';
 
 type AuthedRequest = Request & { user: { id: string } };
 
@@ -28,8 +31,13 @@ type AuthedRequest = Request & { user: { id: string } };
  * 모든 엔드포인트는 JWT 필수이고, 서비스 계층에서 practitionerId 로 스코프된다.
  */
 @ApiTags('my-patients')
+/**
+ * 환자 명부·진료 기록 서버 보관은 Pro 이상이다. 화면에서만 잠가 두면
+ * API 를 직접 불러 그대로 쓴다.
+ */
+@RequireFeature(FeatureKey.PATIENT_MANAGEMENT)
 @Controller('my-patients')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), FeatureGuard)
 @ApiBearerAuth()
 export class PractitionerPatientsController {
   constructor(private readonly service: PractitionerPatientsService) {}

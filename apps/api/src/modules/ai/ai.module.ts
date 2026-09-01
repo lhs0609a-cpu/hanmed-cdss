@@ -13,10 +13,13 @@ import { TreatmentStatisticsService } from './services/treatment-statistics.serv
 import { ComprehensiveReportService } from './services/comprehensive-report.service';
 import { AiController } from './ai.controller';
 import { CasesModule } from '../cases/cases.module';
+import { TossPaymentsModule } from '../toss-payments/toss-payments.module';
 
 @Module({
   // CasesModule — 추천 근거가 될 유사 치험례를 DB 에서 찾기 위해 필요.
-  imports: [ConfigModule, HttpModule, CasesModule],
+  // AI 월 한도를 세려면 결제 쪽 trackUsage 가 필요하다. 그 구현은 락과
+  // 트랜잭션을 갖추고 있어서 여기에 다시 만들 이유가 없다.
+  imports: [ConfigModule, HttpModule, CasesModule, TossPaymentsModule],
   providers: [
     LlmService,
     AiEngineClient,

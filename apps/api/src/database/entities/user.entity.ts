@@ -17,11 +17,23 @@ export enum SubscriptionTier {
 }
 
 // 플랜별 AI 쿼리 제한
+/**
+ * AI 챗봇 월 한도 — 광고한 숫자와 같아야 한다.
+ *
+ * 예전 값(10/50/300/무제한)은 랜딩과 요금제 화면이 광고하는 값
+ * (50/200/1,000/5,000)과 달랐다. 두 숫자가 다르면 둘 중 하나는 거짓말이고,
+ * 결제한 사람이 300회에서 막히는데 광고에는 1,000회라고 적혀 있으면
+ * 그건 표시광고 문제가 된다.
+ *
+ * 여기가 단일 출처다. PLAN_PRICES.includedQueries 는 이 값을 가져다 쓴다.
+ * Clinic 을 무제한으로 두지 않은 이유: 광고 문구가 "Fair Use" 이고 실제로도
+ * 상한이 있어야 한 계정으로 한의원 전체가 쓰는 것을 감당할 수 있다.
+ */
 export const PLAN_LIMITS: Record<SubscriptionTier, number> = {
-  [SubscriptionTier.FREE]: 10,
-  [SubscriptionTier.BASIC]: 50,
-  [SubscriptionTier.PROFESSIONAL]: 300,
-  [SubscriptionTier.CLINIC]: Infinity,
+  [SubscriptionTier.FREE]: 50,
+  [SubscriptionTier.BASIC]: 200,
+  [SubscriptionTier.PROFESSIONAL]: 1000,
+  [SubscriptionTier.CLINIC]: 5000,
 };
 
 @Entity('users')

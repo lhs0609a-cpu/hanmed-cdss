@@ -19,6 +19,8 @@ import ForgotPasswordPage from '@/app/auth/ForgotPasswordPage'
 import ResetPasswordPage from '@/app/auth/ResetPasswordPage'
 import LandingPage from '@/app/landing/LandingPage'
 import AdLandingPage from '@/app/landing/AdLandingPage'
+import { FeatureGate } from '@/components/common/FeatureGate'
+import { FeatureKey } from '@/config/plan-features'
 
 // Dashboard pages (lazy — code-split per route)
 const DashboardPage = lazy(() => import('@/app/dashboard/DashboardPage'))
@@ -221,10 +223,10 @@ function App() {
           <Route path="symptom-search" element={route(<SymptomSearchPage />)} />
           <Route path="pulse" element={route(<PulseDiagnosisPage />)} />
           <Route path="dosage" element={route(<DosageCalculatorPage />)} />
-          <Route path="patients" element={route(<PatientsPage />)} />
+          <Route path="patients" element={route(<FeatureGate feature={FeatureKey.PATIENT_MANAGEMENT}><PatientsPage /></FeatureGate>)} />
           <Route path="patients/:id" element={route(<PatientDetailPage />)} />
           <Route path="classics" element={route(<ClassicsPage />)} />
-          <Route path="insurance" element={route(<InsuranceCodePage />)} />
+          <Route path="insurance" element={route(<FeatureGate feature={FeatureKey.INSURANCE_CLAIM}><InsuranceCodePage /></FeatureGate>)} />
           <Route path="insurance-fee" element={route(<InsuranceFeeSearchPage />)} />
           <Route path="documents" element={route(<DocumentsPage />)} />
 
@@ -242,7 +244,7 @@ function App() {
           <Route path="my-cases" element={route(<MyCasesPage />)} />
           <Route path="statistics" element={route(<StatisticsDashboardPage />)} />
 
-          <Route path="analytics" element={route(<AnalyticsDashboardPage />)} />
+          <Route path="analytics" element={route(<FeatureGate feature={FeatureKey.STATS_BASIC}><AnalyticsDashboardPage /></FeatureGate>)} />
           <Route path="smart-insurance" element={route(<InsurancePage />)} />
           <Route path="crm" element={route(<CrmPage />)} />
           <Route path="case-network" element={route(<CaseSharingPage />)} />
