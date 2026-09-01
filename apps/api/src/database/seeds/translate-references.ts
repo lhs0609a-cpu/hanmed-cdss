@@ -110,6 +110,15 @@ const PRIORITY: ReferenceEvidenceType[] = [
   ReferenceEvidenceType.OBSERVATIONAL,
   ReferenceEvidenceType.CASE_REPORT,
   ReferenceEvidenceType.REVIEW,
+  // 연구유형을 못 잡은 것도 맨 뒤에 넣는다.
+  //
+  // 빼 뒀더니 임상 필터를 통과한 문헌 258건이 통째로 번역 대상에서
+  // 빠져 있었다. 전부 요통·불면·두통처럼 진료실에서 만나는 주소증인데,
+  // 원자료가 연구유형을 안 알려줬다는 이유만으로 영어로 남아 있었다.
+  //
+  // 번역해도 evidenceType 은 UNKNOWN 그대로 둔다. 목록에서 근거 수준을
+  // 추측해 붙이면 그때부터 목록이 거짓말을 한다.
+  ReferenceEvidenceType.UNKNOWN,
 ];
 
 const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레이터입니다.
