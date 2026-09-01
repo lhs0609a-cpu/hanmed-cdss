@@ -73,7 +73,7 @@ const cells = (l: string) =>
  * 있어도 <p>/<h2>/<ul> 로 문단이 짜여 있지는 않다.
  */
 function looksLikeHtml(text: string): boolean {
-  return /<(p|h[1-3]|ul|ol|blockquote|table|img|div)[^>]*>/i.test(text)
+  return /<(p|h[1-3]|ul|ol|blockquote|table|img|div)\b[^>]*>/i.test(text)
 }
 
 /**
