@@ -24,11 +24,22 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # 배포 명령은 오래 돌아간 이 형태를 그대로 둔다.
+      # 배포된 커밋을 앱이 스스로 말할 수 있게 fly.toml 에 찍는다.
       #
-      # 여기에 --build-arg GIT_SHA=... 를 붙였더니 배포가 통째로 안 올라갔다.
-      # 원인을 확인하지 못한 채 다른 플래그로 갈아타면 변수만 하나 더 늘어난다.
-      # SHA 를 이미지에 넣는 방법은 이 배포가 다시 도는 것을 확인한 뒤에 붙인다.
+      # 이미지에 굽는 방법(--build-arg, 파일 COPY)은 두 번 다 배포를 깨뜨렸다.
+      # 그래서 빌드는 아예 건드리지 않는다. [env] 는 런타임 환경변수라
+      # NODE_ENV/PORT 와 같은 경로로 머신에 실린다 — 이미 검증된 통로다.
+      #
+      # sed 가 못 맞춰도 fly.toml 이 그대로일 뿐이라 배포는 정상으로 돈다.
+      # 그때는 확인 단계가 "commit 없음" 으로 잡아낸다.
+      - name: Stamp commit SHA into fly.toml
+        working-directory: apps/api
+        run: |
+          sed -i "/^\[env\]/a\  GIT_SHA = \"${{ github.sha }}\"" fly.toml
+          echo "--- [env] 확인 ---"
+          sed -n '/^\[env\]/,/^$/p' fly.toml
+
+      # 배포 명령은 오래 돌아간 이 형태를 그대로 둔다. 플래그를 늘리지 않는다.
       - name: Deploy to Fly.io
         working-directory: apps/api
         run: flyctl deploy --remote-only
@@ -53,26 +64,45 @@ jobs:
         # 구버전을 유지하고, 그 구버전이 200 을 돌려준다. 그래서 응답에 실린
         # commit 을 같이 찍는다.
         #
-        # 아직 commit 불일치로 실패시키지는 않는다. SHA 를 이미지에 넣는 배선이
-        # 아직 없어서(위 주석 참고) 지금은 항상 unknown 이고, 그걸로 잡을 죽이면
-        # 배포가 늘 빨간색이 된다. 늘 빨가면 아무도 안 본다 — 이 레포가 이미
-        # 한 번 겪은 실패다. 배선이 붙는 순간 이 단계를 불일치=실패로 바꾼다.
+        # 이젠 fly.toml 에 SHA 를 찍어 넣으므로 불일치는 곧 구버전이라는 뜻이다.
+        # 그때는 실패시킨다. 그러라고 만든 단계다.
+        #
+        # 다만 commit 이 아예 비어 있으면 경고만 낸다. 스탬프 배선만 떨어졌을 뿐
+        # 앱은 멀쩡할 수 있는데, 그것까지 죽이면 배포가 늘 빨간색이 된다.
+        # 늘 빨가면 아무도 안 본다 — 이 레포가 이미 한 번 겪은 실패다.
+        #
+        # 불일치도 재시도한다. 배포 직후에는 구 머신이 아직 드레인 중이라
+        # 한 번쯤 옛 SHA 가 잡힐 수 있다. 첫 응답으로 판정하면 멀쩡한 배포가
+        # 빨간색이 된다.
         run: |
+          seen=""
           for i in $(seq 1 12); do
             body=$(curl -sf --max-time 10 https://api.ongojisin.co.kr/api/v1/health || true)
-            if [ -n "$body" ]; then
-              commit=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
-              echo "health ok (시도 $i) — 떠 있는 커밋: ${commit:-표시없음}"
-              echo "기대 커밋: ${{ github.sha }}"
-              if [ -z "$commit" ]; then
-                echo "::warning::응답에 commit 이 없다. 구버전이 떠 있을 수 있다."
-              fi
+            if [ -z "$body" ]; then
+              echo "health 대기중... ($i/12)"
+              sleep 10
+              continue
+            fi
+            commit=$(echo "$body" | grep -o '"commit":"[^"]*"' | head -1 | cut -d'"' -f4)
+            echo "health ok (시도 $i) — 떠 있는 커밋: ${commit:-표시없음}"
+            seen="$commit"
+            if [ -z "$commit" ]; then
+              echo "::warning::응답에 commit 이 없다. SHA 스탬프가 안 실렸다."
               exit 0
             fi
-            echo "health 대기중... ($i/12)"
+            if [ "$commit" = "${{ github.sha }}" ]; then
+              echo "새 버전 확인됨."
+              exit 0
+            fi
+            echo "아직 구버전이다. 드레인 대기중... ($i/12)"
             sleep 10
           done
-          echo "2분 동안 health 응답 없음 — 배포 실패로 처리한다."
+          echo "기대 커밋: ${{ github.sha }}"
+          if [ -n "$seen" ]; then
+            echo "::error::2분이 지나도 구버전($seen)이 떠 있다. 새 머신이 못 뜬 채 Fly 가 이전 버전을 유지한 것이다."
+          else
+            echo "::error::2분 동안 health 응답이 없다."
+          fi
           exit 1
 
       - name: Notify deployment result

@@ -32,16 +32,15 @@ RUN npm install --omit=dev && npm cache clean --force
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# 배포된 커밋을 앱이 스스로 말할 수 있게 심는다.
+# 배포된 커밋(GIT_SHA)은 여기서 굽지 않는다.
 #
-# 이게 없으면 배포 실패를 알아챌 방법이 없다. 새 머신이 못 떠서 Fly 가 구버전을
-# 유지해도 구버전이 /health 에 200 을 돌려주므로 배포 워크플로는 초록색으로
-# 끝난다. 실제로 그렇게 실패한 배포를 한참 뒤에야 발견했다.
+# 이미지에 심으려고 --build-arg 를 붙였다가 배포가 통째로 안 올라간 적이 있다.
+# 지금은 fly.toml 의 [env] 에 배포 시점에 찍어 넣는다 — 런타임 환경변수라
+# 빌드에 영향을 주지 않고, 실패해도 배포가 아니라 확인 단계만 깨진다.
 #
-# npm install 뒤에 두는 이유는 레이어 캐시다. 커밋마다 바뀌는 값이라 위쪽에
-# 두면 매 배포가 의존성 설치부터 다시 한다.
-ARG GIT_SHA=unknown
-ENV GIT_SHA=$GIT_SHA
+# 예전에 남아 있던 `ARG GIT_SHA=unknown` 은 지웠다. 값을 넘기는 쪽이 없어서
+# 리터럴 "unknown" 이 이미지에 박혔고, /health 가 그걸 진짜 값인 양 돌려주고
+# 있었다. 모른다고 말하는 것보다 틀린 값을 자신 있게 말하는 쪽이 나쁘다.
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
