@@ -50,6 +50,31 @@ const ABSTRACT_CHARS = 2500;
  * 종설(review)과 증례보고는 뒤로 뺐다. 예산이 유한할 때 먼저 한국어가 되어야
  * 하는 것은 "이 치료가 효과가 있는가" 에 답하는 문헌이다.
  */
+/**
+ * 한의원에서 실제로 보는 주소증. 번역 대상을 이걸로 좁힌다.
+ *
+ * 자료실 14,804건을 다 번역할 이유가 없다. 근거 수준이 높아도 전립선암
+ * 안드로겐 억제요법이나 카테터 절제술 후 심방세동은 한의원 진료와 멀다.
+ * 이 조건을 걸면 대상이 약 3,000건으로 줄고, 그 3,000건이 열었을 때
+ * 쓸모 있는 쪽이다.
+ */
+const CLINIC_SYMPTOMS =
+  '(low back pain|lumbar|sciatica|disc herniation' +
+  '|neck pain|cervical|whiplash' +
+  '|shoulder pain|frozen shoulder|adhesive capsulitis|rotator cuff' +
+  '|knee osteoarthritis|knee pain|osteoarthritis' +
+  '|headache|migraine' +
+  '|insomnia|sleep quality' +
+  '|dyspepsia|functional gastrointestinal|irritable bowel|constipation' +
+  '|dysmenorrhea|menopaus|premenstrual' +
+  '|allergic rhinitis|atopic dermatitis|eczema|urticaria' +
+  "|bell's palsy|bell palsy|facial paralysis|facial palsy" +
+  '|post-stroke|stroke rehabilitation|hemiplegia' +
+  '|fibromyalgia|myofascial|trigger point' +
+  '|tinnitus|vertigo|dizziness' +
+  '|chronic fatigue|depression|anxiety' +
+  '|carpal tunnel|tennis elbow|plantar fasciitis)';
+
 const PRIORITY: ReferenceEvidenceType[] = [
   ReferenceEvidenceType.SYSTEMATIC_REVIEW,
   ReferenceEvidenceType.GUIDELINE,
@@ -70,26 +95,39 @@ const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레
    - low back pain → 요통, frozen shoulder → 오십견(유착성 관절낭염)
    - Bell's palsy → 구안와사(말초성 안면신경마비)
 
-2. 처방명과 혈위는 한글과 원어를 함께 적습니다.
+2. 본초 학명은 한국 본초명으로 옮깁니다. 소리나는 대로 음역하지 마십시오.
+   "Saururus chinensis" 를 "사우루루스" 로 적는 것은 틀린 번역입니다. 삼백초입니다.
+   자주 나오는 것:
+   Saururus chinensis 삼백초 / Astragalus 황기 / Angelica gigas 당귀
+   Paeonia lactiflora 작약 / Glycyrrhiza 감초 / Panax ginseng 인삼
+   Zingiber officinale 생강 / Cinnamomum cassia 계피 / Poria cocos 복령
+   Atractylodes 백출 / Bupleurum 시호 / Scutellaria baicalensis 황금
+   Coptis chinensis 황련 / Rehmannia glutinosa 지황 / Salvia miltiorrhiza 단삼
+   Ephedra 마황 / Pueraria 갈근 / Curcuma 울금 / Citrus unshiu 진피
+   목록에 없고 한국 본초명을 모르면 학명을 그대로 두십시오. 음역은 금지입니다.
+
+3. 처방명과 혈위는 한글과 원어를 함께 적습니다.
    - Shaoyao Gancao Tang → 작약감초탕(芍藥甘草湯)
    - PC6 → 내관(PC6)
+   중국 중성약(Shensong Yangxin capsule 등)은 한국에서 쓰지 않으므로 원어를
+   그대로 두고 한글 음역을 붙이지 마십시오.
    확실하지 않으면 원어를 그대로 두십시오. 비슷한 이름으로 바꾸지 마십시오.
 
-3. 요약에는 용량·투여횟수·시술 프로토콜을 넣지 마십시오.
+4. 요약에는 용량·투여횟수·시술 프로토콜을 넣지 마십시오.
    "하루 3회", "6주간 주 2회 20분" 같은 것은 쓰지 않습니다. 그 정보가 필요한
    사람은 원문을 봐야 합니다. 옮기다 한 글자만 틀려도 그걸 보고 처방하는
    사람이 생깁니다.
 
-4. 논문이 말한 것만 씁니다. 효과를 부풀리지 말고, 논문이 "유의한 차이 없음"
+5. 논문이 말한 것만 씁니다. 효과를 부풀리지 말고, 논문이 "유의한 차이 없음"
    이라고 하면 그렇게 씁니다. 논문에 없는 임상 해석을 덧붙이지 마십시오.
 
-5. 요약은 3~4문장. 이 순서로 씁니다.
+6. 요약은 3~4문장. 이 순서로 씁니다.
    (1) 무엇을 대상으로 (환자군, 몇 명 또는 몇 편)
    (2) 무엇과 비교해 (대조군)
    (3) 어떤 결과 (주요 지표와 방향)
    (4) 한계가 명시돼 있으면 한 문장
 
-6. 문체는 평서형 "~했다/~였다" 로 씁니다. 마크다운 기호(**, ##, -)를 쓰지 마십시오.
+7. 문체는 평서형 "~했다/~였다" 로 씁니다. 마크다운 기호(**, ##, -)를 쓰지 마십시오.
 
 JSON 배열로만 답하십시오. 설명을 덧붙이지 마십시오.
 [{"id":"<받은 id 그대로>","titleKo":"<한국어 제목>","summaryKo":"<3~4문장>"}]`;
@@ -178,7 +216,12 @@ async function main(): Promise<void> {
     const provider = process.env.ANTHROPIC_API_KEY ? 'Claude' : 'OpenAI';
     console.log(`모델: ${provider}\n`);
 
-    // 근거 수준 순서대로, 초록이 있는 것만.
+    // 근거 수준 순서대로, 초록이 있고, 한의원에서 흔한 주소증인 것만.
+    //
+    // 주소증 조건을 넣은 이유: 근거 수준만 보고 뽑았더니 전립선암 안드로겐
+    // 억제요법 중 열감, 카테터 절제술 후 심방세동 같은 것이 올라왔다. 좋은
+    // 논문이지만 한의원 진료와 거리가 멀다. 번역 비용은 유한하고, 먼저
+    // 한국어가 되어야 하는 것은 내일 진료실에서 만날 환자의 주소증이다.
     const targets: Reference[] = [];
     for (const ev of PRIORITY) {
       if (targets.length >= LIMIT) break;
@@ -188,6 +231,7 @@ async function main(): Promise<void> {
         .andWhere('r."abstract" IS NOT NULL')
         .andWhere('LENGTH(r."abstract") > 200')
         .andWhere('r."evidenceType" = :ev', { ev })
+        .andWhere('(r.title ~* :sx OR r.abstract ~* :sx)', { sx: CLINIC_SYMPTOMS })
         .orderBy('r."publishedAt"', 'DESC', 'NULLS LAST')
         .take(LIMIT - targets.length)
         .getMany();

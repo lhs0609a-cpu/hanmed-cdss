@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   Send,
-  Image,
   Link as LinkIcon,
   BookOpen,
   Eye,
@@ -24,6 +23,7 @@ import type { PostType } from '../../types'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 import { isPostSafeForCommunity, anonymizePatientText } from '@/lib/patientPii'
+import { RichEditor } from '@/components/community/RichEditor'
 
 const DRAFT_STORAGE_KEY = 'hanmed_post_draft'
 
@@ -474,31 +474,19 @@ export default function WritePostPage() {
           <div className="text-right text-sm text-gray-400 mt-1">{title.length}/200</div>
         </div>
 
-        {/* Content */}
+        {/* Content — 리치 에디터.
+            예전에는 마크다운 텍스트영역에 아이콘 두 개짜리 툴바가 붙어 있었다.
+            그 아이콘은 눌러도 아무 일이 없었고, 애초에 마크다운 문법을 아는
+            한의사는 거의 없다. */}
         <div>
-          <textarea
+          <RichEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="내용을 입력하세요. 마크다운 문법을 지원합니다.
-
-## 제목
-- 목록 항목
-**굵은 글씨**
-"
-            className="w-full min-h-[300px] p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none"
+            onChange={setContent}
+            placeholder="내용을 입력하세요"
           />
         </div>
-
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 py-2 border-t border-gray-100">
-          <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-            <Image className="h-5 w-5" />
-          </button>
-          <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-            <LinkIcon className="h-5 w-5" />
-          </button>
-        </div>
       </div>
+
 
       {/* Tags */}
       <div className="surface-card rounded-2xl p-6">

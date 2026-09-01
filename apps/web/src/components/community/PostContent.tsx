@@ -1,4 +1,5 @@
-import { ReactNode } from 'react'
+import { ReactNode, useMemo } from 'react'
+import DOMPurify from 'dompurify'
 
 /**
  * 게시글 본문 렌더러.
@@ -60,7 +61,58 @@ const isTableDivider = (l: string) => /^\s*\|[\s|:-]+\|\s*$/.test(l)
 const cells = (l: string) =>
   l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
 
+/**
+ * HTML 로 저장된 글인가.
+ *
+ * 에디터를 리치 텍스트로 바꾸면서 저장 형식이 HTML 이 됐다. 그런데 이미 올라간
+ * 시드 글 28편은 마크다운이다. 둘을 한 번에 변환하려다 깨뜨리는 것보다,
+ * 읽는 쪽에서 나누는 편이 안전하다 — 변환은 되돌릴 수 없지만 분기는 언제든
+ * 고칠 수 있다.
+ *
+ * 블록 태그가 있으면 HTML 로 본다. 마크다운 본문에 <br> 하나쯤 섞이는 일은
+ * 있어도 <p>/<h2>/<ul> 로 문단이 짜여 있지는 않다.
+ */
+function looksLikeHtml(text: string): boolean {
+  return /<(p|h[1-3]|ul|ol|blockquote|table|img|div)[^>]*>/i.test(text)
+}
+
+/**
+ * 에디터가 만든 HTML 을 씻어서 그린다.
+ *
+ * 게시글은 사용자가 쓰는 것이라 script·onerror·javascript: 가 섞여 들어올 수
+ * 있다. DOMPurify 로 걸러야 dangerouslySetInnerHTML 을 쓸 수 있다.
+ * 허용 목록을 좁게 잡았다 — 에디터가 만들지 않는 태그는 받을 이유가 없다.
+ */
+function SafeHtml({ html }: { html: string }) {
+  const clean = useMemo(
+    () =>
+      DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+          'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'span',
+          'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'hr',
+          'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'code', 'pre',
+        ],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'style', 'colspan', 'rowspan'],
+        // style 은 글꼴·글자색 때문에 남기되 위험한 값은 DOMPurify 가 거른다.
+        ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|data:image\/)/i,
+      }),
+    [html],
+  )
+  return (
+    <div
+      className="ongo-post text-[15px] leading-[1.75] text-neutral-800"
+      // 위에서 씻은 값만 들어간다.
+      dangerouslySetInnerHTML={{ __html: clean }}
+    />
+  )
+}
+
 export function PostContent({ text }: { text: string }) {
+  if (looksLikeHtml(text)) return <SafeHtml html={text} />
+  return <MarkdownContent text={text} />
+}
+
+function MarkdownContent({ text }: { text: string }) {
   const lines = text.split('\n')
   const out: ReactNode[] = []
   let i = 0
