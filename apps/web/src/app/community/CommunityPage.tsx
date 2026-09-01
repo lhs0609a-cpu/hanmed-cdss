@@ -40,6 +40,88 @@ const postTypeConfig = {
  */
 export const SUGGESTION_TAG = '건의사항'
 
+/**
+ * 첫 화면 게시판 카드.
+ *
+ * 여섯 장을 손으로 늘어놓았더니 한 장 고칠 때마다 나머지 다섯 장과
+ * 어긋났다. 배열로 두면 글 수 표시 같은 것을 한 번만 붙이면 된다.
+ *
+ * countKey 는 서버가 주는 집계의 열쇠다. 북마크는 사람마다 다른 값이라
+ * 서버가 합계로 세지 않으므로 null 을 둔다 — 모르는 것을 0 으로 적으면
+ * "저장한 글이 없다" 는 거짓말이 된다.
+ */
+const BOARD_CARDS: Array<{
+  to: string
+  label: string
+  hint: string
+  icon: typeof BookOpen
+  iconColor: string
+  hoverBorder: string
+  hoverText: string
+  countKey: string | null
+}> = [
+  {
+    to: '/dashboard/community/cases',
+    label: '케이스 토론',
+    hint: '치험례 기반 토론',
+    icon: BookOpen,
+    iconColor: 'text-amber-500',
+    hoverBorder: 'hover:border-amber-300',
+    hoverText: 'group-hover:text-amber-600',
+    countKey: 'case_discussion',
+  },
+  {
+    to: '/dashboard/community/qna',
+    label: 'Q&A',
+    hint: '질문 & 답변',
+    icon: HelpCircle,
+    iconColor: 'text-blue-500',
+    hoverBorder: 'hover:border-blue-300',
+    hoverText: 'group-hover:text-blue-600',
+    countKey: 'qna',
+  },
+  {
+    to: '/dashboard/community/general',
+    label: '종합 게시판',
+    hint: '자유로운 소통',
+    icon: MessageSquare,
+    iconColor: 'text-gray-500',
+    hoverBorder: 'hover:border-gray-300',
+    hoverText: 'group-hover:text-gray-600',
+    countKey: 'general',
+  },
+  {
+    to: '/dashboard/community/forum',
+    label: '전문 포럼',
+    hint: '분과별 토론',
+    icon: Users,
+    iconColor: 'text-purple-500',
+    hoverBorder: 'hover:border-purple-300',
+    hoverText: 'group-hover:text-purple-600',
+    countKey: 'forum',
+  },
+  {
+    to: '/dashboard/community/suggestions',
+    label: '건의사항',
+    hint: '불편한 점·바라는 기능',
+    icon: Lightbulb,
+    iconColor: 'text-emerald-500',
+    hoverBorder: 'hover:border-emerald-300',
+    hoverText: 'group-hover:text-emerald-600',
+    countKey: 'suggestions',
+  },
+  {
+    to: '/dashboard/community/my/bookmarks',
+    label: '북마크',
+    hint: '저장한 글',
+    icon: Bookmark,
+    iconColor: 'text-blue-500',
+    hoverBorder: 'hover:border-blue-300',
+    hoverText: 'group-hover:text-blue-600',
+    countKey: null,
+  },
+]
+
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -65,6 +147,33 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([])
   const [loading, setLoading] = useState(true)
   const [_error, setError] = useState<string | null>(null)
+
+  /**
+   * 게시판별 글 수.
+   *
+   * 카드에 이름만 있으면 어디에 글이 있는지 몰라서 하나씩 눌러 보게 된다.
+   * 숫자를 못 받아 와도 카드는 그대로 보여야 하므로 실패는 조용히 넘긴다 —
+   * 글 목록이 아니라 곁들이는 정보다.
+   */
+  const [boardCounts, setBoardCounts] = useState<{
+    byType: Record<string, number>
+    suggestions: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    api
+      .get('/community/board-counts')
+      .then((res) => {
+        const d = res.data?.data ?? res.data
+        if (alive && d && typeof d === 'object') setBoardCounts(d)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [token])
 
   // API에서 게시글 가져오기
   useEffect(() => {
@@ -199,54 +308,36 @@ export default function CommunityPage() {
 
       {/* Quick Navigation */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Link
-          to="/dashboard/community/cases"
-          className="surface-card rounded-2xl p-4 hover:border-amber-300 hover:shadow-md transition-all group"
-        >
-          <BookOpen className="h-6 w-6 text-amber-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-amber-600">케이스 토론</span>
-          <p className="text-xs text-gray-500 mt-1">치험례 기반 토론</p>
-        </Link>
-        <Link
-          to="/dashboard/community/qna"
-          className="surface-card rounded-2xl p-4 hover:border-blue-300 hover:shadow-md transition-all group"
-        >
-          <HelpCircle className="h-6 w-6 text-blue-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-blue-600">Q&A</span>
-          <p className="text-xs text-gray-500 mt-1">질문 & 답변</p>
-        </Link>
-        <Link
-          to="/dashboard/community/general"
-          className="surface-card rounded-2xl p-4 hover:border-gray-300 hover:shadow-md transition-all group"
-        >
-          <MessageSquare className="h-6 w-6 text-gray-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-gray-600">종합 게시판</span>
-          <p className="text-xs text-gray-500 mt-1">자유로운 소통</p>
-        </Link>
-        <Link
-          to="/dashboard/community/forum"
-          className="surface-card rounded-2xl p-4 hover:border-purple-300 hover:shadow-md transition-all group"
-        >
-          <Users className="h-6 w-6 text-purple-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-purple-600">전문 포럼</span>
-          <p className="text-xs text-gray-500 mt-1">분과별 토론</p>
-        </Link>
-        <Link
-          to="/dashboard/community/suggestions"
-          className="surface-card rounded-2xl p-4 hover:border-emerald-300 hover:shadow-md transition-all group"
-        >
-          <Lightbulb className="h-6 w-6 text-emerald-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-emerald-600">건의사항</span>
-          <p className="text-xs text-gray-500 mt-1">불편한 점·바라는 기능</p>
-        </Link>
-        <Link
-          to="/dashboard/community/my/bookmarks"
-          className="surface-card rounded-2xl p-4 hover:border-blue-300 hover:shadow-md transition-all group"
-        >
-          <Bookmark className="h-6 w-6 text-blue-500 mb-2" />
-          <span className="font-medium text-gray-900 group-hover:text-blue-600">북마크</span>
-          <p className="text-xs text-gray-500 mt-1">저장한 글</p>
-        </Link>
+        {BOARD_CARDS.map((card) => {
+          const Icon = card.icon
+          // 북마크는 사람마다 다르고 서버가 합계로 세지 않는다.
+          // 모르는 것을 0 으로 적으면 "저장한 글이 없다" 는 거짓말이 된다.
+          const count =
+            card.countKey === null
+              ? null
+              : card.countKey === 'suggestions'
+                ? (boardCounts?.suggestions ?? null)
+                : (boardCounts?.byType?.[card.countKey] ?? null)
+
+          return (
+            <Link
+              key={card.to}
+              to={card.to}
+              className={`surface-card rounded-2xl p-4 transition-all group hover:shadow-md ${card.hoverBorder}`}
+            >
+              <div className="flex items-start justify-between">
+                <Icon className={`h-6 w-6 ${card.iconColor} mb-2`} />
+                {count !== null && (
+                  <span className="text-xs font-semibold text-gray-500 tabular-nums">
+                    {count.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <span className={`font-medium text-gray-900 ${card.hoverText}`}>{card.label}</span>
+              <p className="text-xs text-gray-500 mt-1">{card.hint}</p>
+            </Link>
+          )
+        })}
       </div>
 
       {/* Search & Filters */}

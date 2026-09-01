@@ -99,7 +99,7 @@ async function main(): Promise<void> {
     let extracted = 0;
     const errors: string[] = [];
 
-    async function flush(batch: RawReference[], token: string | null) {
+    const flush = async (batch: RawReference[], token: string | null) => {
       writeToken(token);
       if (batch.length === 0) return;
       const r = await ingest.save(batch);
@@ -112,7 +112,7 @@ async function main(): Promise<void> {
         `  [중간 저장] 한의학 ${batch.length}건 · 신규 ${r.inserted} · 갱신 ${r.updated}` +
           ` (누계 신규 ${inserted})`,
       );
-    }
+    };
     const client = new KciClient({
       from,
       until,

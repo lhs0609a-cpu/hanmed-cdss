@@ -108,7 +108,7 @@ function pickQuery(ds: DataSource, limit: number) {
  * 다 잘려서 정작 무슨 내용인지 안 보였다. 근거 수준과 연도는 본문 표에
  * 있으므로 제목은 내용만 담는다.
  */
-function buildTitle(r: Reference): string {
+export function buildTitle(r: Reference): string {
   const base = (r.titleKo || r.title).trim();
   return base.length > 200 ? `${base.slice(0, 197)}…` : base;
 }
@@ -125,7 +125,7 @@ function buildTitle(r: Reference): string {
  * 요약이 기계가 만든 것이라는 사실을 숨기지 않는다. 한의사가 이걸 근거로
  * 삼기 전에 원문을 확인해야 한다는 것을 알아야 한다.
  */
-function buildContent(r: Reference): string {
+export function buildContent(r: Reference): string {
   const NL = String.fromCharCode(10);
   const parts: string[] = [];
 
@@ -149,14 +149,26 @@ function buildContent(r: Reference): string {
   // 원제 — 검색이나 인용에 쓰려면 필요하다.
   parts.push('**원제**' + NL + NL + r.title);
 
-  // 저자의 말은 저자의 말로 표시한다. 우리가 요약해서 옮기면 그 요약의
-  // 책임이 우리에게 오고, 요약 과정에서 조건과 한계가 떨어져 나간다.
-  const excerpt = r.abstract
-    ? r.abstract.length > EXCERPT_CHARS
-      ? r.abstract.slice(0, EXCERPT_CHARS).trim() + '…'
-      : r.abstract.trim()
-    : null;
-  if (excerpt) {
+  // 초록 자리.
+  //
+  // 예전에는 영문 초록을 그대로 발췌해 인용했다. 저자의 말을 저자의 말로
+  // 두는 것이 옳다고 봤는데, 한글 게시판 본문 한가운데가 영어가 되어
+  // 아무도 읽지 않았다. 읽히지 않는 인용은 근거가 아니라 자리 채우기다.
+  //
+  // 그래서 우리가 다시 쓴 한국어 구조 요약(배경·방법·결과·한계)을 쓴다.
+  // 통째로 번역하지 않는 이유는 초록 저작권이 대개 출판사에 있고, 무엇보다
+  // 초록에는 용량과 프로토콜이 들어 있어 옮기다 틀리면 그걸 보고 처방하는
+  // 사람이 생기기 때문이다. 요약에는 용량을 넣지 않고 원문으로 보낸다.
+  //
+  // 아직 요약이 없는 문헌은 영문 발췌로 되돌아간다. 요약 생성은 문헌
+  // 수보다 느리게 도는데, 그때 본문을 통째로 비우면 서지정보만 남는다.
+  if (r.abstractKo) {
+    parts.push('**초록 요약**' + NL + NL + r.abstractKo.trim());
+  } else if (r.abstract) {
+    const excerpt =
+      r.abstract.length > EXCERPT_CHARS
+        ? r.abstract.slice(0, EXCERPT_CHARS).trim() + '…'
+        : r.abstract.trim();
     const quoted = excerpt
       .split(/\r?\n+/)
       .map((line) => '> ' + line.trim())
@@ -269,7 +281,14 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// 직접 실행할 때만 돈다.
+//
+// buildTitle/buildContent 를 다른 스크립트에서 가져다 쓰는데, 여기서 그냥
+// main() 을 부르면 import 하는 순간 시드가 돌아 버린다. 본문 서식만 고치려던
+// 스크립트가 글을 새로 올리는 일이 생긴다.
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

@@ -52,9 +52,63 @@ const KM_CATEGORIES = /(한의학|한방|동양의학|보완대체|침구)/;
  *
  * 분야가 "약학" 이나 "간호학" 으로 잡힌 한의학 논문이 실제로 많다. 학회지가
  * 어디에 등록돼 있느냐의 문제라, 내용으로 한 번 더 본다.
+ *
+ * 짧은 말은 뺐다. 처음에는 '한의' 와 '한방' 과 '뜸' 을 넣었는데 한국어는
+ * 조사가 붙어서 "남북한의 심리적 통일", "북한의 정책" 이 '한의' 로 걸린다.
+ * 실제로 그렇게 들어온 것이 시험 수집 62건 중 상당수였다. '한방' 은 말
+ * 자체는 맞지만 한방관광·한방화장품·한방테라피처럼 임상과 무관한 쓰임이
+ * 더 많다. 그래서 뒤에 무엇이 붙는지까지 본다.
  */
 const KM_KEYWORDS =
-  /(한의|한방|침구|약침|뜸|부항|추나|경혈|경락|변증|사상체질|본초|방제|탕약|첩약|한약|東醫|韓醫)/;
+  /(한의학|한의사|한의원|한의약|한의계|한방치료|한방요법|한방재활|한방병원|한방의료|침구|약침|전침|뜸치료|부항|추나|경혈|경락|변증|사상체질|본초|방제|탕약|첩약|한약|東醫|韓醫)/;
+
+/**
+ * 임상과 관계없는 연구분야.
+ *
+ * 여기에 걸리면 키워드가 맞아도 받지 않는다. 한방관광 논문은 '한방' 이
+ * 제목에 있지만 관광학이고, 진료에 쓸 일이 없다. 자료실은 진료 중에 여는
+ * 곳이라 한 편이라도 엉뚱한 것이 섞이면 다음부터 안 연다.
+ *
+ * 분야가 '한의학' 계열이면 이 목록을 보지 않는다 — 한의학 분야로 등록된
+ * 논문은 그 자체로 근거가 충분하다.
+ */
+const NON_CLINICAL_FIELDS =
+  /(관광학|신문방송학|언어학|종교학|기타예술체육|경영학|무역학|행정학|정치외교학|법학|역사학|문학|교육학|사회학|건축|기계공학|전자공학|컴퓨터학|지리학|인류학|철학)/;
+
+/**
+ * 이 논문을 자료실에 넣을지.
+ *
+ * 초록까지 한 덩어리로 놓고 키워드 하나만 걸리면 받던 때가 있었다. 그랬더니
+ * 2천 자짜리 초록에 '한의학' 이 한 번 스친 공연관광 논문, 심리학 논문이
+ * 들어왔다 — 시험 수집 17건 중 15건이 그런 것이었다. 한 번의 언급은 그
+ * 논문의 주제가 아니라 배경 설명이다.
+ *
+ * 그래서 세 갈래로 본다.
+ *
+ *   1. 연구분야가 한의학 계열이면 받는다. 가장 강한 신호다.
+ *   2. 제목에 걸리면 받는다. 자기 주제를 제목에 안 적는 논문은 드물다.
+ *   3. 초록만 걸릴 때는 서로 다른 말이 둘 이상이어야 받는다. 하나는
+ *      스쳐 지나간 것일 수 있어도 둘이면 그 논문이 다루는 것이다.
+ *
+ * 비임상 분야는 어느 갈래든 제외한다 — 한방관광 논문은 '한방' 이 제목에
+ * 있어도 관광학이고 진료에 쓸 일이 없다.
+ */
+function isKoreanMedicine(
+  field: string,
+  title: string,
+  abstract: string,
+): boolean {
+  if (KM_CATEGORIES.test(field)) return true;
+  if (NON_CLINICAL_FIELDS.test(field)) return false;
+  if (KM_KEYWORDS.test(title)) return true;
+
+  // 초록만 걸린 경우 — 서로 다른 말이 몇 개인지 센다. 같은 말이 열 번
+  // 나와도 하나로 본다.
+  const hits = new Set(
+    (abstract.match(new RegExp(KM_KEYWORDS.source, 'g')) ?? []).map((v) => v),
+  );
+  return hits.size >= 2;
+}
 
 export interface KciOptions {
   /**
@@ -199,9 +253,11 @@ function toReference(recordXml: string): RawReference | null {
   // <author-name> 도 래퍼다. 안쪽 <name> 이 사람 이름이다.
   const authors = tagAll(recordXml, 'name').slice(0, 30);
 
-  // 분야로 1차, 내용으로 2차. 둘 다 아니면 한의학 논문이 아니다.
+  // 분야로 1차, 제목으로 2차, 초록만 걸릴 때는 서로 다른 말이 둘 이상.
   const haystack = `${category} ${titleKo ?? ''} ${title} ${abstract ?? ''}`;
-  if (!KM_CATEGORIES.test(category) && !KM_KEYWORDS.test(haystack)) return null;
+  if (!isKoreanMedicine(category, `${titleKo ?? ''} ${title}`, abstract ?? '')) {
+    return null;
+  }
 
   const year = tag(recordXml, 'pub-year');
   const mon = tag(recordXml, 'pub-mon');
@@ -229,6 +285,94 @@ function toReference(recordXml: string): RawReference | null {
     evidenceType: evidenceOf(`${titleKo ?? ''} ${title}`),
     language: titleKo ? 'ko' : 'en',
   };
+}
+
+/**
+ * 더블린코어(oai_dc) 레코드 파서.
+ *
+ * 왜 파서가 둘인가: 서버가 resumptionToken 에 metadataPrefix 를 유지하지
+ * 않는다. 첫 요청은 oai_kci 로 오는데, 그 응답의 토큰으로 다음 장을 받으면
+ * 기본값인 oai_dc 로 돌아온다. 그래서 2페이지부터는 article-title 도
+ * article-categories 도 없고 dc:title / dc:subject 로 온다.
+ *
+ * 이걸 모르고 oai_kci 파서 하나로 돌렸더니 첫 100건만 읽히고 그 뒤로는
+ * 전부 조용히 버려졌다. 10만 건을 훑고도 추출 0건이던 이유가 이것이다.
+ * 오류가 아니라 빈손으로 돌아오는 종류라 로그만 봐서는 알 수 없었다.
+ *
+ * oai_dc 에도 필요한 것은 다 있다. dc:subject 가 연구분야라 분야 필터를
+ * 그대로 쓸 수 있고, 제목과 초록은 한국어·영어가 순서대로 두 개씩 온다.
+ * 없는 것은 DOI 와 발행월 정도인데 둘 다 없어도 되는 값이다.
+ */
+function toReferenceDc(recordXml: string): RawReference | null {
+  const ids = tagAll(recordXml, 'dc:identifier');
+  // ART 로 시작하는 것이 논문 고유번호다. 나머지는 서지 표기와 페이지 수다.
+  const externalId =
+    ids.find((v) => /^ART\d+$/.test(v)) ?? tag(recordXml, 'identifier');
+  if (!externalId) return null;
+
+  const titles = tagAll(recordXml, 'dc:title');
+  const titleKo = titles[0] ?? null;
+  const titleEn = titles[1] ?? null;
+  const title = titleEn || titleKo;
+  if (!title) return null;
+
+  const category = tagAll(recordXml, 'dc:subject').join(' ');
+  const abstract =
+    tagAll(recordXml, 'dc:description').join(String.fromCharCode(10, 10)) || null;
+
+  const haystack = `${category} ${titleKo ?? ''} ${title} ${abstract ?? ''}`;
+  if (!isKoreanMedicine(category, `${titleKo ?? ''} ${title}`, abstract ?? '')) {
+    return null;
+  }
+
+  // dc:creator 는 "홍길동(경희대학교); 김철수(가천대학교)" 한 줄로 온다.
+  const authors = (tag(recordXml, 'dc:creator') ?? '')
+    .split(';')
+    .map((a) => a.replace(/\([^)]*\)/g, '').trim())
+    .filter((a) => a.length > 0)
+    .slice(0, 30);
+
+  // dc:date 는 "2016-01" 형태다.
+  const date = tag(recordXml, 'dc:date') ?? '';
+  const publishedYear = parseInt(date.slice(0, 4), 10) || null;
+  const mon = parseInt(date.slice(5, 7), 10);
+  const publishedAt =
+    publishedYear !== null
+      ? new Date(Date.UTC(publishedYear, Number.isFinite(mon) ? Math.max(mon - 1, 0) : 0, 1))
+      : null;
+
+  // 첫 dc:identifier 가 "관광연구저널, 30(1), , pp.211-226" 처럼 온다.
+  // 쉼표 앞이 학술지명이다.
+  const journal = ids.find((v) => !/^ART\d+$/.test(v) && /,/.test(v))?.split(',')[0]?.trim();
+
+  return {
+    source: ReferenceSource.KCI,
+    externalId,
+    title: title.slice(0, 500),
+    titleKo: titleKo && titleKo !== title ? titleKo.slice(0, 500) : null,
+    abstract,
+    authors,
+    journal: journal ? journal.slice(0, 300) : (tag(recordXml, 'dc:publisher')?.slice(0, 300) ?? null),
+    publishedAt,
+    publishedYear,
+    // oai_dc 에는 DOI 가 없다. 없는 것을 지어내지 않는다.
+    doi: null,
+    url:
+      tag(recordXml, 'dc:url') ??
+      `https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=${externalId}`,
+    // dc:subject 는 연구분야다. 저자 키워드가 아니라 분류라 그대로 둔다.
+    keywords: tagAll(recordXml, 'dc:subject').slice(0, 20),
+    category: categoryOf(haystack),
+    evidenceType: evidenceOf(`${titleKo ?? ''} ${title}`),
+    language: /[가-힣]/.test(titleKo ?? '') ? 'ko' : 'en',
+  };
+}
+
+/** 레코드가 어느 형식인지 보고 알맞은 파서로 보낸다. */
+function parseRecord(recordXml: string): RawReference | null {
+  return recordXml.includes('<oai_dc:dc')
+    ? toReferenceDc(recordXml)
+    : toReference(recordXml);
 }
 
 export class KciClient {
@@ -270,7 +414,7 @@ export class KciClient {
       scanned += records.length;
 
       for (const rec of records) {
-        const ref = toReference(rec);
+        const ref = parseRecord(rec);
         if (ref) refs.push(ref);
       }
 

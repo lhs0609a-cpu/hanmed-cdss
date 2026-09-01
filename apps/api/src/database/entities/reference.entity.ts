@@ -133,6 +133,21 @@ export class Reference {
   @Column('text', { nullable: true })
   summaryKo: string | null;
 
+  /**
+   * 초록의 한국어 구조 요약 — 배경 / 방법 / 결과 / 한계.
+   *
+   * summaryKo 는 목록에서 훑으라고 만든 3~4문장이고, 이건 상세 화면에서
+   * 한 편을 읽으라고 만든 것이다. 커뮤니티 소개글 본문에 영문 초록을
+   * 그대로 붙여 놓았더니 한글 게시판 한가운데가 영어였다.
+   *
+   * 초록을 통째로 번역하지 않고 다시 쓴다. 초록 저작권은 대개 출판사에
+   * 있어 전문 번역은 2차적 저작물이 되고, 무엇보다 초록에는 용량과 시술
+   * 프로토콜이 들어 있어 옮기다 틀리면 그걸 보고 처방하는 사람이 생긴다.
+   * 여기에도 용량은 넣지 않는다 — 그 정보가 필요한 사람은 원문을 본다.
+   */
+  @Column('text', { nullable: true })
+  abstractKo: string | null;
+
   @Column('text', { array: true, default: () => "'{}'" })
   authors: string[];
 

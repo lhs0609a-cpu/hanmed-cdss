@@ -420,6 +420,55 @@ export class CommunityService {
 
   // ===== Tags =====
 
+  /**
+   * 게시판별 글 수.
+   *
+   * 왜 필요했나: 커뮤니티 첫 화면의 게시판 카드가 이름만 보여 줬다. 어디에
+   * 글이 있는지 알 수 없으니 하나씩 눌러 보고 비어 있으면 되돌아 나온다.
+   * 전문 포럼에 2천 편이 있고 케이스 토론이 비어 있다는 것을 들어가기 전에
+   * 알 수 있어야 한다.
+   *
+   * 한 번의 GROUP BY 로 끝낸다. 카드마다 따로 세면 화면 하나에 요청이
+   * 여섯 번 나간다.
+   *
+   * 삭제·신고된 글은 빼고 센다. 목록에 안 보이는 글을 세면 카드에 적힌
+   * 숫자와 실제로 열리는 글 수가 어긋난다.
+   */
+  async countByBoard(): Promise<{
+    byType: Record<string, number>;
+    suggestions: number;
+    total: number;
+  }> {
+    const rows = await this.postsRepository
+      .createQueryBuilder('post')
+      .select('post.type', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .where('post.status = :status', { status: PostStatus.ACTIVE })
+      .groupBy('post.type')
+      .getRawMany<{ type: string; count: string }>();
+
+    const byType: Record<string, number> = {};
+    let total = 0;
+    for (const r of rows) {
+      const n = parseInt(r.count, 10) || 0;
+      byType[r.type] = n;
+      total += n;
+    }
+
+    // 건의사항은 별도 유형이 아니라 예약 태그다(CommunityPage 의 SUGGESTION_TAG).
+    // 목록 조회와 같은 방식으로 센다 — LIKE 로 때우면 '건의' 가 '건의사항' 을
+    // 잡아 엉뚱한 글까지 딸려 온다.
+    const suggestions = await this.postsRepository
+      .createQueryBuilder('post')
+      .where('post.status = :status', { status: PostStatus.ACTIVE })
+      .andWhere(":tag = ANY(string_to_array(COALESCE(post.tags, ''), ','))", {
+        tag: '건의사항',
+      })
+      .getCount();
+
+    return { byType, suggestions, total };
+  }
+
   async findPopularTags(limit = 20) {
     return this.tagsRepository.find({
       order: { usageCount: 'DESC' },
