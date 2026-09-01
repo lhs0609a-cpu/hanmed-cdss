@@ -33,6 +33,7 @@ import {
   ArrowLeftRight,
   MessageSquare,
   Library,
+  CreditCard,
   Database,
   GitCompare,
   HeartPulse,
@@ -79,6 +80,7 @@ const MORE_MENU: MenuItem[] = [
   { name: '상호작용', href: '/dashboard/interactions', icon: AlertTriangle },
   { name: '체질 진단', href: '/dashboard/constitution', icon: User },
   { name: '고전 검색', href: '/dashboard/classics', icon: ScrollText },
+  { name: '문헌 자료실', href: '/dashboard/references', icon: Library },
   { name: '청구', href: '/dashboard/insurance', icon: FileText },
   { name: '진료 성과', href: '/dashboard/analytics', icon: BarChart3 },
   { name: '커뮤니티', href: '/dashboard/community', icon: MessageSquare },
@@ -413,6 +415,16 @@ export default function DashboardLayout() {
 
             {!isMinimized && (
               <div className="flex gap-2 mt-2">
+                {/* 요금제 — 라우트는 진작 있었는데 사이드바에 링크가 없었다.
+                    잠금 카드를 만나야만 들어갈 수 있었으니, 결제하고 싶은
+                    사람이 결제하러 갈 길이 화면에 없던 셈이다. */}
+                <Link
+                  to="/dashboard/subscription"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  요금제
+                </Link>
                 <Link
                   to="/dashboard/settings"
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -432,6 +444,13 @@ export default function DashboardLayout() {
 
             {isMinimized && (
               <div className="hidden lg:flex flex-col gap-1 mt-2">
+                <Link
+                  to="/dashboard/subscription"
+                  className="p-2 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="요금제"
+                >
+                  <CreditCard className="h-4 w-4" />
+                </Link>
                 <Link
                   to="/dashboard/settings"
                   className="p-2 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
