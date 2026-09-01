@@ -76,6 +76,10 @@ function pickQuery(ds: DataSource, limit: number) {
     .getRepository(Reference)
     .createQueryBuilder('r')
     .where('r."featuredInCommunity" = false')
+    // 한국어로 번역된 것만 올린다. 영문 제목이 게시판을 덮으면 훑기가 안 되고,
+    // 훑을 수 없는 게시판은 아무도 안 연다.
+    .andWhere('r."titleKo" IS NOT NULL')
+    .andWhere('r."summaryKo" IS NOT NULL')
     .andWhere('r."abstract" IS NOT NULL')
     .andWhere('r."evidenceType" IN (:...types)', {
       types: [
@@ -96,52 +100,88 @@ function pickQuery(ds: DataSource, limit: number) {
     .getMany();
 }
 
-/** 제목은 사람이 읽는 문장으로. 원제를 그대로 쓰면 영문 제목이 게시판을 덮는다. */
+/**
+ * 제목은 한국어 제목만 쓴다.
+ *
+ * 앞에 "[문헌] 2024 체계적 고찰 —" 같은 머리말을 달았더니 목록에서 제목이
+ * 다 잘려서 정작 무슨 내용인지 안 보였다. 근거 수준과 연도는 본문 표에
+ * 있으므로 제목은 내용만 담는다.
+ */
 function buildTitle(r: Reference): string {
-  const year = r.publishedYear ? `${r.publishedYear} ` : '';
-  const kind = EVIDENCE_LABEL[r.evidenceType];
-  const base = r.titleKo || r.title;
-  const title = `[문헌] ${year}${kind} — ${base}`;
-  return title.length > 200 ? `${title.slice(0, 197)}…` : title;
+  const base = (r.titleKo || r.title).trim();
+  return base.length > 200 ? `${base.slice(0, 197)}…` : base;
 }
 
+/**
+ * 본문.
+ *
+ * 한국어 요약을 앞에 놓고, 서지정보는 표로 정리한다. 진료 중에 훑는 글이라
+ * 저널·연도·근거수준이 문장에 섞여 있으면 눈에 안 들어온다.
+ *
+ * 초록 원문은 발췌만 인용한다. 초록의 저작권은 대개 출판사에 있고, 출처와
+ * 링크를 밝힌 짧은 인용은 몰라도 전문 복제는 다른 이야기다.
+ *
+ * 요약이 기계가 만든 것이라는 사실을 숨기지 않는다. 한의사가 이걸 근거로
+ * 삼기 전에 원문을 확인해야 한다는 것을 알아야 한다.
+ */
 function buildContent(r: Reference): string {
-  const meta: string[] = [];
-  if (r.journal) meta.push(r.journal);
-  if (r.publishedYear) meta.push(String(r.publishedYear));
-  meta.push(EVIDENCE_LABEL[r.evidenceType]);
+  const NL = String.fromCharCode(10);
+  const parts: string[] = [];
 
-  const authors =
-    r.authors.length > 0
-      ? `${r.authors.slice(0, 3).join(', ')}${r.authors.length > 3 ? ` 외 ${r.authors.length - 3}명` : ''}`
-      : null;
+  // 한국어 요약이 먼저. 이걸 보려고 들어온 것이다.
+  parts.push(r.summaryKo ?? '');
 
+  // 서지정보 표 — 저널·연도·근거수준이 문장에 섞여 있으면 눈에 안 들어온다.
+  const rows: string[] = ['| 항목 | 내용 |', '|---|---|'];
+  rows.push('| 근거 수준 | ' + EVIDENCE_LABEL[r.evidenceType] + ' |');
+  if (r.journal) rows.push('| 학술지 | ' + r.journal + ' |');
+  if (r.publishedYear) rows.push('| 발행 | ' + r.publishedYear + '년 |');
+  if (r.authors.length > 0) {
+    const who =
+      r.authors.length > 3
+        ? r.authors.slice(0, 3).join(', ') + ' 외 ' + (r.authors.length - 3) + '명'
+        : r.authors.join(', ');
+    rows.push('| 저자 | ' + who + ' |');
+  }
+  parts.push(rows.join(NL));
+
+  // 원제 — 검색이나 인용에 쓰려면 필요하다.
+  parts.push('**원제**' + NL + NL + r.title);
+
+  // 저자의 말은 저자의 말로 표시한다. 우리가 요약해서 옮기면 그 요약의
+  // 책임이 우리에게 오고, 요약 과정에서 조건과 한계가 떨어져 나간다.
   const excerpt = r.abstract
     ? r.abstract.length > EXCERPT_CHARS
-      ? `${r.abstract.slice(0, EXCERPT_CHARS).trim()}…`
+      ? r.abstract.slice(0, EXCERPT_CHARS).trim() + '…'
       : r.abstract.trim()
     : null;
-
-  const parts: string[] = [];
-  parts.push(`**${r.title}**`);
-  parts.push(meta.join(' · '));
-  if (authors) parts.push(authors);
-
   if (excerpt) {
-    // 저자의 말을 저자의 말로 표시한다. 우리가 요약해서 옮기면 그 요약의
-    // 책임이 우리에게 오고, 요약 과정에서 조건과 한계가 떨어져 나간다.
-    parts.push(`\n> ${excerpt.replace(/\n+/g, '\n> ')}\n`);
-    parts.push('_위는 저자 초록의 일부입니다. 전체 내용과 한계는 원문에서 확인해 주세요._');
+    const quoted = excerpt
+      .split(new RegExp('\r?\n+'))
+      .map((line) => '> ' + line.trim())
+      .filter((line) => line !== '>')
+      .join(NL + '>' + NL);
+    parts.push('**초록 일부 (원문)**' + NL + NL + quoted);
   }
 
-  // 답을 다 주고 끝내지 않는다. 답글이 달릴 자리를 남기는 것이 요점이다.
-  parts.push('\n임상에서 이 결과와 다르게 경험하신 분 계신가요?');
+  // 기계가 만든 요약이라는 사실을 숨기지 않는다. 한의사가 이걸 근거로 삼기
+  // 전에 원문을 확인해야 한다는 것을 알아야 한다.
+  parts.push(
+    '---' +
+      NL +
+      NL +
+      '위 한국어 요약은 기계 번역으로 만든 것입니다. 용량과 시술 프로토콜은 ' +
+      '요약에 넣지 않았으니, 처방을 정하기 전에 원문을 확인해 주세요.',
+  );
 
-  const sources: string[] = [`- [원문 보기](${r.url})`];
-  if (r.doi) sources.push(`- DOI: ${r.doi}`);
-  parts.push(`\n---\n\n**출처**\n\n${sources.join('\n')}`);
+  const sources: string[] = ['- [원문 보기](' + r.url + ')'];
+  if (r.doi) sources.push('- DOI: ' + r.doi);
+  parts.push('**출처**' + NL + NL + sources.join(NL));
 
-  return parts.join('\n');
+  // 답을 다 주고 끝내지 않는다. 답글이 달릴 자리를 남긴다.
+  parts.push('임상에서 이 결과와 다르게 경험하신 분 계신가요?');
+
+  return parts.join(NL + NL);
 }
 
 async function main(): Promise<void> {
