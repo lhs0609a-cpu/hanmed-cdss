@@ -437,6 +437,7 @@ export class CommunityService {
   async countByBoard(): Promise<{
     byType: Record<string, number>;
     suggestions: number;
+    clinical: number;
     total: number;
   }> {
     const rows = await this.postsRepository
@@ -455,18 +456,25 @@ export class CommunityService {
       total += n;
     }
 
-    // 건의사항은 별도 유형이 아니라 예약 태그다(CommunityPage 의 SUGGESTION_TAG).
-    // 목록 조회와 같은 방식으로 센다 — LIKE 로 때우면 '건의' 가 '건의사항' 을
-    // 잡아 엉뚱한 글까지 딸려 온다.
-    const suggestions = await this.postsRepository
-      .createQueryBuilder('post')
-      .where('post.status = :status', { status: PostStatus.ACTIVE })
-      .andWhere(":tag = ANY(string_to_array(COALESCE(post.tags, ''), ','))", {
-        tag: '건의사항',
-      })
-      .getCount();
+    // 건의사항과 임상정보는 별도 유형이 아니라 예약 태그다
+    // (CommunityPage 의 SUGGESTION_TAG / CLINICAL_TAG). 목록 조회와 같은
+    // 방식으로 센다 — LIKE 로 때우면 '건의' 가 '건의사항' 을 잡아 엉뚱한
+    // 글까지 딸려 온다.
+    const countByTag = (tag: string) =>
+      this.postsRepository
+        .createQueryBuilder('post')
+        .where('post.status = :status', { status: PostStatus.ACTIVE })
+        .andWhere(":tag = ANY(string_to_array(COALESCE(post.tags, ''), ','))", {
+          tag,
+        })
+        .getCount();
 
-    return { byType, suggestions, total };
+    const [suggestions, clinical] = await Promise.all([
+      countByTag('건의사항'),
+      countByTag('임상정보'),
+    ]);
+
+    return { byType, suggestions, clinical, total };
   }
 
   async findPopularTags(limit = 20) {

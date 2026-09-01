@@ -256,6 +256,7 @@ function App() {
           <Route path="community/general" element={route(<CommunityPage />)} />
           <Route path="community/forum" element={route(<CommunityPage />)} />
           <Route path="community/suggestions" element={route(<CommunityPage />)} />
+          <Route path="community/clinical" element={route(<CommunityPage />)} />
           <Route path="community/forum/:slug" element={route(<CommunityPage />)} />
           <Route path="community/post/:id" element={route(<PostDetailPage />)} />
           <Route path="community/write" element={route(<WritePostPage />)} />

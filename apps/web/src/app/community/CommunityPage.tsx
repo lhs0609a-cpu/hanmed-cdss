@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Loader2,
   Lightbulb,
+  Sparkles,
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
@@ -39,6 +40,19 @@ const postTypeConfig = {
  * 전문 포럼의 분과도 같은 방식(태그)으로 보존하고 있어 흐름도 일관된다.
  */
 export const SUGGESTION_TAG = '건의사항'
+
+/**
+ * 임상정보 게시판.
+ *
+ * 종합 게시판은 한의사끼리 이야기하라고 비워 둔다. 운영팀이 올리는
+ * 자료가 거기에 쌓이면 사람 글이 묻히고, 묻히면 아무도 안 쓴다.
+ *
+ * 큐레이션한 것 — 진료 팁, 제도 변경, KCI 한의학 논문 — 은 이쪽에 모은다.
+ * 건의사항과 같은 방식으로 예약 태그를 쓴다. post.type 은 Postgres
+ * enum 이라 값을 늘리려면 운영 DB 에 ALTER TYPE 이 필요한데, 이 DB 는
+ * 마이그레이션 이력이 이미 어긋나 있다.
+ */
+export const CLINICAL_TAG = '임상정보'
 
 /**
  * 첫 화면 게시판 카드.
@@ -111,6 +125,16 @@ const BOARD_CARDS: Array<{
     countKey: 'suggestions',
   },
   {
+    to: '/dashboard/community/clinical',
+    label: '임상정보',
+    hint: '진료 팁·제도·논문',
+    icon: Sparkles,
+    iconColor: 'text-teal-500',
+    hoverBorder: 'hover:border-teal-300',
+    hoverText: 'group-hover:text-teal-600',
+    countKey: 'clinical',
+  },
+  {
     to: '/dashboard/community/my/bookmarks',
     label: '북마크',
     hint: '저장한 글',
@@ -135,6 +159,7 @@ export default function CommunityPage() {
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
 
   const isSuggestions = location.pathname.includes('/community/suggestions')
+  const isClinical = location.pathname.includes('/community/clinical')
 
   // 현재 라우트가 "내 글"/"내 북마크" 인지 판별
   const viewMode: 'all' | 'mine' | 'bookmarks' = location.pathname.includes('/community/my/bookmarks')
@@ -145,6 +170,17 @@ export default function CommunityPage() {
 
   // API 상태
   const [posts, setPosts] = useState<CommunityPost[]>([])
+
+  /**
+   * 목록 페이지.
+   *
+   * 서버는 처음부터 page·limit 를 받고 meta.totalPages 까지 돌려줬는데
+   * 화면이 그걸 하나도 안 썼다. 전문 포럼에 2천 편이 있어도 첫 20편에서
+   * 끝이고 나머지는 열 방법이 없었다.
+   */
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [_error, setError] = useState<string | null>(null)
 
@@ -188,13 +224,20 @@ export default function CommunityPage() {
         if (viewMode !== 'bookmarks') {
           if (selectedType) params.type = selectedType
           if (isSuggestions) params.tag = SUGGESTION_TAG
+          if (isClinical) params.tag = CLINICAL_TAG
           if (sortBy) params.sortBy = sortBy
           if (viewMode === 'mine' && user?.id) params.authorId = user.id
         }
+        params.page = String(page)
 
         const response = await api.get(endpoint, { params })
-        const apiPosts = response.data?.data || response.data || []
+        const body = response.data
+        const apiPosts = body?.data || body || []
         setPosts(Array.isArray(apiPosts) ? apiPosts : [])
+        // 북마크 엔드포인트도 같은 meta 를 준다.
+        const meta = body?.meta
+        setTotalPages(Math.max(Number(meta?.totalPages) || 1, 1))
+        setTotal(Number(meta?.total) || (Array.isArray(apiPosts) ? apiPosts.length : 0))
       } catch (err) {
         setError(getErrorMessage(err))
         setPosts([])
@@ -204,7 +247,14 @@ export default function CommunityPage() {
     }
 
     fetchPosts()
-  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions])
+  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions, isClinical, page])
+
+  // 필터가 바뀌면 첫 페이지로 돌아간다.
+  // 3페이지를 보다가 게시판을 옮겼는데 그대로 3페이지면, 글이 몇 개 없는
+  // 게시판에서는 빈 화면이 나온다.
+  useEffect(() => {
+    setPage(1)
+  }, [selectedType, sortBy, viewMode, isSuggestions, isClinical])
 
   // URL 경로에 따라 selectedType 설정
   useEffect(() => {
@@ -219,6 +269,9 @@ export default function CommunityPage() {
       setSelectedType('forum')
     } else if (path.includes('/community/suggestions')) {
       // 건의사항은 태그로 모으므로 유형 필터를 걸지 않는다.
+      setSelectedType('')
+    } else if (path.includes('/community/clinical')) {
+      // 임상정보도 태그로 모은다. 유형은 가리지 않는다.
       setSelectedType('')
     } else {
       // 전체/내 글/내 북마크 — 타입 필터 없음
@@ -498,6 +551,59 @@ export default function CommunityPage() {
             </button>
           </div>
         )}
+
+        {/* 페이지 이동
+            서버가 meta.totalPages 를 주는데 화면이 안 쓰고 있었다. 전문
+            포럼에 2천 편이 있어도 첫 20편에서 끝이었다. */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page <= 1}
+              className="px-3 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              이전
+            </button>
+
+            {/* 현재 쪽 둘레만 보여준다. 100쪽이 넘어가면 번호를 다 그릴 수 없다. */}
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const half = 3
+              let start = Math.max(page - half, 1)
+              if (start + 6 > totalPages) start = Math.max(totalPages - 6, 1)
+              return start + i
+            })
+              .filter((n) => n <= totalPages)
+              .map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setPage(n)}
+                  className={
+                    n === page
+                      ? 'px-3 py-2 text-sm rounded-lg bg-gray-900 text-white font-semibold'
+                      : 'px-3 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }
+                >
+                  {n}
+                </button>
+              ))}
+
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page >= totalPages}
+              className="px-3 py-2 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              다음
+            </button>
+
+            <span className="ml-2 text-xs text-gray-400">
+              {page} / {totalPages}쪽 · 전체 {total.toLocaleString()}편
+            </span>
+          </div>
+        )}
+
       </div>
     </div>
   )
