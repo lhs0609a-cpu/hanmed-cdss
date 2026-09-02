@@ -604,7 +604,13 @@ export class TossPaymentsService {
       Subscription,
       {
         userId,
-        status: In([SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE]),
+        status: In([
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.PAST_DUE,
+          // 체험 중에 바로 결제하는 경우가 있다. 체험 행을 남기면 살아
+          // 있는 구독이 둘이 된다.
+          SubscriptionStatus.TRIALING,
+        ]),
       },
       { status: SubscriptionStatus.CANCELED, canceledAt: now },
     );
@@ -1467,7 +1473,11 @@ export class TossPaymentsService {
    * - Professional 플랜 기능 제공 (AI 쿼리는 30건으로 제한)
    * - 14일 후 자동으로 Free 플랜으로 전환
    */
-  async startFreeTrial(userId: string): Promise<{
+  async startFreeTrial(
+    userId: string,
+    targetTier: SubscriptionTier,
+    interval: BillingInterval = BillingInterval.MONTHLY,
+  ): Promise<{
     success: boolean;
     trialEndsAt: Date;
     message: string;
@@ -1475,6 +1485,27 @@ export class TossPaymentsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    if (targetTier === SubscriptionTier.FREE) {
+      throw new BadRequestException('체험할 유료 플랜을 선택해 주세요.');
+    }
+
+    // 카드 없이 체험을 시작하지 않는다.
+    //
+    // 예전에는 카드 없이 시작하고 14일 뒤 조용히 Free 로 내려갔다. 체험을
+    // 왜 하는지 생각하면 앞뒤가 안 맞는다 — 써 보고 마음에 들면 결제로
+    // 이어져야 하는데, 기능이 꺼진 뒤 다시 결제 화면을 찾아 들어와야 했다.
+    // 그 사이에 대부분은 돌아오지 않는다.
+    //
+    // 카드를 먼저 받으면 체험이 끝나는 날 자동으로 결제된다. 대신 그
+    // 사실을 화면에서 분명히 알려야 한다 — 모르고 결제되면 그건 사기다.
+    if (!user.tossBillingKey) {
+      throw new BadRequestException({
+        error: 'BILLING_KEY_REQUIRED',
+        message:
+          '무료 체험을 시작하려면 결제 수단을 먼저 등록해 주세요. 체험 기간에는 결제되지 않습니다.',
+      });
     }
 
     // 이미 체험 중이거나 유료 구독 중인 경우
@@ -1510,12 +1541,14 @@ export class TossPaymentsService {
       userId,
       stripeSubscriptionId: `trial_${userId}_${Date.now()}`,
       status: SubscriptionStatus.TRIALING,
-      billingInterval: BillingInterval.MONTHLY,
+      billingInterval: interval,
       currentPeriodStart: now,
       currentPeriodEnd: trialEndsAt,
       isTrial: true,
       trialStartedAt: now,
       trialEndsAt,
+      // 끝나는 날 이 플랜으로 결제한다.
+      trialTargetTier: targetTier,
     });
 
     await this.subscriptionRepository.save(trialSubscription);
@@ -1661,25 +1694,67 @@ export class TossPaymentsService {
     });
 
     for (const trial of expiredTrials) {
-      // 사용자 정보 조회
       const user = await this.userRepository.findOne({ where: { id: trial.userId } });
       if (!user) continue;
 
-      // 체험 종료 처리
-      trial.status = SubscriptionStatus.CANCELED;
-      trial.canceledAt = now;
-      await this.subscriptionRepository.save(trial);
+      // 카드와 대상 플랜이 있으면 결제로 잇는다.
+      //
+      // 체험을 왜 하는지 생각하면 이게 맞다. 써 보고 마음에 들면 결제로
+      // 이어져야 하는데, 예전에는 14일 뒤 조용히 Free 로 내려가고 다시
+      // 결제 화면을 찾아 들어와야 했다. 그 사이에 대부분은 돌아오지 않는다.
+      const targetTier = trial.trialTargetTier;
+      const canCharge =
+        !!user.tossBillingKey &&
+        !!targetTier &&
+        targetTier !== SubscriptionTier.FREE;
 
-      // 사용자를 Free 플랜으로 전환
+      if (canCharge) {
+        try {
+          // 결제 전에 체험을 먼저 닫는다.
+          //
+          // payWithBillingKey 가 기존 구독을 정리할 때 ACTIVE·PAST_DUE 만
+          // 본다. TRIALING 인 이 행을 남겨 두면 새 ACTIVE 가 하나 더 생겨
+          // 살아 있는 구독이 둘이 되고, 다음날 이 크론이 또 집어서 또
+          // 결제한다. 자동갱신에서 겪은 것과 같은 함정이다.
+          trial.status = SubscriptionStatus.CANCELED;
+          trial.canceledAt = now;
+          await this.subscriptionRepository.save(trial);
+
+          await this.payWithBillingKey(
+            trial.userId,
+            targetTier as SubscriptionTier,
+            trial.billingInterval,
+          );
+
+          this.logger.log(
+            `체험 종료 후 결제 완료: userId=${trial.userId}, tier=${targetTier}`,
+          );
+          continue;
+        } catch (error) {
+          // 결제가 실패해도 체험은 끝났다. 무료로 내리고 알린다.
+          // 여기서 다시 시도하지 않는다 — 카드 문제면 몇 번을 더 긁어도
+          // 같고, 그 사이 거절이 쌓이면 카드사가 이상거래로 막는다.
+          this.logger.error(
+            `체험 종료 후 결제 실패: userId=${trial.userId}`,
+            error,
+          );
+        }
+      }
+
+      // 여기까지 오면 결제하지 않았다 — 카드가 없거나 결제가 실패했다.
+      if (trial.status !== SubscriptionStatus.CANCELED) {
+        trial.status = SubscriptionStatus.CANCELED;
+        trial.canceledAt = now;
+        await this.subscriptionRepository.save(trial);
+      }
+
       const postTrialTier = TRIAL_CONFIG.POST_TRIAL_TIER || SubscriptionTier.FREE;
       await this.userRepository.update(trial.userId, {
         subscriptionTier: postTrialTier,
         subscriptionExpiresAt: null,
       });
 
-      this.logger.log(`체험 만료 처리: userId=${trial.userId}`);
-
-      // 체험 만료 알림 이메일 발송
+      this.logger.log(`체험 만료 처리(무료 전환): userId=${trial.userId}`);
       await this.emailService.sendTrialExpiredEmail(user.email, user.name);
     }
   }

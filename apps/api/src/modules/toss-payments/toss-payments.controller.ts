@@ -9,6 +9,7 @@ import { User } from '../../database/entities/user.entity';
 import {
   RegisterCardDto,
   BillingAuthDto,
+  StartTrialDto,
   SubscribeDto,
   RefundRequestDto,
   PaymentHistoryQueryDto,
@@ -204,10 +205,18 @@ export class TossPaymentsController {
   @Throttle({ short: { ttl: 60000, limit: 2 } })
   @ApiOperation({
     summary: '14일 무료 체험 시작',
-    description: '카드 등록 없이 Professional 플랜을 14일간(AI 쿼리 30건) 무료로 체험할 수 있습니다. 1회만 사용 가능합니다.',
+    description:
+      '결제 수단을 먼저 등록해야 시작할 수 있습니다. 체험 기간에는 결제되지 않고, 끝나는 날 선택한 플랜으로 자동 결제됩니다. 1회만 사용 가능합니다.',
   })
-  async startFreeTrial(@CurrentUser() user: User) {
-    return this.tossPaymentsService.startFreeTrial(user.id);
+  async startFreeTrial(
+    @CurrentUser() user: User,
+    @Body() dto: StartTrialDto,
+  ) {
+    return this.tossPaymentsService.startFreeTrial(
+      user.id,
+      dto.tier,
+      dto.interval,
+    );
   }
 
   @Get('trial/status')

@@ -59,6 +59,14 @@ const planIcons: Record<string, React.ElementType> = {
 
 // 모든 플랜 시각은 단일 톤(neutral) 통일 — 별도 색상 매핑 불필요.
 
+/**
+ * 체험으로 열어 주는 플랜.
+ *
+ * 체험이 끝나면 이 플랜으로 결제된다. 백엔드 TRIAL_CONFIG.TRIAL_TIER 와
+ * 같은 값이어야 한다.
+ */
+const TRIAL_TIER = 'professional'
+
 export default function SubscriptionPage() {
   useSEO(PAGE_SEO.subscription);
 
@@ -101,15 +109,32 @@ export default function SubscriptionPage() {
   const cancelImmediately = useCancelSubscriptionImmediately();
   const startTrial = useStartFreeTrial();
 
+  /**
+   * 무료 체험 시작.
+   *
+   * 카드를 먼저 받는다. 예전에는 카드 없이 시작하고 14일 뒤 조용히 Free 로
+   * 내려갔는데, 그러면 써 보고 마음에 들어도 결제 화면을 다시 찾아 들어와야
+   * 한다. 그 사이에 대부분은 돌아오지 않는다.
+   *
+   * 카드가 없으면 결제창을 먼저 띄운다. 돌아와서 체험이 시작된다.
+   */
   const handleStartTrial = () => {
-    startTrial.mutate(undefined, {
-      onSuccess: (data) => {
-        toast.success(data.message);
+    if (!hasBillingKey) {
+      sessionStorage.setItem('pendingTrialTier', TRIAL_TIER)
+      void openBillingWindow(TRIAL_TIER)
+      return
+    }
+    startTrial.mutate(
+      { tier: TRIAL_TIER, interval: billingInterval },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message);
+        },
+        onError: (error: Error) => {
+          toast.error(getErrorMessage(error));
+        },
       },
-      onError: (error: Error) => {
-        toast.error(error.message || '무료 체험 시작에 실패했습니다.');
-      },
-    });
+    );
   };
 
   const currentTier = subscriptionInfo?.tier || user?.subscriptionTier || 'free';
@@ -349,7 +374,7 @@ export default function SubscriptionPage() {
                 <div>
                   <h3 className="text-xl font-bold">14일 무료 체험</h3>
                   <p className="text-purple-100 text-sm">
-                    Professional 플랜을 14일간 AI 쿼리 30건과 함께 카드 등록 없이 무료로 체험해보세요!
+                    Professional 플랜을 14일간 AI 쿼리 30건과 함께 체험해보세요. 카드를 먼저 등록하지만 체험 기간에는 결제되지 않고, 끝나는 날 자동으로 결제됩니다. 그전에 취소하면 청구되지 않습니다.
                   </p>
                 </div>
               </div>

@@ -42,8 +42,21 @@ export default function BillingSuccessPage() {
 
         const tier = sessionStorage.getItem('pendingTier')
         const interval = sessionStorage.getItem('pendingInterval') || 'monthly'
+        const trialTier = sessionStorage.getItem('pendingTrialTier')
         sessionStorage.removeItem('pendingTier')
         sessionStorage.removeItem('pendingInterval')
+        sessionStorage.removeItem('pendingTrialTier')
+
+        // 체험을 시작하려고 카드를 등록한 경우. 지금 결제하지 않는다.
+        if (trialTier) {
+          const { data } = await api.post<{ message: string }>(
+            '/subscription/trial/start',
+            { tier: trialTier, interval },
+          )
+          toast.success(data?.message ?? '무료 체험이 시작되었습니다.')
+          navigate('/dashboard/subscription', { replace: true })
+          return
+        }
 
         if (!tier) {
           toast.success('카드가 등록되었습니다.')

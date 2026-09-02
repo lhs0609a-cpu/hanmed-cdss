@@ -37,6 +37,20 @@ export class RegisterCardDto {
   customerIdentityNumber: string;
 }
 
+export class StartTrialDto {
+  @ApiProperty({
+    enum: SubscriptionTier,
+    description: '체험이 끝나면 결제할 플랜',
+  })
+  @IsEnum(SubscriptionTier)
+  tier: SubscriptionTier;
+
+  @ApiPropertyOptional({ enum: BillingInterval, default: BillingInterval.MONTHLY })
+  @IsOptional()
+  @IsEnum(BillingInterval)
+  interval?: BillingInterval;
+}
+
 export class BillingAuthDto {
   @ApiProperty({ description: '결제창에 넘긴 고객 식별자' })
   @IsString()

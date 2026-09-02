@@ -355,9 +355,10 @@ export function useStartFreeTrial() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (dto: { tier: string; interval?: string }) => {
       const { data } = await api.post<{ success: boolean; trialEndsAt: string; message: string }>(
-        '/subscription/trial/start'
+        '/subscription/trial/start',
+        dto
       );
       return data;
     },

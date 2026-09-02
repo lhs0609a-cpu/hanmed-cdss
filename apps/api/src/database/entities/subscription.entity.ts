@@ -99,6 +99,15 @@ export class Subscription {
   // ========== 무료 체험 관련 필드 ==========
 
   /** 무료 체험 여부 */
+  /**
+   * 체험이 끝나면 결제할 플랜.
+   *
+   * user.subscriptionTier 로는 알 수 없다 — 체험 중에는 그 값이 체험용
+   * 등급이라 원래 고른 플랜이 덮여 있다.
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  trialTargetTier: SubscriptionTier | null;
+
   @Column({ type: 'boolean', default: false })
   isTrial: boolean;
 
