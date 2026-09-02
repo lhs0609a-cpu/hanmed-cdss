@@ -36,17 +36,19 @@ export const COMPANY_INFO = {
   /**
    * 고객센터 전화번호.
    *
-   * 전자상거래법이 요구하는 표시 항목이라 비워 둘 수 없다. 개인 휴대폰을
-   * 적기 어려우면 안심번호나 대표번호를 따로 두는 편이 낫다 — 이 번호는
-   * 결제 화면과 환불정책에 그대로 노출된다.
+   * 대표가 전화 대신 이메일로 문의를 받기로 정해 비워 둔다. 화면에서는
+   * 전화 자리에 이메일이 대신 나간다.
+   *
+   * 전자상거래법 제13조는 전화번호와 전자우편주소를 함께 적도록 정한다.
+   * 전화번호를 두는 편이 안전하므로, 070 번호를 개통하면 여기에 넣는다.
    */
   phone: '',
   /** 대표 이메일 (지원·문의 통합) */
-  email: 'support@ongojisin.ai',
+  email: 'lhs0609c@naver.com',
   /** 개인정보 보호책임자 성명 */
   privacyOfficer: '양보름',
   /** 개인정보 관련 문의 이메일 (별도 운영 메일함이 없으면 통합 메일 사용) */
-  privacyEmail: 'support@ongojisin.ai',
+  privacyEmail: 'lhs0609c@naver.com',
   /** 약관·정책 시행일 (예: 2026년 6월 1일) */
   effectiveDate: '2026년 9월 2일',
   /** 최종 수정일 */
@@ -65,10 +67,18 @@ export const REQUIRED_BUSINESS_FIELDS = [
   'name',
   'ceo',
   'businessNumber',
-  'mailOrderNumber',
   'address',
-  'phone',
 ] as const
+
+/**
+ * 아직 못 채운 것 — 잠금 조건에서는 뺐지만 없어도 되는 값은 아니다.
+ *
+ * 대표가 결제를 먼저 열기로 정했다. 통신판매업신고번호는 받는 대로 넣고,
+ * 전화번호는 070 을 개통하면 넣는다. 둘 다 전자상거래법 제13조의 표시
+ * 항목이라, 비어 있는 동안에는 화면에 '확인 중' 으로 나간다 — 없는 번호를
+ * 지어내지 않는다.
+ */
+export const PENDING_BUSINESS_FIELDS = ['mailOrderNumber', 'phone'] as const
 
 export function missingBusinessFields(): string[] {
   return REQUIRED_BUSINESS_FIELDS.filter(
@@ -89,5 +99,9 @@ export function hasBusinessInfo(): boolean {
  */
 export function companyField(key: keyof typeof COMPANY_INFO): string {
   const v = String(COMPANY_INFO[key] ?? '').trim()
-  return v || '등록 전 (개인 개발 단계)'
+  if (v) return v
+  // 전화 자리는 이메일로 대신한다. 문의를 이메일로 받기로 했으니
+  // 빈칸이나 '없음' 보다 연락이 닿는 곳을 적는 편이 낫다.
+  if (key === 'phone') return COMPANY_INFO.email
+  return '확인 중'
 }

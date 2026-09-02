@@ -180,7 +180,7 @@ export default function SubscriptionTermsPage() {
                 <ul className="list-disc list-inside ml-6 mt-2">
                   <li>서비스 내 [설정 → 구독 관리 → 구독 해지]</li>
                   <li>고객센터 이메일: support@ongojisin.ai</li>
-                  <li>고객센터 전화: 02-1234-5678</li>
+                  <li>고객센터: {COMPANY_INFO.email}</li>
                 </ul>
               </li>
               <li>해지 시 이미 결제된 기간은 계속 이용 가능합니다.</li>

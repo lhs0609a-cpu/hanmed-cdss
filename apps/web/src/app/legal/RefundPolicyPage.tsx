@@ -114,7 +114,7 @@ export default function RefundPolicyPage() {
                 <ul className="list-disc list-inside ml-6 mt-2">
                   <li>서비스 내 [설정 → 구독 관리 → 환불 신청]</li>
                   <li>고객센터 이메일: support@ongojisin.ai</li>
-                  <li>고객센터 전화: 02-1234-5678 (평일 09:00~18:00)</li>
+                  <li>고객센터: {COMPANY_INFO.email} (평일 09:00~18:00, 이메일 문의)</li>
                 </ul>
               </li>
               <li>
