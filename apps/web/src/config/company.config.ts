@@ -98,9 +98,16 @@ export function missingBusinessFields(): string[] {
  * 우리가 구현해야 하는데 안 했다. 결제창(SDK) 방식으로 바꾸면 토스가
  * 휴대폰 본인인증까지 처리한다.
  *
- * 결제창 연동을 마쳤으므로 다시 연다.
+ * 결제창으로 바꾼 뒤에도 토스가 그대로 거절했다. 이번에는 한국어로
+ * 명확했다 — "자동 결제(빌링) 계약이 안 되어 있습니다."
+ *
+ * 결국 처음 진단이 맞았다. API 시험에서 잘못된 카드번호에
+ * INVALID_CARD_NUMBER 가 오는 것을 보고 엔드포인트가 열려 있다고 판단했는데,
+ * 그건 입력 검증이 계약 검사보다 먼저 돌 뿐이었다. 한 겹 아래를 못 봤다.
+ *
+ * 계약이 끝나면 true 로 바꾼다. 문의: 토스페이먼츠 1544-7772
  */
-export const TOSS_BILLING_CONTRACT_ACTIVE = true
+export const TOSS_BILLING_CONTRACT_ACTIVE = false
 
 /** 사업자 정보가 법적 표시 요건을 갖췄는지. */
 export function hasBusinessInfo(): boolean {

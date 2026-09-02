@@ -242,9 +242,16 @@ export default function SubscriptionPage() {
       })
     } catch (error) {
       // 사용자가 창을 닫은 것은 실패가 아니다.
-      const code = (error as { code?: string })?.code
-      if (code === 'USER_CANCEL') return
-      toast.error(getErrorMessage(error))
+      const err = error as { code?: string; message?: string }
+      if (err?.code === 'USER_CANCEL') return
+
+      // 토스가 보낸 말을 그대로 보여준다.
+      //
+      // 우리 문구로 감싸면 "일시적인 오류가 발생했습니다" 가 되는데, 그건
+      // 사실이 아닐뿐더러 다시 시도하면 될 것처럼 들린다. 실제로 토스는
+      // "자동 결제(빌링) 계약이 안 되어 있습니다" 라고 정확히 알려 준다.
+      // 그 말이 있어야 무엇을 해야 하는지 알 수 있다.
+      toast.error(err?.message || getErrorMessage(error))
     }
   }
 
