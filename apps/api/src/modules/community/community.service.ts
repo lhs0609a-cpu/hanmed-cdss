@@ -466,21 +466,33 @@ export class CommunityService {
     clinical: number;
     total: number;
   }> {
+    // 목록과 같은 규칙으로 센다.
+    //
+    // 예약 태그로 옮긴 글을 목록에서는 빼면서 집계에서는 안 뺐다. 전문
+    // 포럼 카드가 1,999편이라고 하는데 눌러 들어가면 13편이 나왔다.
+    // 숫자가 거짓말을 하면 나머지 숫자도 못 믿게 된다.
     const rows = await this.postsRepository
       .createQueryBuilder('post')
       .select('post.type', 'type')
       .addSelect('COUNT(*)', 'count')
       .where('post.status = :status', { status: PostStatus.ACTIVE })
+      .andWhere(
+        `NOT (post.tags IS NOT NULL AND string_to_array(post.tags, ',') && :reserved)`,
+        { reserved: RESERVED_BOARD_TAGS },
+      )
       .groupBy('post.type')
       .getRawMany<{ type: string; count: string }>();
 
     const byType: Record<string, number> = {};
-    let total = 0;
     for (const r of rows) {
-      const n = parseInt(r.count, 10) || 0;
-      byType[r.type] = n;
-      total += n;
+      byType[r.type] = parseInt(r.count, 10) || 0;
     }
+
+    // 전체 건수는 예약 태그 글까지 센다. 전체 목록에는 그 글들도 나온다 —
+    // 유형별 합계와 다른 것이 맞다.
+    const total = await this.postsRepository.count({
+      where: { status: PostStatus.ACTIVE },
+    });
 
     // 건의사항과 임상정보는 별도 유형이 아니라 예약 태그다
     // (CommunityPage 의 SUGGESTION_TAG / CLINICAL_TAG). 목록 조회와 같은

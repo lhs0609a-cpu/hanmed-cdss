@@ -442,7 +442,17 @@ export default function CommunityPage() {
         )}
 
         {!loading && filteredPosts.map((post) => {
-          const config = postTypeConfig[post.type]
+          // 예약 태그로 옮긴 글은 옮긴 게시판 이름을 보여준다.
+          //
+          // post.type 은 그대로 두고 태그로만 옮겼기 때문에, 그냥 두면
+          // 임상정보 글에 '포럼' 배지가 붙는다. 옮겼다면서 옛 이름이
+          // 보이면 어느 게시판 글인지 알 수 없다.
+          const reserved = post.tags?.includes(CLINICAL_TAG)
+            ? { label: '임상정보', icon: Sparkles, color: 'text-teal-600 bg-teal-100' }
+            : post.tags?.includes(SUGGESTION_TAG)
+              ? { label: '건의사항', icon: Lightbulb, color: 'text-emerald-600 bg-emerald-100' }
+              : null
+          const config = reserved ?? postTypeConfig[post.type]
           const TypeIcon = config.icon
 
           return (
