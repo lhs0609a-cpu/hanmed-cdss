@@ -28,6 +28,15 @@ import {
   PostQueryDto,
 } from './dto';
 
+/**
+ * 게시판 노릇을 하는 예약 태그.
+ *
+ * post.type 은 Postgres enum 이라 값을 늘리려면 운영 DB 에 ALTER TYPE 이
+ * 필요하다. 이 DB 는 마이그레이션 이력이 이미 어긋나 있어 태그로 대신한다.
+ * 화면 쪽 SUGGESTION_TAG / CLINICAL_TAG 와 같은 값이어야 한다.
+ */
+const RESERVED_BOARD_TAGS = ['건의사항', '임상정보'];
+
 @Injectable()
 export class CommunityService {
   constructor(
@@ -131,6 +140,23 @@ export class CommunityService {
 
     if (authorId) {
       qb.andWhere('post.authorId = :authorId', { authorId });
+    }
+
+    // 예약 태그로 모으는 게시판은 유형 목록에서 뺀다.
+    //
+    // 건의사항과 임상정보는 별도 post.type 이 없다. Postgres enum 이라
+    // 값을 늘리려면 운영 DB 에 ALTER TYPE 이 필요해서 태그로 모은다.
+    // 그런데 태그만 붙이면 원래 유형 게시판에도 그대로 남는다 — 문헌
+    // 소개 2천 편을 임상정보로 옮겨도 전문 포럼에 똑같이 2천 편이 보인다.
+    //
+    // 그래서 유형으로 걸러 보는 중이고 태그 조건이 따로 없을 때만 뺀다.
+    // 전체 목록(유형 없음)에서는 빼지 않는다 — 거기서까지 숨기면 글이
+    // 어디에도 안 보이는 곳이 생긴다.
+    if (type && !tag) {
+      qb.andWhere(
+        `NOT (post.tags IS NOT NULL AND string_to_array(post.tags, ',') && :reserved)`,
+        { reserved: RESERVED_BOARD_TAGS },
+      );
     }
 
     // 정렬
