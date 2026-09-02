@@ -866,7 +866,9 @@ export class TossPaymentsService {
       });
       if (!user) {
         await queryRunner.rollbackTransaction();
-        return false;
+        // false 를 돌려주면 호출자가 '이번 달 한도를 다 썼다' 로 안내한다.
+        // 사용자가 없는 것은 한도 문제가 아니다.
+        throw new NotFoundException('사용자를 찾을 수 없습니다.');
       }
 
       const now = new Date();
@@ -908,9 +910,24 @@ export class TossPaymentsService {
       });
 
       // 4. 제한 계산 (체험 중이면 TRIAL_AI_LIMIT, 아니면 플랜별 제한)
+      //
+      // 만료일이 지났으면 무료로 본다. 강등은 매일 자정 크론이 하는데,
+      // 그날 앱이 안 떠 있었거나 크론이 실패하면 유료 한도가 그대로
+      // 남는다. 결제가 끊긴 사람이 계속 쓰는 것을 하루짜리 크론 하나에
+      // 기대지 않는다.
+      //
+      // 만료일이 아예 없는 경우는 건드리지 않는다 — 값이 없다고 해서
+      // 만료된 것은 아니다.
+      const expired =
+        user.subscriptionExpiresAt !== null &&
+        user.subscriptionExpiresAt < now;
+      const effectiveTier = expired
+        ? SubscriptionTier.FREE
+        : user.subscriptionTier;
+
       const limit = trialSubscription
         ? TRIAL_CONFIG.TRIAL_AI_LIMIT
-        : PLAN_LIMITS[user.subscriptionTier];
+        : PLAN_LIMITS[effectiveTier];
 
       // 5. 제한 체크 (락이 걸린 상태에서 정확한 값 체크)
       if (usageType === UsageType.AI_QUERY && usage.count >= limit) {
@@ -928,7 +945,13 @@ export class TossPaymentsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`사용량 추적 실패: userId=${userId}, usageType=${usageType}`, error);
-      return false;
+      // 여기서 false 를 돌려주던 것이 문제였다. 호출하는 가드가 false 를
+      // '이번 달 한도를 다 썼다' 로 읽어 402 를 던진다. DB 가 한 번
+      // 삐끗한 것을 두고 돈 낸 사람에게 "요금제를 올리라" 고 말하는 셈이다.
+      //
+      // 세지 못한 것과 한도를 넘은 것은 다른 일이다. 못 센 것은 그대로
+      // 올려 보내 서버 오류로 다루게 한다.
+      throw error;
     } finally {
       await queryRunner.release();
     }
