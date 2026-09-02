@@ -635,13 +635,19 @@ export class TossPaymentsService {
     subscription.canceledAt = new Date();
     await this.subscriptionRepository.save(subscription);
 
-    // 사용자를 Free 플랜으로 변경
-    await this.userRepository.update(userId, {
-      subscriptionTier: SubscriptionTier.FREE,
-      subscriptionExpiresAt: null,
-    });
-
-    this.logger.log(`구독 즉시 취소: userId=${userId}`);
+    // 등급은 낸 기간이 끝날 때까지 그대로 둔다.
+    //
+    // 예전에는 여기서 바로 Free 로 내리고 subscriptionExpiresAt 을 지웠다.
+    // 한 달치를 결제한 사람이 취소를 누르는 순간 남은 기간을 통째로 잃는데
+    // 환불은 따로 신청해야 한다 — 돈은 받고 서비스는 끊는 셈이었다.
+    //
+    // 여기서 하는 일은 다음 청구를 멈추는 것까지다. 만료일이 지나면
+    // effectiveTier 가 알아서 Free 로 본다. 돈을 돌려받고 싶으면 환불
+    // 창구를 쓰고, 전액 환불이 되면 그때 등급을 회수한다.
+    this.logger.log(
+      `구독 즉시 취소(청구 중단): userId=${userId}, ` +
+        `이용 가능 기간=${subscription.currentPeriodEnd?.toISOString() ?? '없음'}`,
+    );
   }
 
   // 만료된 구독 처리 (크론잡에서 호출)
@@ -1935,11 +1941,36 @@ export class TossPaymentsService {
       payment.refundedAmount += refundAmount;
       payment.refundReason = reason;
       payment.refundedAt = new Date();
-      payment.status =
-        payment.refundedAmount >= payment.amount
-          ? PaymentStatus.REFUNDED
-          : PaymentStatus.PARTIALLY_REFUNDED;
+      const isFullRefund = payment.refundedAmount >= payment.amount;
+      payment.status = isFullRefund
+        ? PaymentStatus.REFUNDED
+        : PaymentStatus.PARTIALLY_REFUNDED;
       await queryRunner.manager.save(Payment, payment);
+
+      // 전액 환불이면 등급을 내린다.
+      //
+      // 이게 없어서 149,000원을 돌려받고도 Clinic 을 만료일까지 그대로
+      // 쓰는 길이 열려 있었다. 돈을 돌려줬으면 서비스도 회수해야 한다.
+      //
+      // 부분 환불은 건드리지 않는다. 연간 결제의 잔여 월 환불 같은 것이라
+      // 남은 기간은 계속 쓰는 것이 맞다.
+      if (isFullRefund) {
+        await queryRunner.manager.update(
+          Subscription,
+          {
+            userId: payment.userId,
+            status: In([SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE]),
+          },
+          { status: SubscriptionStatus.CANCELED, canceledAt: new Date() },
+        );
+        await queryRunner.manager.update(User, payment.userId, {
+          subscriptionTier: SubscriptionTier.FREE,
+          subscriptionExpiresAt: null,
+        });
+        this.logger.log(
+          `전액 환불로 등급 회수: userId=${payment.userId}, paymentId=${paymentId}`,
+        );
+      }
 
       await queryRunner.commitTransaction();
 
