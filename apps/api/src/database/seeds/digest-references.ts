@@ -231,18 +231,35 @@ async function main(): Promise<void> {
     const qb = repo
       .createQueryBuilder('r')
       .where('r."abstractKo" IS NULL')
-      .andWhere('r."summaryKo" IS NOT NULL')
       .andWhere('r."abstract" IS NOT NULL')
-      // KCI 는 손대지 않는다.
+      // KCI 도 영문 초록이면 요약한다.
       //
-      // KCI Open API 이용 약관의 '데이터 공신력 유지' 조항이 원천 데이터로
-      // 하위 정보를 생성하는 것을 금한다. 초록을 모델로 다시 쓰는 것이
-      // 정확히 거기에 걸린다.
+      // 처음에는 KCI 를 통째로 뺐다. 이용 약관의 '데이터 공신력 유지'
+      // 조항이 원천 데이터로 하위 정보를 생성하는 것을 금하기 때문이고,
+      // KCI 는 국문 초록이 오니 요약할 이유도 없다고 봤다.
       //
-      // 애초에 그럴 이유도 없다. KCI 는 국문 초록을 그대로 주므로 번역도
-      // 요약도 필요 없이 원문이 이미 읽힌다. 요약이 필요한 것은 영문으로
-      // 오는 PubMed 쪽이다.
-      .andWhere('r."source" != :kci', { kci: ReferenceSource.KCI })
+      // 둘 다 틀렸다. 재 보니 국문 초록은 4%뿐이고 88%가 영문 초록이다.
+      // 한국어 학술지도 초록은 영문으로 싣는 관행 때문이다. 그대로 두면
+      // 한글 게시판에 영어가 1만 4천 편 쌓인다.
+      //
+      // 원장이 두 번 확인하고 번역·요약을 지시했다. 약관 위험은 남아
+      // 있으므로 줄일 수 있는 만큼 줄인다 — 원문을 지우지 않고 그대로
+      // 두며, 기계가 만든 요약임을 글마다 밝히고, KCI 출처 표기와 원문
+      // 링크를 함께 단다. 왜곡이 아니라 읽기 위한 보조라는 것이 드러나야
+      // 한다.
+      //
+      // 국문 초록이 이미 있는 것은 손대지 않는다. 원문이 읽히는데 다시
+      // 쓸 이유가 없고, 그건 정말로 불필요한 가공이다.
+      .andWhere(
+        `(r."source" != :kci OR r."abstract" !~ '[가-힣]')`,
+        { kci: ReferenceSource.KCI },
+      )
+      // KCI 는 우리가 만든 요약(summaryKo)이 없다. 그것을 조건으로 걸면
+      // 한 건도 안 잡힌다.
+      .andWhere(
+        `(r."source" = :kci OR r."summaryKo" IS NOT NULL)`,
+        { kci: ReferenceSource.KCI },
+      )
       .orderBy('r."featuredInCommunity"', 'DESC')
       .take(LIMIT);
     if (FEATURED_ONLY) qb.andWhere('r."featuredInCommunity" = true');
