@@ -1399,8 +1399,8 @@ function BusinessInfoForm() {
       </Button>
       <p className="text-xs text-gray-500">
         ※ 결제 후 익영업일에 세금계산서가 자동 발행됩니다. 누락 시{' '}
-        <a href="mailto:support@ongojisin.ai" className="text-blue-600 underline">
-          support@ongojisin.ai
+        <a href="mailto:lhs0609c@naver.com" className="text-blue-600 underline">
+          lhs0609c@naver.com
         </a>
         로 문의해주세요.
       </p>

@@ -416,7 +416,7 @@ export function ErrorEmptyState({
       title={title}
       description={description || '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'}
       action={onRetry ? { label: '다시 시도', onClick: onRetry } : undefined}
-      secondaryAction={{ label: '문의하기', href: 'mailto:support@ongojisin.ai' }}
+      secondaryAction={{ label: '문의하기', href: 'mailto:lhs0609c@naver.com' }}
     />
   )
 }

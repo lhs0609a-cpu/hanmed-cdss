@@ -367,7 +367,7 @@ export function ServerErrorMessage({
       severity="warning"
       message="서버 연결 중 문제가 발생했습니다"
       description="일시적인 서버 문제입니다. 잠시 후 자동으로 다시 연결을 시도합니다."
-      suggestion="문제가 지속되면 support@ongojisin.ai로 문의해 주세요."
+      suggestion="문제가 지속되면 lhs0609c@naver.com로 문의해 주세요."
       onRetry={onRetry}
       autoRetrySeconds={autoRetrySeconds}
       isRetrying={isRetrying}

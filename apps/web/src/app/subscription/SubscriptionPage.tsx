@@ -46,7 +46,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ROICalculator } from '@/components/dashboard';
 import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
 import { formatKRW, formatKRDate, withVat } from '@/lib/format';
-import { hasBusinessInfo } from '@/config/company.config';
+import { hasBusinessInfo, TOSS_BILLING_CONTRACT_ACTIVE } from '@/config/company.config';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -174,10 +174,17 @@ export default function SubscriptionPage() {
    */
   const businessInfoMissing = !hasBusinessInfo()
 
+  // 자동결제 계약이 없으면 카드 등록이 반드시 실패한다. 눌러도 안 되는
+  // 버튼을 열어 두지 않는다.
+  const billingUnavailable = !TOSS_BILLING_CONTRACT_ACTIVE
+  const paymentBlocked = businessInfoMissing || billingUnavailable
+
   const handleSubscribe = (tier: string) => {
-    if (businessInfoMissing) {
+    if (paymentBlocked) {
       toast.error(
-        '결제 준비 중입니다. 사업자 정보 등록이 완료된 뒤 이용하실 수 있습니다.',
+        billingUnavailable
+          ? '정기결제 준비 중입니다. 결제사 심사가 끝나는 대로 열겠습니다.'
+          : '결제 준비 중입니다. 사업자 정보 등록이 완료된 뒤 이용하실 수 있습니다.',
       )
       return
     }
@@ -444,12 +451,13 @@ export default function SubscriptionPage() {
           링크였다 — 눌러도 아무 일이 없었다. */}
       {/* 결제를 못 받는 상태라면 먼저 알린다. 눌러 보고 에러를 만나는 것보다
           이유를 먼저 아는 쪽이 낫다. */}
-      {businessInfoMissing && (
+      {paymentBlocked && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-semibold">결제 준비 중입니다</p>
+          <p className="font-semibold">정기결제 준비 중입니다</p>
           <p className="mt-1 leading-relaxed text-amber-800">
-            사업자 정보 등록이 끝나면 결제를 열겠습니다. 그때까지 무료 기능은
-            그대로 쓰실 수 있습니다.
+            {billingUnavailable
+              ? '결제사 자동결제 심사가 진행 중입니다. 끝나는 대로 열겠습니다. 그때까지 무료 기능은 그대로 쓰실 수 있습니다.'
+              : '사업자 정보 등록이 끝나면 결제를 열겠습니다. 그때까지 무료 기능은 그대로 쓰실 수 있습니다.'}
           </p>
         </div>
       )}
@@ -557,7 +565,7 @@ export default function SubscriptionPage() {
                     variant={isRecommended && !isCurrentPlan && plan.tier !== 'free' ? 'gradient' : 'default'}
                     className="w-full"
                     onClick={() => handleSubscribe(plan.tier)}
-                    disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan || businessInfoMissing}
+                    disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan || paymentBlocked}
                   >
                     {subscribe.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -787,8 +795,8 @@ export default function SubscriptionPage() {
       <div className="text-center text-sm text-gray-500">
         <p>
           구독에 대한 문의사항이 있으시면{' '}
-          <a href="mailto:support@ongojisin.ai" className="text-blue-600 hover:underline">
-            support@ongojisin.ai
+          <a href="mailto:lhs0609c@naver.com" className="text-blue-600 hover:underline">
+            lhs0609c@naver.com
           </a>
           로 연락해주세요.
         </p>
@@ -1009,11 +1017,11 @@ export default function SubscriptionPage() {
                   <p className="text-sm text-gray-600 mb-3">문제가 계속되면 고객센터로 문의해 주세요.</p>
                   <div className="flex flex-wrap gap-3">
                     <a
-                      href="mailto:support@ongojisin.ai"
+                      href="mailto:lhs0609c@naver.com"
                       className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                     >
                       <Mail className="h-4 w-4" />
-                      support@ongojisin.ai
+                      lhs0609c@naver.com
                     </a>
                   </div>
                 </div>

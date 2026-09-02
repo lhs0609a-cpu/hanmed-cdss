@@ -86,6 +86,22 @@ export function missingBusinessFields(): string[] {
   )
 }
 
+/**
+ * 토스페이먼츠 자동결제 계약 여부.
+ *
+ * 자동결제(빌링) API 는 토스와 추가 계약을 해야 열린다. 계약 없이 부르면
+ * INVALID_BILL_KEY_REQUEST 가 오는데 문구가 "빌링키 인증이 완료되지
+ * 않았거나 유효하지 않은 빌링 거래 건" 이라 카드 문제처럼 읽힌다. 실제로
+ * 그 화면을 보고 카드를 바꿔 가며 여러 번 시도했다.
+ *
+ * 계약이 없는 동안에는 결제를 열지 않는다. 반드시 실패하는 버튼을 열어
+ * 두면 이용자는 자기 카드가 문제라고 생각하고, 그건 우리가 만든 오해다.
+ *
+ * 계약이 끝나면 true 로 바꾼다.
+ * 문의: 토스페이먼츠 1544-7772
+ */
+export const TOSS_BILLING_CONTRACT_ACTIVE = false
+
 /** 사업자 정보가 법적 표시 요건을 갖췄는지. */
 export function hasBusinessInfo(): boolean {
   return missingBusinessFields().length === 0

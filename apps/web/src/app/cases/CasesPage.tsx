@@ -626,7 +626,7 @@ export default function CasesPage() {
             }
             suggestion={
               retryCount > 2
-                ? '문제가 지속되면 support@ongojisin.ai로 문의해 주세요.'
+                ? '문제가 지속되면 lhs0609c@naver.com로 문의해 주세요.'
                 : '인터넷 연결을 확인하시거나 잠시 기다려 주세요.'
             }
             onRetry={handleRetry}

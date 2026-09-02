@@ -177,8 +177,28 @@ export const TOSS_ERROR_CODES: Record<string, PaymentErrorInfo> = {
 export const DEFAULT_ERROR_INFO: PaymentErrorInfo = {
   code: 'UNKNOWN_ERROR',
   userMessage: '결제 처리 중 오류가 발생했습니다.',
-  actionRequired: '잠시 후 다시 시도해 주세요. 문제가 지속되면 고객센터(support@ongojisin.kr)에 문의해 주세요.',
+  actionRequired: '잠시 후 다시 시도해 주세요. 문제가 지속되면 고객센터(lhs0609c@naver.com)에 문의해 주세요.',
   retryable: true,
+  notifyUser: true,
+};
+
+/**
+ * 가맹점 계약이 없어서 나는 오류.
+ *
+ * 자동결제(빌링) API 는 토스페이먼츠와 추가 계약을 해야 열린다. 계약 없이
+ * 부르면 INVALID_BILL_KEY_REQUEST 가 오는데, 문구가 "빌링키 인증이 완료되지
+ * 않았거나 유효하지 않은 빌링 거래 건" 이라 카드 문제처럼 읽힌다. 실제로
+ * 그 화면을 보고 카드를 바꿔 가며 여러 번 시도했다.
+ *
+ * 이건 이용자가 어떻게 할 수 있는 일이 아니다. 다시 시도하라고 안내하면
+ * 안 된다.
+ */
+const CONTRACT_REQUIRED: PaymentErrorInfo = {
+  code: 'INVALID_BILL_KEY_REQUEST',
+  userMessage: '자동결제(정기결제) 기능이 아직 열려 있지 않습니다.',
+  actionRequired:
+    '가맹점 계약 확인이 필요한 문제라 재시도로는 해결되지 않습니다. 잠시 뒤 다시 안내드리겠습니다.',
+  retryable: false,
   notifyUser: true,
 };
 
@@ -186,6 +206,7 @@ export const DEFAULT_ERROR_INFO: PaymentErrorInfo = {
  * 토스 에러 코드를 사용자 친화적 메시지로 변환
  */
 export function getPaymentErrorInfo(errorCode: string): PaymentErrorInfo {
+  if (errorCode === 'INVALID_BILL_KEY_REQUEST') return CONTRACT_REQUIRED;
   return TOSS_ERROR_CODES[errorCode] || DEFAULT_ERROR_INFO;
 }
 

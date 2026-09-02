@@ -739,8 +739,8 @@ export default function LandingPage() {
                 <h4 className="text-[13px] font-semibold text-white/80">문의</h4>
                 <ul className="mt-3 space-y-2 text-[13px] text-white/40">
                   <li>
-                    <a href="mailto:support@ongojisin.ai" className="hover:text-white/70">
-                      support@ongojisin.ai
+                    <a href="mailto:lhs0609c@naver.com" className="hover:text-white/70">
+                      lhs0609c@naver.com
                     </a>
                   </li>
                 </ul>

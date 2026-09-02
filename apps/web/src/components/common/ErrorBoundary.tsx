@@ -357,7 +357,7 @@ Stack: ${error?.stack || 'N/A'}
               {/* 도움말 링크 */}
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-500">
                 <a
-                  href="mailto:support@ongojisin.ai"
+                  href="mailto:lhs0609c@naver.com"
                   className="flex items-center gap-1 hover:text-blue-600"
                 >
                   <ExternalLink className="w-3 h-3" />

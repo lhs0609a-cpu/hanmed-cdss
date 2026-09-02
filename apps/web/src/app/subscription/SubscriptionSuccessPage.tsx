@@ -48,10 +48,10 @@ export default function SubscriptionSuccessPage() {
             <p className="text-sm text-gray-500">
               결제 관련 문의:{' '}
               <a
-                href="mailto:support@ongojisin.ai"
+                href="mailto:lhs0609c@naver.com"
                 className="text-blue-600 hover:underline"
               >
-                support@ongojisin.ai
+                lhs0609c@naver.com
               </a>
             </p>
           </div>

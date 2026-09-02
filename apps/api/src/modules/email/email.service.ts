@@ -519,7 +519,7 @@ export class EmailService {
 
             <p style="color: #9ca3af; font-size: 12px; text-align: center;">
               이 이메일은 온고지신 AI 서비스에서 발송되었습니다.<br>
-              문의사항이 있으시면 support@ongojisin.ai로 연락주세요.
+              문의사항이 있으시면 lhs0609c@naver.com로 연락주세요.
             </p>
           </div>
 

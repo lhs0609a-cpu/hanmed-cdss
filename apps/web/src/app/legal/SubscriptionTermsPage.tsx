@@ -179,7 +179,7 @@ export default function SubscriptionTermsPage() {
               <li>해지 방법:
                 <ul className="list-disc list-inside ml-6 mt-2">
                   <li>서비스 내 [설정 → 구독 관리 → 구독 해지]</li>
-                  <li>고객센터 이메일: support@ongojisin.ai</li>
+                  <li>고객센터 이메일: lhs0609c@naver.com</li>
                   <li>고객센터: {COMPANY_INFO.email}</li>
                 </ul>
               </li>

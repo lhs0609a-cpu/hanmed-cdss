@@ -643,7 +643,7 @@ export default function AdLandingPage() {
               <ul className="space-y-2 text-sm">
                 <li><Link to="/help" className="hover:text-white transition-colors">도움말</Link></li>
                 <li><Link to="/contact" className="hover:text-white transition-colors">문의하기</Link></li>
-                <li><a href="mailto:support@ongojisin.ai" className="hover:text-white transition-colors">support@ongojisin.ai</a></li>
+                <li><a href="mailto:lhs0609c@naver.com" className="hover:text-white transition-colors">lhs0609c@naver.com</a></li>
               </ul>
             </div>
             <div>

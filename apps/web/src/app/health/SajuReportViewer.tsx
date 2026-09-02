@@ -194,7 +194,7 @@ export default function SajuReportViewer() {
           <p className="text-sm text-red-600">
             리포트 생성 중 오류가 발생했습니다.
             <br />
-            고객센터(support@ongojisin.ai)로 문의해주세요.
+            고객센터(lhs0609c@naver.com)로 문의해주세요.
           </p>
         </div>
       )}

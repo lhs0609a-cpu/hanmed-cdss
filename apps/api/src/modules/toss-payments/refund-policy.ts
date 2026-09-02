@@ -31,7 +31,7 @@ export const REFUND_POLICY = {
   PROCESSING_BUSINESS_DAYS: 3,
 
   /** 고객센터 연락처 (안내용) */
-  SUPPORT_EMAIL: 'support@ongojisin.kr',
+  SUPPORT_EMAIL: 'lhs0609c@naver.com',
 } as const;
 
 /** UI 표시용 한국어 안내문 */

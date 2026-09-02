@@ -214,13 +214,15 @@ export class TossPaymentsService {
         errorMessage: error?.response?.data?.message,
       });
 
+      // 전역 예외 필터가 statusCode·error·message 만 남기고 나머지 키를
+      // 버린다. code 를 여기 넣어 봐야 프론트까지 닿지 않는다 — 실제로
+      // 화면에 "에러 코드: Error" 만 떴고, 그래서 자동결제 계약이 없다는
+      // 사실을 알아채는 데 시간이 걸렸다. 결제 실패는 원인이 보여야 한다.
       throw new BadRequestException({
-        message: errorInfo.userMessage,
-        action: errorInfo.actionRequired,
-        code: errorInfo.code,
-        originalMessage: process.env.NODE_ENV === 'development'
-          ? error.response?.data?.message
-          : undefined,
+        error: errorInfo.code,
+        message: errorInfo.actionRequired
+          ? `${errorInfo.userMessage} ${errorInfo.actionRequired}`
+          : errorInfo.userMessage,
       });
     }
   }
