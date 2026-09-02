@@ -5,6 +5,7 @@ import { User } from '../entities/user.entity';
 import {
   Reference,
   ReferenceEvidenceType,
+  ReferenceSource,
 } from '../entities/reference.entity';
 import { buildTags } from './reference-tags';
 
@@ -52,6 +53,16 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const AUTHOR_EMAIL = argValue('author-email');
 const LIMIT = Number(argValue('limit') ?? '5') || 5;
 
+/**
+ * 출처를 지정해서 올린다. --source=kci 처럼.
+ *
+ * 정렬이 근거수준 우선이라 PubMed 체계적 고찰이 앞을 다 채운다. KCI 는
+ * 한국어 제목으로 연구유형이 잘 안 잡혀 대부분 unknown 이고, 그래서 뒤로
+ * 밀려 700건을 올려도 10건밖에 안 들어갔다. 출처를 골라 돌릴 수 있어야
+ * 한쪽만 채우는 일이 가능하다.
+ */
+const SOURCE = argValue('source');
+
 /** 인용 발췌 상한. 전문 복제를 피하면서 무엇에 관한 글인지는 전해질 길이. */
 const EXCERPT_CHARS = 300;
 
@@ -73,22 +84,54 @@ const EVIDENCE_LABEL: Record<ReferenceEvidenceType, string> = {
  * 만하다" 는 말이라 아무거나 올리면 그 말이 값을 잃는다.
  */
 function pickQuery(ds: DataSource, limit: number) {
-  return ds
+  const qb = ds
     .getRepository(Reference)
     .createQueryBuilder('r')
     .where('r."featuredInCommunity" = false')
     // 한국어로 번역된 것만 올린다. 영문 제목이 게시판을 덮으면 훑기가 안 되고,
     // 훑을 수 없는 게시판은 아무도 안 연다.
     .andWhere('r."titleKo" IS NOT NULL')
-    .andWhere('r."summaryKo" IS NOT NULL')
     .andWhere('r."abstract" IS NOT NULL')
-    .andWhere('r."evidenceType" IN (:...types)', {
-      types: [
-        ReferenceEvidenceType.SYSTEMATIC_REVIEW,
-        ReferenceEvidenceType.RCT,
-        ReferenceEvidenceType.GUIDELINE,
-      ],
-    })
+    // KCI 와 PubMed 를 다르게 본다.
+    //
+    // PubMed 는 영문이라 우리가 만든 한국어 요약(summaryKo)이 있어야 읽힌다.
+    // 근거 수준도 체계적 고찰·RCT·진료지침으로 좁힌다 — 1만 4천 편을 다
+    // 올릴 수는 없으니 무게 있는 것부터 고른다.
+    //
+    // KCI 는 국문 초록이 있는 것만 올린다.
+    //
+    // 처음에는 "KCI 는 한국어니까 다 올리면 된다" 고 봤는데 재 보니
+    // 국문 초록은 683건(4%)뿐이고 88%가 영문 초록이었다. 한국어 학술지도
+    // 초록은 영문으로 싣는 관행 때문이다. 제목만 한국어인 글을 게시판에
+    // 부으면 예전에 영문 초록을 붙여 놨을 때와 똑같아진다.
+    //
+    // 영문 초록만 있는 1만 4천 편은 자료실에서 한국어 제목으로 검색된다.
+    // 그것만으로도 이 수집의 값어치는 충분하다 — 게시판에 올릴 이유가
+    // 따로 있어야 올린다.
+    //
+    // 번역해서 올리지는 않는다. KCI 이용 약관의 '데이터 공신력 유지'
+    // 조항이 원천 데이터로 하위 정보를 만드는 것을 금한다.
+    //
+    // 근거 수준은 좁히지 않는다. 한국어 제목으로는 연구유형이 잘 안 잡혀
+    // 대부분 unknown 인데, 그것은 분류를 못 한 것이지 가치가 없다는 뜻이
+    // 아니다. 한의학 학술지에 실린 글이라 학술지 단위로 이미 걸러져 있다.
+    .andWhere(
+      `(
+         (r."source" = :kci AND r."abstract" ~ '[가-힣]')
+         OR (
+           r."summaryKo" IS NOT NULL
+           AND r."evidenceType" IN (:...types)
+         )
+       )`,
+      {
+        kci: ReferenceSource.KCI,
+        types: [
+          ReferenceEvidenceType.SYSTEMATIC_REVIEW,
+          ReferenceEvidenceType.RCT,
+          ReferenceEvidenceType.GUIDELINE,
+        ],
+      },
+    )
     .orderBy(
       `CASE r."evidenceType"
          WHEN '${ReferenceEvidenceType.SYSTEMATIC_REVIEW}' THEN 1
@@ -97,8 +140,9 @@ function pickQuery(ds: DataSource, limit: number) {
       'ASC',
     )
     .addOrderBy('r."publishedAt"', 'DESC', 'NULLS LAST')
-    .take(limit)
-    .getMany();
+    .take(limit);
+  if (SOURCE) qb.andWhere('r."source" = :src', { src: SOURCE });
+  return qb.getMany();
 }
 
 /**
@@ -129,8 +173,14 @@ export function buildContent(r: Reference): string {
   const NL = String.fromCharCode(10);
   const parts: string[] = [];
 
+  const isKci = r.source === ReferenceSource.KCI;
+
   // 한국어 요약이 먼저. 이걸 보려고 들어온 것이다.
-  parts.push(r.summaryKo ?? '');
+  //
+  // KCI 문헌에는 이 요약이 없다. 국문 초록이 원문 그대로 오므로 우리가
+  // 다시 쓸 이유가 없고, 무엇보다 KCI 이용 약관의 '데이터 공신력 유지'
+  // 조항이 원천 데이터로 하위 정보를 만드는 것을 금한다.
+  if (!isKci && r.summaryKo) parts.push(r.summaryKo);
 
   // 서지정보 표 — 저널·연도·근거수준이 문장에 섞여 있으면 눈에 안 들어온다.
   const rows: string[] = ['| 항목 | 내용 |', '|---|---|'];
@@ -162,7 +212,17 @@ export function buildContent(r: Reference): string {
   //
   // 아직 요약이 없는 문헌은 영문 발췌로 되돌아간다. 요약 생성은 문헌
   // 수보다 느리게 도는데, 그때 본문을 통째로 비우면 서지정보만 남는다.
-  if (r.abstractKo) {
+  if (isKci && r.abstract) {
+    // 국문 초록이라 그대로 인용한다. 요약도 번역도 하지 않는다 —
+    // KCI 약관이 원천 데이터 가공을 금하고, 애초에 이미 읽힌다.
+    const quoted = r.abstract
+      .trim()
+      .split(/\r?\n+/)
+      .map((line) => '> ' + line.trim())
+      .filter((line) => line !== '>')
+      .join(NL + '>' + NL);
+    parts.push('**초록**' + NL + NL + quoted);
+  } else if (r.abstractKo) {
     parts.push('**초록 요약**' + NL + NL + r.abstractKo.trim());
   } else if (r.abstract) {
     const excerpt =
@@ -177,18 +237,29 @@ export function buildContent(r: Reference): string {
     parts.push('**초록 일부 (원문)**' + NL + NL + quoted);
   }
 
-  // 기계가 만든 요약이라는 사실을 숨기지 않는다. 한의사가 이걸 근거로 삼기
-  // 전에 원문을 확인해야 한다는 것을 알아야 한다.
   parts.push(
     '---' +
       NL +
       NL +
-      '위 한국어 요약은 기계 번역으로 만든 것입니다. 용량과 시술 프로토콜은 ' +
-      '요약에 넣지 않았으니, 처방을 정하기 전에 원문을 확인해 주세요.',
+      (isKci
+        ? // KCI 는 초록을 원문 그대로 인용한다. 기계 번역 고지를 붙이면
+          // 사실과 다르다.
+          '위 초록은 원문 그대로입니다. 용량과 시술 프로토콜은 발췌 과정에서 ' +
+          '빠질 수 있으니, 처방을 정하기 전에 원문을 확인해 주세요.'
+        : // 기계가 만든 요약이라는 사실을 숨기지 않는다. 한의사가 이걸
+          // 근거로 삼기 전에 원문을 확인해야 한다는 것을 알아야 한다.
+          '위 한국어 요약은 기계 번역으로 만든 것입니다. 용량과 시술 프로토콜은 ' +
+          '요약에 넣지 않았으니, 처방을 정하기 전에 원문을 확인해 주세요.'),
   );
 
   const sources: string[] = ['- [원문 보기](' + r.url + ')'];
   if (r.doi) sources.push('- DOI: ' + r.doi);
+  if (isKci) {
+    // 약관 의무다. KCI Open API 이용 준수 사항의 '출처 표기' 조항이
+    // 데이터를 활용한 서비스 결과물에 KCI 데이터 활용 사실을 이용자가
+    // 식별할 수 있도록 명시하라고 정한다.
+    sources.push('- KCI(한국학술지인용색인) 데이터 활용');
+  }
   parts.push('**출처**' + NL + NL + sources.join(NL));
 
   // 답을 다 주고 끝내지 않는다. 답글이 달릴 자리를 남긴다.

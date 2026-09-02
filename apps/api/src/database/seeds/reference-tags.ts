@@ -112,8 +112,16 @@ const MAX_TAGS = 5;
  */
 export const REFERENCE_TAG = '문헌';
 
+/**
+ * 임상정보 게시판으로 보내는 예약 태그.
+ *
+ * 종합 게시판은 한의사끼리 이야기하라고 비워 둔다. 운영팀이 올리는 자료는
+ * 임상정보로 모은다. 화면의 CLINICAL_TAG 와 같은 값이어야 한다.
+ */
+export const CLINICAL_TAG = '임상정보';
+
 export function buildTags(r: Reference): string[] {
-  const tags: string[] = [REFERENCE_TAG];
+  const tags: string[] = [CLINICAL_TAG, REFERENCE_TAG];
 
   const cat = CATEGORY_TAG[r.category];
   if (cat) tags.push(cat);
