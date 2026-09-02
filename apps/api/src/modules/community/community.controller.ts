@@ -213,8 +213,8 @@ export class CommunityController {
     description:
       '첫 화면 게시판 카드에 숫자를 띄운다. 어디에 글이 있는지 들어가 보기 전에 알 수 있어야 한다.',
   })
-  async countByBoard() {
-    return this.communityService.countByBoard();
+  async countByBoard(@Request() req) {
+    return this.communityService.countByBoard(req.user?.id);
   }
 
   // ===== Categories =====

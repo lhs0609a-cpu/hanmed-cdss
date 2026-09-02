@@ -460,10 +460,11 @@ export class CommunityService {
    * 삭제·신고된 글은 빼고 센다. 목록에 안 보이는 글을 세면 카드에 적힌
    * 숫자와 실제로 열리는 글 수가 어긋난다.
    */
-  async countByBoard(): Promise<{
+  async countByBoard(userId?: string): Promise<{
     byType: Record<string, number>;
     suggestions: number;
     clinical: number;
+    bookmarks: number;
     total: number;
   }> {
     // 목록과 같은 규칙으로 센다.
@@ -483,7 +484,14 @@ export class CommunityService {
       .groupBy('post.type')
       .getRawMany<{ type: string; count: string }>();
 
+    // 글이 없는 유형도 0 으로 채운다.
+    //
+    // GROUP BY 는 행이 있는 유형만 돌려준다. 케이스 토론처럼 아직 글이
+    // 없는 게시판은 키가 아예 빠지고, 화면은 값이 없으니 숫자를 안 그렸다.
+    // 다른 카드에는 숫자가 있는데 하나만 비어 있으면 고장으로 보인다.
+    // 0 은 모르는 것이 아니라 아는 값이다.
     const byType: Record<string, number> = {};
+    for (const t of Object.values(PostType)) byType[t] = 0;
     for (const r of rows) {
       byType[r.type] = parseInt(r.count, 10) || 0;
     }
@@ -512,7 +520,15 @@ export class CommunityService {
       countByTag('임상정보'),
     ]);
 
-    return { byType, suggestions, clinical, total };
+    // 북마크는 사람마다 다르다. 로그인한 사람의 것만 센다.
+    //
+    // 예전에는 "서버가 합계로 세지 않는다" 는 이유로 숫자를 안 띄웠다.
+    // 다시 보니 셀 수 있는 값이었다 — 못 세는 것과 안 센 것은 다르다.
+    const bookmarks = userId
+      ? await this.bookmarksRepository.count({ where: { userId } })
+      : 0;
+
+    return { byType, suggestions, clinical, bookmarks, total };
   }
 
   async findPopularTags(limit = 20) {

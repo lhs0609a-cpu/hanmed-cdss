@@ -60,9 +60,11 @@ export const CLINICAL_TAG = '임상정보'
  * 여섯 장을 손으로 늘어놓았더니 한 장 고칠 때마다 나머지 다섯 장과
  * 어긋났다. 배열로 두면 글 수 표시 같은 것을 한 번만 붙이면 된다.
  *
- * countKey 는 서버가 주는 집계의 열쇠다. 북마크는 사람마다 다른 값이라
- * 서버가 합계로 세지 않으므로 null 을 둔다 — 모르는 것을 0 으로 적으면
- * "저장한 글이 없다" 는 거짓말이 된다.
+ * countKey 는 서버가 주는 집계의 열쇠다.
+ *
+ * 북마크는 한때 null 이었다. "사람마다 다른 값이라 서버가 합계로 세지
+ * 않는다" 는 이유였는데, 다시 보니 로그인한 사람의 것을 세면 되는 일이었다.
+ * 못 세는 것과 안 센 것은 다르다.
  */
 const BOARD_CARDS: Array<{
   to: string
@@ -142,7 +144,7 @@ const BOARD_CARDS: Array<{
     iconColor: 'text-blue-500',
     hoverBorder: 'hover:border-blue-300',
     hoverText: 'group-hover:text-blue-600',
-    countKey: null,
+    countKey: 'bookmarks',
   },
 ]
 
@@ -194,6 +196,8 @@ export default function CommunityPage() {
   const [boardCounts, setBoardCounts] = useState<{
     byType: Record<string, number>
     suggestions: number
+    clinical: number
+    bookmarks: number
   } | null>(null)
 
   useEffect(() => {
@@ -368,9 +372,16 @@ export default function CommunityPage() {
           const count =
             card.countKey === null
               ? null
-              : card.countKey === 'suggestions'
+              : // 건의사항·임상정보는 게시판 유형이 아니라 예약 태그라
+                // 서버가 byType 이 아니라 최상위에 따로 담아 준다. 여기서
+                // 갈라 주지 않으면 임상정보 카드에 숫자가 안 나온다.
+                card.countKey === 'suggestions'
                 ? (boardCounts?.suggestions ?? null)
-                : (boardCounts?.byType?.[card.countKey] ?? null)
+                : card.countKey === 'clinical'
+                  ? (boardCounts?.clinical ?? null)
+                  : card.countKey === 'bookmarks'
+                    ? (boardCounts?.bookmarks ?? null)
+                    : (boardCounts?.byType?.[card.countKey] ?? null)
 
           return (
             <Link
