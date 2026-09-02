@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, LessThanOrEqual, MoreThan, IsNull, QueryRunner } from 'typeorm';
+import { Repository, DataSource, LessThanOrEqual, MoreThan, IsNull, In, QueryRunner } from 'typeorm';
 import axios from 'axios';
 import {
   User,
@@ -245,11 +245,18 @@ export class TossPaymentsService {
     const price = PLAN_PRICES[tier];
     const amount = interval === BillingInterval.YEARLY ? price.yearly : price.monthly;
     const orderId = `order_${userId}_${Date.now()}`;
-    // 멱등키는 시각을 넣지 않는다. 넣으면 재시도마다 값이 달라져 아무것도
-    // 막지 못한다. 사람·플랜·주기·청구월로 만든다 — 같은 달에 같은 플랜을
-    // 두 번 청구하는 일이 없도록.
-    const billingPeriod = new Date().toISOString().slice(0, 7);
-    const idempotencyKey = `sub_${userId}_${tier}_${interval}_${billingPeriod}`;
+    // 멱등키.
+    //
+    // 시각을 넣으면 재시도마다 값이 달라져 아무것도 막지 못한다. 그렇다고
+    // 청구월(YYYY-MM)로 잡았더니 반대로 너무 넓었다 — 9월 1일에 구독하고
+    // 9월 30일에 자동갱신되면 같은 키라, 정당한 갱신이 멱등에 막혀 돈은
+    // 안 나갔는데 성공으로 처리되고 구독만 공짜로 연장된다.
+    //
+    // 날짜(YYYY-MM-DD)로 잡는다. 초 단위 재시도 폭주는 막고, 한 달 뒤
+    // 갱신은 통과한다. 같은 날 같은 플랜을 두 번 청구하는 것은 어차피
+    // 막아야 하는 일이다.
+    const billingDay = new Date().toISOString().slice(0, 10);
+    const idempotencyKey = `sub_${userId}_${tier}_${interval}_${billingDay}`;
     const orderName = `온고지신 AI ${price.name} 플랜 (${interval === BillingInterval.YEARLY ? '연간' : '월간'})`;
 
     // 중복 결제 방지는 DB 부분 unique index (idx_payment_user_pending) 가 강제한다.
@@ -510,10 +517,18 @@ export class TossPaymentsService {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    // 기존 활성 구독 취소
+    // 기존 구독 정리.
+    //
+    // ACTIVE 만 지우면 안 된다. 결제가 한 번 실패해 PAST_DUE 로 내려간
+    // 구독은 그대로 남고 새 ACTIVE 가 하나 더 생겨, 한 사람에게 살아 있는
+    // 구독이 둘이 된다. 그중 하나는 기간이 이미 지난 채라 다음날 자동갱신
+    // 크론이 다시 집어서 또 결제한다.
     await queryRunner.manager.update(
       Subscription,
-      { userId, status: SubscriptionStatus.ACTIVE },
+      {
+        userId,
+        status: In([SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE]),
+      },
       { status: SubscriptionStatus.CANCELED, canceledAt: now },
     );
 
@@ -675,6 +690,18 @@ export class TossPaymentsService {
         const user = await this.userRepository.findOne({ where: { id: sub.userId } });
         if (!user || !user.tossBillingKey) continue;
 
+        // 무료 등급은 갱신하지 않는다.
+        //
+        // 여기서 티어를 user 에서 읽는데(Subscription 에 티어 칸이 없다),
+        // 만료·취소로 FREE 로 내려간 사용자가 걸릴 수 있다. FREE 는 월
+        // 0원이라 0원 결제를 시도하게 된다. 받을 돈이 없으면 청구하지 않는다.
+        if (user.subscriptionTier === SubscriptionTier.FREE) {
+          this.logger.warn(
+            `자동 갱신 건너뜀(무료 등급): userId=${sub.userId}, subId=${sub.id}`,
+          );
+          continue;
+        }
+
         // 다음 결제 실행
         await this.payWithBillingKey(
           sub.userId,
@@ -682,14 +709,14 @@ export class TossPaymentsService {
           sub.billingInterval,
         );
 
-        // 결제 성공 시 재시도 횟수 + 유예 상태 초기화
-        sub.paymentRetryCount = 0;
-        sub.lastPaymentError = null;
-        sub.paymentFailedAt = null;
-        sub.pastDueUntil = null;
-        await this.subscriptionRepository.save(sub);
-
-        this.logger.log(`자동 갱신 성공: userId=${sub.userId}`);
+        // 여기서 sub 를 저장하지 않는다.
+        //
+        // payWithBillingKey 가 트랜잭션 안에서 이 구독을 CANCELED 로 바꾸고
+        // 새 기간의 구독을 따로 만든다. 그런데 이 루프가 들고 있는 sub 는
+        // 아직 status=ACTIVE 에 옛 기간이 담긴 낡은 객체다. 그대로 save 하면
+        // 방금 정리한 행이 되살아나 살아 있는 구독이 둘이 되고, 그중 하나는
+        // 기간이 지난 채라 다음날 크론이 또 집어서 또 결제한다. 매일.
+        this.logger.log(`자동 갱신 성공: userId=${sub.userId}, subId=${sub.id}`);
       } catch (error) {
         this.logger.error(`자동 갱신 실패: userId=${sub.userId}`, error);
 
@@ -823,9 +850,31 @@ export class TossPaymentsService {
         continue;
       }
 
+      // 재시도 간격을 지킨다.
+      //
+      // 이 크론은 매시간 돈다. 간격 검사가 없으면 실패한 카드를 세 시간
+      // 안에 세 번 긁고 재시도를 다 써 버린다. 3일 유예를 둔 뜻이 없어지고,
+      // 짧은 시간에 거절이 몰리면 카드사가 이상거래로 막는다.
+      //
+      // 첫 실패로부터 하루씩 벌린다 — 1회차는 1일 뒤, 2회차는 2일 뒤.
+      if (sub.paymentFailedAt) {
+        const waitDays = sub.paymentRetryCount || 1;
+        const nextAttemptAt = new Date(sub.paymentFailedAt);
+        nextAttemptAt.setDate(nextAttemptAt.getDate() + waitDays);
+        if (new Date() < nextAttemptAt) continue;
+      }
+
       try {
         const user = await this.userRepository.findOne({ where: { id: sub.userId } });
         if (!user || !user.tossBillingKey) continue;
+
+        // 무료 등급에는 청구하지 않는다. 0원 결제를 시도하게 된다.
+        if (user.subscriptionTier === SubscriptionTier.FREE) {
+          this.logger.warn(
+            `재시도 건너뜀(무료 등급): userId=${sub.userId}, subId=${sub.id}`,
+          );
+          continue;
+        }
 
         await this.payWithBillingKey(
           sub.userId,
@@ -833,15 +882,10 @@ export class TossPaymentsService {
           sub.billingInterval,
         );
 
-        // 결제 성공 시 상태 + 유예 기간 복원
-        sub.status = SubscriptionStatus.ACTIVE;
-        sub.paymentRetryCount = 0;
-        sub.lastPaymentError = null;
-        sub.paymentFailedAt = null;
-        sub.pastDueUntil = null;
-        await this.subscriptionRepository.save(sub);
-
-        this.logger.log(`결제 재시도 성공: userId=${sub.userId}`);
+        // 자동갱신과 같은 이유로 sub 를 저장하지 않는다. payWithBillingKey 가
+        // 이 행을 CANCELED 로 정리하고 새 구독을 만들었는데, 낡은 객체를
+        // ACTIVE 로 되돌려 저장하면 살아 있는 구독이 둘이 된다.
+        this.logger.log(`결제 재시도 성공: userId=${sub.userId}, subId=${sub.id}`);
       } catch (error) {
         sub.paymentRetryCount = (sub.paymentRetryCount || 0) + 1;
         sub.lastPaymentError = error.message || '결제 실패';
@@ -850,6 +894,28 @@ export class TossPaymentsService {
         this.logger.error(`결제 재시도 실패: userId=${sub.userId}, retryCount=${sub.paymentRetryCount}`, error);
       }
     }
+  }
+
+  /**
+   * 지금 실제로 적용되는 등급.
+   *
+   * subscriptionTier 를 그대로 믿으면 안 된다. 강등은 매일 자정 크론이
+   * 하는데 그날 앱이 안 떠 있었거나 크론이 한 번 실패하면 유료 등급이
+   * 그대로 남는다.
+   *
+   * 이 값을 한 곳에서 정하는 이유는 화면과 차단이 어긋나면 안 되기
+   * 때문이다. 한도를 보여주는 곳과 막는 곳이 서로 다른 규칙을 쓰면
+   * "1,000회라고 적혀 있는데 50회에서 막힌다" 가 된다. 돈 낸 사람에게
+   * 그보다 나쁜 경험은 없다.
+   *
+   * 만료일이 없으면 건드리지 않는다. 값이 없다고 만료된 것은 아니다.
+   */
+  private effectiveTier(user: User): SubscriptionTier {
+    const expiresAt = user.subscriptionExpiresAt;
+    if (expiresAt && new Date(expiresAt) < new Date()) {
+      return SubscriptionTier.FREE;
+    }
+    return user.subscriptionTier;
   }
 
   // 사용량 추적 (트랜잭션 + 락으로 race condition 방지)
@@ -918,16 +984,9 @@ export class TossPaymentsService {
       //
       // 만료일이 아예 없는 경우는 건드리지 않는다 — 값이 없다고 해서
       // 만료된 것은 아니다.
-      const expired =
-        user.subscriptionExpiresAt !== null &&
-        user.subscriptionExpiresAt < now;
-      const effectiveTier = expired
-        ? SubscriptionTier.FREE
-        : user.subscriptionTier;
-
       const limit = trialSubscription
         ? TRIAL_CONFIG.TRIAL_AI_LIMIT
-        : PLAN_LIMITS[effectiveTier];
+        : PLAN_LIMITS[this.effectiveTier(user)];
 
       // 5. 제한 체크 (락이 걸린 상태에서 정확한 값 체크)
       if (usageType === UsageType.AI_QUERY && usage.count >= limit) {
@@ -979,10 +1038,11 @@ export class TossPaymentsService {
       where: { userId, status: SubscriptionStatus.TRIALING, isTrial: true },
     });
 
-    // 체험 중이면 TRIAL_AI_LIMIT(30건) 적용, 아니면 플랜별 제한 적용
+    // 체험 중이면 TRIAL_AI_LIMIT 적용, 아니면 플랜별 제한 적용.
+    // 차단하는 쪽(trackUsage)과 반드시 같은 규칙이어야 한다.
     const limit = trialSubscription
       ? TRIAL_CONFIG.TRIAL_AI_LIMIT
-      : PLAN_LIMITS[user.subscriptionTier];
+      : PLAN_LIMITS[this.effectiveTier(user)];
 
     return {
       aiQuery: {
