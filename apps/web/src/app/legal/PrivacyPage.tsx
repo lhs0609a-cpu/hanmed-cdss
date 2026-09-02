@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { COMPANY_INFO } from '@/config/company.config';
+import { COMPANY_INFO, companyField } from '@/config/company.config';
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
@@ -23,12 +23,12 @@ export default function PrivacyPage() {
           <CardHeader>
             <CardTitle className="text-2xl">개인정보처리방침</CardTitle>
             <p className="text-sm text-muted-foreground">
-              시행일: {COMPANY_INFO.effectiveDate} | 최종 수정: {COMPANY_INFO.lastUpdated}
+              시행일: {companyField('effectiveDate')} | 최종 수정: {companyField('lastUpdated')}
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
             <p className="text-gray-700 leading-relaxed">
-              {COMPANY_INFO.name}(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」
+              {companyField('name')}(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」
               및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고 안전하게 관리하고 있습니다.
             </p>
 
@@ -267,7 +267,7 @@ export default function PrivacyPage() {
             <div className="bg-gray-100 p-4 rounded-lg mt-3">
               <p className="text-gray-700">
                 <strong>개인정보 보호책임자</strong><br />
-                성명: {COMPANY_INFO.privacyOfficer}<br />
+                성명: {companyField('privacyOfficer')}<br />
                 직책: 대표<br />
                 이메일: {COMPANY_INFO.privacyEmail}
               </p>
@@ -285,15 +285,15 @@ export default function PrivacyPage() {
             </ul>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">부칙</h2>
-            <p className="text-gray-700">본 개인정보처리방침은 {COMPANY_INFO.effectiveDate}부터 시행합니다.</p>
+            <p className="text-gray-700">본 개인정보처리방침은 {companyField('effectiveDate')}부터 시행합니다.</p>
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>{COMPANY_INFO.name}</strong><br />
-                {COMPANY_INFO.address}<br />
-                대표: {COMPANY_INFO.ceo}<br />
-                사업자등록번호: {COMPANY_INFO.businessNumber}<br />
-                고객센터: {COMPANY_INFO.phone}<br />
+                <strong>{companyField('name')}</strong><br />
+                {companyField('address')}<br />
+                대표: {companyField('ceo')}<br />
+                사업자등록번호: {companyField('businessNumber')}<br />
+                고객센터: {companyField('phone')}<br />
                 이메일: {COMPANY_INFO.email}
               </p>
             </div>

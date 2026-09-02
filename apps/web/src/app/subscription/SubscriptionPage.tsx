@@ -46,6 +46,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ROICalculator } from '@/components/dashboard';
 import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
 import { formatKRW, formatKRDate, withVat } from '@/lib/format';
+import { hasBusinessInfo } from '@/config/company.config';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -158,7 +159,29 @@ export default function SubscriptionPage() {
     };
   };
 
+  /**
+   * 사업자 정보가 없으면 결제를 받지 않는다.
+   *
+   * 전자상거래법 제13조는 상호·대표자·사업자등록번호·통신판매업신고번호·
+   * 주소·연락처를 표시하도록 정한다. 지금 company.config.ts 가 비어 있어
+   * 약관과 환불정책 페이지에 그 자리가 채워지지 않는다.
+   *
+   * 그 상태로 돈을 받으면 안 된다. 환불 분쟁이 생겼을 때 이용자가 누구에게
+   * 무엇을 근거로 요구해야 하는지 알 수 없다. 법 위반이면서 동시에 서비스가
+   * 감당할 수 없는 약속이다.
+   *
+   * 값이 채워지는 순간 이 잠금은 저절로 풀린다. 따로 지울 코드가 없다.
+   */
+  const businessInfoMissing = !hasBusinessInfo()
+
   const handleSubscribe = (tier: string) => {
+    if (businessInfoMissing) {
+      toast.error(
+        '결제 준비 중입니다. 사업자 정보 등록이 완료된 뒤 이용하실 수 있습니다.',
+      )
+      return
+    }
+
     if (tier === 'free') return;
 
     if (!hasBillingKey) {
@@ -419,6 +442,18 @@ export default function SubscriptionPage() {
       {/* 이 버튼이 곧 결제 시작이다. 예전에는 요금제 페이지로 가는 Link 였는데
           이 계산기가 그 페이지 안에만 있어서, 지금 보고 있는 화면으로 다시 가는
           링크였다 — 눌러도 아무 일이 없었다. */}
+      {/* 결제를 못 받는 상태라면 먼저 알린다. 눌러 보고 에러를 만나는 것보다
+          이유를 먼저 아는 쪽이 낫다. */}
+      {businessInfoMissing && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">결제 준비 중입니다</p>
+          <p className="mt-1 leading-relaxed text-amber-800">
+            사업자 정보 등록이 끝나면 결제를 열겠습니다. 그때까지 무료 기능은
+            그대로 쓰실 수 있습니다.
+          </p>
+        </div>
+      )}
+
       <ROICalculator onSelectPlan={handleSubscribe} />
 
       {/* Plans Grid */}
@@ -522,7 +557,7 @@ export default function SubscriptionPage() {
                     variant={isRecommended && !isCurrentPlan && plan.tier !== 'free' ? 'gradient' : 'default'}
                     className="w-full"
                     onClick={() => handleSubscribe(plan.tier)}
-                    disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan}
+                    disabled={subscribe.isPending || plan.tier === 'free' || isCurrentPlan || businessInfoMissing}
                   >
                     {subscribe.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { COMPANY_INFO } from '@/config/company.config';
+import { COMPANY_INFO, companyField } from '@/config/company.config';
 
 export default function TermsPage() {
   const navigate = useNavigate();
@@ -23,13 +23,13 @@ export default function TermsPage() {
           <CardHeader>
             <CardTitle className="text-2xl">서비스 이용약관</CardTitle>
             <p className="text-sm text-muted-foreground">
-              시행일: {COMPANY_INFO.effectiveDate} | 최종 수정: {COMPANY_INFO.lastUpdated}
+              시행일: {companyField('effectiveDate')} | 최종 수정: {companyField('lastUpdated')}
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
             <h2 className="text-lg font-semibold mt-6 mb-3">제1조 (목적)</h2>
             <p className="text-gray-700 leading-relaxed">
-              본 약관은 {COMPANY_INFO.name}(이하 "회사")이 제공하는 한의학 임상의사결정지원시스템
+              본 약관은 {companyField('name')}(이하 "회사")이 제공하는 한의학 임상의사결정지원시스템
               "온고지신 AI" 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및
               책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
             </p>
@@ -129,16 +129,16 @@ export default function TermsPage() {
             </ol>
 
             <h2 className="text-lg font-semibold mt-6 mb-3">부칙</h2>
-            <p className="text-gray-700">본 약관은 {COMPANY_INFO.effectiveDate}부터 시행합니다.</p>
+            <p className="text-gray-700">본 약관은 {companyField('effectiveDate')}부터 시행합니다.</p>
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>{COMPANY_INFO.name}</strong><br />
-                {COMPANY_INFO.address}<br />
-                대표: {COMPANY_INFO.ceo}<br />
-                사업자등록번호: {COMPANY_INFO.businessNumber}<br />
-                통신판매업신고: {COMPANY_INFO.mailOrderNumber}<br />
-                고객센터: {COMPANY_INFO.phone}<br />
+                <strong>{companyField('name')}</strong><br />
+                {companyField('address')}<br />
+                대표: {companyField('ceo')}<br />
+                사업자등록번호: {companyField('businessNumber')}<br />
+                통신판매업신고: {companyField('mailOrderNumber')}<br />
+                고객센터: {companyField('phone')}<br />
                 이메일: {COMPANY_INFO.email}
               </p>
             </div>
