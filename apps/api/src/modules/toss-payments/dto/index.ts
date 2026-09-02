@@ -37,6 +37,18 @@ export class RegisterCardDto {
   customerIdentityNumber: string;
 }
 
+export class BillingAuthDto {
+  @ApiProperty({ description: '결제창에 넘긴 고객 식별자' })
+  @IsString()
+  @Length(2, 50)
+  customerKey: string;
+
+  @ApiProperty({ description: '결제창이 돌려준 인증 키' })
+  @IsString()
+  @Length(1, 200)
+  authKey: string;
+}
+
 export class SubscribeDto {
   @ApiProperty({ enum: ['basic', 'professional', 'clinic'] })
   @IsEnum(['basic', 'professional', 'clinic'])

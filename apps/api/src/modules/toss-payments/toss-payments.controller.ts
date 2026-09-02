@@ -8,6 +8,7 @@ import { TossPaymentsService } from './toss-payments.service';
 import { User } from '../../database/entities/user.entity';
 import {
   RegisterCardDto,
+  BillingAuthDto,
   SubscribeDto,
   RefundRequestDto,
   PaymentHistoryQueryDto,
@@ -66,6 +67,31 @@ export class TossPaymentsController {
       dto.customerIdentityNumber,
     );
 
+    return {
+      success: true,
+      message: '카드가 등록되었습니다.',
+      cardNumber: result.cardNumber,
+    };
+  }
+
+  @Post('billing-auth')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  @ApiOperation({
+    summary: '결제창 인증 결과로 빌링키 발급',
+    description:
+      '토스 결제창이 휴대폰 본인인증까지 마치고 돌려준 authKey 로 빌링키를 받는다. 카드번호는 우리 서버를 지나가지 않는다.',
+  })
+  async issueBillingFromAuth(
+    @CurrentUser() user: User,
+    @Body() dto: BillingAuthDto,
+  ) {
+    const result = await this.tossPaymentsService.issueBillingKeyFromAuth(
+      user.id,
+      dto.customerKey,
+      dto.authKey,
+    );
     return {
       success: true,
       message: '카드가 등록되었습니다.',

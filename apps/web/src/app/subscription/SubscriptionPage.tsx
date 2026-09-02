@@ -47,6 +47,8 @@ import { ROICalculator } from '@/components/dashboard';
 import { SkeletonSubscriptionPage } from '@/components/common/Skeleton';
 import { formatKRW, formatKRDate, withVat } from '@/lib/format';
 import { hasBusinessInfo, TOSS_BILLING_CONTRACT_ACTIVE } from '@/config/company.config';
+import api from '@/services/api';
+import { getErrorMessage } from '@/lib/errors';
 
 const planIcons: Record<string, React.ElementType> = {
   free: Sparkles,
@@ -179,6 +181,48 @@ export default function SubscriptionPage() {
   const billingUnavailable = !TOSS_BILLING_CONTRACT_ACTIVE
   const paymentBlocked = businessInfoMissing || billingUnavailable
 
+  /**
+   * 결제창으로 카드를 등록한다.
+   *
+   * 예전에는 우리 화면에서 카드번호를 직접 받아 서버가 빌링키를 발급했다.
+   * 그런데 실제 카드로도 계속 INVALID_BILL_KEY_REQUEST 가 났다 — 그 방식은
+   * 본인인증을 우리가 구현해야 하는데 안 했기 때문이다. 토스 문서가 못박는다:
+   * "API로 자동결제를 연동하면 본인인증은 직접 구현해야 합니다."
+   *
+   * 결제창을 쓰면 토스가 휴대폰 본인인증까지 처리하고 authKey 를 돌려준다.
+   * 덤으로 카드번호가 우리 서버를 지나가지 않는다 — 지키지 않아도 되는
+   * 책임은 애초에 지지 않는 편이 낫다.
+   */
+  const openBillingWindow = async (tier: string) => {
+    if (!user?.id) {
+      toast.error('로그인이 필요합니다.')
+      return
+    }
+    try {
+      const { data } = await api.get<{ clientKey: string }>(
+        '/subscription/client-key',
+      )
+      const { loadTossPayments } = await import('@tosspayments/payment-sdk')
+      const toss = await loadTossPayments(data.clientKey)
+
+      // 돌아왔을 때 어느 플랜을 고르던 중이었는지 알아야 이어서 결제한다.
+      sessionStorage.setItem('pendingTier', tier)
+      sessionStorage.setItem('pendingInterval', billingInterval)
+
+      const base = `${window.location.origin}/dashboard/subscription`
+      await toss.requestBillingAuth('카드', {
+        customerKey: `customer_${user.id}`,
+        successUrl: `${base}/billing-success`,
+        failUrl: `${base}?billing=fail`,
+      })
+    } catch (error) {
+      // 사용자가 창을 닫은 것은 실패가 아니다.
+      const code = (error as { code?: string })?.code
+      if (code === 'USER_CANCEL') return
+      toast.error(getErrorMessage(error))
+    }
+  }
+
   const handleSubscribe = (tier: string) => {
     if (paymentBlocked) {
       toast.error(
@@ -193,7 +237,7 @@ export default function SubscriptionPage() {
 
     if (!hasBillingKey) {
       setSelectedTier(tier as 'basic' | 'professional' | 'clinic');
-      setShowCardModal(true);
+      void openBillingWindow(tier);
     } else {
       // 바로 구독 처리
       subscribe.mutate(

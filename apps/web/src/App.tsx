@@ -61,6 +61,7 @@ const PostDetailPage = lazy(() => import('@/app/community/PostDetailPage'))
 const WritePostPage = lazy(() => import('@/app/community/WritePostPage'))
 const SubscriptionPage = lazy(() => import('@/app/subscription/SubscriptionPage'))
 const SubscriptionSuccessPage = lazy(() => import('@/app/subscription/SubscriptionSuccessPage'))
+const BillingSuccessPage = lazy(() => import('@/app/subscription/BillingSuccessPage'))
 const SettingsPage = lazy(() => import('@/app/settings/SettingsPage'))
 const ActivityLogPage = lazy(() => import('@/app/activity/ActivityLogPage'))
 const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'))
@@ -265,6 +266,8 @@ function App() {
 
           <Route path="subscription" element={route(<SubscriptionPage />)} />
           <Route path="subscription/success" element={route(<SubscriptionSuccessPage />)} />
+          {/* 토스 결제창이 카드 인증을 마치고 돌아오는 자리 */}
+          <Route path="subscription/billing-success" element={route(<BillingSuccessPage />)} />
 
           <Route path="settings" element={route(<SettingsPage />)} />
           <Route path="activity" element={route(<ActivityLogPage />)} />

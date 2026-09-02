@@ -227,6 +227,81 @@ export class TossPaymentsService {
     }
   }
 
+  /**
+   * 결제창에서 받은 authKey 로 빌링키를 발급한다.
+   *
+   * 카드번호를 직접 받아 발급하는 방식(issueBillingKey)이 계속
+   * INVALID_BILL_KEY_REQUEST 로 거절됐다. 처음에는 자동결제 계약이 없어서라고
+   * 봤는데 아니었다 — 잘못된 카드번호를 보내면 INVALID_CARD_NUMBER 가 정확히
+   * 돌아온다. 엔드포인트도 열려 있고 카드 검증도 돈다.
+   *
+   * 오류 문구가 "빌링키 인증이 완료되지 않았거나" 인 것이 답이었다. 토스
+   * 문서가 못박는다 — "API로 자동결제를 연동하면 본인인증은 직접 구현해야
+   * 합니다." 우리는 그 본인인증을 구현하지 않았다.
+   *
+   * 그래서 결제창 방식으로 옮긴다. 토스가 휴대폰 본인인증까지 처리하고
+   * authKey 를 돌려주면, 그것으로 빌링키를 받는다.
+   *
+   * 부수적으로 얻는 것이 더 크다. 카드번호가 우리 서버를 지나가지 않는다.
+   * 카드정보를 직접 받으면 그 순간부터 그 데이터를 지킬 책임이 생기는데,
+   * 지키지 않아도 되는 책임은 애초에 지지 않는 편이 낫다.
+   */
+  async issueBillingKeyFromAuth(
+    userId: string,
+    customerKey: string,
+    authKey: string,
+  ): Promise<{ billingKey: string; cardNumber: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // customerKey 는 우리가 만들어 결제창에 넘긴 값이다. 돌아온 것이 그
+    // 값과 다르면 남의 인증 결과를 가져다 쓰는 것이므로 받지 않는다.
+    const expected = `customer_${userId}`;
+    if (customerKey !== expected) {
+      this.logger.warn(
+        `빌링 인증 customerKey 불일치: userId=${userId}, got=${customerKey}`,
+      );
+      throw new BadRequestException({
+        error: 'INVALID_CUSTOMER_KEY',
+        message: '결제 인증 정보가 올바르지 않습니다. 다시 시도해 주세요.',
+      });
+    }
+
+    try {
+      const response = await axios.post<TossBillingKeyResponse>(
+        `${this.apiUrl}/billing/authorizations/issue`,
+        { customerKey, authKey },
+        {
+          headers: {
+            Authorization: this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const { billingKey, card } = response.data;
+      await this.userRepository.update(userId, { tossBillingKey: billingKey });
+
+      this.logger.log(`빌링키 발급 완료(결제창): userId=${userId}`);
+      return { billingKey, cardNumber: card?.number ?? '' };
+    } catch (error) {
+      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR';
+      const errorInfo = getPaymentErrorInfo(errorCode);
+      this.logger.error(
+        `빌링키 발급 실패(결제창): userId=${userId}, code=${errorCode}`,
+        { errorMessage: error?.response?.data?.message },
+      );
+      throw new BadRequestException({
+        error: errorInfo.code,
+        message: errorInfo.actionRequired
+          ? `${errorInfo.userMessage} ${errorInfo.actionRequired}`
+          : errorInfo.userMessage,
+      });
+    }
+  }
+
   // 빌링키로 결제 요청 (트랜잭션 적용)
   async payWithBillingKey(
     userId: string,
