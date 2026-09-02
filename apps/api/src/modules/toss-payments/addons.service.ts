@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ServiceUnavailableException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
@@ -15,13 +17,18 @@ import {
 import { BillingInterval } from '../../database/entities/subscription.entity';
 import { User, SubscriptionTier } from '../../database/entities/user.entity';
 import { tierHasFeature, FeatureKey } from '../../database/entities/plan-features';
-import { BILLING_ADDON } from './toss-payments.service';
+import { BILLING_ADDON, TossPaymentsService } from './toss-payments.service';
 
 const ADDON_PRICES: Record<AddonKey, { monthly: number; yearly: number }> = {
   [AddonKey.INSURANCE_CLAIM]: {
     monthly: BILLING_ADDON.INSURANCE_CLAIM_MONTHLY,
     yearly: BILLING_ADDON.INSURANCE_CLAIM_YEARLY,
   },
+};
+
+/** 결제 내역에 찍히는 이름. 카드 명세서에서 무엇인지 알아볼 수 있어야 한다. */
+const ADDON_LABELS: Record<AddonKey, string> = {
+  [AddonKey.INSURANCE_CLAIM]: '보험청구 부가서비스',
 };
 
 @Injectable()
@@ -33,6 +40,10 @@ export class AddonsService {
     private addonRepo: Repository<SubscriptionAddon>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    // 순환 참조를 피하려고 forwardRef 를 쓴다 — TossPaymentsService 가
+    // 애드온 목록을 읽고, 애드온이 결제를 부른다.
+    @Inject(forwardRef(() => TossPaymentsService))
+    private tossPayments: TossPaymentsService,
   ) {}
 
   async listForUser(userId: string): Promise<SubscriptionAddon[]> {
@@ -102,8 +113,23 @@ export class AddonsService {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    // NOTE: 실제 Toss 결제 호출은 TossPaymentsService.chargeWithBillingKey 패턴을 따라
-    // 별도 PR에서 통합. 여기서는 add-on 레코드만 생성 (출시 직전 스캐폴딩).
+    // 먼저 결제하고 그 다음에 활성화한다.
+    //
+    // 예전에는 결제 호출이 아예 없었다. 레코드만 만들고 ACTIVE 로 띄웠고
+    // 화면에는 구독 버튼이 그대로 있었다. 누르면 카드는 안 긁히는데
+    // "구독되었습니다" 가 뜨고 유료 기능이 열렸다.
+    //
+    // 순서가 중요하다. 결제가 실패하면 여기서 예외가 올라가 애드온 레코드는
+    // 만들어지지 않는다. 반대로 했다면 결제 실패인데 부가서비스는 살아 있는
+    // 상태가 남는다.
+    await this.tossPayments.chargeAddon(
+      userId,
+      addonKey,
+      ADDON_LABELS[addonKey],
+      unitPrice,
+      interval,
+    );
+
     const addon = this.addonRepo.create({
       userId,
       addonKey,

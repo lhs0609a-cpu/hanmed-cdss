@@ -604,6 +604,135 @@ export class TossPaymentsService {
     this.logger.log(`구독 생성 완료: userId=${userId}, tier=${tier}, interval=${interval}`);
   }
 
+  /**
+   * 부가서비스 결제.
+   *
+   * 애드온 가입에 결제 호출이 아예 없었다. 레코드만 만들고 ACTIVE 로
+   * 띄웠고("별도 PR에서 통합" 이라는 주석만 남아 있었다), 화면에는 구독
+   * 버튼이 그대로 있었다. 누르면 카드는 안 긁히는데 "구독되었습니다" 가
+   * 뜨고 유료 기능이 열린다. 결제가 안 됐는데 됐다고 말하는 것이라
+   * 요금제 전체를 못 믿게 만든다.
+   *
+   * 플랜 결제(payWithBillingKey)와 같은 규칙을 따른다 — 트랜잭션 안에서
+   * PENDING Payment 를 먼저 남기고, 토스가 DONE 을 주면 PAID 로 바꾸고,
+   * 중간에 실패하면 롤백한 뒤 이미 나간 돈이 있으면 환불을 시도한다.
+   *
+   * 성공하면 paymentKey 를 돌려준다. 부르는 쪽이 애드온 레코드에 남겨
+   * 나중에 환불할 때 어느 결제인지 찾을 수 있게 한다.
+   */
+  async chargeAddon(
+    userId: string,
+    addonKey: string,
+    addonName: string,
+    amount: number,
+    interval: BillingInterval,
+  ): Promise<{ paymentKey: string; paymentId: string }> {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      // 0원을 토스로 보내면 거절당한다. 여기서 먼저 막아야 원인이 드러난다.
+      throw new BadRequestException('부가서비스 금액이 올바르지 않습니다.');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+    if (!user.tossBillingKey) {
+      throw new BadRequestException(
+        '등록된 결제 수단이 없습니다. 먼저 카드를 등록해주세요.',
+      );
+    }
+
+    const billingKey = user.tossBillingKey;
+    const customerKey = `customer_${userId}`;
+    const orderId = `addon_${userId}_${Date.now()}`;
+    const orderName = `온고지신 AI ${addonName} (${
+      interval === BillingInterval.YEARLY ? '연간' : '월간'
+    })`;
+    // 플랜 결제와 같은 이유로 날짜 단위. 같은 날 같은 부가서비스를 두 번
+    // 청구하지 않는다.
+    const billingDay = new Date().toISOString().slice(0, 10);
+    const idempotencyKey = `addon_${userId}_${addonKey}_${interval}_${billingDay}`;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const pendingPayment = queryRunner.manager.create(Payment, {
+        userId,
+        orderId,
+        orderName,
+        amount,
+        baseAmount: amount,
+        overageAmount: 0,
+        overageCount: 0,
+        status: PaymentStatus.PENDING,
+      });
+      await queryRunner.manager.save(Payment, pendingPayment);
+
+      const response = await axios.post<TossPaymentResponse>(
+        `${this.apiUrl}/billing/${billingKey}`,
+        {
+          customerKey,
+          amount,
+          orderId,
+          orderName,
+          customerEmail: user.email,
+          customerName: user.name,
+        },
+        {
+          headers: {
+            Authorization: this.getAuthHeader(),
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+        },
+      );
+
+      const { paymentKey, status } = response.data;
+      if (status !== 'DONE') {
+        throw new Error('결제가 완료되지 않았습니다.');
+      }
+
+      pendingPayment.paymentKey = paymentKey;
+      pendingPayment.status = PaymentStatus.PAID;
+      pendingPayment.paidAt = new Date();
+      await queryRunner.manager.save(Payment, pendingPayment);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `부가서비스 결제 완료: userId=${userId}, addon=${addonKey}, amount=${amount}`,
+      );
+      return { paymentKey, paymentId: pendingPayment.id };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      const errorCode = error?.response?.data?.code || 'UNKNOWN_ERROR';
+      const errorInfo = getPaymentErrorInfo(errorCode);
+      this.logger.error(
+        `부가서비스 결제 실패: userId=${userId}, addon=${addonKey}, code=${errorCode}`,
+      );
+
+      // 돈은 나갔는데 우리 쪽 저장이 실패한 경우가 가장 나쁘다. 되돌린다.
+      if (error.response?.data?.paymentKey) {
+        await this.attemptRefundOnFailure(
+          error.response.data.paymentKey,
+          orderId,
+          amount,
+        );
+      }
+
+      throw new BadRequestException({
+        error: errorInfo.code,
+        message: errorInfo.actionRequired
+          ? `${errorInfo.userMessage} ${errorInfo.actionRequired}`
+          : errorInfo.userMessage,
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   // 구독 취소
   async cancelSubscription(userId: string): Promise<void> {
     const subscription = await this.subscriptionRepository.findOne({
