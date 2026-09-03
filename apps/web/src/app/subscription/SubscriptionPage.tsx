@@ -39,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2, AlertTriangle, RefreshCw, Mail } from 'lucide-react';
+import { Check, Zap, Crown, Building2, Sparkles, CreditCard, ExternalLink, Gift, Clock, Loader2, AlertTriangle, RefreshCw, Mail, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -74,6 +74,15 @@ export default function SubscriptionPage() {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [showCardModal, setShowCardModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  /**
+   * 구독 관리 — 플랜을 바꾸러 들어오는 문.
+   *
+   * 예전에는 현재 플랜 카드의 '구독 관리' 가 곧바로 해지 만류 화면을 띄웠다.
+   * 플랜을 올리거나 내리려고 누른 사람에게 "정말 떠나시나요?" 를 들이민 셈이라,
+   * 관리라는 말이 취소 한 갈래만 뜻하고 있었다. 바꾸는 길을 먼저 보여주고
+   * 취소는 그 아래에 둔다.
+   */
+  const [showManageDialog, setShowManageDialog] = useState(false);
   const [showPaymentErrorDialog, setShowPaymentErrorDialog] = useState(false);
   const [paymentError, setPaymentError] = useState<{
     message: string;
@@ -139,6 +148,31 @@ export default function SubscriptionPage() {
 
   const currentTier = subscriptionInfo?.tier || user?.subscriptionTier || 'free';
   const hasBillingKey = subscriptionInfo?.hasBillingKey || false;
+
+  /**
+   * 플랜의 높낮이. 버튼에 '업그레이드' 라고 쓸지 '변경' 이라고 쓸지 가른다.
+   *
+   * 값을 넘겨받은 플랜 목록의 가격으로 비교하지 않는다. 월·연 결제를 오가면
+   * 같은 플랜의 가격이 12배 차이 나서, 연간을 보다가 월간으로 바꾸면 순서가
+   * 뒤집힌다. 등급은 값이 아니라 이름으로 정해져 있다.
+   */
+  const TIER_RANK: Record<string, number> = {
+    free: 0,
+    basic: 1,
+    professional: 2,
+    clinic: 3,
+  };
+  const isPaidPlan = currentTier !== 'free';
+
+  /** 이미 유료 구독 중이면 '구독하기' 가 아니라 '변경' 이다. */
+  const planActionLabel = (tier: string): string => {
+    if (tier === 'free') return '무료 이용';
+    if (tier === currentTier) return '현재 플랜';
+    if (!isPaidPlan) return '구독하기';
+    return (TIER_RANK[tier] ?? 0) > (TIER_RANK[currentTier] ?? 0)
+      ? '업그레이드'
+      : '다운그레이드';
+  };
 
   /**
    * 결제 실패를 사람이 읽을 말로 바꾼다.
@@ -218,7 +252,14 @@ export default function SubscriptionPage() {
    * 덤으로 카드번호가 우리 서버를 지나가지 않는다 — 지키지 않아도 되는
    * 책임은 애초에 지지 않는 편이 낫다.
    */
-  const openBillingWindow = async (tier: string) => {
+  /**
+   * tier 가 null 이면 카드만 바꾼다.
+   *
+   * 돌아온 화면(BillingSuccessPage)은 pendingTier 가 있으면 곧바로 결제한다.
+   * 카드를 바꾸려고 연 창에 그 값을 남겨 두면, 카드만 갈아 끼우려던 사람에게
+   * 같은 플랜이 한 번 더 청구된다.
+   */
+  const openBillingWindow = async (tier: string | null) => {
     if (!user?.id) {
       toast.error('로그인이 필요합니다.')
       return
@@ -231,7 +272,9 @@ export default function SubscriptionPage() {
       const toss = await loadTossPayments(data.clientKey)
 
       // 돌아왔을 때 어느 플랜을 고르던 중이었는지 알아야 이어서 결제한다.
-      sessionStorage.setItem('pendingTier', tier)
+      // 카드만 바꾸는 길에는 남기지 않는다.
+      sessionStorage.removeItem('pendingTier')
+      if (tier) sessionStorage.setItem('pendingTier', tier)
       sessionStorage.setItem('pendingInterval', billingInterval)
 
       const base = `${window.location.origin}/dashboard/subscription`
@@ -632,7 +675,7 @@ export default function SubscriptionPage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => setShowCancelDialog(true)}
+                    onClick={() => setShowManageDialog(true)}
                   >
                     구독 관리
                   </Button>
@@ -646,7 +689,7 @@ export default function SubscriptionPage() {
                     {subscribe.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : null}
-                    {plan.tier === 'free' ? '무료 이용' : isCurrentPlan ? '현재 플랜' : '구독하기'}
+                    {planActionLabel(plan.tier)}
                   </Button>
                 )}
               </CardContent>
@@ -1136,9 +1179,118 @@ export default function SubscriptionPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 구독 관리 — 바꾸는 길이 먼저, 취소는 맨 아래 */}
+      <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+        <DialogContent
+          className="max-w-lg"
+          onClose={() => setShowManageDialog(false)}
+        >
+          <DialogHeader>
+            <DialogTitle>구독 관리</DialogTitle>
+            <DialogDescription>
+              {plans?.find((p) => p.tier === currentTier)?.name ?? currentTier} 플랜 ·{' '}
+              {subscriptionInfo?.subscription?.billingInterval === 'yearly'
+                ? '연간'
+                : '월간'}{' '}
+              결제
+              {subscriptionInfo?.subscription?.currentPeriodEnd && (
+                <>
+                  {' · 다음 결제일 '}
+                  {formatKRDate(subscriptionInfo.subscription.currentPeriodEnd)}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-neutral-800">다른 플랜으로 바꾸기</p>
+            {plans
+              ?.filter((p) => p.tier !== 'free' && p.tier !== currentTier)
+              .map((p) => {
+                const monthly =
+                  billingInterval === 'yearly'
+                    ? Math.round(p.yearlyPrice / 12)
+                    : p.monthlyPrice;
+                return (
+                  <button
+                    key={p.tier}
+                    type="button"
+                    disabled={subscribe.isPending || paymentBlocked}
+                    onClick={() => {
+                      setShowManageDialog(false);
+                      handleSubscribe(p.tier);
+                    }}
+                    className="w-full flex items-center justify-between gap-3 rounded-xl border border-neutral-200 px-4 py-3 text-left transition-colors hover:border-neutral-900 disabled:opacity-50"
+                  >
+                    <span>
+                      <span className="block text-sm font-semibold text-neutral-900">
+                        {p.name}
+                      </span>
+                      <span className="block text-[12px] text-neutral-500">
+                        {formatKRW(monthly)}/월 · 부가세 별도
+                      </span>
+                    </span>
+                    <span className="text-[13px] font-medium text-blue-600">
+                      {planActionLabel(p.tier)}
+                    </span>
+                  </button>
+                );
+              })}
+            {/*
+              바꾸기 전에 알아야 하는 것. 서버는 새 플랜 금액을 즉시 청구하고
+              결제 주기를 오늘부터 다시 시작한다(createOrUpdateSubscription).
+              쓰던 기간에 대한 일할 환불이 없으므로 그 말을 그대로 적는다.
+            */}
+            <p className="text-[12px] leading-relaxed text-neutral-500">
+              바꾸면 새 플랜 금액이 <strong className="font-semibold">바로 결제</strong>되고
+              결제 주기가 오늘부터 다시 시작됩니다. 쓰던 플랜의 남은 기간은 일할
+              정산되지 않으니, 결제일에 맞춰 바꾸시는 편이 손해가 없습니다.
+            </p>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setShowManageDialog(false);
+                void openBillingWindow(null);
+              }}
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              결제 카드 변경
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-neutral-500 hover:text-red-600 hover:bg-red-50"
+              onClick={() => {
+                setShowManageDialog(false);
+                setShowCancelDialog(true);
+              }}
+            >
+              구독 취소
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Cancel Subscription Dialog - Retention Screen */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent className="max-w-lg">
+          {/*
+            닫기.
+
+            Radix AlertDialog 는 바깥을 눌러도 닫히지 않는다(일부러 그렇다).
+            그래서 이 화면에는 나가는 문이 '유지하기' 와 '취소' 둘뿐이었고,
+            잘못 눌러 들어온 사람은 둘 중 하나를 고르는 수밖에 없었다.
+            해지 만류 화면에서 그건 붙잡는 것이 아니라 가두는 것이다.
+          */}
+          <AlertDialogCancel
+            aria-label="닫기"
+            className="absolute right-4 top-4 h-8 w-8 rounded-md border-0 p-0 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 mt-0"
+          >
+            <X className="h-4 w-4" />
+          </AlertDialogCancel>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl">정말 떠나시나요?</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1167,16 +1319,31 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {/* Special Offer */}
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+                {/*
+                  "지금 유지하시면 다음 결제 시 30% 할인" 을 여기에 걸어 뒀었다.
+                  그 버튼은 다이얼로그를 닫을 뿐이고, 할인을 기록하는 곳이
+                  서버 어디에도 없다. 쿠폰도 할인율 필드도 없다.
+
+                  지키지 못할 약속을 붙잡는 데 쓰는 것은 표시광고법 문제이기
+                  전에, 다음 결제일에 정가가 빠져나가는 순간 신뢰를 한 번에
+                  잃는 거래다. 할인을 정말 줄 생각이면 쿠폰을 먼저 만들고
+                  그다음에 이 자리에 붙인다.
+
+                  대신 되돌릴 수 있다는 사실을 적는다. 이건 참말이다 —
+                  '기간 종료 후 취소' 는 남은 기간을 그대로 두고, 그 사이에
+                  다시 구독하면 이어진다.
+                */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Gift className="h-5 w-5 text-purple-600" />
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-purple-900">잠깐, 특별 제안이 있어요!</p>
-                      <p className="text-sm text-purple-700 mt-1">
-                        지금 유지하시면 다음 결제 시 <span className="font-bold">30% 할인</span>을 적용해 드립니다.
+                      <p className="font-semibold text-blue-900">플랜만 낮춰도 됩니다</p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        쓰는 만큼만 남기고 낮은 플랜으로 바꾸실 수 있습니다.
+                        취소 대신 <span className="font-semibold">구독 관리</span>에서
+                        플랜을 고르세요.
                       </p>
                     </div>
                   </div>
@@ -1208,9 +1375,19 @@ export default function SubscriptionPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <AlertDialogCancel className="w-full bg-gradient-to-r from-blue-500 to-blue-500 text-white hover:from-blue-600 hover:to-blue-600 border-0">
-              30% 할인 받고 유지하기
+            <AlertDialogCancel className="w-full bg-gradient-to-r from-blue-500 to-blue-500 text-white hover:from-blue-600 hover:to-blue-600 border-0 mt-0">
+              구독 유지하기
             </AlertDialogCancel>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setShowCancelDialog(false);
+                setShowManageDialog(true);
+              }}
+            >
+              플랜 변경하기
+            </Button>
             <div className="flex gap-2 w-full">
               <Button
                 variant="outline"
