@@ -52,6 +52,10 @@ export class ErrorLogService {
   shouldRecord(statusCode: number, path: string): boolean {
     if (statusCode >= 500) return true;
     if (statusCode < 400) return false;
+    // 401·403 은 우리 결함이 아니다. 토큰이 만료됐거나 봇이 문을 두드린
+    // 것이고, 결제 경로에도 하루 수십 번 찍힌다. 넣어 두면 잡음이 진짜
+    // 오류를 덮는다.
+    if (statusCode === 401 || statusCode === 403) return false;
     return /(webhook|payment|subscription|billing)/i.test(path);
   }
 
