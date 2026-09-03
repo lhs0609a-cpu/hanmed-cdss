@@ -154,6 +154,21 @@ export class PostQueryDto {
   @IsString()
   tag?: string;
 
+  /**
+   * 이 태그가 붙은 글을 뺀다.
+   *
+   * 임상정보 게시판 하나에 문헌 소개 3,307편과 운영팀이 쓴 제도 해설 8편이
+   * 같이 있다. 최신순으로 놓으면 해설 8편은 첫 화면에서 사라진다 — 가장
+   * 공들인 글이 가장 안 보이는 셈이다.
+   *
+   * 화면에서 "문헌만 / 해설만" 을 가르려면 "임상정보이면서 문헌이 아닌 것"
+   * 을 물을 수 있어야 한다. tag 하나로는 그 질문이 안 된다.
+   */
+  @ApiPropertyOptional({ description: '제외할 태그' })
+  @IsOptional()
+  @IsString()
+  excludeTag?: string;
+
   @ApiPropertyOptional({ description: '작성자 ID 필터 (내 글 보기)' })
   @IsOptional()
   @IsUUID()
