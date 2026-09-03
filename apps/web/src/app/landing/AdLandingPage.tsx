@@ -597,24 +597,20 @@ export default function AdLandingPage() {
                     'radial-gradient(ellipse 45% 55% at 50% 55%, rgba(59,130,246,0.16), transparent 70%)',
                 }}
               />
+              {/* 바닥 그림자 — 인물이 공중에 뜬 느낌을 없앤다 */}
+              <div
+                aria-hidden
+                className="absolute bottom-1 h-5 w-[60%] rounded-[100%] blur-md"
+                style={{ background: 'radial-gradient(ellipse, rgba(15,23,42,0.22), transparent 70%)' }}
+              />
               <img
-                src="/brand/model-standing.webp"
+                src="/brand/model-cutout.webp"
                 alt="온고지신 AI 브랜드 모델"
-                width={450}
-                height={931}
+                width={381}
+                height={1400}
                 loading="lazy"
                 decoding="async"
                 className="relative h-[440px] w-auto md:h-[560px]"
-                style={{
-                  // 사진의 회색 배경이 흰 지면과 만나는 경계를 지운다.
-                  // 좌우는 타원, 위아래는 직선으로 페이드하고 두 마스크를 교집합으로 겹친다.
-                  WebkitMaskImage:
-                    'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
-                  maskImage:
-                    'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
-                  WebkitMaskComposite: 'source-in',
-                  maskComposite: 'intersect',
-                }}
               />
             </div>
 

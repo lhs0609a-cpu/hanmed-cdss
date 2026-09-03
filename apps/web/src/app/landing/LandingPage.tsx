@@ -380,51 +380,34 @@ export default function LandingPage() {
           </p>
             </div>
 
-            {/* 브랜드 모델 — 사진의 스튜디오 배경과 톤이 맞는 패널 위에 올린다.
-                흰 가운과 배경의 밝기 차가 6단계뿐이라 배경을 투명하게 따내면 가운이 같이 뜯긴다. */}
+            {/* 브랜드 모델 — 배경을 따낸 누끼라 다크 지면 위에 그대로 선다. */}
             <div
-              className="ojs-rise relative mx-auto w-full max-w-[300px] lg:max-w-none"
+              className="ojs-rise relative flex justify-center"
               style={{ animationDelay: '0.26s' }}
             >
               <div
                 aria-hidden
-                className="absolute -inset-6 rounded-[3rem] blur-3xl"
+                className="absolute bottom-0 h-[85%] w-[110%] rounded-full blur-3xl"
                 style={{
                   background:
-                    'radial-gradient(ellipse 55% 50% at 50% 45%, rgba(49,130,246,0.35), transparent 70%)',
+                    'radial-gradient(ellipse 45% 50% at 50% 55%, rgba(49,130,246,0.38), transparent 70%)',
                 }}
               />
+              {/* 바닥에 닿는 그림자 — 인물이 공중에 뜬 느낌을 없앤다 */}
               <div
-                className="relative overflow-hidden rounded-[2rem] border border-white/10 px-4 pb-6 pt-3"
-                style={{
-                  background: 'linear-gradient(180deg, #f4f5f7 0%, #e6e8ec 100%)',
-                  boxShadow: '0 40px 90px -35px rgba(0,0,0,0.85)',
-                }}
-              >
-                <img
-                  src="/brand/model-standing.webp"
-                  alt="온고지신 AI 브랜드 모델"
-                  width={450}
-                  height={931}
-                  loading="eager"
-                  decoding="async"
-                  className="mx-auto h-[380px] w-auto sm:h-[440px]"
-                  style={{
-                    // 사진 배경과 카드 배경의 미세한 차이를 가장자리에서 지운다
-                    WebkitMaskImage:
-                      'radial-gradient(ellipse 50% 100% at 50% 50%, #000 62%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 5%, #000 97%, transparent 100%)',
-                    maskImage:
-                      'radial-gradient(ellipse 50% 100% at 50% 50%, #000 62%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 5%, #000 97%, transparent 100%)',
-                    WebkitMaskComposite: 'source-in',
-                    maskComposite: 'intersect',
-                  }}
-                />
-                <p className="mt-1 text-center text-[14px] font-bold leading-snug text-neutral-800">
-                  결정은 한의사가,
-                  <br />
-                  준비는 온고지신 AI가
-                </p>
-              </div>
+                aria-hidden
+                className="absolute bottom-1 h-6 w-[70%] rounded-[100%] blur-md"
+                style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.55), transparent 70%)' }}
+              />
+              <img
+                src="/brand/model-cutout.webp"
+                alt="온고지신 AI 브랜드 모델"
+                width={381}
+                height={1400}
+                loading="eager"
+                decoding="async"
+                className="relative h-[420px] w-auto sm:h-[520px] lg:h-[600px]"
+              />
             </div>
           </div>
 
