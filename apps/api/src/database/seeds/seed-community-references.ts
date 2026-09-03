@@ -81,7 +81,9 @@ export function cleanAbstract(raw: string): string {
     .replace(/&nbsp;/g, ' ')
     // 전각 콜론은 한글 문장 안에서 자간이 벌어져 읽기를 방해한다.
     .replace(/：/g, ': ')
-    .replace(/[ 	]+/g, ' ')
+    // 가로 공백만 접는다. 줄바꿈은 문단 구분이라 남긴다.
+    // 문자 클래스에 탭을 그대로 넣으면 no-control-regex 에 걸린다.
+    .replace(/[^\S\r\n]+/g, ' ')
     .trim();
 }
 
