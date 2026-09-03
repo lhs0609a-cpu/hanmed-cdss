@@ -58,6 +58,29 @@ export class CommunityService {
     private usersRepository: Repository<User>,
   ) {}
 
+  /**
+   * 시드 글을 쓴 계정(운영팀) id.
+   *
+   * 종합 게시판에서 사람이 올린 글을 위로 올리는 데 쓴다. 계정 id 를
+   * 코드에 박지 않고 role 로 찾는다 — 운영 계정이 늘거나 바뀌어도 따라간다.
+   * 자주 바뀌지 않으니 프로세스 안에서 캐시한다.
+   */
+  private seedAuthorIdsCache: { ids: string[]; at: number } | null = null;
+
+  private async getSeedAuthorIds(): Promise<string[]> {
+    const TTL = 10 * 60 * 1000;
+    if (this.seedAuthorIdsCache && Date.now() - this.seedAuthorIdsCache.at < TTL) {
+      return this.seedAuthorIdsCache.ids;
+    }
+    const rows = await this.usersRepository.find({
+      where: { role: 'content_manager' as User['role'] },
+      select: { id: true },
+    });
+    const ids = rows.map((r) => r.id);
+    this.seedAuthorIdsCache = { ids, at: Date.now() };
+    return ids;
+  }
+
   // ===== Posts =====
 
   async createPost(userId: string, createPostDto: CreatePostDto): Promise<Post> {
@@ -104,7 +127,17 @@ export class CommunityService {
   }
 
   async findAllPosts(query: PostQueryDto) {
-    const { page = 1, limit = 20, type, category, sortBy = 'latest', search, tag, authorId } = query;
+    const {
+      page = 1,
+      limit = 20,
+      type,
+      category,
+      sortBy = 'latest',
+      search,
+      tag,
+      excludeTag,
+      authorId,
+    } = query;
 
     const qb = this.postsRepository
       .createQueryBuilder('post')
@@ -138,6 +171,14 @@ export class CommunityService {
       );
     }
 
+    if (excludeTag) {
+      // 태그가 없는 글까지 빠지지 않게 COALESCE 로 빈 배열을 만든다.
+      qb.andWhere(
+        "NOT (:excludeTag = ANY(string_to_array(COALESCE(post.tags, ''), ',')))",
+        { excludeTag },
+      );
+    }
+
     if (authorId) {
       qb.andWhere('post.authorId = :authorId', { authorId });
     }
@@ -159,19 +200,41 @@ export class CommunityService {
       );
     }
 
-    // 정렬
+    // 종합 게시판은 사람이 올린 글이 먼저다.
+    //
+    // 운영팀 시드가 최신순 위쪽을 다 차지하면, 눌러 들어온 사람은 동료가 쓴
+    // 글을 한 편도 못 본다. 게시판이 살아 있는지 아닌지가 여기서 갈린다.
+    //
+    // 조인한 열로 정렬하면 페이지네이션이 만드는 DISTINCT 하위 질의와
+    // 부딪히므로 posts 테이블만 보고 판단한다.
+    const seedAuthorIds =
+      type === PostType.GENERAL ? await this.getSeedAuthorIds() : [];
+    const userFirst = seedAuthorIds.length > 0;
+
+    if (userFirst) {
+      qb.orderBy(
+        `CASE WHEN post."authorId" IN (:...seedAuthorIds) THEN 1 ELSE 0 END`,
+        'ASC',
+      ).setParameter('seedAuthorIds', seedAuthorIds);
+    }
+
+    // 정렬 — 사람 글 우선을 이미 걸었으면 뒤에 덧붙인다.
+    // orderBy() 는 앞선 정렬을 지운다.
+    const applyOrder = (column: string, direction: 'ASC' | 'DESC') =>
+      userFirst ? qb.addOrderBy(column, direction) : qb.orderBy(column, direction);
+
     switch (sortBy) {
       case 'popular':
-        qb.orderBy('post.likeCount', 'DESC');
+        applyOrder('post.likeCount', 'DESC');
         break;
       case 'views':
-        qb.orderBy('post.viewCount', 'DESC');
+        applyOrder('post.viewCount', 'DESC');
         break;
       case 'comments':
-        qb.orderBy('post.commentCount', 'DESC');
+        applyOrder('post.commentCount', 'DESC');
         break;
       default:
-        qb.orderBy('post.createdAt', 'DESC');
+        applyOrder('post.createdAt', 'DESC');
     }
 
     // 고정 게시글 우선
@@ -568,7 +631,37 @@ export class CommunityService {
 
   // ===== Helper Methods =====
 
+  /**
+   * 작성자에서 화면이 쓰는 것만 남긴다.
+   *
+   * relations: ['author'] 와 leftJoinAndSelect 는 users 행을 통째로 실어
+   * 나른다. 그대로 응답에 실리면 passwordHash(bcrypt), totpSecretEncrypted,
+   * twoFaBackupCodesEncrypted, tossBillingKey, 이메일, 면허 정보까지
+   * 로그인한 아무나 목록 API 한 번으로 가져갈 수 있다.
+   *
+   * 엔티티에 select:false 를 걸면 로그인·2FA·결제까지 한꺼번에 영향을 받는다
+   * (그 필드들을 읽는 곳이 44군데다). 그래서 나가는 길목에서 좁힌다 —
+   * 모든 반환 경로가 sanitizePost / sanitizeComment 를 지난다.
+   *
+   * 프런트 CommunityAuthor 가 쓰는 필드만 남긴다.
+   */
+  private publicAuthor(author?: User | null): User | undefined {
+    if (!author) return author ?? undefined;
+    return {
+      id: author.id,
+      name: author.name,
+      isLicenseVerified: author.isLicenseVerified,
+      subscriptionTier: author.subscriptionTier,
+      contributionPoints: author.contributionPoints,
+      acceptedAnswerCount: author.acceptedAnswerCount,
+      specialization: author.specialization,
+      role: author.role,
+    } as User;
+  }
+
   private sanitizePost(post: Post): Post {
+    if (!post) return post;
+
     if (post.isAnonymous) {
       return {
         ...post,
@@ -579,7 +672,8 @@ export class CommunityService {
         } as User,
       };
     }
-    return post;
+
+    return { ...post, author: this.publicAuthor(post.author) } as Post;
   }
 
   private sanitizeComment(comment: Comment): Comment {
@@ -591,6 +685,8 @@ export class CommunityService {
         name: comment.anonymousNickname || '익명',
         isLicenseVerified: false,
       } as User;
+    } else {
+      sanitized.author = this.publicAuthor(comment.author) as User;
     }
 
     if (comment.replies) {

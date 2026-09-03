@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Users,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import type { CommunityPost, PostType } from '../../types'
 import { LevelIndicator } from '@/components/community/LevelBadge'
+import { postExcerpt } from '@/components/community/postExcerpt'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
 import api from '@/services/api'
@@ -53,6 +54,19 @@ export const SUGGESTION_TAG = '건의사항'
  * 마이그레이션 이력이 이미 어긋나 있다.
  */
 export const CLINICAL_TAG = '임상정보'
+
+/**
+ * 문헌 소개글 표식.
+ *
+ * 임상정보 한 게시판에 성격이 다른 두 가지가 있다. 운영팀이 쓴 제도 해설·
+ * 체크리스트 여덟 편과, 자료실에서 옮겨 온 논문 소개 3,307편이다. 최신순
+ * 한 줄에 섞어 놓으면 해설은 첫 화면에서 사라진다 — 가장 공들인 글이 가장
+ * 안 보인다.
+ *
+ * 게시판을 더 쪼개지 않고 이 태그로 목록 안에서 가른다. 자료실 시드의
+ * REFERENCE_TAG 와 같은 값이어야 한다.
+ */
+export const REFERENCE_TAG = '문헌'
 
 /**
  * 첫 화면 게시판 카드.
@@ -148,6 +162,24 @@ const BOARD_CARDS: Array<{
   },
 ]
 
+/**
+ * 경로가 곧 게시판이다. 첫 렌더부터 유형을 알고 있어야 한다.
+ *
+ * 예전에는 useState('') 로 두고 useEffect 에서 경로를 보고 채웠다. 그래서
+ * /community/forum 을 열면 요청이 두 번 나갔다 — 먼저 유형 없는 전체 조회,
+ * 뒤이어 type=forum. 전체 조회는 3,322건을 세느라 느리고 type=forum 은
+ * 0건이라 빠르다. 빠른 쪽이 먼저 도착해 비워 놓으면 느린 쪽이 나중에
+ * 도착해 덮어썼다. 드롭다운은 "전문 포럼"인데 목록에는 임상정보가 깔렸다.
+ */
+function typeFromPath(pathname: string): PostType | '' {
+  if (pathname.includes('/community/cases')) return 'case_discussion' as PostType
+  if (pathname.includes('/community/qna')) return 'qna' as PostType
+  if (pathname.includes('/community/general')) return 'general' as PostType
+  if (pathname.includes('/community/forum')) return 'forum' as PostType
+  // 건의사항·임상정보는 태그로 모은다. 유형은 가리지 않는다.
+  return ''
+}
+
 export default function CommunityPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -157,11 +189,22 @@ export default function CommunityPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isGuest = useAuthStore((state) => state.isGuest)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<PostType | ''>('')
+  const [selectedType, setSelectedType] = useState<PostType | ''>(() =>
+    typeFromPath(location.pathname),
+  )
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'comments'>('latest')
 
   const isSuggestions = location.pathname.includes('/community/suggestions')
   const isClinical = location.pathname.includes('/community/clinical')
+
+  /**
+   * 임상정보 안에서 무엇을 볼 것인가.
+   *
+   *   all       전부
+   *   brief     운영팀 해설 — 제도·체크리스트. 문헌 태그가 없는 것.
+   *   reference 문헌 소개 — 논문 요약.
+   */
+  const [clinicalView, setClinicalView] = useState<'all' | 'brief' | 'reference'>('all')
 
   // 현재 라우트가 "내 글"/"내 북마크" 인지 판별
   const viewMode: 'all' | 'mine' | 'bookmarks' = location.pathname.includes('/community/my/bookmarks')
@@ -215,8 +258,19 @@ export default function CommunityPage() {
     }
   }, [token])
 
+  /**
+   * 늦게 도착한 옛 응답이 최신 목록을 덮어쓰지 않게 한다.
+   *
+   * 필터를 바꾸면 요청이 겹친다. 전체 조회는 3,322건을 세느라 느리고
+   * type=forum 은 0건이라 빠르다. 순서를 보장하지 않으면 느린 옛 응답이
+   * 나중에 도착해 새 목록을 밀어낸다.
+   */
+  const requestSeq = useRef(0)
+
   // API에서 게시글 가져오기
   useEffect(() => {
+    const seq = ++requestSeq.current
+
     const fetchPosts = async () => {
       setLoading(true)
       setError(null)
@@ -228,13 +282,20 @@ export default function CommunityPage() {
         if (viewMode !== 'bookmarks') {
           if (selectedType) params.type = selectedType
           if (isSuggestions) params.tag = SUGGESTION_TAG
-          if (isClinical) params.tag = CLINICAL_TAG
+          if (isClinical) {
+            // 문헌만 볼 때는 태그 하나로 충분하다 — 문헌 글에는 임상정보가
+            // 항상 같이 붙는다. 해설만 볼 때는 "임상정보인데 문헌이 아닌 것"
+            // 이라 빼는 조건이 따로 필요하다.
+            params.tag = clinicalView === 'reference' ? REFERENCE_TAG : CLINICAL_TAG
+            if (clinicalView === 'brief') params.excludeTag = REFERENCE_TAG
+          }
           if (sortBy) params.sortBy = sortBy
           if (viewMode === 'mine' && user?.id) params.authorId = user.id
         }
         params.page = String(page)
 
         const response = await api.get(endpoint, { params })
+        if (seq !== requestSeq.current) return // 더 새로운 요청이 이미 나갔다
         const body = response.data
         const apiPosts = body?.data || body || []
         setPosts(Array.isArray(apiPosts) ? apiPosts : [])
@@ -243,44 +304,27 @@ export default function CommunityPage() {
         setTotalPages(Math.max(Number(meta?.totalPages) || 1, 1))
         setTotal(Number(meta?.total) || (Array.isArray(apiPosts) ? apiPosts.length : 0))
       } catch (err) {
+        if (seq !== requestSeq.current) return
         setError(getErrorMessage(err))
         setPosts([])
       } finally {
-        setLoading(false)
+        if (seq === requestSeq.current) setLoading(false)
       }
     }
 
     fetchPosts()
-  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions, isClinical, page])
+  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions, isClinical, clinicalView, page])
 
   // 필터가 바뀌면 첫 페이지로 돌아간다.
   // 3페이지를 보다가 게시판을 옮겼는데 그대로 3페이지면, 글이 몇 개 없는
   // 게시판에서는 빈 화면이 나온다.
   useEffect(() => {
     setPage(1)
-  }, [selectedType, sortBy, viewMode, isSuggestions, isClinical])
+  }, [selectedType, sortBy, viewMode, isSuggestions, isClinical, clinicalView])
 
-  // URL 경로에 따라 selectedType 설정
+  // 게시판을 옮기면 유형을 맞춘다. 첫 값은 useState 에서 이미 경로로 잡았다.
   useEffect(() => {
-    const path = location.pathname
-    if (path.includes('/community/cases')) {
-      setSelectedType('case_discussion')
-    } else if (path.includes('/community/qna')) {
-      setSelectedType('qna')
-    } else if (path.includes('/community/general')) {
-      setSelectedType('general')
-    } else if (path.includes('/community/forum')) {
-      setSelectedType('forum')
-    } else if (path.includes('/community/suggestions')) {
-      // 건의사항은 태그로 모으므로 유형 필터를 걸지 않는다.
-      setSelectedType('')
-    } else if (path.includes('/community/clinical')) {
-      // 임상정보도 태그로 모은다. 유형은 가리지 않는다.
-      setSelectedType('')
-    } else {
-      // 전체/내 글/내 북마크 — 타입 필터 없음
-      setSelectedType('')
-    }
+    setSelectedType(typeFromPath(location.pathname))
   }, [location.pathname])
 
   const filteredPosts = useMemo(() => {
@@ -442,6 +486,30 @@ export default function CommunityPage() {
         </div>
       </div>
 
+      {/* 임상정보 하위 보기 — 해설과 문헌을 가른다 */}
+      {isClinical && (
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: 'all' as const, label: '전체' },
+            { key: 'brief' as const, label: '운영팀 해설' },
+            { key: 'reference' as const, label: '문헌 요약' },
+          ].map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => setClinicalView(v.key)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                clinicalView === v.key
+                  ? 'bg-teal-600 border-teal-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-teal-300 hover:text-teal-700'
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Posts List */}
       <div className="space-y-4">
         {/* 로딩 상태 */}
@@ -485,6 +553,13 @@ export default function CommunityPage() {
                       <TypeIcon className="h-3 w-3 inline mr-1" />
                       {config.label}
                     </span>
+                    {/* 문헌 소개글은 운영팀 해설과 성격이 다르다. 목록에서
+                        어느 쪽인지 보여야 열지 말지를 정할 수 있다. */}
+                    {post.tags?.includes(REFERENCE_TAG) && (
+                      <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded font-medium">
+                        문헌
+                      </span>
+                    )}
                     {post.isSolved && (
                       <span className="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded font-medium flex items-center gap-1">
                         <CheckCircle className="h-3 w-3" />
@@ -499,7 +574,7 @@ export default function CommunityPage() {
                   </h3>
 
                   {/* Content Preview */}
-                  <p className="mt-1 text-sm text-gray-500 line-clamp-1">{post.content}</p>
+                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">{postExcerpt(post.content)}</p>
 
                   {/* Linked Case */}
                   {post.linkedCase && (
