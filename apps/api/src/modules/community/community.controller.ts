@@ -61,6 +61,7 @@ export class CommunityController {
   @ApiQuery({ name: 'sortBy', required: false, enum: ['latest', 'popular', 'views', 'comments'] })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'tag', required: false, type: String })
+  @ApiQuery({ name: 'excludeTag', required: false, type: String })
   async findAllPosts(@Query() query: PostQueryDto) {
     return this.communityService.findAllPosts(query);
   }
