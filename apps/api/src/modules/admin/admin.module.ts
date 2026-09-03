@@ -14,6 +14,7 @@ import { Formula } from '../../database/entities/formula.entity';
 import { FormulaHerb } from '../../database/entities/formula-herb.entity';
 import { Herb } from '../../database/entities/herb.entity';
 import { DrugHerbInteraction } from '../../database/entities/drug-herb-interaction.entity';
+import { ErrorLog } from '../../database/entities/error-log.entity';
 
 // Services
 import { AuditLogService } from './services/audit-log.service';
@@ -23,6 +24,7 @@ import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminSeederService } from './services/admin-seeder.service';
 import { AdminClinicsService } from './services/admin-clinics.service';
 import { AdminContentService } from './services/admin-content.service';
+import { AdminOpsService } from './services/admin-ops.service';
 
 // Controllers
 import { AdminUsersController } from './controllers/admin-users.controller';
@@ -32,6 +34,7 @@ import { AdminAuditLogsController } from './controllers/admin-audit-logs.control
 import { AdminClinicsController } from './controllers/admin-clinics.controller';
 import { AdminContentController } from './controllers/admin-content.controller';
 import { AdminCaseAccessController } from './controllers/admin-case-access.controller';
+import { AdminOpsController } from './controllers/admin-ops.controller';
 
 // 치험례 열람 통제 — 유출 역추적·잠금 해제를 관리자 화면에서 쓰려면 필요하다.
 import { CasesModule } from '../cases/cases.module';
@@ -51,6 +54,7 @@ import { CasesModule } from '../cases/cases.module';
       FormulaHerb,
       Herb,
       DrugHerbInteraction,
+      ErrorLog,
     ]),
     CasesModule,
   ],
@@ -58,6 +62,7 @@ import { CasesModule } from '../cases/cases.module';
     AdminUsersController,
     AdminSubscriptionsController,
     AdminDashboardController,
+    AdminOpsController,
     AdminAuditLogsController,
     AdminClinicsController,
     AdminContentController,
@@ -71,6 +76,7 @@ import { CasesModule } from '../cases/cases.module';
     AdminSeederService,
     AdminClinicsService,
     AdminContentService,
+    AdminOpsService,
   ],
   exports: [AuditLogService],
 })

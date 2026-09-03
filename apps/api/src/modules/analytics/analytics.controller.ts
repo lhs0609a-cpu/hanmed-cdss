@@ -179,43 +179,10 @@ export class AnalyticsController {
     return { success: true, data: result };
   }
 
-  /**
-   * 클라이언트 이벤트 수집
-   * 사용자 행동 분석용 이벤트를 배치로 수집합니다.
-   */
-  @Post('events')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '이벤트 수집',
-    description: '클라이언트에서 발생한 사용자 이벤트를 배치로 수집합니다.',
-  })
-  async collectEvents(@Body() body: { events: TrackedEvent[] }) {
-    const { events } = body;
-
-    if (!events || !Array.isArray(events)) {
-      return { success: false, message: 'Invalid events format' };
-    }
-
-    try {
-      const rows = events.map((e) =>
-        this.eventRepository.create({
-          type: e.type,
-          properties: e.properties || {},
-          userId: e.userId || null,
-          userTier: e.userTier || null,
-          sessionId: e.sessionId,
-          userAgent: e.userAgent || null,
-          screenSize: e.screenSize || null,
-          locale: e.locale || null,
-          occurredAt: e.timestamp ? new Date(e.timestamp) : null,
-        }),
-      );
-      await this.eventRepository.save(rows, { chunk: 100 });
-    } catch (error) {
-      this.logger.error('이벤트 저장 실패:', error);
-      // 분석 이벤트는 비크리티컬 - 실패해도 200 반환
-    }
-
-    return { success: true, received: events.length };
-  }
+  // 이벤트 수집은 AnalyticsEventsController 로 옮겼다.
+  //
+  // 이 컨트롤러에는 @RequireFeature(STATS_BASIC) 이 걸려 있어서, 통계
+  // 화면과 함께 사용 이벤트 수집까지 유료 게이트 안에 있었다. 무료
+  // 사용자의 흔적이 한 건도 남지 않았고, 리텐션을 재려면 바로 그 사람들의
+  // 흔적이 필요하다.
 }

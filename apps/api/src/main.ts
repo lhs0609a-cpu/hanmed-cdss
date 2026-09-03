@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { ErrorLogService } from './common/services/error-log.service';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { validateSecrets } from './common/bootstrap/validate-secrets';
@@ -61,7 +62,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // 전역 필터 및 인터셉터
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // 오류를 표에도 남긴다. 컨테이너에서 서비스를 꺼내 필터에 넘긴다 —
+  // 필터를 프로바이더로 등록하면 부팅 순서에 따라 응답 형식이 달라질 수
+  // 있어, 지금 방식(직접 생성)을 유지하면서 의존성만 주입한다.
+  app.useGlobalFilters(new AllExceptionsFilter(app.get(ErrorLogService)));
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
     new TransformInterceptor(),

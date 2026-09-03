@@ -15,6 +15,7 @@ import {
   FileText,
   Building,
   BookOpen,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: '대시보드', href: '/admin', icon: LayoutDashboard },
+  // 운영 지표는 대시보드와 성격이 다르다. 대시보드는 건수를 세고, 여기는
+  // "살아 있나·돈이 들어오나·무엇이 깨졌나" 에 답한다.
+  { name: '운영 지표', href: '/admin/ops', icon: Activity },
   { name: '사용자 관리', href: '/admin/users', icon: Users },
   { name: '구독 관리', href: '/admin/subscriptions', icon: CreditCard },
   { name: '한의원 관리', href: '/admin/clinics', icon: Building },

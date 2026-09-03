@@ -1,6 +1,7 @@
 import { lazyWithReload as lazy } from '@/lib/lazyWithReload'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { UsageTracker } from '@/components/common/UsageTracker'
 import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
@@ -102,6 +103,7 @@ const SubscriptionTermsPage = lazy(() => import('@/app/legal').then((m) => ({ de
 
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
+const AdminOpsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminOpsPage })))
 const AdminUsersPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminUsersPage })))
 const AdminSubscriptionsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminSubscriptionsPage })))
 const AdminAuditLogsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminAuditLogsPage })))
@@ -284,6 +286,7 @@ function App() {
           }
         >
           <Route index element={route(<AdminDashboardPage />)} />
+          <Route path="ops" element={route(<AdminOpsPage />)} />
           <Route path="users" element={route(<AdminUsersPage />)} />
           <Route path="subscriptions" element={route(<AdminSubscriptionsPage />)} />
           <Route path="audit-logs" element={route(<AdminAuditLogsPage />)} />
@@ -296,6 +299,8 @@ function App() {
 
       {/* 로그인 직후 첫 화면(아하 모먼트)을 팝업으로 가리지 않는다.
           환영 모달·사용법 투어는 제거하고, 첫 화면 자체가 가치를 보여준다. */}
+      {/* 화면 이동을 기록한다. 이게 없으면 DAU·리텐션을 물어도 답할 데이터가 없다. */}
+      <UsageTracker />
       <Toaster />
       <OfflineBanner />
     </HanjaSettingsProvider>

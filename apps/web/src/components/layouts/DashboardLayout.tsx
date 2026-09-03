@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore, isAdminRole } from '@/stores/authStore'
 import { performLogout } from '@/services/auth-api'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer'
@@ -440,6 +440,20 @@ export default function DashboardLayout() {
               </Link>
             )}
 
+            {/* 관리자 모드 — 권한이 있는 계정에만 보인다.
+                /admin 라우트는 진작 있었는데 화면에 들어가는 문이 없어서,
+                주소를 직접 쳐야만 닿을 수 있었다. 운영 지표를 만들어 놓고
+                아무도 못 들어가면 만든 뜻이 없다. */}
+            {isAdminRole(user?.role) && !isMinimized && (
+              <Link
+                to="/admin"
+                className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-neutral-900 bg-neutral-900 px-2 py-2 text-xs font-semibold text-white transition-colors hover:bg-neutral-800"
+              >
+                <Shield className="h-4 w-4" />
+                관리자 모드
+              </Link>
+            )}
+
             {!isMinimized && (
               <div className="flex gap-2 mt-2">
                 {/* 요금제 — 라우트는 진작 있었는데 사이드바에 링크가 없었다.
@@ -471,6 +485,15 @@ export default function DashboardLayout() {
 
             {isMinimized && (
               <div className="hidden lg:flex flex-col gap-1 mt-2">
+                {isAdminRole(user?.role) && (
+                  <Link
+                    to="/admin"
+                    className="p-2 flex items-center justify-center rounded-lg bg-neutral-900 text-white transition-colors hover:bg-neutral-800"
+                    title="관리자 모드"
+                  >
+                    <Shield className="h-4 w-4" />
+                  </Link>
+                )}
                 <Link
                   to="/dashboard/subscription"
                   className="p-2 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"

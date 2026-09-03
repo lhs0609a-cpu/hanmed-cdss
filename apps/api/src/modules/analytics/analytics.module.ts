@@ -9,6 +9,7 @@ import { UsageTracking } from '../../database/entities/usage-tracking.entity';
 import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
 import { PracticeAnalyticsService } from './practice-analytics.service';
 import { AnalyticsController } from './analytics.controller';
+import { AnalyticsEventsController } from './analytics-events.controller';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { AnalyticsController } from './analytics.controller';
       AnalyticsEvent,
     ]),
   ],
-  controllers: [AnalyticsController],
+  controllers: [AnalyticsController, AnalyticsEventsController],
   providers: [PracticeAnalyticsService],
   exports: [PracticeAnalyticsService],
 })

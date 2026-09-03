@@ -100,15 +100,6 @@ function generateSessionId(): string {
   return newId
 }
 
-// 사용자 ID를 해시하여 PII 제거
-async function hashUserId(userId: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(userId)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 16)
-}
-
 // 화면 크기 가져오기
 function getScreenSize(): string {
   return `${window.innerWidth}x${window.innerHeight}`
@@ -173,9 +164,13 @@ export function useFeatureTracking() {
    */
   const trackEvent = useCallback(
     (type: EventType, properties: EventProperties = {}) => {
-      // userId를 해시하여 PII 보호
-      const userIdPromise = user?.id ? hashUserId(user.id) : Promise.resolve(undefined)
-      userIdPromise.then((hashedId) => {
+      // 누구인지는 서버가 토큰으로 안다. 여기서 보내지 않는다.
+      //
+      // 예전에는 사용자 id 를 해시해서 실어 보냈다. analytics_events.userId
+      // 는 uuid 컬럼이라 해시 문자열이 들어오면 INSERT 가 통째로 실패하고,
+      // 그 실패는 "비크리티컬" 이라며 삼켜졌다. 표가 비어 있던 이유다.
+      // 해시는 어차피 우리 DB 안에서 우리 사용자를 가리키므로 얻는 것도 없었다.
+      Promise.resolve(undefined).then((hashedId: string | undefined) => {
         const event: TrackedEvent = {
           type,
           properties: {
