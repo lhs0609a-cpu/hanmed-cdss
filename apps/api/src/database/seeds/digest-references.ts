@@ -68,7 +68,11 @@ const BATCH = 4;
 const ABSTRACT_CHARS = 3000;
 
 const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레이터입니다.
-영문 초록을 읽고 한국어 구조 요약을 씁니다. 번역이 아니라 다시 쓰는 것입니다.
+초록을 읽고 한국어 구조 요약을 씁니다. 번역이 아니라 다시 쓰는 것입니다.
+
+초록이 영어면 한국어로 다시 씁니다. 초록이 한국어면 그 내용을 같은 구조로
+정리하고, 한자로 적힌 말은 한글 독음으로 바꿉니다. 처방명·서명·인명처럼
+원어가 필요한 것만 "보중익기탕(補中益氣湯)" 처럼 병기합니다.
 
 형식 — 아래 네 항목을 이 순서로, 각 항목을 한 줄로 씁니다.
 항목 이름을 그대로 쓰고 전각 콜론 없이 "배경: " 처럼 씁니다.
@@ -77,6 +81,9 @@ const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레
 방법: 어떤 대상에게 무엇을 했고 무엇과 비교했는지. 1~2문장.
 결과: 주요 지표가 어느 방향으로 얼마나 움직였는지. 2~3문장.
 한계: 이 결과를 진료에 쓸 때 걸리는 점. 1~2문장.
+
+네 항목을 하나도 빠뜨리지 마십시오. 특히 "한계:" 줄을 빼지 마십시오.
+초록의 결론은 "결과:" 줄 끝에 녹여 쓰고 "결론:" 이라는 말은 쓰지 마십시오.
 
 지켜야 할 것:
 
@@ -116,8 +123,14 @@ const SYSTEM_PROMPT = `당신은 한국 한의사를 위한 의학 문헌 큐레
 
 7. 문체는 평서형 "~했다/~였다". 마크다운 기호(**, ##, -)를 쓰지 마십시오.
 
+8. summaryKo 도 함께 씁니다. 목록 카드에 한 줄로 나가는 문장이라 무엇을
+   알아냈는지가 2~3문장 안에 들어와야 합니다. 결과를 앞세우십시오.
+   "이 연구는 ~하기 위해 수행되었다" 로 시작하지 마십시오 — 목록에서
+   제목 아래 붙는 문장이라 그렇게 쓰면 배경만 두 번 읽게 됩니다.
+   여기에도 용량과 프로토콜은 쓰지 않습니다.
+
 JSON 배열로만 답하십시오. 설명을 덧붙이지 마십시오.
-[{"id":"<받은 id 그대로>","abstractKo":"배경: ...\\n방법: ...\\n결과: ...\\n한계: ..."}]`;
+[{"id":"<받은 id 그대로>","summaryKo":"...","abstractKo":"배경: ...\\n방법: ...\\n결과: ...\\n한계: ..."}]`;
 
 interface Job {
   id: string;
@@ -127,7 +140,13 @@ interface Job {
   year: number | null;
 }
 
-async function callModel(jobs: Job[]): Promise<Map<string, string>> {
+interface Digest {
+  abstractKo: string;
+  /** 목록 카드에 나가는 한 줄 요약. 이미 있는 문헌은 덮어쓰지 않는다. */
+  summaryKo: string | null;
+}
+
+async function callModel(jobs: Job[]): Promise<Map<string, Digest>> {
   const payload = jobs.map((j) => ({
     id: j.id,
     title: j.title,
@@ -176,16 +195,22 @@ async function callModel(jobs: Job[]): Promise<Map<string, string>> {
   const parsed = JSON.parse(cleaned.slice(start, end + 1)) as Array<{
     id: string;
     abstractKo?: string;
+    summaryKo?: string;
   }>;
 
-  const out = new Map<string, string>();
+  const out = new Map<string, Digest>();
   for (const r of parsed) {
     const v = r?.abstractKo?.trim();
     if (!r?.id || !v) continue;
     // 네 항목이 다 있는지 본다. 하나라도 빠지면 화면에서 토막 난 것처럼
     // 보이므로 저장하지 않고 다음 실행에서 다시 시도한다.
-    if (!/배경:/.test(v) || !/결과:/.test(v)) continue;
-    out.set(r.id, splitSections(v));
+    if (!/배경:/.test(v) || !/결과:/.test(v) || !/한계:/.test(v)) continue;
+    const one = r.summaryKo?.trim();
+    out.set(r.id, {
+      abstractKo: splitSections(v),
+      // 한 줄 요약은 짧아야 뜻이 있다. 길게 온 것은 버리고 구조 요약만 쓴다.
+      summaryKo: one && one.length >= 20 && one.length <= 400 ? one : null,
+    });
   }
   return out;
 }
@@ -215,10 +240,28 @@ async function main(): Promise<void> {
     const repo = ds.getRepository(Reference);
 
     const done = await repo.count({ where: { abstractKo: Not(IsNull()) } });
-    const target = await repo.count({
-      where: { abstractKo: IsNull(), summaryKo: Not(IsNull()), abstract: Not(IsNull()) },
-    });
-    console.log(`구조 요약 ${done.toLocaleString()}건 완료 · 남은 대상 ${target.toLocaleString()}건`);
+    // 아래 조회 조건과 같은 것을 센다. 다르면 "남은 대상" 이 거짓말을 한다.
+    const target = await repo
+      .createQueryBuilder('r')
+      .where('r."abstractKo" IS NULL')
+      .andWhere('r."abstract" IS NOT NULL')
+      .andWhere(`(r."source" = :kci OR r."summaryKo" IS NOT NULL)`, {
+        kci: ReferenceSource.KCI,
+      })
+      .getCount();
+    const targetFeatured = await repo
+      .createQueryBuilder('r')
+      .where('r."abstractKo" IS NULL')
+      .andWhere('r."abstract" IS NOT NULL')
+      .andWhere('r."featuredInCommunity" = true')
+      .andWhere(`(r."source" = :kci OR r."summaryKo" IS NOT NULL)`, {
+        kci: ReferenceSource.KCI,
+      })
+      .getCount();
+    console.log(
+      `구조 요약 ${done.toLocaleString()}건 완료 · 남은 대상 ${target.toLocaleString()}건` +
+        ` (그중 게시판에 올린 글 ${targetFeatured.toLocaleString()}건)`,
+    );
     if (STATS_ONLY) return;
 
     if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
@@ -232,30 +275,26 @@ async function main(): Promise<void> {
       .createQueryBuilder('r')
       .where('r."abstractKo" IS NULL')
       .andWhere('r."abstract" IS NOT NULL')
-      // KCI 도 영문 초록이면 요약한다.
+      // 초록이 한국어라도 요약한다.
       //
-      // 처음에는 KCI 를 통째로 뺐다. 이용 약관의 '데이터 공신력 유지'
-      // 조항이 원천 데이터로 하위 정보를 생성하는 것을 금하기 때문이고,
-      // KCI 는 국문 초록이 오니 요약할 이유도 없다고 봤다.
+      // 앞서 두 번 좁혔다가 두 번 다 틀렸다. 처음에는 KCI 를 통째로 뺐다 —
+      // 이용 약관의 '데이터 공신력 유지' 조항 때문이고, KCI 는 국문 초록이
+      // 오니 요약할 이유도 없다고 봤다. 재 보니 국문 초록은 4%뿐이었다.
+      // 그래서 영문 초록만 요약하도록 고쳤는데, 이번에는 한글이 한 글자라도
+      // 섞인 영문 초록 110편이 조건을 빠져나가 게시판에 영어로 남았다.
       //
-      // 둘 다 틀렸다. 재 보니 국문 초록은 4%뿐이고 88%가 영문 초록이다.
-      // 한국어 학술지도 초록은 영문으로 싣는 관행 때문이다. 그대로 두면
-      // 한글 게시판에 영어가 1만 4천 편 쌓인다.
+      // 이제 초록이 있으면 언어를 가리지 않고 요약한다. 국문 초록도
+      // 1,900자짜리 한 덩어리에 한자가 섞여 있어 진료 중에 훑기 어렵다.
+      // 배경·방법·결과·한계로 갈라 놓는 것은 원문을 대신하는 것이 아니라
+      // 원문으로 갈지 말지를 30초 안에 정하게 해 주는 일이다.
       //
-      // 원장이 두 번 확인하고 번역·요약을 지시했다. 약관 위험은 남아
-      // 있으므로 줄일 수 있는 만큼 줄인다 — 원문을 지우지 않고 그대로
-      // 두며, 기계가 만든 요약임을 글마다 밝히고, KCI 출처 표기와 원문
-      // 링크를 함께 단다. 왜곡이 아니라 읽기 위한 보조라는 것이 드러나야
-      // 한다.
+      // 약관 위험은 남아 있으므로 줄일 수 있는 만큼 줄인다 — 원문 초록을
+      // 지우지 않고 그대로 두며, 기계가 만든 요약임을 글마다 밝히고, KCI
+      // 출처 표기와 원문 링크를 함께 단다.
       //
-      // 국문 초록이 이미 있는 것은 손대지 않는다. 원문이 읽히는데 다시
-      // 쓸 이유가 없고, 그건 정말로 불필요한 가공이다.
-      .andWhere(
-        `(r."source" != :kci OR r."abstract" !~ '[가-힣]')`,
-        { kci: ReferenceSource.KCI },
-      )
-      // KCI 는 우리가 만든 요약(summaryKo)이 없다. 그것을 조건으로 걸면
-      // 한 건도 안 잡힌다.
+      // PubMed 는 여전히 우리가 번역한 것(summaryKo)만 본다. 번역 대상을
+      // 한의원에서 실제로 보는 주소증으로 좁혀 놨는데, 그 조건을 여기서
+      // 풀면 전립선암 안드로겐 억제요법 같은 것에 값을 쓰게 된다.
       .andWhere(
         `(r."source" = :kci OR r."summaryKo" IS NOT NULL)`,
         { kci: ReferenceSource.KCI },
@@ -299,12 +338,20 @@ async function main(): Promise<void> {
             failed += 1;
             continue;
           }
+          // 한 줄 요약은 비어 있을 때만 채운다. 이미 있는 것을 덮어쓰면
+          // 원장이 확인한 문장이 모델 실행 때마다 바뀐다.
+          const patch: Partial<Reference> = { abstractKo: v.abstractKo };
+          if (!r.summaryKo && v.summaryKo) patch.summaryKo = v.summaryKo;
           if (!DRY_RUN) {
-            await repo.update({ id: r.id }, { abstractKo: v });
+            await repo.update({ id: r.id }, patch);
           }
           ok += 1;
           if (DRY_RUN) {
-            console.log(`\n${'='.repeat(70)}\n${r.titleKo || r.title}\n${'-'.repeat(70)}\n${v}`);
+            console.log(
+              `\n${'='.repeat(70)}\n${r.titleKo || r.title}\n${'-'.repeat(70)}\n` +
+                (patch.summaryKo ? `[한 줄] ${patch.summaryKo}\n\n` : '') +
+                v.abstractKo,
+            );
           }
         }
         console.log(

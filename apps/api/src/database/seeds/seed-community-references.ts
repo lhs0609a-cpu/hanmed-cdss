@@ -63,8 +63,40 @@ const LIMIT = Number(argValue('limit') ?? '5') || 5;
  */
 const SOURCE = argValue('source');
 
-/** 인용 발췌 상한. 전문 복제를 피하면서 무엇에 관한 글인지는 전해질 길이. */
-const EXCERPT_CHARS = 300;
+/** 초록 원문을 그대로 인용할 때의 상한. 전문 복제를 피하면서 논지는 남을 길이. */
+const ABSTRACT_QUOTE_CHARS = 1200;
+
+/**
+ * 수집기가 남긴 부스러기를 씻는다.
+ *
+ * KCI 원자료가 초록을 `<abstract lang="english">...` 째로 주는 일이 있다.
+ * 화면에 태그가 그대로 찍히면 그 글은 읽기 전에 신뢰를 잃는다.
+ */
+export function cleanAbstract(raw: string): string {
+  return raw
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    // 전각 콜론은 한글 문장 안에서 자간이 벌어져 읽기를 방해한다.
+    .replace(/：/g, ': ')
+    .replace(/[ 	]+/g, ' ')
+    .trim();
+}
+
+/**
+ * 이 글이 한국어로 읽히는가.
+ *
+ * KCI 초록은 "국문" 이라고 와도 절반이 영문이다. 한글이 한 글자라도 있으면
+ * 국문으로 보던 예전 조건 때문에 영어 초록 110건이 게시판에 그대로 올라가
+ * 있었다. 비율로 본다.
+ */
+export function isKorean(text: string, threshold = 0.2): boolean {
+  const stripped = text.replace(/[^가-힣]/g, '');
+  return stripped.length / Math.max(text.length, 1) >= threshold;
+}
+
 
 const EVIDENCE_LABEL: Record<ReferenceEvidenceType, string> = {
   [ReferenceEvidenceType.SYSTEMATIC_REVIEW]: '체계적 고찰·메타분석',
@@ -92,37 +124,30 @@ function pickQuery(ds: DataSource, limit: number) {
     // 훑을 수 없는 게시판은 아무도 안 연다.
     .andWhere('r."titleKo" IS NOT NULL')
     .andWhere('r."abstract" IS NOT NULL')
-    // KCI 와 PubMed 를 다르게 본다.
+    // 한국어로 읽히는 것만 올린다.
     //
-    // PubMed 는 영문이라 우리가 만든 한국어 요약(summaryKo)이 있어야 읽힌다.
-    // 근거 수준도 체계적 고찰·RCT·진료지침으로 좁힌다 — 1만 4천 편을 다
-    // 올릴 수는 없으니 무게 있는 것부터 고른다.
+    // 예전 조건은 KCI 에 대해 "초록에 한글이 한 글자라도 있으면 국문" 이었다.
+    // 그래서 본문이 영어인 초록 110편이 게시판에 영어 그대로 올라가 있었다.
+    // 한글 게시판에 영어가 박히면 그건 콘텐츠가 아니라 자리 채우기다.
     //
-    // KCI 는 국문 초록이 있는 것만 올린다.
+    // 이제 둘 중 하나를 요구한다. 우리가 만든 한국어 구조 요약(abstractKo)이
+    // 있거나, 초록 자체가 한국어로 읽히거나. 비율로 재는 이유는 국문 초록에도
+    // 학명과 통계 기호가 섞여 들어와 "한글이 있다/없다" 로는 갈리지 않기
+    // 때문이다.
     //
-    // 처음에는 "KCI 는 한국어니까 다 올리면 된다" 고 봤는데 재 보니
-    // 국문 초록은 683건(4%)뿐이고 88%가 영문 초록이었다. 한국어 학술지도
-    // 초록은 영문으로 싣는 관행 때문이다. 제목만 한국어인 글을 게시판에
-    // 부으면 예전에 영문 초록을 붙여 놨을 때와 똑같아진다.
-    //
-    // 영문 초록만 있는 1만 4천 편은 자료실에서 한국어 제목으로 검색된다.
-    // 그것만으로도 이 수집의 값어치는 충분하다 — 게시판에 올릴 이유가
-    // 따로 있어야 올린다.
-    //
-    // 번역해서 올리지는 않는다. KCI 이용 약관의 '데이터 공신력 유지'
-    // 조항이 원천 데이터로 하위 정보를 만드는 것을 금한다.
-    //
-    // 근거 수준은 좁히지 않는다. 한국어 제목으로는 연구유형이 잘 안 잡혀
-    // 대부분 unknown 인데, 그것은 분류를 못 한 것이지 가치가 없다는 뜻이
-    // 아니다. 한의학 학술지에 실린 글이라 학술지 단위로 이미 걸러져 있다.
+    // 근거 수준은 PubMed 에만 건다. 1만 4천 편을 다 올릴 수 없으니 체계적
+    // 고찰·RCT·진료지침부터 고른다. KCI 는 한국어 제목이라 연구유형이 잘
+    // 안 잡혀 대부분 unknown 인데, 그것은 분류를 못 한 것이지 가치가 없다는
+    // 뜻이 아니다. 한의학 학술지에 실린 글이라 학술지 단위로 이미 걸러져 있다.
     .andWhere(
       `(
-         (r."source" = :kci AND r."abstract" ~ '[가-힣]')
-         OR (
-           r."summaryKo" IS NOT NULL
-           AND r."evidenceType" IN (:...types)
-         )
+         r."abstractKo" IS NOT NULL
+         OR (length(r."abstract") - length(regexp_replace(r."abstract", '[가-힣]', '', 'g')))::float
+              / greatest(length(r."abstract"), 1) >= 0.2
        )`,
+    )
+    .andWhere(
+      `(r."source" = :kci OR r."evidenceType" IN (:...types))`,
       {
         kci: ReferenceSource.KCI,
         types: [
@@ -160,11 +185,29 @@ export function buildTitle(r: Reference): string {
 /**
  * 본문.
  *
- * 한국어 요약을 앞에 놓고, 서지정보는 표로 정리한다. 진료 중에 훑는 글이라
- * 저널·연도·근거수준이 문장에 섞여 있으면 눈에 안 들어온다.
+ * 진료 중에 훑는 글이다. 위에서부터 "무슨 연구인가 → 무엇을 알아냈나 →
+ * 어디 실린 것인가 → 원문" 순으로 내려가야 중간에 닫아도 손해가 없다.
  *
- * 초록 원문은 발췌만 인용한다. 초록의 저작권은 대개 출판사에 있고, 출처와
- * 링크를 밝힌 짧은 인용은 몰라도 전문 복제는 다른 이야기다.
+ *   한 줄 요약   무엇에 관한 글인지. 목록 카드의 미리보기도 이 문장을 쓴다.
+ *   ## 요약      배경·방법·결과·한계. 항목 이름을 굵게 앞세워 눈으로 짚이게 한다.
+ *   ## 서지정보  학술지·발행·저자·근거 수준·원제. 문장에 섞으면 안 읽힌다.
+ *   ## 초록 원문 저자의 말. 한국어로 읽히는 것만 싣는다.
+ *   출처·고지
+ *
+ * 영문을 본문에 남기지 않는다.
+ *
+ * 예전에는 한국어 요약이 없으면 영문 초록을 발췌해 붙였다. 한글 게시판
+ * 본문 한가운데가 영어가 되어 아무도 읽지 않았고, 읽히지 않는 인용은
+ * 근거가 아니라 자리 채우기다. 이제 한국어 요약이 없으면 그 자리를 비우고
+ * 원문 링크로 보낸다 — 소개할 문헌은 pickQuery 가 한국어가 준비된 것만
+ * 고르므로 이 자리는 비지 않는다.
+ *
+ * 원제는 표 안으로 넣었다. 본문 한가운데 영문 제목이 문단으로 서 있으면
+ * 한국어 요약과 초록 사이를 끊는다. 인용할 때 필요한 값이라 지우지는 않는다.
+ *
+ * 초록을 통째로 번역해 싣지는 않는다. 초록의 저작권은 대개 출판사에 있고,
+ * 무엇보다 초록에는 용량과 시술 프로토콜이 들어 있어 옮기다 한 글자만
+ * 틀리면 그걸 보고 처방하는 사람이 생긴다. 요약에는 용량을 넣지 않는다.
  *
  * 요약이 기계가 만든 것이라는 사실을 숨기지 않는다. 한의사가 이걸 근거로
  * 삼기 전에 원문을 확인해야 한다는 것을 알아야 한다.
@@ -174,19 +217,43 @@ export function buildContent(r: Reference): string {
   const parts: string[] = [];
 
   const isKci = r.source === ReferenceSource.KCI;
+  const abstract = r.abstract ? cleanAbstract(r.abstract) : '';
+  // 저자의 말을 그대로 싣는 것은 한국어로 읽힐 때만 뜻이 있다.
+  const quotable = abstract.length > 0 && isKorean(abstract);
 
-  // 한국어 요약이 먼저. 이걸 보려고 들어온 것이다.
+  // 한 줄 요약이 먼저. 목록 카드에 나가는 문장이기도 하다.
+  if (r.summaryKo) parts.push(r.summaryKo.trim());
+
+  // 구조 요약 — 배경·방법·결과·한계.
   //
-  // KCI 문헌에는 이 요약이 없다. 국문 초록이 원문 그대로 오므로 우리가
-  // 다시 쓸 이유가 없고, 무엇보다 KCI 이용 약관의 '데이터 공신력 유지'
-  // 조항이 원천 데이터로 하위 정보를 만드는 것을 금한다.
-  if (!isKci && r.summaryKo) parts.push(r.summaryKo);
+  // 한 줄씩 굵은 이름을 앞세운다. 줄글 네 문단으로 두면 결과만 보려는
+  // 사람이 눈으로 짚을 자리가 없다.
+  if (r.abstractKo) {
+    const body = r.abstractKo
+      .trim()
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const m = /^(배경|방법|결과|한계)\s*[:：]\s*(.*)$/.exec(line);
+        return m ? '**' + m[1] + '** ' + m[2] : line;
+      })
+      .join(NL + NL);
+    parts.push('## 요약' + NL + NL + body);
+  }
 
   // 서지정보 표 — 저널·연도·근거수준이 문장에 섞여 있으면 눈에 안 들어온다.
   const rows: string[] = ['| 항목 | 내용 |', '|---|---|'];
-  rows.push('| 근거 수준 | ' + EVIDENCE_LABEL[r.evidenceType] + ' |');
-  if (r.journal) rows.push('| 학술지 | ' + r.journal + ' |');
-  if (r.publishedYear) rows.push('| 발행 | ' + r.publishedYear + '년 |');
+  if (r.journal) {
+    rows.push(
+      '| 학술지 | ' +
+        r.journal +
+        (r.publishedYear ? ' · ' + r.publishedYear + '년' : '') +
+        ' |',
+    );
+  } else if (r.publishedYear) {
+    rows.push('| 발행 | ' + r.publishedYear + '년 |');
+  }
   if (r.authors.length > 0) {
     const who =
       r.authors.length > 3
@@ -194,62 +261,51 @@ export function buildContent(r: Reference): string {
         : r.authors.join(', ');
     rows.push('| 저자 | ' + who + ' |');
   }
-  parts.push(rows.join(NL));
+  // 근거 수준은 분류가 됐을 때만 적는다.
+  //
+  // KCI 는 한국어 제목이라 연구유형이 잘 안 잡혀 대부분 unknown 인데,
+  // 그 618편이 전부 첫 줄에 '근거 수준 · 분류 미상' 을 달고 있었다.
+  // 아무것도 알려주지 않는 칸이 표의 맨 위를 차지한 셈이다.
+  if (r.evidenceType !== ReferenceEvidenceType.UNKNOWN) {
+    rows.push('| 근거 수준 | ' + EVIDENCE_LABEL[r.evidenceType] + ' |');
+  }
+  // 원제 — 제목과 다를 때만. 표 안에서 줄이 바뀌지 않게 파이프는 지운다.
+  const original = r.title.trim().replace(/\|/g, '/');
+  if (original && original !== buildTitle(r)) {
+    rows.push('| 원제 | ' + original + ' |');
+  }
+  parts.push('## 서지정보' + NL + NL + rows.join(NL));
 
-  // 원제 — 검색이나 인용에 쓰려면 필요하다.
-  parts.push('**원제**' + NL + NL + r.title);
-
-  // 초록 자리.
-  //
-  // 예전에는 영문 초록을 그대로 발췌해 인용했다. 저자의 말을 저자의 말로
-  // 두는 것이 옳다고 봤는데, 한글 게시판 본문 한가운데가 영어가 되어
-  // 아무도 읽지 않았다. 읽히지 않는 인용은 근거가 아니라 자리 채우기다.
-  //
-  // 그래서 우리가 다시 쓴 한국어 구조 요약(배경·방법·결과·한계)을 쓴다.
-  // 통째로 번역하지 않는 이유는 초록 저작권이 대개 출판사에 있고, 무엇보다
-  // 초록에는 용량과 프로토콜이 들어 있어 옮기다 틀리면 그걸 보고 처방하는
-  // 사람이 생기기 때문이다. 요약에는 용량을 넣지 않고 원문으로 보낸다.
-  //
-  // 아직 요약이 없는 문헌은 영문 발췌로 되돌아간다. 요약 생성은 문헌
-  // 수보다 느리게 도는데, 그때 본문을 통째로 비우면 서지정보만 남는다.
-  if (isKci && r.abstract) {
-    // 국문 초록이라 그대로 인용한다. 요약도 번역도 하지 않는다 —
-    // KCI 약관이 원천 데이터 가공을 금하고, 애초에 이미 읽힌다.
-    const quoted = r.abstract
-      .trim()
+  // 초록 원문 — 한국어로 읽히는 것만.
+  if (quotable) {
+    // 국문 초록은 "목적: … 방법: … 결과: …" 를 한 문단에 이어 붙여 온다.
+    // 1,900자짜리 벽이라 눈이 어디를 짚어야 할지 알 수 없다. 원문 글자는
+    // 하나도 건드리지 않고 항목 앞에서만 줄을 바꾼다.
+    const marked = abstract.replace(
+      /\s*(목적|배경|서론|방법|재료 및 방법|대상 및 방법|결과|결론|고찰)\s*[:：]\s*/g,
+      String.fromCharCode(10) + '$1: ',
+    );
+    const text =
+      marked.length > ABSTRACT_QUOTE_CHARS
+        ? marked.slice(0, ABSTRACT_QUOTE_CHARS).trim() + '…'
+        : marked.trim();
+    const quoted = text
       .split(/\r?\n+/)
       .map((line) => '> ' + line.trim())
       .filter((line) => line !== '>')
       .join(NL + '>' + NL);
-    parts.push('**초록**' + NL + NL + quoted);
-  } else if (r.abstractKo) {
-    parts.push('**초록 요약**' + NL + NL + r.abstractKo.trim());
-  } else if (r.abstract) {
-    const excerpt =
-      r.abstract.length > EXCERPT_CHARS
-        ? r.abstract.slice(0, EXCERPT_CHARS).trim() + '…'
-        : r.abstract.trim();
-    const quoted = excerpt
-      .split(/\r?\n+/)
-      .map((line) => '> ' + line.trim())
-      .filter((line) => line !== '>')
-      .join(NL + '>' + NL);
-    parts.push('**초록 일부 (원문)**' + NL + NL + quoted);
+    parts.push('## 초록 원문' + NL + NL + quoted);
   }
 
   parts.push(
     '---' +
       NL +
       NL +
-      (isKci
-        ? // KCI 는 초록을 원문 그대로 인용한다. 기계 번역 고지를 붙이면
-          // 사실과 다르다.
-          '위 초록은 원문 그대로입니다. 용량과 시술 프로토콜은 발췌 과정에서 ' +
-          '빠질 수 있으니, 처방을 정하기 전에 원문을 확인해 주세요.'
-        : // 기계가 만든 요약이라는 사실을 숨기지 않는다. 한의사가 이걸
-          // 근거로 삼기 전에 원문을 확인해야 한다는 것을 알아야 한다.
-          '위 한국어 요약은 기계 번역으로 만든 것입니다. 용량과 시술 프로토콜은 ' +
-          '요약에 넣지 않았으니, 처방을 정하기 전에 원문을 확인해 주세요.'),
+      (r.abstractKo
+        ? '위 요약은 원문 초록을 기계가 다시 쓴 것입니다. 용량과 시술 ' +
+          '프로토콜은 요약에 넣지 않았으니, 처방을 정하기 전에 원문을 확인해 주세요.'
+        : '용량과 시술 프로토콜은 발췌 과정에서 빠질 수 있으니, 처방을 ' +
+          '정하기 전에 원문을 확인해 주세요.'),
   );
 
   const sources: string[] = ['- [원문 보기](' + r.url + ')'];
