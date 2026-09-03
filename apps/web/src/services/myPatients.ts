@@ -120,6 +120,37 @@ export async function fetchMyPatient(id: string): Promise<MyPatient> {
   return data
 }
 
+/**
+ * 환자 보관 사용량과 한도.
+ *
+ * limit 이 null 이면 무제한이다. 서버가 Infinity 를 JSON 으로 내보내면
+ * null 이 되므로, 화면은 null 을 "무제한" 으로 읽는다.
+ */
+export interface PatientQuota {
+  used: number
+  limit: number | null
+  tier: string
+}
+
+export async function fetchPatientQuota(): Promise<PatientQuota> {
+  const { data } = await api.get<PatientQuota>('/my-patients/quota')
+  return data
+}
+
+/**
+ * 한도 초과인지 가려낸다.
+ *
+ * 서버는 402 에 error='PATIENT_LIMIT_REACHED' 를 실어 보낸다. 전역 예외
+ * 필터가 statusCode·error·message 만 남기므로 식별자가 error 에 있다.
+ * 이걸 일반 실패와 섞으면 "잠시 후 다시 시도" 라고 안내하게 되는데,
+ * 다시 시도해도 영원히 안 된다.
+ */
+export function isPatientLimitError(err: unknown): boolean {
+  const res = (err as { response?: { status?: number; data?: { error?: string } } })
+    ?.response
+  return res?.status === 402 && res?.data?.error === 'PATIENT_LIMIT_REACHED'
+}
+
 export async function createMyPatient(payload: NewPatientPayload): Promise<MyPatient> {
   const { data } = await api.post<MyPatient>('/my-patients', payload)
   return data

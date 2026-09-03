@@ -53,7 +53,7 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   [FeatureKey.CASE_EXPORT]: '내 케이스 내보내기',
   // "전자차트" 라고 부르지 않는다 — 진료기록부 법정 요건(보존기간·수정이력 등)을
   // 충족하는 EMR 이 아니라, 환자 명부와 진료 기록을 서버에 보관하는 기능이다.
-  [FeatureKey.PATIENT_MANAGEMENT]: '환자 명부·진료 기록 서버 보관',
+  [FeatureKey.PATIENT_MANAGEMENT]: '환자 명부·진료 기록 서버 보관 (요금제별 인원)',
   [FeatureKey.VOICE_CHART]: '음성 받아쓰기 (베타)',
   [FeatureKey.STATS_BASIC]: '기본 통계',
   [FeatureKey.ADVANCED_FILTERS]: '고급 검색 필터',
@@ -68,6 +68,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
 };
 
 const FREE_FEATURES = [
+  // 전 티어에 열려 있고 보관 인원으로 나뉜다 (PATIENT_LIMITS).
+  FeatureKey.PATIENT_MANAGEMENT,
   FeatureKey.DIAGNOSIS,
   FeatureKey.PRESCRIPTION_RECOMMEND,
   FeatureKey.SYMPTOM_SEARCH,
@@ -89,7 +91,6 @@ const BASIC_FEATURES = [
 const PRO_FEATURES = [
   ...BASIC_FEATURES,
   FeatureKey.CASE_SAVE_UNLIMITED,
-  FeatureKey.PATIENT_MANAGEMENT,
   FeatureKey.VOICE_CHART,
   FeatureKey.ADVANCED_FILTERS,
   FeatureKey.EXPORT_NO_WATERMARK,
@@ -145,6 +146,26 @@ export function tierHasFeature(tier: SubscriptionTier, key: FeatureKey): boolean
  * 화면은 이 값으로 벽을 "미리" 그린다. 실제 차단은 서버가 한다 —
  * 여기 값을 고쳐도 데이터가 더 나오지는 않는다.
  */
+/**
+ * 환자 보관 한도 — 서버 apps/api/src/database/entities/plan-features.ts 와 1:1.
+ *
+ * 화면은 이 값으로 "3/5명" 을 그리고 한도가 차기 전에 미리 알린다.
+ * 실제 차단은 서버가 한다 — 여기 값을 고쳐도 더 저장되지는 않는다.
+ *
+ * null 은 무제한. 서버가 Infinity 를 JSON 으로 내보내면 null 이 된다.
+ */
+export const PATIENT_LIMITS: Record<SubscriptionTier, number | null> = {
+  free: 5,
+  basic: 50,
+  professional: 500,
+  clinic: null,
+}
+
+export function patientLimitLabel(tier: SubscriptionTier): string {
+  const n = PATIENT_LIMITS[tier]
+  return n === null ? '무제한' : `${n.toLocaleString()}명`
+}
+
 export const CASE_BROWSE_FREE_PAGES = 3
 export const CASE_LIST_PAGE_SIZE_MAX = 20
 export const CASE_BROWSE_FREE_CASES = CASE_BROWSE_FREE_PAGES * CASE_LIST_PAGE_SIZE_MAX

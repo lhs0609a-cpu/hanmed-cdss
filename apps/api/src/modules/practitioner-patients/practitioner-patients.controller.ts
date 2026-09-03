@@ -23,8 +23,11 @@ import {
 import { FeatureGuard } from '../../common/guards/feature.guard';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { FeatureKey } from '../../database/entities/plan-features';
+import { SubscriptionTier } from '../../database/entities/user.entity';
 
-type AuthedRequest = Request & { user: { id: string } };
+type AuthedRequest = Request & {
+  user: { id: string; subscriptionTier?: SubscriptionTier };
+};
 
 /**
  * 한의사 본인의 환자 명부 / 진료 기록.
@@ -32,8 +35,14 @@ type AuthedRequest = Request & { user: { id: string } };
  */
 @ApiTags('my-patients')
 /**
- * 환자 명부·진료 기록 서버 보관은 Pro 이상이다. 화면에서만 잠가 두면
- * API 를 직접 불러 그대로 쓴다.
+ * 환자 명부는 전 티어에 열려 있고 보관 인원으로 나뉜다 (PATIENT_LIMITS).
+ *
+ * 예전에는 Pro 이상만 들어올 수 있어 무료 계정에는 자물쇠 화면만 보였다.
+ * 써 보지 못한 기능은 결제 이유가 되지 않는다. 지금은 문을 열어 두고
+ * 인원에서 막는다 — 실제 차단은 서비스의 assertPatientQuota 가 한다.
+ *
+ * 이 데코레이터는 남겨 둔다. 지금은 전 티어가 통과하지만, 나중에 누가
+ * 무료 개방을 되돌리면 API 쪽도 같이 닫히는 것이 맞다.
  */
 @RequireFeature(FeatureKey.PATIENT_MANAGEMENT)
 @Controller('my-patients')
@@ -48,10 +57,20 @@ export class PractitionerPatientsController {
     return this.service.listPatients(req.user.id);
   }
 
+  @Get('quota')
+  @ApiOperation({ summary: '환자 보관 사용량과 한도' })
+  quota(@Req() req: AuthedRequest) {
+    return this.service.getQuota(req.user.id, req.user.subscriptionTier);
+  }
+
   @Post()
   @ApiOperation({ summary: '환자 등록' })
   create(@Req() req: AuthedRequest, @Body() body: UpsertPatientInput) {
-    return this.service.createPatient(req.user.id, body);
+    return this.service.createPatient(
+      req.user.id,
+      body,
+      req.user.subscriptionTier,
+    );
   }
 
   @Get('export')
@@ -66,7 +85,11 @@ export class PractitionerPatientsController {
     @Req() req: AuthedRequest,
     @Body() body: { patients?: UpsertPatientInput[]; visits?: CreateVisitInput[] },
   ) {
-    return this.service.importLocal(req.user.id, body ?? {});
+    return this.service.importLocal(
+      req.user.id,
+      body ?? {},
+      req.user.subscriptionTier,
+    );
   }
 
   @Get('visits')

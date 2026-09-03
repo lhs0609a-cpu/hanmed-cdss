@@ -23,9 +23,12 @@ import { logError } from '@/lib/errors'
 import {
   fetchMyPatients,
   createMyPatient,
+  fetchPatientQuota,
+  isPatientLimitError,
   importLocalData,
   hasLegacyLocalData,
   type MyPatient,
+  type PatientQuota,
 } from '@/services/myPatients'
 
 const patientsTourSteps = [
@@ -99,6 +102,10 @@ interface NewPatientForm {
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
+  /** 요금제별 보관 한도. limit 이 null 이면 무제한. */
+  const [quota, setQuota] = useState<PatientQuota | null>(null)
+  /** 한도에 걸려 등록이 막혔다. 업그레이드 안내를 띄운다. */
+  const [limitHit, setLimitHit] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -117,8 +124,14 @@ export default function PatientsPage() {
     setIsLoading(true)
     setLoadError('')
     try {
-      const rows = await fetchMyPatients()
+      // 명부와 한도를 같이 받는다. 한도를 나중에 따로 받으면 목록이 먼저
+      // 그려지고 "4/5명" 이 뒤늦게 튀어나와 화면이 흔들린다.
+      const [rows, q] = await Promise.all([
+        fetchMyPatients(),
+        fetchPatientQuota().catch(() => null),
+      ])
       setPatients(rows.map(toViewPatient))
+      if (q) setQuota(q)
     } catch (err) {
       logError(err, 'PatientsPage.load')
       setLoadError('환자 명부를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
@@ -261,6 +274,14 @@ export default function PatientsPage() {
         mainComplaint: newPatient.mainComplaint.trim() || null,
       })
     } catch (err) {
+      // 한도 초과는 "잠시 후 다시" 로 안내하면 안 된다. 다시 시도해도
+      // 영원히 안 되고, 사람은 그 사이 자기 잘못이라고 생각한다.
+      if (isPatientLimitError(err)) {
+        setLimitHit(true)
+        setShowNewPatientModal(false)
+        setIsSaving(false)
+        return
+      }
       logError(err, 'PatientsPage.create')
       setFormErrors({ name: '환자 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.' })
       setIsSaving(false)
@@ -268,6 +289,7 @@ export default function PatientsPage() {
     }
     setIsSaving(false)
 
+    setQuota((q) => (q ? { ...q, used: q.used + 1 } : q))
     setPatients((prev) => [toViewPatient(created), ...prev])
     setNewPatientName(created.name)
     setShowNewPatientModal(false)
@@ -337,6 +359,34 @@ export default function PatientsPage() {
         </div>
       )}
 
+      {/* 한도에 걸렸을 때 — 등록을 누른 사람에게만 뜬다 */}
+      {limitHit && quota?.limit != null && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <p className="text-[15px] font-bold text-amber-900">
+            보관 한도 {quota.limit}명을 모두 채웠습니다
+          </p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-amber-800">
+            이미 등록한 {quota.used}명의 기록은 그대로 남아 있습니다. 더 등록하시려면
+            요금제를 올려 주세요. 지금 계신 환자를 지울 필요는 없습니다.
+          </p>
+          <div className="mt-4 flex items-center gap-2">
+            <Link
+              to="/dashboard/subscription"
+              className="rounded-xl bg-amber-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-amber-700"
+            >
+              요금제 비교하기
+            </Link>
+            <button
+              type="button"
+              onClick={() => setLimitHit(false)}
+              className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-amber-900 transition-colors hover:bg-amber-100"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -345,6 +395,14 @@ export default function PatientsPage() {
           </h1>
           <p className="mt-1 text-[14px] text-neutral-500">
             환자 차트와 진료 기록을 관리합니다.
+            {/* 한도는 늘 보인다. 다 차고 나서 알려 주면 그건 안내가 아니라 사고다. */}
+            {quota && (
+              <span className="ml-1.5 font-medium text-neutral-700">
+                {quota.limit == null
+                  ? `${quota.used.toLocaleString()}명 · 무제한`
+                  : `${quota.used}/${quota.limit}명`}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

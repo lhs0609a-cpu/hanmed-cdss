@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -19,6 +21,8 @@ import {
 } from '../../database/entities/practitioner-visit.entity';
 import { MedicationGuide } from '../../database/entities/medication-guide.entity';
 import { EncryptionService } from '../../common/services/encryption.service';
+import { SubscriptionTier } from '../../database/entities/user.entity';
+import { patientLimit } from '../../database/entities/plan-features';
 
 export interface PatientDto {
   id: string;
@@ -363,10 +367,67 @@ export class PractitionerPatientsService {
     return row;
   }
 
+  /**
+   * 지금 몇 명을 보관 중이고 몇 명까지 되는가.
+   *
+   * 화면이 "3/5명" 을 그리고 한도가 차기 전에 미리 알리는 데 쓴다.
+   * 한도에 닿고 나서야 알려 주면 그건 안내가 아니라 사고다.
+   */
+  async getQuota(
+    practitionerId: string,
+    tier?: SubscriptionTier | null,
+  ): Promise<{ used: number; limit: number | null; tier: string }> {
+    const used = await this.patients.count({
+      where: { practitionerId, deletedAt: IsNull() },
+    });
+    const limit = patientLimit(tier);
+    return {
+      used,
+      // Infinity 는 JSON 에서 null 이 된다. 화면이 "무제한" 으로 읽는다.
+      limit: Number.isFinite(limit) ? limit : null,
+      tier: tier ?? SubscriptionTier.FREE,
+    };
+  }
+
+  /**
+   * 한도를 넘으면 막는다.
+   *
+   * 화면에서만 잠그면 API 를 직접 불러 그대로 넘어간다. 실제로 막는 것은
+   * 여기다. FeatureGuard 와 같은 402 를 쓴다 — 로그인 만료(401)와 구분해
+   * 프론트가 업그레이드 안내를 띄울 수 있어야 한다.
+   */
+  private async assertPatientQuota(
+    practitionerId: string,
+    tier: SubscriptionTier | null | undefined,
+    adding = 1,
+  ): Promise<void> {
+    const limit = patientLimit(tier);
+    if (!Number.isFinite(limit)) return;
+
+    const used = await this.patients.count({
+      where: { practitionerId, deletedAt: IsNull() },
+    });
+    if (used + adding <= limit) return;
+
+    throw new HttpException(
+      {
+        statusCode: HttpStatus.PAYMENT_REQUIRED,
+        error: 'PATIENT_LIMIT_REACHED',
+        message:
+          `현재 요금제의 환자 보관 한도(${limit}명)를 넘습니다. ` +
+          `지금 ${used}명을 보관 중입니다. 상위 요금제로 올리면 더 등록할 수 있습니다.`,
+      },
+      HttpStatus.PAYMENT_REQUIRED,
+    );
+  }
+
   async createPatient(
     practitionerId: string,
     input: UpsertPatientInput,
+    tier?: SubscriptionTier | null,
   ): Promise<PatientDto> {
+    await this.assertPatientQuota(practitionerId, tier);
+
     const entity = this.patients.create({
       practitionerId,
       nameEncrypted: this.encryption.encrypt(input.name),
@@ -655,10 +716,28 @@ export class PractitionerPatientsService {
   async importLocal(
     practitionerId: string,
     payload: { patients?: UpsertPatientInput[]; visits?: CreateVisitInput[] },
-  ): Promise<{ importedPatients: number; importedVisits: number; skipped: number }> {
+    tier?: SubscriptionTier | null,
+  ): Promise<{
+    importedPatients: number;
+    importedVisits: number;
+    skipped: number;
+    /** 요금제 한도에 걸려 못 옮긴 환자 수. 0 이 아니면 화면이 알려야 한다. */
+    blockedByLimit: number;
+  }> {
     let importedPatients = 0;
     let skipped = 0;
+    let blockedByLimit = 0;
     const idMap = new Map<string, string>();
+
+    // 한도는 여기서 한 번만 센다. 환자마다 COUNT 를 돌리면 수백 건 이관에
+    // 수백 번 질의가 나간다. 대신 이 루프 안에서 직접 세어 나간다.
+    const limit = patientLimit(tier);
+    let remaining = Number.isFinite(limit)
+      ? limit -
+        (await this.patients.count({
+          where: { practitionerId, deletedAt: IsNull() },
+        }))
+      : Infinity;
 
     for (const p of payload.patients ?? []) {
       if (!p?.name) {
@@ -677,9 +756,17 @@ export class PractitionerPatientsService {
         idMap.set((p as { id?: string }).id ?? p.name, existing.id);
         continue;
       }
-      const created = await this.createPatient(practitionerId, p);
+      // 한도를 넘으면 통째로 실패시키지 않고 거기서 멈춘다. 300건을
+      // 올렸는데 한 건 때문에 전부 되돌아가면 사람이 손으로 다시 골라야 한다.
+      // 몇 명이 남았는지는 아래에서 알려 준다.
+      if (remaining <= 0) {
+        blockedByLimit++;
+        continue;
+      }
+      const created = await this.createPatient(practitionerId, p, tier);
       idMap.set((p as { id?: string }).id ?? p.name, created.id);
       importedPatients++;
+      remaining--;
     }
 
     let importedVisits = 0;
@@ -694,7 +781,7 @@ export class PractitionerPatientsService {
       }
     }
 
-    return { importedPatients, importedVisits, skipped };
+    return { importedPatients, importedVisits, skipped, blockedByLimit };
   }
 
   /** 내보내기 — 한의사가 자기 데이터를 언제든 가져갈 수 있어야 한다. */

@@ -68,6 +68,35 @@ export const CASE_SAVE_LIMITS: Record<SubscriptionTier, number> = {
 };
 
 /**
+ * 환자 명부 보관 한도.
+ *
+ * 예전에는 Pro 이상만 환자 명부를 쓸 수 있었다. 무료 계정은 페이지 자체가
+ * 자물쇠 화면이었다. 그런데 이 기능은 써 봐야 값어치를 안다 — 환자 한 명을
+ * 넣고 다음 진료 때 그 기록이 그대로 떠 있는 걸 봐야 "이거 없으면 못 하겠다"
+ * 가 된다. 열어 보지도 못한 기능은 결제 이유가 되지 않는다.
+ *
+ * 그래서 전 티어에 열고 인원으로 나눈다. 무료는 맛보기, 유료는 실제 운영.
+ * 5명은 한의원을 굴리기에는 확실히 모자라고, 기능을 판단하기에는 충분하다.
+ *
+ * Infinity 는 무제한이다. JSON 으로 내보낼 때는 null 로 바꾼다 —
+ * JSON.stringify(Infinity) 는 null 이 되므로 어차피 같은 값이지만,
+ * 화면에서 "무제한" 을 그리려면 그 사실을 알고 있어야 한다.
+ */
+export const PATIENT_LIMITS: Record<SubscriptionTier, number> = {
+  [SubscriptionTier.FREE]: 5,
+  [SubscriptionTier.BASIC]: 50,
+  [SubscriptionTier.PROFESSIONAL]: 500,
+  [SubscriptionTier.CLINIC]: Infinity,
+};
+
+/** 이 사용자의 환자 보관 한도. 알 수 없는 티어는 가장 낮게 취급한다. */
+export function patientLimit(tier?: SubscriptionTier | null): number {
+  return (
+    PATIENT_LIMITS[tier as SubscriptionTier] ?? PATIENT_LIMITS[SubscriptionTier.FREE]
+  );
+}
+
+/**
  * 치험례 목록 둘러보기 한도 (CASE_BROWSE_UNLIMITED 없을 때 적용).
  *
  * 6,000건이 쌓여 있다는 사실 자체가 이 제품의 값어치다. 숨기면 팔리지 않고,
@@ -132,6 +161,8 @@ export const PLAN_FEATURES: Record<SubscriptionTier, ReadonlySet<FeatureKey>> = 
     FeatureKey.ACUPOINTS,
     FeatureKey.RED_FLAG,
     FeatureKey.AI_CHAT, // 무료지만 월 한도 제한 (PLAN_LIMITS)
+    // 전 티어에 열려 있고 인원으로 나뉜다 (PATIENT_LIMITS).
+    FeatureKey.PATIENT_MANAGEMENT,
   ]),
   [SubscriptionTier.BASIC]: new Set<FeatureKey>([
     FeatureKey.DIAGNOSIS,
@@ -145,6 +176,7 @@ export const PLAN_FEATURES: Record<SubscriptionTier, ReadonlySet<FeatureKey>> = 
     FeatureKey.AI_CHAT,
     FeatureKey.CASE_BROWSE_UNLIMITED,
     FeatureKey.CASE_EXPORT,
+    FeatureKey.PATIENT_MANAGEMENT,
     FeatureKey.STATS_BASIC,
   ]),
   [SubscriptionTier.PROFESSIONAL]: new Set<FeatureKey>([
