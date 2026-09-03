@@ -102,7 +102,41 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-start justify-center px-5 py-12">
+    <div className="min-h-screen bg-white flex items-start justify-center gap-16 px-5 py-12">
+      {/* 넓은 화면에서만 — 비어 있던 왼쪽을 브랜드 컷으로 채운다. 폼에는 손대지 않는다. */}
+      <aside
+        className="hidden lg:flex w-[320px] flex-col items-center rounded-[2rem] px-6 pb-10 pt-6"
+        style={{ background: 'linear-gradient(180deg, #f4f5f7 0%, #e9ebee 100%)' }}
+      >
+        <img
+          src="/brand/model-standing.webp"
+          alt="온고지신 AI 브랜드 모델"
+          width={300}
+          height={620}
+          loading="lazy"
+          decoding="async"
+          className="h-[520px] w-auto"
+          style={{
+            WebkitMaskImage:
+              'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
+            maskImage:
+              'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
+            WebkitMaskComposite: 'source-in',
+            maskComposite: 'intersect',
+          }}
+        />
+        <p className="-mt-4 text-center text-[15px] font-semibold leading-relaxed text-neutral-800">
+          결정은 한의사가,
+          <br />
+          준비는 온고지신 AI가
+        </p>
+        <p className="mt-2 text-center text-[13px] leading-relaxed text-neutral-500">
+          변증 후보와 처방 후보를 근거까지 붙여서
+          <br />
+          돌려드립니다.
+        </p>
+      </aside>
+
       <div className="w-full max-w-[440px]">
         <Link to="/" className="inline-flex items-center gap-2.5 mb-12">
           <LogoMark size={32} />

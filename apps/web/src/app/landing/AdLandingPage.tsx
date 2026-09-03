@@ -583,6 +583,80 @@ export default function AdLandingPage() {
         </div>
       </section>
 
+      {/* 도입 안내 — 브랜드 모델 */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* 모델 */}
+            <div className="relative flex justify-center">
+              <div
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 top-8 rounded-full blur-3xl"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 45% 55% at 50% 55%, rgba(59,130,246,0.16), transparent 70%)',
+                }}
+              />
+              <img
+                src="/brand/model-standing.webp"
+                alt="온고지신 AI 브랜드 모델"
+                width={450}
+                height={931}
+                loading="lazy"
+                decoding="async"
+                className="relative h-[440px] w-auto md:h-[560px]"
+                style={{
+                  // 사진의 회색 배경이 흰 지면과 만나는 경계를 지운다.
+                  // 좌우는 타원, 위아래는 직선으로 페이드하고 두 마스크를 교집합으로 겹친다.
+                  WebkitMaskImage:
+                    'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
+                  maskImage:
+                    'radial-gradient(ellipse 50% 100% at 50% 50%, #000 55%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 6%, #000 96%, transparent 100%)',
+                  WebkitMaskComposite: 'source-in',
+                  maskComposite: 'intersect',
+                }}
+              />
+            </div>
+
+            {/* 카피 */}
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                <Sparkles className="h-4 w-4" />
+                도입 안내
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+                결정은 한의사가,
+                <br />
+                준비는 온고지신 AI가
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                변증 후보와 처방 후보를 약재 구성·유사 치험례·환자 설명자료까지 붙여서 돌려드립니다.
+                최종 판단은 언제나 한의사가 합니다.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  '설치 없이 브라우저에서 바로 사용',
+                  '한약-양약 상호작용 자동 점검',
+                  '처방 근거를 문서로 남겨 보관',
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-gray-700">
+                    <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={handleStartTrial}
+                className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold rounded-2xl hover:shadow-xl hover:shadow-blue-500/30 transition-all inline-flex items-center gap-2"
+              >
+                14일 무료 체험 시작
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-20 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">

@@ -650,6 +650,25 @@ export default function LandingPage() {
         <GlassOrb size="6rem" className="right-[14%] top-[58%] hidden lg:block" delay="-8s" />
 
         <div className="relative mx-auto max-w-3xl text-center">
+          <div className="relative mx-auto mb-8 w-fit">
+            <div
+              aria-hidden
+              className="absolute -inset-4 rounded-full blur-2xl"
+              style={{
+                background: 'radial-gradient(circle, rgba(49,130,246,0.45), transparent 70%)',
+              }}
+            />
+            <img
+              src="/brand/model-avatar.webp"
+              alt="온고지신 AI 브랜드 모델"
+              width={104}
+              height={104}
+              loading="lazy"
+              decoding="async"
+              className="relative h-[104px] w-[104px] rounded-full border border-white/20 object-cover shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)]"
+            />
+          </div>
+
           <h2 className="text-[34px] font-bold leading-[1.2] tracking-[-0.025em] text-white sm:text-[48px]">
             오늘 진료부터
             <br />
