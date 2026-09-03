@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEnum,
   IsArray,
+  IsIn,
   IsUUID,
   MinLength,
   MaxLength,
@@ -168,6 +169,20 @@ export class PostQueryDto {
   @IsOptional()
   @IsString()
   excludeTag?: string;
+
+  /**
+   * 누가 쓴 글만 볼지.
+   *
+   *   human  동료 한의사가 쓴 글
+   *   team   운영팀이 정리해 둔 큐레이션
+   *
+   * 시드가 사람 글보다 백 배 많은 게시판에서는 이게 없으면 사람 글만 모아
+   * 보는 방법이 없다. 작성자 id 를 화면이 알 필요는 없으므로 종류로만 받는다.
+   */
+  @ApiPropertyOptional({ description: '작성자 종류', enum: ['human', 'team'] })
+  @IsOptional()
+  @IsIn(['human', 'team'])
+  authorKind?: 'human' | 'team';
 
   @ApiPropertyOptional({ description: '작성자 ID 필터 (내 글 보기)' })
   @IsOptional()

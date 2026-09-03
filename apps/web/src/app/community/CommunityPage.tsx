@@ -206,6 +206,14 @@ export default function CommunityPage() {
    */
   const [clinicalView, setClinicalView] = useState<'all' | 'brief' | 'reference'>('all')
 
+  /**
+   * 누가 쓴 글을 볼 것인가.
+   *
+   * 운영팀 큐레이션이 사람 글보다 백 배 많다. 목록은 사람 글을 위로 올려
+   * 두지만, 그것만으로는 "동료들 글만 쭉 보기" 가 안 된다.
+   */
+  const [authorKind, setAuthorKind] = useState<'' | 'human' | 'team'>('')
+
   // 현재 라우트가 "내 글"/"내 북마크" 인지 판별
   const viewMode: 'all' | 'mine' | 'bookmarks' = location.pathname.includes('/community/my/bookmarks')
     ? 'bookmarks'
@@ -290,6 +298,7 @@ export default function CommunityPage() {
             if (clinicalView === 'brief') params.excludeTag = REFERENCE_TAG
           }
           if (sortBy) params.sortBy = sortBy
+          if (authorKind) params.authorKind = authorKind
           if (viewMode === 'mine' && user?.id) params.authorId = user.id
         }
         params.page = String(page)
@@ -313,14 +322,14 @@ export default function CommunityPage() {
     }
 
     fetchPosts()
-  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions, isClinical, clinicalView, page])
+  }, [selectedType, sortBy, token, viewMode, user?.id, isSuggestions, isClinical, clinicalView, authorKind, page])
 
   // 필터가 바뀌면 첫 페이지로 돌아간다.
   // 3페이지를 보다가 게시판을 옮겼는데 그대로 3페이지면, 글이 몇 개 없는
   // 게시판에서는 빈 화면이 나온다.
   useEffect(() => {
     setPage(1)
-  }, [selectedType, sortBy, viewMode, isSuggestions, isClinical, clinicalView])
+  }, [selectedType, sortBy, viewMode, isSuggestions, isClinical, clinicalView, authorKind])
 
   // 게시판을 옮기면 유형을 맞춘다. 첫 값은 useState 에서 이미 경로로 잡았다.
   useEffect(() => {
@@ -485,6 +494,30 @@ export default function CommunityPage() {
           </div>
         </div>
       </div>
+
+      {/* 작성자 — 동료 글만 볼 수 있어야 게시판이 게시판이다 */}
+      {viewMode === 'all' && (
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: '' as const, label: '전체 글' },
+            { key: 'human' as const, label: '한의사 글' },
+            { key: 'team' as const, label: '운영팀 큐레이션' },
+          ].map((v) => (
+            <button
+              key={v.key || 'all'}
+              type="button"
+              onClick={() => setAuthorKind(v.key)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                authorKind === v.key
+                  ? 'bg-neutral-900 border-neutral-900 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-neutral-400 hover:text-neutral-900'
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 임상정보 하위 보기 — 해설과 문헌을 가른다 */}
       {isClinical && (

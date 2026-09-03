@@ -62,6 +62,7 @@ export class CommunityController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'tag', required: false, type: String })
   @ApiQuery({ name: 'excludeTag', required: false, type: String })
+  @ApiQuery({ name: 'authorKind', required: false, enum: ['human', 'team'] })
   async findAllPosts(@Query() query: PostQueryDto) {
     return this.communityService.findAllPosts(query);
   }

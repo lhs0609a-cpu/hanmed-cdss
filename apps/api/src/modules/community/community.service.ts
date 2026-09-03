@@ -137,6 +137,7 @@ export class CommunityService {
       tag,
       excludeTag,
       authorId,
+      authorKind,
     } = query;
 
     const qb = this.postsRepository
@@ -200,45 +201,64 @@ export class CommunityService {
       );
     }
 
-    // 종합 게시판은 사람이 올린 글이 먼저다.
+    // 사람이 올린 글이 먼저다. 게시판을 가리지 않는다.
     //
     // 운영팀 시드가 최신순 위쪽을 다 차지하면, 눌러 들어온 사람은 동료가 쓴
     // 글을 한 편도 못 본다. 게시판이 살아 있는지 아닌지가 여기서 갈린다.
+    // 처음에는 종합 게시판에만 걸었는데, 문헌·큐레이션을 Q&A 와 케이스
+    // 토론까지 부으면 같은 일이 그 게시판들에서 벌어진다.
     //
     // 조인한 열로 정렬하면 페이지네이션이 만드는 DISTINCT 하위 질의와
     // 부딪히므로 posts 테이블만 보고 판단한다.
-    const seedAuthorIds =
-      type === PostType.GENERAL ? await this.getSeedAuthorIds() : [];
+    const seedAuthorIds = await this.getSeedAuthorIds();
     const userFirst = seedAuthorIds.length > 0;
 
+    // 누가 쓴 글만 볼지 고를 수 있게 한다.
+    //
+    //   human  동료 한의사가 쓴 글만
+    //   team   운영팀이 정리해 둔 것만
+    //
+    // 시드가 사람 글보다 백 배 많은 게시판에서는 이 필터가 없으면 "사람
+    // 글만 모아 보기" 가 아예 불가능하다.
+    if (authorKind && userFirst) {
+      qb.andWhere(
+        authorKind === 'human'
+          ? `post."authorId" NOT IN (:...seedAuthorIds)`
+          : `post."authorId" IN (:...seedAuthorIds)`,
+        { seedAuthorIds },
+      );
+    }
+
+    // 고정 글이 맨 위. 그다음이 사람 글, 그다음이 고른 정렬이다.
+    //
+    // 예전에는 고정을 맨 마지막 addOrderBy 로 붙여서 앞선 정렬이 같을 때만
+    // 효과가 있었다. 화면이 받아 온 20개를 다시 정렬해 가리고 있었을 뿐,
+    // 2페이지로 밀린 공지는 어디에도 안 보였다.
+    qb.orderBy('post.isPinned', 'DESC');
+
     if (userFirst) {
-      qb.orderBy(
+      qb.addOrderBy(
         `CASE WHEN post."authorId" IN (:...seedAuthorIds) THEN 1 ELSE 0 END`,
         'ASC',
       ).setParameter('seedAuthorIds', seedAuthorIds);
     }
 
-    // 정렬 — 사람 글 우선을 이미 걸었으면 뒤에 덧붙인다.
-    // orderBy() 는 앞선 정렬을 지운다.
-    const applyOrder = (column: string, direction: 'ASC' | 'DESC') =>
-      userFirst ? qb.addOrderBy(column, direction) : qb.orderBy(column, direction);
-
     switch (sortBy) {
       case 'popular':
-        applyOrder('post.likeCount', 'DESC');
+        qb.addOrderBy('post.likeCount', 'DESC');
         break;
       case 'views':
-        applyOrder('post.viewCount', 'DESC');
+        qb.addOrderBy('post.viewCount', 'DESC');
         break;
       case 'comments':
-        applyOrder('post.commentCount', 'DESC');
+        qb.addOrderBy('post.commentCount', 'DESC');
         break;
       default:
-        applyOrder('post.createdAt', 'DESC');
+        qb.addOrderBy('post.createdAt', 'DESC');
     }
-
-    // 고정 게시글 우선
-    qb.addOrderBy('post.isPinned', 'DESC');
+    // 같은 값이면 최신 글이 위로. 정렬이 흔들리면 페이지를 넘길 때 같은
+    // 글이 두 번 보인다.
+    if (sortBy !== 'latest') qb.addOrderBy('post.createdAt', 'DESC');
 
     const [posts, total] = await qb
       .skip((page - 1) * limit)
