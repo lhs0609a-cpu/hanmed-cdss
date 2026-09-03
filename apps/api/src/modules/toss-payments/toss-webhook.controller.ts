@@ -51,7 +51,21 @@ interface TossWebhookPayload {
 @Controller('webhook')
 export class TossWebhookController {
   private readonly logger = new Logger(TossWebhookController.name);
-  private readonly secretKey: string;
+
+  /**
+   * 웹훅 서명 검증에 쓰는 키.
+   *
+   * 시크릿 키가 아니라 **보안 키**다. 개발자센터의 'API 개별 연동 키' 화면에
+   * 클라이언트 키·시크릿 키와 나란히 따로 적혀 있는 64자리 값이고, 토스 문서가
+   * "{payload}:{transmission-time} 을 보안 키로 HMAC SHA-256 해싱" 이라고
+   * 못박는다.
+   *
+   * 여기에 시크릿 키를 넣고 있었다. 그러면 해시가 영원히 안 맞아 들어오는
+   * 웹훅이 전부 'Invalid webhook signature' 로 400 을 맞는다. 결제 승인·실패,
+   * 빌링키 삭제 같은 사후 통지가 하나도 반영되지 않는다는 뜻이다. 서명 검증은
+   * 틀려도 화면에 아무 표시가 안 나서, 결제가 되는 동안에는 아무도 모른다.
+   */
+  private readonly securityKey: string;
 
   constructor(
     private configService: ConfigService,
@@ -61,7 +75,15 @@ export class TossWebhookController {
     private subscriptionRepository: Repository<Subscription>,
     private cacheService: CacheService,
   ) {
-    this.secretKey = this.configService.get('TOSS_SECRET_KEY') || '';
+    this.securityKey = this.configService.get('TOSS_SECURITY_KEY') || '';
+    if (!this.securityKey) {
+      // 조용히 넘어가면 웹훅이 전부 400 으로 떨어지는데 원인은 로그 어디에도
+      // 안 남는다. 뜨는 순간 알 수 있게 한 줄 남긴다.
+      this.logger.error(
+        'TOSS_SECURITY_KEY 가 없습니다. 웹훅 서명 검증이 항상 실패합니다. ' +
+          '개발자센터 > API 개별 연동 키 > 보안 키 값을 넣어 주세요.',
+      );
+    }
   }
 
   @Post('toss')
@@ -165,10 +187,13 @@ export class TossWebhookController {
     signature: string,
   ): boolean {
     try {
+      // 키가 없으면 검증할 수가 없다. 통과시키지 않는다.
+      if (!this.securityKey) return false;
+
       // 보안 키로 HMAC SHA-256 해싱
       const message = `${payload}:${transmissionTime}`;
       const hmac = crypto
-        .createHmac('sha256', this.secretKey)
+        .createHmac('sha256', this.securityKey)
         .update(message)
         .digest('base64');
 

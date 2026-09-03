@@ -25,6 +25,7 @@ services:
       - AI_ENGINE_URL=http://ai-engine:8080
       - TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}
       - TOSS_SECRET_KEY=${TOSS_SECRET_KEY}
+      - TOSS_SECURITY_KEY=${TOSS_SECURITY_KEY}
     depends_on:
       - ai-engine
     networks:

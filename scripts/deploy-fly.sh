@@ -58,6 +58,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "  OPENAI_API_KEY=\"sk-...\" \\"
     echo "  TOSS_SECRET_KEY=\"live_sk_...\" \\"
     echo "  TOSS_CLIENT_KEY=\"live_ck_...\" \\"
+    echo "  TOSS_SECURITY_KEY=\"...\" \\"
     echo "  INTERNAL_API_KEY=\"...\" \\"
     echo "  CORS_ORIGIN=\"https://ongojisin.co.kr\" \\"
     echo "  FRONTEND_URL=\"https://ongojisin.co.kr\" \\"
