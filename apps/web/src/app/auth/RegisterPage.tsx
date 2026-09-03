@@ -8,7 +8,67 @@ import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import type { LoginResponse } from '@/types'
 
-type Role = 'practitioner' | 'student' | 'public_health_doctor'
+type Role =
+  | 'practitioner'
+  | 'student'
+  | 'public_health_doctor'
+  | 'herbal_pharmacist'
+  | 'herb_dealer'
+
+/**
+ * 직역마다 번호 체계가 다르다.
+ *
+ * 한의사는 5~8자리, 한약사는 배출 인원이 적어 네 자리 번호가 실재한다.
+ * 한약업자는 시·도지사가 발급하는 허가번호라 "제2020-3호" 처럼 한글과
+ * 기호가 섞인다. 숫자 규칙을 씌우면 정상 허가번호가 막힌다.
+ *
+ * 서버 auth.service 의 검증과 같은 규칙이어야 한다.
+ */
+const LICENSE_RULES: Record<
+  Role,
+  { label: string; required: boolean; numeric: boolean; min: number; max: number; hint: string }
+> = {
+  practitioner: {
+    label: '한의사 면허번호',
+    required: true,
+    numeric: true,
+    min: 5,
+    max: 8,
+    hint: '숫자 5~8자리 (0으로 시작 불가)',
+  },
+  public_health_doctor: {
+    label: '한의사 면허번호',
+    required: false,
+    numeric: true,
+    min: 5,
+    max: 8,
+    hint: '숫자 5~8자리 (0으로 시작 불가)',
+  },
+  student: {
+    label: '한의사 면허번호',
+    required: false,
+    numeric: true,
+    min: 5,
+    max: 8,
+    hint: '아직 없으면 비워 두세요',
+  },
+  herbal_pharmacist: {
+    label: '한약사 면허번호',
+    required: true,
+    numeric: true,
+    min: 3,
+    max: 8,
+    hint: '숫자 3~8자리 (0으로 시작 불가)',
+  },
+  herb_dealer: {
+    label: '한약업자 허가번호',
+    required: true,
+    numeric: false,
+    min: 2,
+    max: 30,
+    hint: '허가증에 적힌 그대로 입력해 주세요 (예: 제2020-3호)',
+  },
+}
 
 export default function RegisterPage() {
   useSEO(PAGE_SEO.register)
@@ -33,7 +93,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const requiresLicense = formData.role === 'practitioner'
+  const licenseRule = LICENSE_RULES[formData.role]
+  const requiresLicense = licenseRule.required
   const licenseDigitsOnly = formData.licenseNumber.replace(/\D/g, '')
 
   // 면허번호 검증 — 백엔드 validateLicenseNumber 와 동일 룰:
@@ -42,13 +103,24 @@ export default function RegisterPage() {
   //   3) 0으로 시작 금지 (한의사 면허번호 체계)
   const licenseFormatChecks = (() => {
     if (!requiresLicense) return { ok: true as const, reason: null as string | null }
-    if (!licenseDigitsOnly) return { ok: false, reason: '면허번호를 입력해주세요' }
+    // 한약업자 허가번호는 형식이 지역마다 달라 길이만 본다.
+    if (!licenseRule.numeric) {
+      const raw = formData.licenseNumber.trim()
+      if (!raw) return { ok: false, reason: `${licenseRule.label}를 입력해주세요` }
+      if (raw.length < licenseRule.min || raw.length > licenseRule.max)
+        return { ok: false, reason: '허가증에 적힌 그대로 입력해주세요' }
+      return { ok: true, reason: null }
+    }
+    if (!licenseDigitsOnly) return { ok: false, reason: `${licenseRule.label}를 입력해주세요` }
     if (!/^\d+$/.test(licenseDigitsOnly))
       return { ok: false, reason: '숫자만 입력 가능합니다' }
     if (licenseDigitsOnly.startsWith('0'))
       return { ok: false, reason: '면허번호는 0으로 시작할 수 없습니다' }
-    if (licenseDigitsOnly.length < 5 || licenseDigitsOnly.length > 8)
-      return { ok: false, reason: '5 ~ 8자리 숫자여야 합니다' }
+    if (licenseDigitsOnly.length < licenseRule.min || licenseDigitsOnly.length > licenseRule.max)
+      return {
+        ok: false,
+        reason: `${licenseRule.min} ~ ${licenseRule.max}자리 숫자여야 합니다`,
+      }
     return { ok: true, reason: null }
   })()
   const licenseValid = licenseFormatChecks.ok
@@ -82,7 +154,11 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         name: formData.name,
-        licenseNumber: requiresLicense ? licenseDigitsOnly : undefined,
+        licenseNumber: requiresLicense
+          ? licenseRule.numeric
+            ? licenseDigitsOnly
+            : formData.licenseNumber.trim()
+          : undefined,
         clinicName: formData.clinicName || undefined,
         role: formData.role,
         consentTerms: consents.terms,
@@ -218,13 +294,15 @@ export default function RegisterPage() {
               <option value="practitioner">한의사 (개원·근무)</option>
               <option value="public_health_doctor">공중보건한의사</option>
               <option value="student">한의대생 / 수련생</option>
+              <option value="herbal_pharmacist">한약사</option>
+              <option value="herb_dealer">한약업자 (한약상)</option>
             </select>
           </Field>
 
           <Field
-            label={requiresLicense ? '한의사 면허번호' : '한의사 면허번호 (선택)'}
+            label={requiresLicense ? licenseRule.label : `${licenseRule.label} (선택)`}
             required={requiresLicense}
-            hint="숫자 5~8자리 (0으로 시작 불가)"
+            hint={licenseRule.hint}
             error={
               formData.licenseNumber && !licenseValid ? licenseFormatChecks.reason : null
             }
@@ -233,18 +311,20 @@ export default function RegisterPage() {
               id="licenseNumber"
               name="licenseNumber"
               type="text"
-              inputMode="numeric"
-              pattern="[1-9][0-9]{4,7}"
+              inputMode={licenseRule.numeric ? 'numeric' : 'text'}
               required={requiresLicense}
               aria-required={requiresLicense}
               aria-invalid={!!formData.licenseNumber && !licenseValid}
               value={formData.licenseNumber}
               onChange={(e) => {
-                // 숫자만 허용 (붙여넣기 시 자동 정제)
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
-                setFormData({ ...formData, licenseNumber: digits })
+                // 숫자 체계인 직역만 자동 정제한다. 한약업자 허가번호는
+                // "제2020-3호" 처럼 한글과 기호가 들어가므로 그대로 받는다.
+                const next = licenseRule.numeric
+                  ? e.target.value.replace(/\D/g, '').slice(0, licenseRule.max)
+                  : e.target.value.slice(0, licenseRule.max)
+                setFormData({ ...formData, licenseNumber: next })
               }}
-              placeholder="12345"
+              placeholder={licenseRule.numeric ? '12345' : '제2020-3호'}
               className={
                 formData.licenseNumber && !licenseValid
                   ? inputClass + ' border-red-300'

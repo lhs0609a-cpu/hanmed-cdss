@@ -161,12 +161,32 @@ export class AuthService {
 
     const practitionerType = role ?? PractitionerType.PRACTITIONER;
 
-    // 한의사 가입 시 면허번호 필수 + 형식 검증 강화 (validateLicenseNumber)
+    // 면허·허가 번호 검증. 직역마다 번호 체계가 다르다.
     if (practitionerType === PractitionerType.PRACTITIONER) {
       const check = this.validateLicenseNumber(licenseNumber);
       if (!check.ok) {
         throw new BadRequestException(
           `${check.reason} 학생/공보의는 가입 유형에서 변경하세요.`,
+        );
+      }
+    } else if (practitionerType === PractitionerType.HERBAL_PHARMACIST) {
+      // 한약사 면허번호는 한의사보다 짧다. 1996년에 시작해 배출 인원이
+      // 적어 네 자리에 머무는 번호가 많다. 5자리 하한을 그대로 쓰면
+      // 실재하는 면허가 거절된다.
+      const check = this.validateNumericLicense(licenseNumber, {
+        label: '한약사 면허번호',
+        min: 3,
+        max: 8,
+      });
+      if (!check.ok) throw new BadRequestException(check.reason);
+    } else if (practitionerType === PractitionerType.HERB_DEALER) {
+      // 한약업자 허가번호는 시·도지사가 발급하고 형식이 지역마다 다르다
+      // ("제2020-3호" 처럼 한글과 기호가 섞인다). 숫자 규칙을 씌우면
+      // 정상 허가번호가 막히므로 길이만 본다. 진짜 확인은 사람이 한다.
+      const raw = (licenseNumber ?? '').trim();
+      if (raw.length < 2 || raw.length > 30) {
+        throw new BadRequestException(
+          '한약업자 허가번호를 허가증에 적힌 그대로 입력해주세요.',
         );
       }
     }
@@ -183,9 +203,17 @@ export class AuthService {
     // 동의 시간 기록
     const now = new Date();
 
-    // 면허 검증 상태: 한의사 + 면허번호 제출 시 PENDING(검수 대기), 그 외 UNSUBMITTED.
+    // 면허 검증 상태: 번호를 낸 직역은 PENDING(검수 대기), 그 외 UNSUBMITTED.
+    //
+    // 한약사·한약업자도 번호를 받는다. 검수 대상에서 빼면 아무나 그 직역을
+    // 고를 수 있고, 그러면 직역 표시가 아무것도 보증하지 않는 말이 된다.
+    const LICENSED_TYPES: PractitionerType[] = [
+      PractitionerType.PRACTITIONER,
+      PractitionerType.HERBAL_PHARMACIST,
+      PractitionerType.HERB_DEALER,
+    ];
     const licenseVerificationStatus =
-      practitionerType === PractitionerType.PRACTITIONER && licenseNumber
+      LICENSED_TYPES.includes(practitionerType) && licenseNumber
         ? LicenseVerificationStatus.PENDING
         : LicenseVerificationStatus.UNSUBMITTED;
 
@@ -504,6 +532,34 @@ export class AuthService {
     }
     if (raw.length < 5 || raw.length > 8) {
       return { ok: false, reason: '면허번호는 5~8자리 숫자여야 합니다.' };
+    }
+    return { ok: true, reason: null };
+  }
+
+  /**
+   * 숫자로만 된 면허번호 검증. 자릿수 범위만 직역마다 달리 준다.
+   *
+   * validateLicenseNumber 를 그대로 쓰지 않는 이유는 하한 때문이다. 한의사는
+   * 5자리부터지만 한약사는 네 자리 번호가 실재한다. 규칙을 하나로 묶으면
+   * 둘 중 하나는 반드시 틀린다.
+   */
+  validateNumericLicense(
+    licenseNumber: string | null | undefined,
+    opts: { label: string; min: number; max: number },
+  ): { ok: true; reason: null } | { ok: false; reason: string } {
+    const raw = (licenseNumber ?? '').trim();
+    if (!raw) return { ok: false, reason: `${opts.label}를 입력해주세요.` };
+    if (!/^\d+$/.test(raw)) {
+      return { ok: false, reason: `${opts.label}는 숫자만 입력 가능합니다.` };
+    }
+    if (raw.startsWith('0')) {
+      return { ok: false, reason: `${opts.label}는 0으로 시작할 수 없습니다.` };
+    }
+    if (raw.length < opts.min || raw.length > opts.max) {
+      return {
+        ok: false,
+        reason: `${opts.label}는 ${opts.min}~${opts.max}자리 숫자여야 합니다.`,
+      };
     }
     return { ok: true, reason: null };
   }
