@@ -349,13 +349,13 @@ export default function DashboardLayout() {
               <div className="mt-3 pt-3 border-t border-neutral-100">
                 <button
                   onClick={() => toggleSection('more:open')}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
                   aria-expanded={isMoreOpen}
                 >
                   <span>더 보기</span>
                   <ChevronDown
                     className={cn(
-                      'h-4 w-4 text-neutral-400 transition-transform',
+                      'h-4 w-4 text-neutral-600 transition-transform',
                       isMoreOpen && 'rotate-180',
                     )}
                   />
@@ -447,21 +447,21 @@ export default function DashboardLayout() {
                     사람이 결제하러 갈 길이 화면에 없던 셈이다. */}
                 <Link
                   to="/dashboard/subscription"
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <CreditCard className="h-4 w-4" />
                   요금제
                 </Link>
                 <Link
                   to="/dashboard/settings"
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Settings className="h-4 w-4" />
                   설정
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                   로그아웃
@@ -652,7 +652,7 @@ function MenuItemComponent({
           isMinimized && 'lg:justify-center lg:px-2',
           isActive
             ? 'bg-neutral-900 text-white'
-            : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
+            : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900',
         )}
         title={isMinimized ? item.name : undefined}
         aria-current={isActive ? 'page' : undefined}
@@ -661,7 +661,7 @@ function MenuItemComponent({
         <item.icon
           className={cn(
             'h-4 w-4 flex-shrink-0',
-            isActive ? 'text-white' : 'text-neutral-400',
+            isActive ? 'text-white' : 'text-neutral-600 group-hover:text-neutral-800',
           )}
           aria-hidden="true"
         />

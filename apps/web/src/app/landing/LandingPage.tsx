@@ -308,7 +308,10 @@ export default function LandingPage() {
         <GlassOrb size="5.5rem" className="left-[6%] top-[30%] hidden lg:block" delay="-7s" />
         <GridFloor />
 
-        <div className="relative mx-auto max-w-5xl text-center">
+        <div className="relative mx-auto max-w-6xl">
+          {/* 넓은 화면에서는 카피 왼쪽 · 모델 오른쪽. 좁은 화면에서는 카피만 가운데로. */}
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="text-center lg:text-left">
           <div className="ojs-rise">
             <SectionEyebrow>한의사를 위한 임상 결정 보조 시스템</SectionEyebrow>
           </div>
@@ -332,17 +335,17 @@ export default function LandingPage() {
           </h1>
 
           <p
-            className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px]"
+            className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px] lg:mx-0"
             style={{ animationDelay: '0.12s' }}
           >
             증상을 입력하면 변증 후보와 처방 후보를 약재 구성·유사 치험례·환자 설명자료까지
-            붙여서 돌려드립니다.
+            붙여서 돌려드립니다.{' '}
             <br className="hidden sm:block" />
             최종 판단은 언제나 한의사가 합니다.
           </p>
 
           <div
-            className="ojs-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+            className="ojs-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
             style={{ animationDelay: '0.18s' }}
           >
             <div className="relative">
@@ -375,6 +378,55 @@ export default function LandingPage() {
           <p className="ojs-rise mt-5 text-[13px] text-white/35" style={{ animationDelay: '0.24s' }}>
             신용카드 없이 시작 · 무료 플랜은 기간 제한 없이 사용
           </p>
+            </div>
+
+            {/* 브랜드 모델 — 사진의 스튜디오 배경과 톤이 맞는 패널 위에 올린다.
+                흰 가운과 배경의 밝기 차가 6단계뿐이라 배경을 투명하게 따내면 가운이 같이 뜯긴다. */}
+            <div
+              className="ojs-rise relative mx-auto w-full max-w-[300px] lg:max-w-none"
+              style={{ animationDelay: '0.26s' }}
+            >
+              <div
+                aria-hidden
+                className="absolute -inset-6 rounded-[3rem] blur-3xl"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 55% 50% at 50% 45%, rgba(49,130,246,0.35), transparent 70%)',
+                }}
+              />
+              <div
+                className="relative overflow-hidden rounded-[2rem] border border-white/10 px-4 pb-6 pt-3"
+                style={{
+                  background: 'linear-gradient(180deg, #f4f5f7 0%, #e6e8ec 100%)',
+                  boxShadow: '0 40px 90px -35px rgba(0,0,0,0.85)',
+                }}
+              >
+                <img
+                  src="/brand/model-standing.webp"
+                  alt="온고지신 AI 브랜드 모델"
+                  width={450}
+                  height={931}
+                  loading="eager"
+                  decoding="async"
+                  className="mx-auto h-[380px] w-auto sm:h-[440px]"
+                  style={{
+                    // 사진 배경과 카드 배경의 미세한 차이를 가장자리에서 지운다
+                    WebkitMaskImage:
+                      'radial-gradient(ellipse 50% 100% at 50% 50%, #000 62%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 5%, #000 97%, transparent 100%)',
+                    maskImage:
+                      'radial-gradient(ellipse 50% 100% at 50% 50%, #000 62%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 5%, #000 97%, transparent 100%)',
+                    WebkitMaskComposite: 'source-in',
+                    maskComposite: 'intersect',
+                  }}
+                />
+                <p className="mt-1 text-center text-[14px] font-bold leading-snug text-neutral-800">
+                  결정은 한의사가,
+                  <br />
+                  준비는 온고지신 AI가
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div className="ojs-rise mt-16 sm:mt-20" style={{ animationDelay: '0.3s' }}>
             <AppWindowMockup />
