@@ -105,9 +105,17 @@ export function missingBusinessFields(): string[] {
  * INVALID_CARD_NUMBER 가 오는 것을 보고 엔드포인트가 열려 있다고 판단했는데,
  * 그건 입력 검증이 계약 검사보다 먼저 돌 뿐이었다. 한 겹 아래를 못 봤다.
  *
- * 계약이 끝나면 true 로 바꾼다. 문의: 토스페이먼츠 1544-7772
+ * 2026-09-03, 계약이 되어 자동결제를 쓰고 있다는 대표 확인을 받고 열었다.
+ * 열기 전에 라이브 시크릿 키로 빌링 엔드포인트를 두드려 봤더니 인증은
+ * 통과하고 authKey 만 없다고 답했다(NOT_FOUND_BILLING).
+ *
+ * 이 값이 여는 것은 우리 화면의 잠금뿐이다. 계약이 아직이라면 결제창이
+ * 토스의 말("자동 결제(빌링) 계약이 안 되어 있습니다")을 그대로 보여준다 —
+ * 우리 문구로 덮지 않으므로, 그때는 화면이 사실을 말한다.
+ *
+ * 문의: 토스페이먼츠 1544-7772
  */
-export const TOSS_BILLING_CONTRACT_ACTIVE = false
+export const TOSS_BILLING_CONTRACT_ACTIVE = true
 
 /** 사업자 정보가 법적 표시 요건을 갖췄는지. */
 export function hasBusinessInfo(): boolean {
