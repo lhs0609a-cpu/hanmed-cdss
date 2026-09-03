@@ -228,7 +228,10 @@ export class KciApiClient {
     let total = Infinity;
 
     while ((page - 1) * MAX_DISPLAY < total) {
-      const xml = await this.get({
+      // 여기서 한 페이지를 잃으면 학술지 몇 종이 통째로 목록에서 빠지고,
+      // 그러면 그 학술지의 논문을 아예 안 받는다. 논문 한 페이지를 잃는
+      // 것보다 손해가 크다.
+      const xml = await this.getPageWithRetry({
         apiCode: 'citation',
         year,
         years: 2,
@@ -268,6 +271,39 @@ export class KciApiClient {
   }
 
   /**
+   * 한 페이지를 받는다. 실패하면 몇 번 다시 시도한다.
+   *
+   * 이게 없어서 수집이 조용히 잘렸다. get() 이 던지면 학술지 루프가 그걸
+   * 잡고 다음 학술지로 넘어가는데, 그 순간 이 학술지의 남은 페이지가
+   * 통째로 버려진다. 로그에는 "실패" 한 줄만 남고 몇 편을 못 받았는지는
+   * 아무 데도 안 적힌다.
+   *
+   * 실제로 1,525편이 그렇게 빠졌다. 다시 돌려 보고 나서야 알았다.
+   *
+   * 네트워크가 한 번 튀는 것은 흔한 일이고, 그때마다 학술지 하나를 통째로
+   * 잃을 이유가 없다. 세 번까지 다시 물어본다.
+   */
+  private async getPageWithRetry(
+    params: Record<string, string | number>,
+    attempts = 3,
+  ): Promise<string> {
+    let lastError: unknown;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        return await this.get(params);
+      } catch (e) {
+        lastError = e;
+        // 인증키가 틀렸거나 계약이 없는 것은 다시 물어도 같다.
+        const msg = (e as Error)?.message ?? '';
+        if (/등록되지 않은 key|사용기간|계약/.test(msg)) throw e;
+        this.log(`페이지 재시도 ${i + 1}/${attempts}: ${msg}`);
+        await sleep(DELAY_MS * (i + 2));
+      }
+    }
+    throw lastError;
+  }
+
+  /**
    * 학술지 하나의 논문을 전부 받는다.
    *
    * maxPages 를 두는 이유는 안전장치다. total 을 믿고 돌다가 서버가 다른
@@ -282,7 +318,7 @@ export class KciApiClient {
     let total = Infinity;
 
     while ((page - 1) * MAX_DISPLAY < total && page <= maxPages) {
-      const xml = await this.get({
+      const xml = await this.getPageWithRetry({
         apiCode: 'articleSearch',
         journal,
         page,
@@ -304,6 +340,17 @@ export class KciApiClient {
 
       page += 1;
       await sleep(DELAY_MS);
+    }
+
+    // 받은 수가 총계와 다르면 알린다.
+    //
+    // 조용히 덜 받는 것이 가장 나쁘다. 로그가 멀쩡하면 다 받은 줄 알고
+    // 넘어가고, 나중에 검색에서 안 나오는 논문을 보고서야 알게 된다.
+    // 실제로 1,525편이 그렇게 빠져 있었다.
+    if (total !== Infinity && out.length < total) {
+      this.log(
+        `${journal}: 총 ${total}건 중 ${out.length}건만 받았습니다. 다시 돌려 주세요.`,
+      );
     }
 
     return out;
