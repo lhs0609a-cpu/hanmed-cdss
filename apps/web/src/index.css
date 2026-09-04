@@ -79,6 +79,36 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: hsl(var(--foreground));
+
+    /*
+      한국어 줄바꿈 — 낱말을 쪼개지 않는다.
+      
+      브라우저 기본값은 한글을 글자 단위로 끊는다. 그래서 랜딩 히어로가
+      "30초에 돌려드 / 립니다." 로 잘려 나갔고, 같은 일이 폭마다 다른 낱말에서
+      벌어졌다("구성·근거까지", "한의사가", "30초에"). 재 보니 재현 폭이
+      430·768·1024·1280·1440·1920 전부였다.
+      
+      keep-all 은 띄어쓰기와 문장부호에서만 끊는다. 대신 낱말 하나가 한 줄보다
+      길면 넘쳐 나가므로 overflow-wrap 을 함께 둔다 — 그때만 쪼갠다.
+      PubMed 제목이나 DOI 처럼 공백 없는 긴 영문이 여기 걸린다.
+    */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  /*
+    제목은 줄 길이를 고르게, 본문은 마지막 줄에 한 낱말만 남지 않게.
+    
+    balance 는 제목처럼 짧은 덩어리에서 줄 길이를 맞춰 준다. pretty 는 본문의
+    마지막 줄만 손봐서 위도우(외톨이 줄)를 없앤다. 지원하지 않는 브라우저는
+    이 두 줄을 무시하고 예전처럼 그린다 — 깨지지 않는다.
+  */
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  p, li, dd, blockquote, figcaption {
+    text-wrap: pretty;
   }
 
   body {

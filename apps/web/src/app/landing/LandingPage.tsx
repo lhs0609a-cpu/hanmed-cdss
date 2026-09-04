@@ -349,7 +349,10 @@ export default function LandingPage() {
             className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px] lg:mx-0"
             style={{ animationDelay: '0.12s' }}
           >
-            증상을 입력하면 가장 가까운 치험례와 처방 후보를 약재 구성·근거까지 붙여
+            {/* 가운뎃점 뒤에서 줄이 끊긴다. keep-all 도 문장부호에서는 끊으므로
+                430px 에서 "구성· / 근거까지" 가 됐다. 뜻이 같은 '과' 로 바꾸면
+                끊길 자리가 띄어쓰기로 옮겨간다. */}
+            증상을 입력하면 가장 가까운 치험례와 처방 후보를 약재 구성과 근거까지 붙여
             30초에 돌려드립니다.{' '}
             <br className="hidden sm:block" />
             최종 판단은 언제나 한의사가 합니다.
