@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
 import { ArrowRight, Check, ChevronDown, Menu, X } from 'lucide-react'
 import { LogoMark } from '@/components/common'
+import { BASE_STATS } from '@/config/stats.config'
 import {
   MockupPatternDiagnosis,
   MockupCaseSearch,
@@ -135,7 +136,7 @@ const FEATURES = [
   {
     mockup: MockupFormulaSearch,
     title: '처방 데이터베이스',
-    body: '방약합편 기반 429건의 처방을 구성·효능·가감으로 탐색하고, 유사 처방과 비교합니다.',
+    body: `방약합편 기반 처방 ${BASE_STATS.formulas}건을 구성·효능·가감으로 탐색하고, 유사 처방과 비교합니다.`,
   },
 ]
 
@@ -313,7 +314,9 @@ export default function LandingPage() {
           <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="text-center lg:text-left">
           <div className="ojs-rise">
-            <SectionEyebrow>한의사를 위한 임상 결정 보조 시스템</SectionEyebrow>
+            <SectionEyebrow>
+              치험례 {BASE_STATS.cases.toLocaleString()}건 · 40년 임상 기록
+            </SectionEyebrow>
           </div>
 
           <h1
@@ -328,9 +331,9 @@ export default function LandingPage() {
                 } as React.CSSProperties
               }
             >
-              증상 입력에서 처방 근거까지,
+              40년치 임상 기록으로
               <br />
-              30초면 끝납니다
+              오늘의 환자를 봅니다
             </span>
           </h1>
 
@@ -338,8 +341,8 @@ export default function LandingPage() {
             className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px] lg:mx-0"
             style={{ animationDelay: '0.12s' }}
           >
-            증상을 입력하면 변증 후보와 처방 후보를 약재 구성·유사 치험례·환자 설명자료까지
-            붙여서 돌려드립니다.{' '}
+            증상을 입력하면 가장 가까운 치험례와 처방 후보를 약재 구성·근거까지 붙여
+            30초에 돌려드립니다.{' '}
             <br className="hidden sm:block" />
             최종 판단은 언제나 한의사가 합니다.
           </p>

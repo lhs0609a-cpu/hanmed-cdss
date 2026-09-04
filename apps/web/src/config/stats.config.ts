@@ -5,27 +5,51 @@
  * 사용자의 개인 치험례가 추가되면 자동으로 합산됩니다.
  */
 
-// 기본 데이터베이스 통계 (서버 DB 기준 수치)
-// 참고: 이 수치는 실제 DB에 등록된 데이터 건수를 반영합니다.
-// cases: /api/v1/cases 의 총 건수와 동기화 필요
+/**
+ * 기본 데이터베이스 통계 — 전부 운영 DB 실측값이다.
+ *
+ * 2026-09-04 확인. 이 숫자들이 홈페이지 히어로와 요금제 화면에 그대로
+ * 나가므로, 어림잡은 값을 넣으면 안 된다. 하나가 틀리면 나머지도 못
+ * 믿는다.
+ *
+ * 그날 바로잡은 것 세 가지.
+ *   cases     6,000 → 6,454   (clinical_cases 실측)
+ *   formulas    429 → 404     (formulas 실측. 429는 방약합편 수록 수였다)
+ *   herbs       500 → 636     (herbs_master 실측)
+ *
+ * 재확인 방법:
+ *   SELECT COUNT(*) FROM clinical_cases;      -- cases
+ *   SELECT COUNT(*) FROM formulas;            -- formulas
+ *   SELECT COUNT(*) FROM herbs_master;        -- herbs
+ *   SELECT COUNT(*) FROM clinical_references; -- references
+ */
 export const BASE_STATS = {
-  // 치험례: DB에 등록된 치험례 수
-  cases: 6000,
+  // 치험례 — 이 제품의 핵심 자산. 40년치 축적분.
+  cases: 6454,
 
-  // 처방 데이터
-  formulas: 429,
+  // 처방
+  formulas: 404,
 
-  // 약재 정보
-  herbs: 500,
+  // 약재
+  herbs: 636,
 
-  // 약물 상호작용
+  // 국내외 문헌 (KCI 20,996 + PubMed 14,804)
+  references: 35800,
+
+  // 약물 상호작용 — 규칙 수라 DB 행 수와 1:1 이 아니다. 어림값이므로
+  // 히어로에 숫자로 내걸지 않는다.
   interactions: 1000,
 
   // 고전 원문
   classics: 45,
 
-  // 경혈 정보
-  acupoints: 361,
+  /**
+   * 경혈 — 앱에 실제로 실린 것은 58혈이다.
+   *
+   * 예전 값 361 은 WHO 표준 경혈의 전체 수였지 우리가 가진 수가 아니었다.
+   * 그대로 히어로에 내걸면 열어 본 사람이 바로 안다. 가진 만큼만 적는다.
+   */
+  acupoints: 58,
 } as const;
 
 // 통계 표시 형식

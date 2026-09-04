@@ -38,6 +38,7 @@ import {
   MockupInteraction,
   MockupFormulaSearch,
 } from '@/components/common/FeatureMockups'
+import { BASE_STATS } from '@/config/stats.config'
 
 // AI Engine API URL
 const AI_ENGINE_URL = import.meta.env.VITE_AI_ENGINE_URL || 'https://api.ongojisin.co.kr'
@@ -659,7 +660,7 @@ export default function UnifiedSearchPage() {
                   <MockupFormulaSearch size="sm" />
                 </div>
                 <h3 className="font-bold text-neutral-900">처방 DB</h3>
-                <p className="text-[12px] text-neutral-500 mt-0.5">방약합편 429건 구성</p>
+                <p className="text-[12px] text-neutral-500 mt-0.5">방약합편 기반 {BASE_STATS.formulas}건 구성</p>
               </Link>
             </div>
           </div>

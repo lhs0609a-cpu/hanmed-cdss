@@ -11,6 +11,8 @@
  * 아래 값은 백엔드 기준으로 정정한 것이다.
  */
 
+import { BASE_STATS } from '@/config/stats.config'
+
 export interface PlanTier {
   id: 'free' | 'basic' | 'pro' | 'clinic'
   name: string
@@ -133,9 +135,25 @@ export const BILLING_ADDON = {
  *     의료 SaaS 랜딩에서 검증 불가한 수치를 헤드라인에 쓰면 표시광고 리스크가 되므로,
  *     실제 DB 집계를 API 로 노출한 뒤에 추가할 것.
  */
+/**
+ * 히어로 아래 지표.
+ *
+ * 우리만 가진 것을 앞에 세운다. 예전에는 429 처방과 361 경혈 둘뿐이었는데,
+ * 방약합편 처방도 WHO 경혈도 남들이 다 가진 공개 데이터라 차별점이 되지
+ * 않았다. 정작 제일 큰 자산인 치험례가 빠져 있었다.
+ *
+ * 그리고 그 두 숫자는 틀려 있었다 — 실제 처방은 404 건이고, 경혈은
+ * 361 혈이 아니라 58 혈이 실려 있다. 361 은 WHO 표준의 전체 수였다.
+ * 열어 본 사람이 바로 아는 숫자를 내걸면 나머지 숫자도 같이 죽는다.
+ *
+ * 전부 BASE_STATS 에서 읽는다. 여기에 손으로 적으면 DB 가 늘어도 화면은
+ * 그대로다.
+ */
 export const VERIFIED_FACTS = [
-  { value: '429', unit: '건', label: '방약합편 기반 처방 데이터' },
-  { value: '361', unit: '혈', label: 'WHO 표준 경혈 정보' },
+  { value: BASE_STATS.cases.toLocaleString(), unit: '건', label: '40년치 임상 치험례' },
+  { value: BASE_STATS.references.toLocaleString(), unit: '편', label: '국내외 학술 문헌' },
+  { value: BASE_STATS.herbs.toLocaleString(), unit: '종', label: '약재 정보' },
+  { value: BASE_STATS.formulas.toLocaleString(), unit: '종', label: '처방 데이터' },
 ] as const
 
 export function formatKRW(won: number): string {
