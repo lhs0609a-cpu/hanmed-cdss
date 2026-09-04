@@ -4,7 +4,7 @@ import { Repository, MoreThanOrEqual, Between } from 'typeorm';
 import { User } from '../../../database/entities/user.entity';
 import { PatientAccount } from '../../../database/entities/patient-account.entity';
 import { Clinic } from '../../../database/entities/clinic.entity';
-import { Payment } from '../../../database/entities/payment.entity';
+import { Payment, PaymentStatus } from '../../../database/entities/payment.entity';
 import { UsageTracking } from '../../../database/entities/usage-tracking.entity';
 import { AuditLogService } from './audit-log.service';
 import {
@@ -197,7 +197,7 @@ export class AdminDashboardService {
     const result = await this.paymentRepository
       .createQueryBuilder('payment')
       .select('SUM(payment.amount)', 'total')
-      .where('payment.status = :status', { status: 'PAID' })
+      .where('payment.status = :status', { status: PaymentStatus.PAID })
       .andWhere('payment.paidAt BETWEEN :start AND :end', {
         start: startDate,
         end: endDate,

@@ -4,7 +4,7 @@ import { Repository, Between, MoreThan } from 'typeorm';
 import { User, SubscriptionTier } from '../../../database/entities/user.entity';
 import { Subscription } from '../../../database/entities/subscription.entity';
 import { UsageTracking } from '../../../database/entities/usage-tracking.entity';
-import { Payment } from '../../../database/entities/payment.entity';
+import { Payment, PaymentStatus } from '../../../database/entities/payment.entity';
 import { AuditLogService } from './audit-log.service';
 import { AuditActions } from '../../../database/entities/admin-audit-log.entity';
 import {
@@ -65,7 +65,7 @@ export class AdminSubscriptionsService {
     const monthlyRevenue = await this.paymentRepository
       .createQueryBuilder('payment')
       .select('SUM(payment.amount)', 'total')
-      .where('payment.status = :status', { status: 'PAID' })
+      .where('payment.status = :status', { status: PaymentStatus.PAID })
       .andWhere('payment.paidAt BETWEEN :start AND :end', {
         start: startOfMonth,
         end: endOfMonth,
@@ -77,7 +77,7 @@ export class AdminSubscriptionsService {
     const yearlyRevenue = await this.paymentRepository
       .createQueryBuilder('payment')
       .select('SUM(payment.amount)', 'total')
-      .where('payment.status = :status', { status: 'PAID' })
+      .where('payment.status = :status', { status: PaymentStatus.PAID })
       .andWhere('payment.paidAt >= :start', { start: startOfYear })
       .getRawOne();
 
