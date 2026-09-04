@@ -115,11 +115,13 @@ const PAIN_POINTS = [
 const FEATURES = [
   {
     mockup: MockupPatternDiagnosis,
+    shot: '/screens/pattern.webp',
     title: '변증 후보 추론',
     body: '증상·설진·맥진을 입력하면 팔강·장부 변증 후보를 입력 소견과의 일치도 순으로 제시합니다. 근거가 된 조문과 사례를 함께 보여줘 판단을 검증할 수 있습니다.',
   },
   {
     mockup: MockupCaseSearch,
+    shot: '/screens/cases.webp',
     title: '치험례 검색',
     body: '지금 보고 있는 환자와 닮은 실제 임상 사례를 찾아, 어떤 처방이 어떤 경과로 이어졌는지 확인합니다.',
   },
@@ -135,6 +137,7 @@ const FEATURES = [
   },
   {
     mockup: MockupFormulaSearch,
+    shot: '/screens/formulas.webp',
     title: '처방 데이터베이스',
     body: `방약합편 기반 처방 ${BASE_STATS.formulas}건을 구성·효능·가감으로 탐색하고, 유사 처방과 비교합니다.`,
   },
@@ -414,20 +417,38 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="ojs-rise mt-16 sm:mt-20" style={{ animationDelay: '0.3s' }}>
-            <AppWindowMockup />
+          {/* 근거 막대 — 첫 화면 안에 들어와야 한다.
+              헤드라인이 "40년치 임상 기록으로" 라고 약속했으면 그 근거가
+              스크롤 전에 보여야 한다. 예전에는 앱 목업 아래에 있어서
+              화면 두 번을 내려야 나왔다 — 그러면 약속만 하고 증거는 안 대는
+              꼴이 된다. */}
+          <div
+            className="ojs-rise mt-12 rounded-2xl border border-white/10 px-4 py-6 backdrop-blur-xl sm:mt-14 sm:px-8 sm:py-7"
+            style={{
+              background:
+                'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)',
+            }}
+          >
+            <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-4 sm:gap-y-0">
+              {VERIFIED_FACTS.map((f, i) => (
+                <div
+                  key={f.label}
+                  className={`text-center ${i > 0 ? 'sm:border-l sm:border-white/10' : ''}`}
+                >
+                  <p className="text-[30px] font-bold tabular-nums tracking-tight text-white sm:text-[38px]">
+                    {f.value}
+                    <span className="ml-0.5 text-[16px] font-semibold text-white/45">{f.unit}</span>
+                  </p>
+                  <p className="mt-1.5 text-[12px] leading-snug text-white/50 sm:text-[13px]">
+                    {f.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="ojs-rise mt-12 flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
-            {VERIFIED_FACTS.map((f) => (
-              <div key={f.label} className="text-center">
-                <p className="text-[26px] font-bold tabular-nums tracking-tight text-white">
-                  {f.value}
-                  <span className="ml-0.5 text-[15px] font-semibold text-white/50">{f.unit}</span>
-                </p>
-                <p className="mt-1 text-[12px] text-white/40">{f.label}</p>
-              </div>
-            ))}
+          <div className="ojs-rise mt-14 sm:mt-16" style={{ animationDelay: '0.3s' }}>
+            <AppWindowMockup />
           </div>
         </div>
       </section>
@@ -475,13 +496,28 @@ export default function LandingPage() {
         />
 
         <div className="mx-auto mt-14 grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(({ mockup: Mockup, title, body }) => (
+          {FEATURES.map(({ mockup: Mockup, shot, title, body }) => (
             <GlassCard
               key={title}
               className="p-6 transition-transform duration-300 hover:-translate-y-1"
             >
-              <div className="mb-5 overflow-hidden rounded-xl">
-                <Mockup size="md" />
+              {/* 실제 제품 화면을 그대로 쓴다.
+                  손으로 그린 축소 목업은 "있어 보이는 그림" 이지 증거가 아니다.
+                  캡처가 아직 없는 기능만 기존 목업으로 남긴다. */}
+              <div className="mb-5 overflow-hidden rounded-xl border border-white/10">
+                {shot ? (
+                  <img
+                    src={shot}
+                    alt={`${title} 실제 화면`}
+                    width={1600}
+                    height={911}
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-40 w-full object-cover object-top sm:h-44"
+                  />
+                ) : (
+                  <Mockup size="md" />
+                )}
               </div>
               <h3 className="text-[17px] font-bold tracking-tight text-white">{title}</h3>
               <p className="mt-2.5 text-[14px] leading-relaxed text-white/50">{body}</p>

@@ -14,8 +14,13 @@
  *
  * 그날 바로잡은 것 세 가지.
  *   cases     6,000 → 6,454   (clinical_cases 실측)
- *   formulas    429 → 404     (formulas 실측. 429는 방약합편 수록 수였다)
  *   herbs       500 → 636     (herbs_master 실측)
+ *
+ * formulas 는 429 그대로 둔다. 한 번 404 로 고쳤다가 되돌렸다.
+ * 처방 화면(FormulasPage)은 DB 가 아니라 public/data/all-formulas.json 을
+ * 읽고, 그 파일에 429건이 들어 있다. API 의 formulas 테이블은 404행이지만
+ * 사용자가 실제로 보는 것은 429건이다. 화면이 429 를 보여주는데 히어로가
+ * 404 라고 하면 그게 더 이상하다.
  *
  * 재확인 방법:
  *   SELECT COUNT(*) FROM clinical_cases;      -- cases
@@ -27,8 +32,11 @@ export const BASE_STATS = {
   // 치험례 — 이 제품의 핵심 자산. 40년치 축적분.
   cases: 6454,
 
-  // 처방
-  formulas: 404,
+  /**
+   * 처방 — public/data/all-formulas.json 기준(사용자가 화면에서 보는 수).
+   * DB 의 formulas 테이블은 404행이라 값이 다르다. 둘 중 화면 쪽을 쓴다.
+   */
+  formulas: 429,
 
   // 약재
   herbs: 636,
