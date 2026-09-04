@@ -16,6 +16,9 @@ import { CacheService } from '../cache/cache.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { TotpService } from './services/totp.service';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
+import { PasswordHistory } from '../../database/entities/password-history.entity';
+import { User } from '../../database/entities/user.entity';
+import { UserStatus } from '../../database/entities/enums';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import {
   LicenseVerificationStatus,
@@ -65,6 +68,10 @@ export class AuthService {
     private totpService: TotpService,
     @InjectRepository(PasswordResetToken)
     private passwordResetTokenRepository: Repository<PasswordResetToken>,
+    @InjectRepository(PasswordHistory)
+    private passwordHistoryRepository: Repository<PasswordHistory>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   private blacklistCacheGet(jti: string): BlacklistCacheValue | null {
@@ -254,19 +261,176 @@ export class AuthService {
     };
   }
 
+  /**
+   * 로그인 실패를 무엇 때문인지 알려 준다.
+   *
+   * 예전에는 무엇이 틀렸든 "이메일 또는 비밀번호가 올바르지 않습니다" 하나만
+   * 보냈다. 보안 교과서가 권하는 방식이고 이유도 분명하다 — 어느 이메일이
+   * 가입돼 있는지 알려 주지 않는다(사용자 열거 방지).
+   *
+   * 그런데 그 대가를 실제로 치르는 사람은 공격자가 아니라 원장이다. 오타를
+   * 냈는지, 다른 이메일로 가입했는지, 비밀번호를 바꿨다는 걸 잊었는지 알 수
+   * 없어 같은 값을 대여섯 번 다시 넣는다. 우리 사용자는 한의사 수천 명 규모의
+   * 전문가 집단이고, 이메일이 가입돼 있다는 사실 자체가 비밀이 아니다.
+   *
+   * 그래서 원장 지시대로 이유를 갈라 알려 주되, 열거 위험은 다른 방법으로
+   * 줄인다.
+   *
+   *   - 라우트에 분당 시도 제한(@Throttle)을 건다.
+   *   - 계정마다 5회 실패면 10분 잠근다. 실패가 이어지면 잠금이 길어진다.
+   *   - 실패 횟수와 잠금은 DB 에 센다. Redis 가 없는 환경에서 캐시로 세면
+   *     잠금이 아예 걸리지 않는다.
+   *
+   * 반환 형식: code 는 화면이 분기하는 값, message 는 사람이 읽는 문장이다.
+   * 전역 예외 필터가 error·message 두 칸만 남기므로 code 를 error 에 싣는다.
+   */
+  private loginError(
+    code: string,
+    message: string,
+    extra?: Record<string, unknown>,
+  ): never {
+    throw new UnauthorizedException({ error: code, message, ...(extra ?? {}) });
+  }
+
+  /** 5회부터 잠근다. 반복되면 길어진다 — 10분 → 30분 → 2시간. */
+  private lockDurationMinutes(failedAttempts: number): number {
+    if (failedAttempts >= 15) return 120;
+    if (failedAttempts >= 10) return 30;
+    return 10;
+  }
+
+  private static readonly MAX_ATTEMPTS = 5;
+
+  /**
+   * 지난 비밀번호와 맞는지 본다.
+   *
+   * 최근 다섯 개만 본다. bcrypt 비교는 한 번에 100ms 쯤 걸려서 전부 뒤지면
+   * 로그인 실패가 느려지고, 그 느림 자체가 "이 계정은 존재한다" 는 신호가
+   * 된다. 사람이 기억하는 것도 최근 몇 개뿐이다.
+   */
+  private async matchOldPassword(
+    userId: string,
+    password: string,
+  ): Promise<PasswordHistory | null> {
+    const history = await this.passwordHistoryRepository.find({
+      where: { userId },
+      order: { changedAt: 'DESC' },
+      take: 5,
+    });
+    for (const row of history) {
+      if (await bcrypt.compare(password, row.passwordHash)) return row;
+    }
+    return null;
+  }
+
+  private async recordFailure(user: User): Promise<number> {
+    const attempts = (user.failedLoginAttempts ?? 0) + 1;
+    const patch: Partial<User> = {
+      failedLoginAttempts: attempts,
+      lastFailedLoginAt: new Date(),
+    };
+    if (attempts >= AuthService.MAX_ATTEMPTS) {
+      const until = new Date();
+      until.setMinutes(until.getMinutes() + this.lockDurationMinutes(attempts));
+      patch.lockedUntil = until;
+    }
+    await this.userRepository.update({ id: user.id }, patch);
+    return attempts;
+  }
+
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     // 사용자 조회
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+      this.loginError(
+        'EMAIL_NOT_FOUND',
+        '등록되지 않은 이메일입니다. 오타가 없는지 확인해 주세요.',
+      );
+    }
+
+    // 잠금 확인 — 비밀번호가 맞아도 들여보내지 않는다.
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutes = Math.max(
+        1,
+        Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000),
+      );
+      this.loginError(
+        'ACCOUNT_LOCKED',
+        `비밀번호를 여러 번 잘못 입력해 잠겼습니다. ${minutes}분 뒤에 다시 시도하거나 비밀번호를 재설정해 주세요.`,
+        { lockedUntil: user.lockedUntil.toISOString(), retryAfterMinutes: minutes },
+      );
     }
 
     // 비밀번호 검증
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+      // 예전 비밀번호를 넣은 것인가. 이 안내가 있으면 대개 그 자리에서
+      // 기억이 돌아온다 — "비밀번호가 틀렸습니다" 만 보면 같은 값을 계속
+      // 다시 넣는다.
+      const old = await this.matchOldPassword(user.id, password);
+      const attempts = await this.recordFailure(user);
+      const left = Math.max(0, AuthService.MAX_ATTEMPTS - attempts);
+
+      if (old) {
+        const when = old.changedAt.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+        this.loginError(
+          'OLD_PASSWORD',
+          `예전에 쓰시던 비밀번호입니다. ${when}에 새 비밀번호로 바꾸셨습니다.`,
+          { changedAt: old.changedAt.toISOString(), attemptsLeft: left },
+        );
+      }
+
+      if (left === 0) {
+        const minutes = this.lockDurationMinutes(attempts);
+        this.loginError(
+          'ACCOUNT_LOCKED',
+          `비밀번호를 ${attempts}회 잘못 입력해 ${minutes}분간 잠겼습니다. 비밀번호를 재설정해 주세요.`,
+          { retryAfterMinutes: minutes },
+        );
+      }
+
+      this.loginError(
+        'WRONG_PASSWORD',
+        `비밀번호가 일치하지 않습니다. ${left}회 더 틀리면 계정이 잠깁니다.`,
+        { attemptsLeft: left },
+      );
+    }
+
+    // 여기서부터는 본인이 맞다. 계정 상태를 본다.
+    //
+    // 예전에는 이 확인이 아예 없어서 정지된 계정도 그대로 들어왔다.
+    if (user.status === UserStatus.SUSPENDED) {
+      this.loginError(
+        'ACCOUNT_SUSPENDED',
+        user.suspendedReason
+          ? `이용이 일시 정지된 계정입니다. 사유: ${user.suspendedReason}`
+          : '이용이 일시 정지된 계정입니다. 고객센터로 문의해 주세요.',
+      );
+    }
+    if (user.status === UserStatus.BANNED) {
+      this.loginError(
+        'ACCOUNT_BANNED',
+        '이용이 중지된 계정입니다. 고객센터로 문의해 주세요.',
+      );
+    }
+    if (user.deletionRequestedAt) {
+      // 탈퇴 유예 기간이다. 막지 않고 알려 준다 — 돌아온 사람을 문 앞에서
+      // 돌려보낼 이유가 없다.
+      this.logger.log(`탈퇴 유예 중 로그인: ${user.email}`);
+    }
+
+    // 성공했으니 실패 기록을 지운다.
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.userRepository.update(
+        { id: user.id },
+        { failedLoginAttempts: 0, lockedUntil: null },
+      );
     }
 
     // 2FA 활성화된 사용자: 토큰을 발급하지 않고 챌린지 ID만 반환.
@@ -698,6 +862,19 @@ export class AuthService {
     };
   }
 
+  /** 최근 다섯 개만 남긴다. */
+  private async trimPasswordHistory(userId: string): Promise<void> {
+    const rows = await this.passwordHistoryRepository.find({
+      where: { userId },
+      order: { changedAt: 'DESC' },
+      select: { id: true },
+      skip: 5,
+    });
+    if (rows.length > 0) {
+      await this.passwordHistoryRepository.delete(rows.map((r) => r.id));
+    }
+  }
+
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { token, newPassword } = resetPasswordDto;
 
@@ -717,11 +894,47 @@ export class AuthService {
       );
     }
 
+    // 새 비밀번호가 지금 쓰는 것과 같으면 알려 준다. 막지는 않는다 —
+    // 막는 규칙(재사용 금지 N개)은 원장이 정할 일이고, 지금은 사람이
+    // 헷갈리지 않게 하는 것이 목적이다.
+    const samePassword = await bcrypt.compare(
+      newPassword,
+      resetToken.user.passwordHash,
+    );
+
     // 비밀번호 해시
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
+    // 쓰던 비밀번호를 기록에 남긴다.
+    //
+    // 다음에 그 비밀번호로 로그인을 시도하면 "예전에 쓰던 것" 이라고
+    // 알려 줄 수 있다. 해시만 남기므로 평문은 어디에도 없다.
+    if (!samePassword) {
+      await this.passwordHistoryRepository.save(
+        this.passwordHistoryRepository.create({
+          userId: resetToken.userId,
+          passwordHash: resetToken.user.passwordHash,
+          changedAt: new Date(),
+          changedVia: 'reset',
+        }),
+      );
+      // 오래된 것은 지운다. 사람이 기억하는 것은 최근 몇 개뿐이고, 옛 해시를
+      // 무한히 쌓는 것은 지켜야 할 것을 늘리는 일이다.
+      await this.trimPasswordHistory(resetToken.userId);
+    }
+
     // 비밀번호 업데이트
     await this.usersService.updatePassword(resetToken.userId, passwordHash);
+    await this.userRepository.update(
+      { id: resetToken.userId },
+      {
+        passwordChangedAt: new Date(),
+        // 비밀번호를 새로 정했으면 잠금과 실패 기록을 푼다. 재설정을
+        // 마쳤는데도 잠긴 채로 두면 사람이 갈 곳이 없다.
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    );
 
     // 토큰 사용 처리
     resetToken.used = true;

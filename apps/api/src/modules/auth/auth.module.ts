@@ -8,6 +8,8 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TotpService } from './services/totp.service';
 import { UsersModule } from '../users/users.module';
+import { User } from '../../database/entities/user.entity';
+import { PasswordHistory } from '../../database/entities/password-history.entity';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
 import { ClinicPractitioner } from '../../database/entities/clinic-practitioner.entity';
 import { PractitionerRolesGuard } from './guards/practitioner-role.guard';
@@ -15,7 +17,13 @@ import { PractitionerRolesGuard } from './guards/practitioner-role.guard';
 @Module({
   imports: [
     UsersModule,
-    TypeOrmModule.forFeature([PasswordResetToken, ClinicPractitioner]),
+    TypeOrmModule.forFeature([
+      PasswordResetToken,
+      ClinicPractitioner,
+      // 로그인 실패 안내에 쓴다 — 지난 비밀번호와 실패 횟수.
+      PasswordHistory,
+      User,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

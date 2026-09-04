@@ -76,7 +76,9 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
   const [formData, setFormData] = useState({
-    email: '',
+    // 로그인 화면에서 "등록되지 않은 이메일" 을 만나 넘어온 경우 그 주소를
+    // 그대로 채운다. 방금 친 것을 다시 치게 하지 않는다.
+    email: new URLSearchParams(window.location.search).get('email') ?? '',
     password: '',
     confirmPassword: '',
     name: '',

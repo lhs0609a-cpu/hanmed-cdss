@@ -201,6 +201,33 @@ export class User {
   @Column({ nullable: true })
   consentMarketingAt: Date | null; // 마케팅 동의 일시
 
+  /**
+   * 로그인 실패를 셋. 잠금과 안내에 쓴다.
+   *
+   * 캐시에 두지 않는다. REDIS_URL 이 없으면 CacheService 가 통째로 꺼지므로
+   * (운영에 지금 Redis 가 없다) 캐시로 세면 잠금이 아예 걸리지 않는다.
+   * 로그인 실패는 자주 나는 일이 아니라 DB 에 세도 부담이 없다.
+   */
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastFailedLoginAt: Date | null;
+
+  /** 이 시각까지는 비밀번호가 맞아도 들여보내지 않는다. */
+  @Column({ type: 'timestamp', nullable: true })
+  lockedUntil: Date | null;
+
+  /**
+   * 비밀번호를 마지막으로 바꾼 시각.
+   *
+   * "예전 비밀번호를 넣으셨습니다 — 8월 12일에 바꾸셨어요" 라고 말해 주려면
+   * 날짜가 있어야 한다. 가입 시각으로 갈음하지 않는다. 그러면 한 번도 안
+   * 바꾼 사람에게 "바꾸셨어요" 라고 거짓말을 하게 된다.
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  passwordChangedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

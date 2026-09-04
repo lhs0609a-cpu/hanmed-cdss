@@ -22,6 +22,10 @@ export class AuthController {
   }
 
   @Public()
+  // 로그인 실패 이유를 갈라 알려 주기로 했으므로(EMAIL_NOT_FOUND 등)
+  // 자동 대입으로 이메일 목록을 훑는 것을 여기서 막는다. 계정별 잠금은
+  // 서비스가 따로 센다 — 이건 IP 기준이다.
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '로그인' })

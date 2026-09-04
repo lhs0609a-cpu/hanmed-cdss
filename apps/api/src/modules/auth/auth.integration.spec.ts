@@ -12,6 +12,7 @@ import { DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { User } from '../../database/entities/user.entity';
+import { PasswordHistory } from '../../database/entities/password-history.entity';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
@@ -52,6 +53,8 @@ describe('Auth 통합 퍼즈 (pg-mem, 실제 코드)', () => {
       encStub,
       new TotpService(),
       ds.getRepository(PasswordResetToken) as any,
+      ds.getRepository(PasswordHistory) as any,
+      ds.getRepository(User) as any,
     );
   });
 

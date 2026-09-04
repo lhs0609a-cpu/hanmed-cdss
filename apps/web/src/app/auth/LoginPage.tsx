@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
+import { toLoginErrorView, type LoginErrorView } from './loginError'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
@@ -35,6 +36,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  /**
+   * 실패 이유를 코드까지 들고 있는다.
+   *
+   * 문장만 띄우면 "비밀번호가 틀렸습니다" 로 끝나고, 다음에 눌러야 할 것
+   * (가입하기 / 비밀번호 재설정 / 오타 교정)을 사람이 스스로 찾아야 한다.
+   */
+  const [loginError, setLoginError] = useState<LoginErrorView | null>(null)
+  /** Caps Lock 이 켜져 있으면 알려 준다. 비밀번호 실패의 흔한 원인이다. */
+  const [capsLock, setCapsLock] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [totpCode, setTotpCode] = useState('')
@@ -46,6 +56,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setLoginError(null)
     setIsLoading(true)
     try {
       const response = await api.post<LoginApiResponse>('/auth/login', { email, password })
@@ -58,7 +69,17 @@ export default function LoginPage() {
       login(data.user, data.accessToken, data.refreshToken)
       goNext()
     } catch (err) {
-      setError(getErrorMessage(err))
+      const view = toLoginErrorView(err, email)
+      setLoginError(view)
+      // 고쳐야 할 칸으로 커서를 옮긴다. 어디를 고쳐야 하는지 화면이
+      // 말해 주면서 손까지 데려다주는 편이 낫다.
+      if (view.focus === 'email') {
+        document.getElementById('email')?.focus()
+      } else if (view.focus === 'password') {
+        const el = document.getElementById('password') as HTMLInputElement | null
+        el?.focus()
+        el?.select()
+      }
     } finally {
       setIsLoading(false)
     }
@@ -216,6 +237,55 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && <ErrorBanner>{error}</ErrorBanner>}
 
+              {/* 실패 이유 + 다음에 누를 것.
+                  이유를 갈라 알려 주기로 한 이상, 안내는 행동까지 이어져야 한다. */}
+              {loginError && (
+                <div
+                  role="alert"
+                  className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[14px] leading-relaxed text-red-800"
+                >
+                  <p>{loginError.message}</p>
+
+                  {loginError.suggestion && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail(loginError.suggestion as string)
+                        setLoginError(null)
+                        document.getElementById('password')?.focus()
+                      }}
+                      className="mt-2 inline-flex items-center rounded border border-red-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-red-700 hover:bg-red-100"
+                    >
+                      {loginError.suggestion} 로 바꾸기
+                    </button>
+                  )}
+
+                  {loginError.action && (
+                    <div className="mt-2">
+                      {loginError.action.to ? (
+                        <Link
+                          to={
+                            loginError.action.kind === 'signup'
+                              ? `${loginError.action.to}?email=${encodeURIComponent(email)}`
+                              : loginError.action.to
+                          }
+                          className="text-[13px] font-semibold text-red-700 underline underline-offset-2 hover:text-red-900"
+                        >
+                          {loginError.action.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href="mailto:lhs0609c@naver.com"
+                          className="text-[13px] font-semibold text-red-700 underline underline-offset-2 hover:text-red-900"
+                        >
+                          {loginError.action.label}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-3">
                 <Field label="이메일">
                   <input
@@ -225,7 +295,10 @@ export default function LoginPage() {
                     autoComplete="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (loginError?.focus === 'email') setLoginError(null)
+                    }}
                     placeholder="doctor@example.com"
                     className="w-full h-14 bg-neutral-50 border border-neutral-200 rounded-md px-4 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary focus:shadow-focus focus:bg-white transition"
                   />
@@ -240,7 +313,11 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       required
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (loginError?.focus === 'password') setLoginError(null)
+                      }}
+                      onKeyUp={(e) => setCapsLock(e.getModifierState?.('CapsLock') ?? false)}
                       placeholder="비밀번호"
                       className="w-full h-14 bg-neutral-50 border border-neutral-200 rounded-md pl-4 pr-12 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary focus:shadow-focus focus:bg-white transition"
                     />
@@ -253,6 +330,12 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  {/* 비밀번호가 안 맞는 흔한 이유. 눌린 줄 모르는 경우가 많다. */}
+                  {capsLock && (
+                    <p className="mt-1.5 text-[12px] text-amber-700">
+                      Caps Lock 이 켜져 있습니다. 대소문자가 바뀌어 입력됩니다.
+                    </p>
+                  )}
                 </Field>
               </div>
 
