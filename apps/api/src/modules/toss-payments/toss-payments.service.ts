@@ -19,6 +19,7 @@ import {
   FEATURE_LABELS,
   PRACTITIONER_SEAT_LIMITS,
   CASE_SAVE_LIMITS,
+  PATIENT_LIMITS,
   CASE_BROWSE_FREE_PAGES,
   CASE_VIEW_DAILY_LIMITS,
 } from '../../database/entities/plan-features';
@@ -1316,6 +1317,23 @@ export class TossPaymentsService {
     const featureLabels = (tier: SubscriptionTier): string[] =>
       Array.from(PLAN_FEATURES[tier]).map((key) => FEATURE_LABELS[key]);
 
+    /**
+     * 환자 보관 인원을 사람이 읽는 말로.
+     *
+     * Infinity 를 그대로 문자열에 넣으면 화면에 "Infinity명" 이 나간다.
+     * 숫자로 내보낼 때는 -1 을 쓴다 — caseSaveLimit 이 이미 그 규칙이다.
+     */
+    const patientText = (tier: SubscriptionTier): string => {
+      const n = PATIENT_LIMITS[tier];
+      return Number.isFinite(n)
+        ? `환자 명부 ${n.toLocaleString()}명`
+        : '환자 명부 무제한';
+    };
+    const patientNum = (tier: SubscriptionTier): number => {
+      const n = PATIENT_LIMITS[tier];
+      return Number.isFinite(n) ? n : -1;
+    };
+
     return {
       plans: [
         {
@@ -1334,6 +1352,7 @@ export class TossPaymentsService {
             `치험례 목록 ${CASE_BROWSE_FREE_PAGES}페이지 · 원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.FREE]}건`,
             '커뮤니티 무제한',
             '한약재·DUR / 침구혈자리',
+            patientText(SubscriptionTier.FREE),
           ],
           featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.FREE]),
           featureLabels: featureLabels(SubscriptionTier.FREE),
@@ -1344,6 +1363,7 @@ export class TossPaymentsService {
           canExceed: false,
           seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.FREE],
           caseSaveLimit: CASE_SAVE_LIMITS[SubscriptionTier.FREE],
+          patientLimit: patientNum(SubscriptionTier.FREE),
         },
         {
           tier: 'basic',
@@ -1353,6 +1373,7 @@ export class TossPaymentsService {
             `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.BASIC].includedQueries}회 (초과 ${PLAN_PRICES[SubscriptionTier.BASIC].overagePrice}원/건)`,
             `치험례 전체 열람 (원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.BASIC]}건)`,
             '케이스 저장 50건',
+            patientText(SubscriptionTier.BASIC),
             '내 케이스 내보내기 (PDF/이미지)',
             '기본 통계',
             '이메일 지원',
@@ -1366,6 +1387,7 @@ export class TossPaymentsService {
           canExceed: true,
           seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.BASIC],
           caseSaveLimit: CASE_SAVE_LIMITS[SubscriptionTier.BASIC],
+          patientLimit: patientNum(SubscriptionTier.BASIC),
         },
         {
           tier: 'professional',
@@ -1376,7 +1398,7 @@ export class TossPaymentsService {
             `AI 챗봇 월 ${PLAN_PRICES[SubscriptionTier.PROFESSIONAL].includedQueries.toLocaleString()}회`,
             `치험례 전체 열람 (원문 하루 ${CASE_VIEW_DAILY_LIMITS[SubscriptionTier.PROFESSIONAL]}건)`,
             '케이스 무제한 저장 + 통계',
-            '환자 관리 (전자차트)',
+            patientText(SubscriptionTier.PROFESSIONAL),
             '음성차트 (Voice Chart)',
             '고급 검색 필터·학파 비교',
             '내 케이스 워터마크 없이 내보내기',
@@ -1391,6 +1413,7 @@ export class TossPaymentsService {
           canExceed: true,
           seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.PROFESSIONAL],
           caseSaveLimit: -1, // unlimited
+          patientLimit: patientNum(SubscriptionTier.PROFESSIONAL),
           recommended: true,
         },
         {
@@ -1404,6 +1427,7 @@ export class TossPaymentsService {
             '보험청구·삭감방지 포함',
             '한의원 단위 대시보드·고급 분석',
             '한의원 공동 케이스 DB',
+            patientText(SubscriptionTier.CLINIC),
             '전담 지원',
           ],
           featureKeys: Array.from(PLAN_FEATURES[SubscriptionTier.CLINIC]),
@@ -1415,6 +1439,7 @@ export class TossPaymentsService {
           canExceed: true,
           seats: PRACTITIONER_SEAT_LIMITS[SubscriptionTier.CLINIC],
           caseSaveLimit: -1,
+          patientLimit: patientNum(SubscriptionTier.CLINIC),
         },
         {
           tier: 'enterprise',
