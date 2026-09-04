@@ -97,8 +97,12 @@ export function AppWindowMockup() {
           {/* 입력 */}
           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
             <p className="mb-1.5 text-[10px] uppercase tracking-wide text-white/40">환자 증상</p>
+            {/* 마지막 두 항목을 붙여 둔다.
+                390px 에서 "· 맥세약" 하나만 다음 줄로 떨어져 외톨이 줄이 됐다.
+                끊길 자리를 하나 앞으로 옮기면 마지막 줄에 두 항목이 남는다. */}
             <p className="text-[12px] leading-relaxed text-white/85">
-              40대 여성, 어지럼과 피로 · 안색 창백 · 월경량 감소 · 설담백 · 맥세약
+              40대 여성, 어지럼과 피로 · 안색 창백 · 월경량 감소{' '}
+              <span className="whitespace-nowrap">· 설담백 · 맥세약</span>
             </p>
           </div>
 

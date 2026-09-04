@@ -840,7 +840,14 @@ export default function LandingPage() {
                 <h4 className="text-[13px] font-semibold text-white/80">문의</h4>
                 <ul className="mt-3 space-y-2 text-[13px] text-white/40">
                   <li>
-                    <a href="mailto:lhs0609c@naver.com" className="hover:text-white/70">
+                    {/* 주소 가운데서 쪼개지지 않게 한다.
+                        768px 에서 "lhs0609c@n / aver.com" 으로 잘렸다. 이메일은
+                        한 덩어리로 읽히지 않으면 옮겨 적을 수 없다. 칸보다 길면
+                        줄바꿈 대신 그 줄만 가로로 흐르게 둔다. */}
+                    <a
+                      href="mailto:lhs0609c@naver.com"
+                      className="inline-block max-w-full overflow-x-auto whitespace-nowrap align-bottom hover:text-white/70"
+                    >
                       lhs0609c@naver.com
                     </a>
                   </li>
