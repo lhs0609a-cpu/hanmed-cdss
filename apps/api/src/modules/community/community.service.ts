@@ -237,10 +237,19 @@ export class CommunityService {
     qb.orderBy('post.isPinned', 'DESC');
 
     if (userFirst) {
-      qb.addOrderBy(
+      // 정렬식을 먼저 select 에 올리고 그 별칭으로 정렬한다.
+      //
+      // ORDER BY 에 CASE 를 그대로 쓰면 목록이 통째로 500 이 난다.
+      // skip/take 로 페이지를 자를 때 TypeORM 이 DISTINCT 하위 질의를
+      // 만드는데, 그 안에서는 select 에 없는 식을 못 찾아
+      // '"CASE WHEN post" alias was not found' 로 터진다. 조인(author,
+      // category, linkedCase)이 있는 질의라 이 경로를 항상 탄다.
+      qb.addSelect(
         `CASE WHEN post."authorId" IN (:...seedAuthorIds) THEN 1 ELSE 0 END`,
-        'ASC',
-      ).setParameter('seedAuthorIds', seedAuthorIds);
+        'human_first',
+      )
+        .setParameter('seedAuthorIds', seedAuthorIds)
+        .addOrderBy('human_first', 'ASC');
     }
 
     switch (sortBy) {
