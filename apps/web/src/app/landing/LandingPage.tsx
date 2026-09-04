@@ -317,8 +317,13 @@ export default function LandingPage() {
           <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="text-center lg:text-left">
           <div className="ojs-rise">
+            {/* "SINCE 1986" 만 쓰면 회사가 1986년에 생긴 것으로 읽힌다.
+                40년 된 것은 법인이 아니라 임상 기록이므로 그 말을 붙여 둔다.
+                건수는 바로 아래 근거 막대에 크게 나오므로 여기서는 뺀다. */}
             <SectionEyebrow>
-              치험례 {BASE_STATS.cases.toLocaleString()}건 · 40년 임상 기록
+              <span className="font-bold tracking-[0.08em] text-white/85">SINCE 1986</span>
+              <span className="mx-2 text-white/25">·</span>
+              40년치 임상 기록
             </SectionEyebrow>
           </div>
 
