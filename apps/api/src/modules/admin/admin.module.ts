@@ -39,6 +39,9 @@ import { AdminOpsController } from './controllers/admin-ops.controller';
 // 치험례 열람 통제 — 유출 역추적·잠금 해제를 관리자 화면에서 쓰려면 필요하다.
 import { CasesModule } from '../cases/cases.module';
 
+// 면허증 사본 열람(서명 URL) 을 관리자 화면에서 쓰려면 필요하다.
+import { UsersModule } from '../users/users.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -57,6 +60,7 @@ import { CasesModule } from '../cases/cases.module';
       ErrorLog,
     ]),
     CasesModule,
+    UsersModule,
   ],
   controllers: [
     AdminUsersController,

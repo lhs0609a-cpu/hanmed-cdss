@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   MoreVertical,
@@ -9,10 +10,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Ban,
+  BadgeCheck,
+  XCircle,
+  FileText,
 } from 'lucide-react'
-import { adminUsersApi, type AdminUser, type PaginatedUsers, type GetUsersParams } from '@/services/admin-api'
+import {
+  adminUsersApi,
+  type AdminUser,
+  type PaginatedUsers,
+  type GetUsersParams,
+  type LicenseVerificationStatus,
+  type PractitionerType,
+} from '@/services/admin-api'
 import { useAuthStore, type UserRole } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/errors'
 
 // 상태 배지 컴포넌트
 function StatusBadge({ status }: { status: AdminUser['status'] }) {
@@ -75,6 +87,117 @@ function SubscriptionBadge({ tier }: { tier: AdminUser['subscriptionTier'] }) {
     <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium capitalize', styles[tier])}>
       {tier}
     </span>
+  )
+}
+
+// 면허 검수 배지 — 대기 건은 눈에 띄어야 처리된다.
+function LicenseBadge({ user, onOpenFile }: { user: AdminUser; onOpenFile: () => void }) {
+  const status: LicenseVerificationStatus = user.licenseVerificationStatus ?? 'unsubmitted'
+
+  const styles: Record<LicenseVerificationStatus, string> = {
+    unsubmitted: 'bg-gray-100 text-gray-500',
+    pending: 'bg-blue-100 text-blue-700',
+    verified: 'bg-green-100 text-green-700',
+    rejected: 'bg-red-100 text-red-700',
+  }
+
+  const labels: Record<LicenseVerificationStatus, string> = {
+    unsubmitted: '미제출',
+    pending: '검수 대기',
+    verified: '인증 완료',
+    rejected: '반려',
+  }
+
+  const typeLabels: Record<PractitionerType, string> = {
+    practitioner: '한의사',
+    public_health_doctor: '공보의',
+    student: '학생',
+    herbal_pharmacist: '한약사',
+    herb_dealer: '한약업자',
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <span
+        className={cn(
+          'inline-block px-2 py-0.5 rounded-full text-xs font-medium',
+          styles[status],
+        )}
+        title={status === 'rejected' && user.licenseRejectionReason ? `반려 사유: ${user.licenseRejectionReason}` : undefined}
+      >
+        {labels[status]}
+      </span>
+      {user.licenseNumber && (
+        <p className="text-xs text-gray-500 tabular-nums">
+          {user.licenseNumber}
+          {user.practitionerType && ` · ${typeLabels[user.practitionerType] ?? user.practitionerType}`}
+        </p>
+      )}
+      {user.hasLicenseFile ? (
+        <button
+          onClick={onOpenFile}
+          className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          <FileText className="h-3 w-3" />
+          면허증 사본 보기
+        </button>
+      ) : (
+        status !== 'unsubmitted' && <p className="text-xs text-gray-400">사본 없음</p>
+      )}
+    </div>
+  )
+}
+
+// 면허 검수 버튼 — 대기 건은 메뉴 안에 숨기지 않고 행에 그대로 둔다.
+function LicenseActions({
+  user,
+  onApprove,
+  onReject,
+  busy,
+  canModify,
+}: {
+  user: AdminUser
+  onApprove: (id: string) => void
+  onReject: (id: string, reason: string) => void
+  busy: boolean
+  canModify: boolean
+}) {
+  const status = user.licenseVerificationStatus ?? 'unsubmitted'
+
+  if (!canModify) return null
+  if (status !== 'pending' && status !== 'rejected') return null
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <button
+        onClick={() => {
+          if (confirm(`${user.name} 님의 면허번호 ${user.licenseNumber ?? ''} 을(를) 승인하시겠습니까?`)) {
+            onApprove(user.id)
+          }
+        }}
+        disabled={busy}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50 transition-colors"
+      >
+        <BadgeCheck className="h-3.5 w-3.5" />
+        승인
+      </button>
+
+      {status === 'pending' && (
+        <button
+          onClick={() => {
+            const reason = prompt('반려 사유를 입력하세요 (사용자에게 그대로 보입니다):')
+            if (reason?.trim()) {
+              onReject(user.id, reason.trim())
+            }
+          }}
+          disabled={busy}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
+        >
+          <XCircle className="h-3.5 w-3.5" />
+          반려
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -204,6 +327,8 @@ function UserActions({
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuthStore()
+  // 운영 지표의 '면허 검수 대기' 숫자가 이 화면으로 바로 넘어온다.
+  const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState<PaginatedUsers | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -213,6 +338,10 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [tierFilter, setTierFilter] = useState<string>('')
+  const [licenseFilter, setLicenseFilter] = useState<string>(
+    () => searchParams.get('license') ?? '',
+  )
+  const [licenseBusyId, setLicenseBusyId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const limit = 20
 
@@ -227,6 +356,7 @@ export default function AdminUsersPage() {
         ...(roleFilter && { role: roleFilter as UserRole }),
         ...(statusFilter && { status: statusFilter }),
         ...(tierFilter && { subscriptionTier: tierFilter }),
+        ...(licenseFilter && { licenseStatus: licenseFilter as LicenseVerificationStatus }),
       }
       const result = await adminUsersApi.getUsers(params)
       setData(result)
@@ -240,7 +370,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers()
-  }, [page, roleFilter, statusFilter, tierFilter])
+  }, [page, roleFilter, statusFilter, tierFilter, licenseFilter])
 
   // 검색 핸들러 (Enter 키)
   const handleSearch = (e: React.KeyboardEvent) => {
@@ -293,6 +423,48 @@ export default function AdminUsersPage() {
       fetchUsers()
     } catch (err) {
       alert('역할 변경에 실패했습니다.')
+    }
+  }
+
+  /**
+   * 면허증 사본 열람.
+   *
+   * 창을 먼저 열고 주소를 나중에 채운다. await 뒤에 window.open 을 부르면
+   * 브라우저가 팝업으로 보고 막는다.
+   */
+  const handleOpenLicenseFile = async (id: string) => {
+    const win = window.open('', '_blank', 'noopener,noreferrer')
+    try {
+      const { url } = await adminUsersApi.getLicenseFileUrl(id)
+      if (win) win.location.href = url
+      else window.location.href = url
+    } catch (err) {
+      win?.close()
+      alert(getErrorMessage(err))
+    }
+  }
+
+  const handleApproveLicense = async (id: string) => {
+    try {
+      setLicenseBusyId(id)
+      await adminUsersApi.approveLicense(id)
+      await fetchUsers()
+    } catch (err) {
+      alert(getErrorMessage(err))
+    } finally {
+      setLicenseBusyId(null)
+    }
+  }
+
+  const handleRejectLicense = async (id: string, reason: string) => {
+    try {
+      setLicenseBusyId(id)
+      await adminUsersApi.rejectLicense(id, reason)
+      await fetchUsers()
+    } catch (err) {
+      alert(getErrorMessage(err))
+    } finally {
+      setLicenseBusyId(null)
     }
   }
 
@@ -355,6 +527,26 @@ export default function AdminUsersPage() {
             </select>
 
             <select
+              value={licenseFilter}
+              onChange={(e) => {
+                setLicenseFilter(e.target.value)
+                setPage(1)
+                // 주소창에도 남겨서 새로고침·공유해도 같은 목록이 뜨게 한다.
+                const next = new URLSearchParams(searchParams)
+                if (e.target.value) next.set('license', e.target.value)
+                else next.delete('license')
+                setSearchParams(next, { replace: true })
+              }}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">모든 면허</option>
+              <option value="pending">검수 대기</option>
+              <option value="verified">인증 완료</option>
+              <option value="rejected">반려</option>
+              <option value="unsubmitted">미제출</option>
+            </select>
+
+            <select
               value={tierFilter}
               onChange={(e) => {
                 setTierFilter(e.target.value)
@@ -390,6 +582,9 @@ export default function AdminUsersPage() {
                       사용자
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      면허
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                       역할
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -423,6 +618,9 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
+                        <LicenseBadge user={user} onOpenFile={() => handleOpenLicenseFile(user.id)} />
+                      </td>
+                      <td className="px-4 py-3">
                         <RoleBadge role={user.role || 'user'} />
                       </td>
                       <td className="px-4 py-3">
@@ -434,16 +632,27 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString('ko-KR')}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <UserActions
-                          user={user}
-                          onSuspend={handleSuspend}
-                          onActivate={handleActivate}
-                          onBan={handleBan}
-                          onResetPassword={handleResetPassword}
-                          onChangeRole={handleChangeRole}
-                          currentUserRole={currentUser?.role}
-                        />
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <LicenseActions
+                            user={user}
+                            onApprove={handleApproveLicense}
+                            onReject={handleRejectLicense}
+                            busy={licenseBusyId === user.id}
+                            canModify={
+                              currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+                            }
+                          />
+                          <UserActions
+                            user={user}
+                            onSuspend={handleSuspend}
+                            onActivate={handleActivate}
+                            onBan={handleBan}
+                            onResetPassword={handleResetPassword}
+                            onChangeRole={handleChangeRole}
+                            currentUserRole={currentUser?.role}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

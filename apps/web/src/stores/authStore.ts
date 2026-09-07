@@ -37,6 +37,9 @@ interface User {
     | 'verified'
     | 'rejected'
   licenseRejectionReason?: string | null
+  // 면허증 사본을 냈는지. 경로는 서버 밖으로 내보내지 않는다.
+  hasLicenseFile?: boolean
+  licenseFileUploadedAt?: string | null
 }
 
 interface AuthState {

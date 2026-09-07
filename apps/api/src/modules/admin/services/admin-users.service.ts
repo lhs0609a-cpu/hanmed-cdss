@@ -8,8 +8,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, ILike } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../../database/entities/user.entity';
-import { UserRole, UserStatus } from '../../../database/entities/enums';
+import {
+  UserRole,
+  UserStatus,
+  LicenseVerificationStatus,
+} from '../../../database/entities/enums';
 import { AuditLogService } from './audit-log.service';
+import { LicenseDocumentService } from '../../users/license-document.service';
 import { AuditActions } from '../../../database/entities/admin-audit-log.entity';
 import {
   GetUsersQueryDto,
@@ -25,6 +30,7 @@ export class AdminUsersService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private auditLogService: AuditLogService,
+    private licenseDocuments: LicenseDocumentService,
   ) {}
 
   async getUsers(query: GetUsersQueryDto): Promise<PaginatedUsersResponseDto> {
@@ -33,6 +39,7 @@ export class AdminUsersService {
       role,
       status,
       subscriptionTier,
+      licenseStatus,
       page = 1,
       limit = 20,
       sortBy = 'createdAt',
@@ -66,8 +73,23 @@ export class AdminUsersService {
       });
     }
 
+    // 면허 검수 상태 필터
+    if (licenseStatus) {
+      queryBuilder.andWhere('user.licenseVerificationStatus = :licenseStatus', {
+        licenseStatus,
+      });
+    }
+
     // 정렬
-    const allowedSortFields = ['createdAt', 'name', 'email', 'role', 'status', 'subscriptionTier'];
+    const allowedSortFields = [
+      'createdAt',
+      'name',
+      'email',
+      'role',
+      'status',
+      'subscriptionTier',
+      'licenseVerificationStatus',
+    ];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     queryBuilder.orderBy(`user.${sortField}`, sortOrder);
 
@@ -287,6 +309,126 @@ export class AdminUsersService {
     return updatedUser;
   }
 
+  /**
+   * 한의사 면허 검수 승인.
+   * 면허번호가 비어 있으면 승인할 대상이 없으므로 막는다 — 빈 승인은
+   * PractitionerGuard 를 무의미하게 만든다.
+   */
+  async approveLicense(
+    adminId: string,
+    userId: string,
+    requestInfo?: { ip?: string; userAgent?: string },
+  ): Promise<User> {
+    const user = await this.getUserById(userId);
+
+    if (!user.licenseNumber?.trim()) {
+      throw new BadRequestException(
+        '면허번호가 입력되지 않은 사용자는 승인할 수 없습니다.',
+      );
+    }
+
+    const oldStatus = user.licenseVerificationStatus;
+
+    user.isLicenseVerified = true;
+    user.licenseVerificationStatus = LicenseVerificationStatus.VERIFIED;
+    user.licenseVerifiedAt = new Date();
+    user.licenseVerifiedById = adminId;
+    user.licenseRejectionReason = null;
+
+    const updatedUser = await this.userRepository.save(user);
+
+    await this.auditLogService.log({
+      adminId,
+      action: AuditActions.USER_LICENSE_APPROVE,
+      targetType: 'user',
+      targetId: userId,
+      oldValue: { licenseVerificationStatus: oldStatus },
+      newValue: {
+        licenseVerificationStatus: LicenseVerificationStatus.VERIFIED,
+        licenseNumber: user.licenseNumber,
+      },
+      ipAddress: requestInfo?.ip,
+      userAgent: requestInfo?.userAgent,
+    });
+
+    return updatedUser;
+  }
+
+  /**
+   * 한의사 면허 검수 반려.
+   * 사유는 사용자 설정 화면에 그대로 노출되므로 반드시 남긴다.
+   * 사용자가 면허번호를 고쳐 저장하면 다시 pending 으로 돌아온다.
+   */
+  async rejectLicense(
+    adminId: string,
+    userId: string,
+    reason: string,
+    requestInfo?: { ip?: string; userAgent?: string },
+  ): Promise<User> {
+    const user = await this.getUserById(userId);
+
+    if (!reason?.trim()) {
+      throw new BadRequestException('반려 사유를 입력해야 합니다.');
+    }
+
+    const oldStatus = user.licenseVerificationStatus;
+
+    user.isLicenseVerified = false;
+    user.licenseVerificationStatus = LicenseVerificationStatus.REJECTED;
+    user.licenseVerifiedAt = null;
+    user.licenseVerifiedById = adminId;
+    user.licenseRejectionReason = reason.trim();
+
+    const updatedUser = await this.userRepository.save(user);
+
+    await this.auditLogService.log({
+      adminId,
+      action: AuditActions.USER_LICENSE_REJECT,
+      targetType: 'user',
+      targetId: userId,
+      oldValue: { licenseVerificationStatus: oldStatus },
+      newValue: {
+        licenseVerificationStatus: LicenseVerificationStatus.REJECTED,
+        reason: reason.trim(),
+      },
+      ipAddress: requestInfo?.ip,
+      userAgent: requestInfo?.userAgent,
+    });
+
+    return updatedUser;
+  }
+
+  /**
+   * 면허증 사본 열람 URL 발급.
+   *
+   * 볼 때마다 감사로그를 남긴다. 면허증은 이름·생년월일이 함께 찍힌 개인정보라
+   * "누가 언제 봤는지" 가 남지 않으면 열람 자체를 정당화할 수 없다.
+   */
+  async getLicenseFileUrl(
+    adminId: string,
+    userId: string,
+    requestInfo?: { ip?: string; userAgent?: string },
+  ): Promise<{ url: string; expiresInSeconds: number }> {
+    const user = await this.getUserById(userId);
+
+    if (!user.licenseFilePath) {
+      throw new NotFoundException('제출된 면허증 사본이 없습니다.');
+    }
+
+    const signed = await this.licenseDocuments.createSignedUrl(user.licenseFilePath);
+
+    await this.auditLogService.log({
+      adminId,
+      action: AuditActions.USER_LICENSE_FILE_VIEW,
+      targetType: 'user',
+      targetId: userId,
+      ipAddress: requestInfo?.ip,
+      userAgent: requestInfo?.userAgent,
+    });
+
+    return signed;
+  }
+
   async resetPassword(
     adminId: string,
     userId: string,
@@ -329,6 +471,13 @@ export class AdminUsersService {
       subscriptionExpiresAt: user.subscriptionExpiresAt,
       isVerified: user.isVerified,
       isLicenseVerified: user.isLicenseVerified,
+      licenseVerificationStatus: user.licenseVerificationStatus,
+      licenseVerifiedAt: user.licenseVerifiedAt,
+      licenseRejectionReason: user.licenseRejectionReason,
+      // 경로는 목록에 싣지 않는다. 열람은 별도 요청으로만 — 그래야 감사로그가 남는다.
+      hasLicenseFile: Boolean(user.licenseFilePath),
+      licenseFileUploadedAt: user.licenseFileUploadedAt,
+      practitionerType: user.practitionerType,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       suspendedAt: user.suspendedAt,

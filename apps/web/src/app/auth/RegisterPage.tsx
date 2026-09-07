@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2, Paperclip, X } from 'lucide-react'
 import { LogoMark } from '@/components/common'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import type { LoginResponse } from '@/types'
+
+/** 면허증 사본 첨부 한도 — 서버(license-document.service)와 같은 값이어야 한다. */
+const LICENSE_FILE_MAX_BYTES = 10 * 1024 * 1024
+const LICENSE_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
 type Role =
   | 'practitioner'
@@ -94,6 +98,9 @@ export default function RegisterPage() {
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  // 면허증 사본. 번호만 받으면 검수는 자릿수 확인에 그친다.
+  const [licenseFile, setLicenseFile] = useState<File | null>(null)
+  const [licenseFileError, setLicenseFileError] = useState<string | null>(null)
 
   const licenseRule = LICENSE_RULES[formData.role]
   const requiresLicense = licenseRule.required
@@ -133,6 +140,31 @@ export default function RegisterPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  function handleLicenseFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setLicenseFileError(null)
+
+    if (!file) {
+      setLicenseFile(null)
+      return
+    }
+    // 서버도 같은 한도를 걸지만, 10MB 를 다 올려 보내고 나서 거절당하면
+    // 회선이 느린 곳에서는 몇 분을 버린다.
+    if (file.size > LICENSE_FILE_MAX_BYTES) {
+      setLicenseFile(null)
+      setLicenseFileError('파일은 10MB 까지 첨부할 수 있습니다.')
+      e.target.value = ''
+      return
+    }
+    if (!LICENSE_FILE_TYPES.includes(file.type)) {
+      setLicenseFile(null)
+      setLicenseFileError('JPG, PNG, WebP 이미지 또는 PDF 만 첨부할 수 있습니다.')
+      e.target.value = ''
+      return
+    }
+    setLicenseFile(file)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -147,6 +179,10 @@ export default function RegisterPage() {
     }
     if (requiresLicense && !licenseValid) {
       setError(licenseFormatChecks.reason ?? '면허번호를 확인해주세요.')
+      return
+    }
+    if (requiresLicense && !licenseFile) {
+      setError('면허증 사본을 첨부해주세요. 검수에 필요합니다.')
       return
     }
 
@@ -169,6 +205,24 @@ export default function RegisterPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
+
+      // 면허증은 가입이 끝난 **뒤에** 올린다. 업로드 엔드포인트는 인증이
+      // 필요하고, 공개로 열어 두면 아무나 파일을 밀어 넣을 수 있다.
+      // 여기서 실패해도 계정은 이미 만들어졌으므로 가입을 되돌리지 않고
+      // 설정 화면으로 보낸다 — 거기서 다시 첨부할 수 있다.
+      if (licenseFile) {
+        try {
+          const body = new FormData()
+          body.append('file', licenseFile)
+          await api.post('/users/me/license-file', body, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+        } catch {
+          navigate('/settings?license=upload-failed')
+          return
+        }
+      }
+
       // 가입 직후 곧장 대시보드로 → 신규 사용자는 예시 진료(아하 모먼트)가 첫 화면.
       // CSV 마이그레이션(미리보기 전용)은 첫 관문에서 강등했다.
       navigate('/dashboard')
@@ -341,6 +395,47 @@ export default function RegisterPage() {
             )}
           </Field>
 
+          {requiresLicense && (
+            <Field
+              label={`${licenseRule.label.replace(/번호$/, '증')} 사본`}
+              required
+              hint="JPG · PNG · PDF, 10MB 이하"
+              error={licenseFileError}
+            >
+              {licenseFile ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+                  <span className="flex min-w-0 items-center gap-2 text-[13px] text-neutral-700">
+                    <Paperclip className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                    <span className="truncate">{licenseFile.name}</span>
+                    <span className="shrink-0 text-[12px] text-neutral-400">
+                      {Math.round(licenseFile.size / 1024).toLocaleString()}KB
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLicenseFile(null)}
+                    aria-label="첨부 취소"
+                    className="shrink-0 rounded p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <input
+                  id="licenseFile"
+                  name="licenseFile"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={handleLicenseFileChange}
+                  className="block w-full text-[13px] text-neutral-600 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:text-[13px] file:font-medium file:text-neutral-700 hover:file:bg-neutral-200"
+                />
+              )}
+              <p className="mt-1.5 text-[12px] text-neutral-500">
+                운영팀이 직접 확인합니다. 사본은 비공개로 보관되며 검수 외 용도로 쓰지 않습니다.
+              </p>
+            </Field>
+          )}
+
           <Field label="한의원명 (선택)">
             <input
               id="clinicName"
@@ -425,7 +520,12 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={isLoading || !allRequiredConsentsChecked || !licenseValid}
+            disabled={
+              isLoading ||
+              !allRequiredConsentsChecked ||
+              !licenseValid ||
+              (requiresLicense && !licenseFile)
+            }
             className="w-full h-14 mt-2 accent-gradient accent-glow disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-all active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {isLoading ? (

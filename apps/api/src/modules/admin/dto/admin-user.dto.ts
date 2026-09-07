@@ -1,6 +1,11 @@
 import { IsEnum, IsOptional, IsString, IsInt, Min, Max, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserRole, UserStatus } from '../../../database/entities/enums';
+import {
+  UserRole,
+  UserStatus,
+  LicenseVerificationStatus,
+  PractitionerType,
+} from '../../../database/entities/enums';
 import { SubscriptionTier } from '../../../database/entities/user.entity';
 
 // 사용자 목록 조회 쿼리
@@ -20,6 +25,11 @@ export class GetUsersQueryDto {
   @IsOptional()
   @IsEnum(SubscriptionTier)
   subscriptionTier?: SubscriptionTier;
+
+  // 면허 검수 상태 — 'pending' 으로 걸면 검수 대기자만 남는다.
+  @IsOptional()
+  @IsEnum(LicenseVerificationStatus)
+  licenseStatus?: LicenseVerificationStatus;
 
   @IsOptional()
   @Type(() => Number)
@@ -53,6 +63,12 @@ export class SuspendUserDto {
 export class ChangeUserRoleDto {
   @IsEnum(UserRole)
   role: UserRole;
+}
+
+// 면허 검수 반려 요청
+export class RejectLicenseDto {
+  @IsString()
+  reason: string;
 }
 
 // 사용자 정보 수정 요청
@@ -91,6 +107,12 @@ export class UserResponseDto {
   subscriptionExpiresAt: Date | null;
   isVerified: boolean;
   isLicenseVerified: boolean;
+  licenseVerificationStatus: LicenseVerificationStatus;
+  licenseVerifiedAt: Date | null;
+  licenseRejectionReason: string | null;
+  hasLicenseFile: boolean;
+  licenseFileUploadedAt: Date | null;
+  practitionerType: PractitionerType | null;
   createdAt: Date;
   updatedAt: Date;
   suspendedAt?: Date | null;

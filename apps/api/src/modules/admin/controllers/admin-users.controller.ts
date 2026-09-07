@@ -23,6 +23,7 @@ import {
   SuspendUserDto,
   ChangeUserRoleDto,
   UpdateUserDto,
+  RejectLicenseDto,
 } from '../dto';
 
 @ApiTags('Admin - Users')
@@ -100,6 +101,49 @@ export class AdminUsersController {
     @Req() req: Request,
   ) {
     return this.adminUsersService.banUser(adminId, id, dto.reason, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
+
+  @Get(':id/license-file')
+  @ApiOperation({ summary: '면허증 사본 열람 URL (짧게 만료되는 서명 URL)' })
+  @AdminOnly()
+  async getLicenseFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.adminUsersService.getLicenseFileUrl(adminId, id, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
+
+  @Post(':id/license/approve')
+  @ApiOperation({ summary: '한의사 면허 검수 승인' })
+  @AdminOnly()
+  async approveLicense(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.adminUsersService.approveLicense(adminId, id, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
+
+  @Post(':id/license/reject')
+  @ApiOperation({ summary: '한의사 면허 검수 반려' })
+  @AdminOnly()
+  async rejectLicense(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RejectLicenseDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.adminUsersService.rejectLicense(adminId, id, dto.reason, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

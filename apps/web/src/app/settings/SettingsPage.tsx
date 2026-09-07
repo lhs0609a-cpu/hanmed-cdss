@@ -61,6 +61,7 @@ import { TwoFactorSection } from '@/components/settings/TwoFactorSection';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { exportPatientsCsv, exportAsJson } from '@/lib/dataExport';
 import api from '@/services/api';
+import { getErrorMessage } from '@/lib/errors';
 import { Download, Trash2, FileText as FileTextIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -142,6 +143,55 @@ export default function SettingsPage() {
   };
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  /**
+   * 가입 마지막 단계에서 면허증 업로드만 실패한 경우 여기로 넘어온다.
+   * 계정은 이미 만들어졌으므로 왜 왔는지 한 번은 말해 줘야 한다.
+   */
+  useEffect(() => {
+    if (searchParams.get('license') !== 'upload-failed') return;
+    toast.error('가입은 완료됐지만 면허증 사본을 올리지 못했습니다. 아래에서 다시 첨부해주세요.');
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('license');
+        return next;
+      },
+      { replace: true },
+    );
+  }, []);
+
+  // 면허증 사본 — 가입 때 못 냈거나 반려로 다시 내는 경로.
+  const [isUploadingLicense, setIsUploadingLicense] = useState(false);
+
+  const handleLicenseFileUpload = async (file: File | null) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('파일은 10MB 까지 첨부할 수 있습니다.');
+      return;
+    }
+
+    setIsUploadingLicense(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      await api.post('/users/me/license-file', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // 사본이 새로 들어가면 서버가 검수 대기로 되돌린다. 화면도 맞춘다.
+      updateUser({
+        hasLicenseFile: true,
+        licenseVerificationStatus: 'pending',
+        isLicenseVerified: false,
+        licenseRejectionReason: null,
+      });
+      toast.success('면허증 사본을 제출했습니다. 검수 후 알려드립니다.');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsUploadingLicense(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -471,6 +521,36 @@ export default function SettingsPage() {
                     }
                     return null
                   })()}
+
+                  {/* 면허증 사본 — 번호만으로는 검수가 자릿수 확인에 그친다. */}
+                  <div className="pt-1 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="licenseFile" className="text-[13px]">
+                        면허증 사본
+                      </Label>
+                      {user?.hasLicenseFile && (
+                        <span className="text-[12px] text-green-700">제출 완료</span>
+                      )}
+                    </div>
+                    <input
+                      id="licenseFile"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      disabled={isUploadingLicense}
+                      onChange={(e) => {
+                        handleLicenseFileUpload(e.target.files?.[0] ?? null);
+                        e.target.value = '';
+                      }}
+                      className="block w-full text-[13px] text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-[13px] file:font-medium file:text-gray-700 hover:file:bg-gray-200 disabled:opacity-50"
+                    />
+                    <p className="text-[12px] text-gray-500">
+                      {isUploadingLicense
+                        ? '올리는 중...'
+                        : user?.hasLicenseFile
+                          ? '새로 올리면 이전 사본을 대체하고 검수를 다시 받습니다.'
+                          : 'JPG · PNG · PDF, 10MB 이하. 비공개로 보관되며 검수 외 용도로 쓰지 않습니다.'}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">

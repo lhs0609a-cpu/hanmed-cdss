@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Activity,
   AlertTriangle,
@@ -307,7 +308,16 @@ export default function AdminOpsPage() {
                     </td>
                     <td className="px-4 py-2">{overview.subscriptions.canceled}</td>
                     <td className={`px-4 py-2 ${overview.users.licensePending > 0 ? 'text-blue-600 font-semibold' : ''}`}>
-                      {overview.users.licensePending}
+                      {overview.users.licensePending > 0 ? (
+                        <Link
+                          to="/admin/users?license=pending"
+                          className="underline underline-offset-2 hover:text-blue-700"
+                        >
+                          {overview.users.licensePending}건 검수
+                        </Link>
+                      ) : (
+                        0
+                      )}
                     </td>
                   </tr>
                 </tbody>

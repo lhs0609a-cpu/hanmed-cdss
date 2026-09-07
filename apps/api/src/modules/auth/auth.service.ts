@@ -256,6 +256,7 @@ export class AuthService {
         practitionerType: user.practitionerType,
         isLicenseVerified: user.isLicenseVerified,
         licenseVerificationStatus: user.licenseVerificationStatus,
+        hasLicenseFile: Boolean(user.licenseFilePath),
       },
       ...tokens,
     };
@@ -466,6 +467,7 @@ export class AuthService {
         isLicenseVerified: user.isLicenseVerified,
         licenseVerificationStatus: user.licenseVerificationStatus,
         licenseRejectionReason: user.licenseRejectionReason,
+        hasLicenseFile: Boolean(user.licenseFilePath),
       },
       ...tokens,
     };
@@ -518,6 +520,7 @@ export class AuthService {
         isLicenseVerified: user.isLicenseVerified,
         licenseVerificationStatus: user.licenseVerificationStatus,
         licenseRejectionReason: user.licenseRejectionReason,
+        hasLicenseFile: Boolean(user.licenseFilePath),
       },
       ...tokens,
     };

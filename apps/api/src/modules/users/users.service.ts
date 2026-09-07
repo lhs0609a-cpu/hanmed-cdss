@@ -98,6 +98,28 @@ export class UsersService {
     if (payload.specialization !== undefined) updates.specialization = payload.specialization;
     if (payload.bio !== undefined) updates.bio = payload.bio;
 
+    // 면허번호가 실제로 바뀌면 검수 큐에 다시 넣는다.
+    // 이게 없으면 반려당한 사용자는 번호를 고쳐도 영원히 rejected 에 머물고,
+    // 가입 후에 번호를 입력한 사용자는 관리자 화면에 아예 나타나지 않는다.
+    if (payload.licenseNumber !== undefined) {
+      const next = (payload.licenseNumber ?? '').trim();
+      const current = (user.licenseNumber ?? '').trim();
+
+      if (next !== current) {
+        if (next) {
+          updates.licenseVerificationStatus = LicenseVerificationStatus.PENDING;
+          updates.isLicenseVerified = false;
+          updates.licenseVerifiedAt = null;
+          updates.licenseRejectionReason = null;
+        } else {
+          updates.licenseVerificationStatus = LicenseVerificationStatus.UNSUBMITTED;
+          updates.isLicenseVerified = false;
+          updates.licenseVerifiedAt = null;
+          updates.licenseRejectionReason = null;
+        }
+      }
+    }
+
     if (Object.keys(updates).length > 0) {
       await this.usersRepository.update(userId, updates);
     }
@@ -139,6 +161,37 @@ export class UsersService {
         licenseRejectionReason: decision.rejectionReason ?? null,
       });
     }
+  }
+
+  /**
+   * 면허증 사본 제출/교체.
+   *
+   * 사본이 새로 들어오면 검수 큐에 다시 넣는다. 반려당한 사람이 사진을 다시
+   * 찍어 올리는 것이 가장 흔한 재제출 경로인데, 상태를 안 바꾸면 그 파일은
+   * 아무도 보지 않는다.
+   *
+   * 옛 파일은 새 경로를 DB 에 쓴 **뒤에** 지운다. 순서를 바꾸면 저장은
+   * 실패하고 파일만 사라지는 창이 생긴다.
+   */
+  async attachLicenseDocument(
+    userId: string,
+    file: { path: string },
+  ): Promise<{ previousPath: string | null }> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    const previousPath = user.licenseFilePath;
+
+    await this.usersRepository.update(userId, {
+      licenseFilePath: file.path,
+      licenseFileUploadedAt: new Date(),
+      licenseVerificationStatus: LicenseVerificationStatus.PENDING,
+      isLicenseVerified: false,
+      licenseVerifiedAt: null,
+      licenseRejectionReason: null,
+    });
+
+    return { previousPath: previousPath && previousPath !== file.path ? previousPath : null };
   }
 
   /**

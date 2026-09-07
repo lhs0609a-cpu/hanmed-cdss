@@ -54,6 +54,9 @@ export const AuditActions = {
   USER_ROLE_CHANGE: 'user:role_change',
   USER_PASSWORD_RESET: 'user:password_reset',
   USER_DELETE: 'user:delete',
+  USER_LICENSE_APPROVE: 'user:license_approve',
+  USER_LICENSE_REJECT: 'user:license_reject',
+  USER_LICENSE_FILE_VIEW: 'user:license_file_view',
 
   // 구독 관리
   SUBSCRIPTION_UPGRADE: 'subscription:upgrade',

@@ -157,6 +157,19 @@ export class User {
   @Column('text', { nullable: true })
   licenseRejectionReason: string | null;
 
+  /**
+   * 면허증 사본 — Supabase 비공개 버킷의 오브젝트 경로.
+   *
+   * 공개 URL 을 저장하지 않는다. 면허증에는 이름·생년월일·면허번호가 함께
+   * 찍혀 있어서, 주소만 알면 열리는 자리에 두면 안 된다. 열람은 그때그때
+   * 짧게 서명한 URL 로만 한다.
+   */
+  @Column('text', { nullable: true })
+  licenseFilePath: string | null;
+
+  @Column({ nullable: true })
+  licenseFileUploadedAt: Date | null;
+
   // 회원탈퇴(grace period) 추적
   @Column({ nullable: true })
   deletionRequestedAt: Date | null;

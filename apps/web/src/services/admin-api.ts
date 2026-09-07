@@ -3,6 +3,15 @@ import type { UserRole } from '@/stores/authStore'
 
 // ============ Types ============
 
+export type LicenseVerificationStatus = 'unsubmitted' | 'pending' | 'verified' | 'rejected'
+
+export type PractitionerType =
+  | 'practitioner'
+  | 'public_health_doctor'
+  | 'student'
+  | 'herbal_pharmacist'
+  | 'herb_dealer'
+
 export interface AdminUser {
   id: string
   email: string
@@ -15,6 +24,12 @@ export interface AdminUser {
   subscriptionExpiresAt: string | null
   isVerified: boolean
   isLicenseVerified: boolean
+  licenseVerificationStatus: LicenseVerificationStatus
+  licenseVerifiedAt: string | null
+  licenseRejectionReason: string | null
+  hasLicenseFile: boolean
+  licenseFileUploadedAt: string | null
+  practitionerType: PractitionerType | null
   createdAt: string
   updatedAt: string
   suspendedAt?: string | null
@@ -34,6 +49,7 @@ export interface GetUsersParams {
   role?: UserRole
   status?: string
   subscriptionTier?: string
+  licenseStatus?: LicenseVerificationStatus
   page?: number
   limit?: number
   sortBy?: string
@@ -393,6 +409,22 @@ export const adminUsersApi = {
 
   resetPassword: async (id: string): Promise<{ temporaryPassword: string }> => {
     const { data } = await api.post(`/admin/users/${id}/reset-password`)
+    return data
+  },
+
+  // 면허증 사본 열람 URL — 몇 분 뒤 만료되는 서명 URL. 서버에 감사로그가 남는다.
+  getLicenseFileUrl: async (id: string): Promise<{ url: string; expiresInSeconds: number }> => {
+    const { data } = await api.get(`/admin/users/${id}/license-file`)
+    return data
+  },
+
+  approveLicense: async (id: string): Promise<AdminUser> => {
+    const { data } = await api.post(`/admin/users/${id}/license/approve`)
+    return data
+  },
+
+  rejectLicense: async (id: string, reason: string): Promise<AdminUser> => {
+    const { data } = await api.post(`/admin/users/${id}/license/reject`, { reason })
     return data
   },
 }

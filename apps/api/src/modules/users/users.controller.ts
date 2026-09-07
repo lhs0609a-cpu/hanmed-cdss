@@ -1,18 +1,24 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Patch,
   Post,
   Request,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { UsersService } from './users.service';
+import { LicenseDocumentService } from './license-document.service';
 import { DeleteAccountDto } from '../auth/dto';
 import { PractitionerPatientsService } from '../practitioner-patients/practitioner-patients.service';
 
@@ -49,6 +55,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly practitionerPatients: PractitionerPatientsService,
+    private readonly licenseDocuments: LicenseDocumentService,
   ) {}
 
   /**
@@ -99,6 +106,9 @@ export class UsersController {
       isLicenseVerified: user?.isLicenseVerified,
       licenseVerificationStatus: user?.licenseVerificationStatus,
       licenseRejectionReason: user?.licenseRejectionReason,
+      // 경로는 내보내지 않는다. 화면에는 "냈는지 / 언제 냈는지"만 있으면 된다.
+      hasLicenseFile: Boolean(user?.licenseFilePath),
+      licenseFileUploadedAt: user?.licenseFileUploadedAt ?? null,
       subscriptionTier: user?.subscriptionTier,
       contributionPoints: user?.contributionPoints,
       postCount: user?.postCount,
@@ -126,6 +136,57 @@ export class UsersController {
       specialization: user.specialization,
       bio: user.bio,
     };
+  }
+
+  /**
+   * 면허증 사본 제출.
+   *
+   * 브라우저에서 Supabase 로 바로 올리지 않고 여기를 거친다. service key 는
+   * RLS 를 우회하는 관리 권한이라 브라우저로 내보낼 수 없다.
+   */
+  @Post('me/license-file')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '면허증 사본 제출' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // 디스크를 거치지 않는다. 면허증이 임시파일로 서버에 남지 않게 한다.
+      storage: undefined,
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async uploadLicenseFile(
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @Request() req: any,
+  ) {
+    if (!file?.buffer) {
+      throw new BadRequestException('면허증 파일이 없습니다.');
+    }
+
+    const stored = await this.licenseDocuments.upload(file.buffer, req.user.id);
+    const { previousPath } = await this.usersService.attachLicenseDocument(req.user.id, stored);
+    if (previousPath) {
+      await this.licenseDocuments.remove(previousPath);
+    }
+
+    return {
+      uploaded: true,
+      uploadedAt: new Date().toISOString(),
+      licenseVerificationStatus: 'pending',
+    };
+  }
+
+  /** 본인이 낸 사본 확인 — 무엇을 제출했는지 스스로 볼 수 있어야 한다. */
+  @Get('me/license-file')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 면허증 사본 열람 URL' })
+  async getMyLicenseFile(@Request() req: any) {
+    const user = await this.usersService.findById(req.user.id);
+    if (!user?.licenseFilePath) {
+      throw new NotFoundException('제출한 면허증 사본이 없습니다.');
+    }
+    return this.licenseDocuments.createSignedUrl(user.licenseFilePath);
   }
 
   @Delete('me')
