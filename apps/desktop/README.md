@@ -137,5 +137,10 @@ electron-builder 를 그냥 돌리면 앱 폴더에 `node_modules` 가 없는 �
 ASCII 로 바꾸고 `backgroundColor` 를 줘서 이미지 합성 단계를 아예 건너뛴다.
 설치 창에 보이는 앱 이름은 `productName`(한글) 그대로다.
 
+색상은 **반드시 소문자**로 적어야 한다. dmgbuild 의 파서는
+`#([0-9a-f]{3}(?:[0-9a-f]{3})?)$` 로 대소문자를 가린다 —
+`#05070D` 로 적었다가 `ValueError: bad color syntax` 로 맥 잡이 한 번 더
+죽었다. (`node_modules/dmg-builder/vendor/dmgbuild/colors.py`)
+
 **아이콘은 `resources/icon.png` 하나다.** electron-builder 가 여기서 `.ico` 와
 `.icns` 를 만들어 쓴다. `apps/web/public/icon-512.png` 와 같은 그림이다.

@@ -97,7 +97,7 @@
     },
     "dmg": {
       "title": "Ongojisin AI ${version}",
-      "backgroundColor": "#05070D",
+      "backgroundColor": "#05070d",
       "artifactName": "OngojisinAI-${version}-${arch}.${ext}"
     }
   }
