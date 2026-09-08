@@ -1,11 +1,11 @@
 # 온고지신 AI 데스크톱 앱
 
-Windows · macOS 설치 파일. 사용자는 홈페이지의 [/download](https://ongojisin.ai/download)
+Windows · macOS 설치 파일. 사용자는 홈페이지의 [/download](https://www.ongojisin.co.kr/download)
 에서 받는다.
 
 ## 이 앱이 하는 일
 
-웹앱을 복사해 담지 않는다. 배포된 웹앱(`https://ongojisin.ai`)을 그대로 띄우는 셸이다.
+웹앱을 복사해 담지 않는다. 배포된 웹앱(`https://www.ongojisin.co.kr`)을 그대로 띄우는 셸이다.
 
 그렇게 만든 이유는 두 가지다.
 
@@ -13,6 +13,10 @@ Windows · macOS 설치 파일. 사용자는 홈페이지의 [/download](https:/
   `index.html` 을 `file://` 로 열면 `location.pathname` 이 디스크 경로라 어떤 라우트에도
   맞지 않는다. 예전 구현이 `apps/web/dist` 를 통째로 담고 있었지만, 담아봐야 열리지
   않았다.
+> 운영 도메인은 `www.ongojisin.co.kr` 이다. `apps/web/index.html` 의 canonical 과
+> 여러 문서에 `ongojisin.ai` 가 적혀 있지만 그 도메인은 아직 DNS 에 없다.
+> 셸이 그리로 가면 앱을 켤 때마다 오프라인 화면만 뜬다.
+
 - **어차피 서버가 필요하다.** 치험례·처방·환자 데이터는 전부 `api.ongojisin.co.kr`
   에서 온다. 오프라인으로 볼 수 있는 화면이 처음부터 없다.
 
@@ -45,7 +49,7 @@ pnpm dev
 보려면 환경 변수로 바꾼다.
 
 ```bash
-ONGOJISIN_APP_URL=https://staging.ongojisin.ai pnpm dev
+ONGOJISIN_APP_URL=https://www.ongojisin.co.kr pnpm dev
 ```
 
 ## 설치 파일 만들기

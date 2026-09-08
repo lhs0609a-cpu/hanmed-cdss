@@ -7,7 +7,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 /**
  * 온고지신 AI 데스크톱 셸.
  *
- * 이 앱은 웹앱을 복사해 담지 않고, 배포된 웹앱을 그대로 띄운다.
+ * 이 앱은 웹앱을 복사해 담지 않고, 배포된 웹앱(www.ongojisin.co.kr)을 그대로 띄운다.
  *
  * 예전 구현은 apps/web/dist 를 설치 파일 안에 넣고 file:// 로 열었는데,
  * 그렇게는 동작할 수 없었다. 웹앱은 BrowserRouter 를 쓴다 — file:// 에서는
@@ -20,8 +20,14 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
  * 자체(메뉴, 자동 업데이트)가 바뀔 때만 필요하다.
  */
 
-/** 띄울 주소. 사내 테스트 때는 ONGOJISIN_APP_URL 로 바꿔 끼운다. */
-const APP_URL = process.env.ONGOJISIN_APP_URL ?? 'https://ongojisin.ai'
+/**
+ * 띄울 주소. 사내 테스트 때는 ONGOJISIN_APP_URL 로 바꿔 끼운다.
+ *
+ * 운영 도메인은 www.ongojisin.co.kr 이다. index.html 의 canonical 과 여기저기
+ * 문서에 ongojisin.ai 가 적혀 있지만 그 도메인은 아직 DNS 에 없다 — 셸이
+ * 그리로 가면 앱을 켤 때마다 "연결할 수 없습니다" 만 뜬다.
+ */
+const APP_URL = process.env.ONGOJISIN_APP_URL ?? 'https://www.ongojisin.co.kr'
 
 /** 우리 서비스의 호스트. 오프라인 안내를 띄울지 판단하는 데만 쓴다. */
 const INTERNAL_HOSTS = ['ongojisin.ai', 'www.ongojisin.ai', 'ongojisin.co.kr', 'www.ongojisin.co.kr']
@@ -451,7 +457,7 @@ function createMenu(): void {
       submenu: [
         {
           label: '온고지신 웹사이트',
-          click: () => shell.openExternal('https://ongojisin.ai'),
+          click: () => shell.openExternal('https://www.ongojisin.co.kr'),
         },
         {
           label: '고객 지원',
