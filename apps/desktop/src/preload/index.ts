@@ -1,12 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-// 렌더러 프로세스에서 사용할 수 있는 API 노출
+/**
+ * 웹앱이 "지금 데스크톱 앱 안에서 돌고 있다"는 것을 알 수 있게 하는 창구.
+ *
+ * 버전은 IPC 로 물어보지 않고 실행 인자에서 읽는다. 웹앱은 첫 렌더에
+ * 버전을 그려야 하는데(다운로드 페이지의 안내 문구가 여기에 걸린다),
+ * 비동기로 받아오면 한 프레임 늦게 나타나 화면이 덜컥거린다.
+ */
+const appVersion =
+  process.argv.find((arg) => arg.startsWith('--app-version='))?.split('=')[1] ?? ''
+
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 앱 정보
   platform: process.platform,
   isElectron: true,
+  appVersion,
 
-  // 기본 기능
   versions: {
     node: process.versions.node,
     chrome: process.versions.chrome,
@@ -34,6 +42,7 @@ declare global {
     electronAPI?: {
       platform: string
       isElectron: boolean
+      appVersion: string
       versions: {
         node: string
         chrome: string

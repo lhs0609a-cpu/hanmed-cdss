@@ -1,0 +1,79 @@
+name: Desktop Release
+
+# 데스크톱 설치 파일(Windows exe / macOS dmg)을 만들어 GitHub 릴리스에 올린다.
+# 홈페이지의 /download 는 이 릴리스를 읽어서 버튼을 그린다 — 즉 여기가
+# 돌지 않으면 다운로드 페이지에 받을 파일이 없다.
+#
+# 내보내는 순서
+#   1. apps/desktop/package.json 의 version 을 올린다 (예: 1.0.0 → 1.1.0)
+#   2. 커밋하고 같은 번호로 태그를 단다:  git tag v1.1.0 && git push --tags
+#   3. 이 워크플로가 두 OS 에서 빌드해 v1.1.0 릴리스에 파일을 붙인다
+#
+# 태그와 package.json 의 version 은 반드시 같아야 한다. electron-builder 는
+# package.json 을 보고 릴리스 이름을 정하므로, 어긋나면 태그는 v1.1.0 인데
+# 파일은 v1.0.0 릴리스에 붙는다.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # 두 잡이 동시에 같은 릴리스를 만들려 들면 한쪽이 충돌한다.
+      # 릴리스는 자주 내보내는 것이 아니므로 순서대로 돌린다.
+      max-parallel: 1
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+            script: release:win
+          - os: macos-latest
+            label: macOS
+            script: release:mac
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # packageManager 필드(pnpm@9.15.4)에서 버전을 읽는다.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      # 레포 전체를 설치하면 puppeteer·bcrypt 까지 받느라 5분이 넘게 걸린다.
+      # 설치 파일을 만드는 데 필요한 것은 데스크톱 워크스페이스뿐이다.
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile --filter ongojishin-desktop
+
+      - name: 설치 파일 빌드 및 릴리스 업로드
+        run: pnpm --filter ongojishin-desktop ${{ matrix.script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 서명 인증서가 없다. 자동 탐색을 켜두면 macOS 잡이 인증서를 찾다
+          # 실패하며 멈춘다. 서명 없이 내보내고, 사용자는 첫 실행 때만
+          # 우클릭 → 열기 로 연다 (/download 페이지에 안내해 두었다).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # 릴리스 업로드가 실패해도 만들어진 파일은 손에 남게 한다.
+      - name: 빌드 산출물 보관
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.label }}
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.yml
+          if-no-files-found: ignore
+          retention-days: 14

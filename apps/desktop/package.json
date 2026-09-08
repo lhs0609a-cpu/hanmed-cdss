@@ -2,10 +2,10 @@
   "name": "ongojishin-desktop",
   "version": "1.0.0",
   "description": "온고지신 AI - 한의학 CDSS 데스크톱 앱",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
   "author": {
     "name": "온고지신",
-    "email": "support@ongojisin.ai"
+    "email": "lhs0609c@naver.com"
   },
   "license": "UNLICENSED",
   "private": true,
@@ -13,20 +13,20 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "electron-builder",
-    "package:win": "electron-builder --win",
-    "package:mac": "electron-builder --mac",
-    "package:all": "electron-builder --win --mac"
-  },
-  "dependencies": {
-    "@electron-toolkit/utils": "^3.0.0",
-    "electron-updater": "^6.1.7"
+    "package": "electron-vite build && electron-builder",
+    "package:win": "electron-vite build && electron-builder --win",
+    "package:mac": "electron-vite build && electron-builder --mac",
+    "package:all": "electron-vite build && electron-builder --win --mac",
+    "release:win": "electron-vite build && electron-builder --win --publish always",
+    "release:mac": "electron-vite build && electron-builder --mac --publish always"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.0",
+    "@electron-toolkit/utils": "^3.0.0",
     "@types/node": "^20.11.0",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
+    "electron-updater": "^6.1.7",
     "electron-vite": "^2.0.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.11"
@@ -34,18 +34,23 @@
   "build": {
     "appId": "kr.co.ongojisin.desktop",
     "productName": "온고지신 AI",
-    "copyright": "Copyright © 2024 온고지신",
+    "copyright": "Copyright © 2026 온고지신",
+    "electronVersion": "28.3.3",
+    "npmRebuild": false,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "resources"
     },
     "files": [
-      "dist/**/*"
+      "out/**/*",
+      "package.json"
     ],
-    "extraResources": [
+    "publish": [
       {
-        "from": "../web/dist",
-        "to": "app",
-        "filter": ["**/*"]
+        "provider": "github",
+        "owner": "lhs0609a-cpu",
+        "repo": "hanmed-cdss",
+        "releaseType": "release"
       }
     ],
     "win": {
@@ -59,18 +64,21 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "resources/icon.ico",
-      "artifactName": "${productName}-${version}-Windows-Setup.${ext}"
+      "icon": "resources/icon.png",
+      "artifactName": "OngojisinAI-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "온고지신 AI"
+      "runAfterFinish": true,
+      "shortcutName": "온고지신 AI",
+      "artifactName": "OngojisinAI-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-Windows-Portable.${ext}"
+      "artifactName": "OngojisinAI-Portable-${version}.${ext}"
     },
     "mac": {
       "target": [
@@ -79,13 +87,13 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "resources/icon.icns",
+      "icon": "resources/icon.png",
       "category": "public.app-category.medical",
-      "artifactName": "${productName}-${version}-Mac.${ext}"
+      "artifactName": "OngojisinAI-${version}-${arch}.${ext}"
     },
     "dmg": {
-      "title": "${productName} ${version}",
-      "icon": "resources/icon.icns"
+      "title": "온고지신 AI ${version}",
+      "artifactName": "OngojisinAI-${version}-${arch}.${ext}"
     }
   }
 }

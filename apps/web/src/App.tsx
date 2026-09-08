@@ -101,6 +101,9 @@ const PrivacyPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.P
 const RefundPolicyPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.RefundPolicyPage })))
 const SubscriptionTermsPage = lazy(() => import('@/app/legal').then((m) => ({ default: m.SubscriptionTermsPage })))
 
+// 데스크톱 앱 다운로드 (lazy — 방문자 대부분은 안 거치는 경로)
+const DownloadPage = lazy(() => import('@/app/download/DownloadPage'))
+
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
 const AdminOpsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminOpsPage })))
@@ -132,6 +135,7 @@ function App() {
         <Route path="/go" element={<AdLandingPage />} />
         <Route path="/start" element={<AdLandingPage />} />
         <Route path="/trial" element={<AdLandingPage />} />
+        <Route path="/download" element={route(<DownloadPage />)} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -2,9 +2,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
-import { ArrowRight, Check, ChevronDown, Menu, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Download, Menu, X } from 'lucide-react'
 import { LogoMark } from '@/components/common'
 import { BASE_STATS } from '@/config/stats.config'
+import { APP_VERSION, BUILD_DATE, DESKTOP_VERSION } from '@/config/version'
 import {
   MockupPatternDiagnosis,
   MockupCaseSearch,
@@ -83,10 +84,14 @@ function SectionHeading({
   )
 }
 
-const NAV_LINKS = [
+// href 로 시작하는 항목은 같은 페이지 앵커, to 가 있는 항목은 라우트 이동이다.
+// 다운로드는 별도 페이지라 앵커로 둘 수 없다 — 앵커로 두면 눌러도 아무 일이
+// 일어나지 않는다.
+const NAV_LINKS: { href?: string; to?: string; label: string }[] = [
   { href: '#features', label: '기능' },
   { href: '#flow', label: '작동 방식' },
   { href: '#pricing', label: '요금제' },
+  { to: '/download', label: '다운로드' },
   { href: '#faq', label: 'FAQ' },
 ]
 
@@ -232,15 +237,25 @@ export default function LandingPage() {
             </Link>
 
             <nav className="hidden items-center gap-8 md:flex">
-              {NAV_LINKS.map((l) => (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  className="text-[14px] text-white/55 transition-colors hover:text-white"
-                >
-                  {l.label}
-                </a>
-              ))}
+              {NAV_LINKS.map((l) =>
+                l.to ? (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    className="text-[14px] text-white/55 transition-colors hover:text-white"
+                  >
+                    {l.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    className="text-[14px] text-white/55 transition-colors hover:text-white"
+                  >
+                    {l.label}
+                  </a>
+                ),
+              )}
             </nav>
 
             <div className="hidden items-center gap-3 md:flex">
@@ -277,16 +292,27 @@ export default function LandingPage() {
             style={{ background: 'rgba(5,7,13,0.92)' }}
           >
             <nav className="flex flex-col gap-1">
-              {NAV_LINKS.map((l) => (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-2 py-2.5 text-[15px] text-white/70"
-                >
-                  {l.label}
-                </a>
-              ))}
+              {NAV_LINKS.map((l) =>
+                l.to ? (
+                  <Link
+                    key={l.label}
+                    to={l.to}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-2 py-2.5 text-[15px] text-white/70"
+                  >
+                    {l.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-2 py-2.5 text-[15px] text-white/70"
+                  >
+                    {l.label}
+                  </a>
+                ),
+              )}
               <div className="mt-3 flex flex-col gap-2 border-t border-white/8 pt-4">
                 <Link to="/login" className="rounded-lg px-2 py-2.5 text-[15px] text-white/70">
                   로그인
@@ -780,6 +806,36 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ 데스크톱 앱 ═══ */}
+      <section className="relative z-10 px-6 pb-24">
+        <div className="mx-auto max-w-4xl">
+          <GlassCard className="p-6 sm:p-8">
+            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="text-[18px] font-semibold text-white">데스크톱 앱</h3>
+                  <span className="rounded-md border border-white/12 bg-white/5 px-2 py-0.5 font-mono text-[11.5px] text-white/60">
+                    v{DESKTOP_VERSION}
+                  </span>
+                </div>
+                <p className="mt-2 max-w-md text-[14px] leading-relaxed text-white/55">
+                  Windows · macOS 에 설치해 브라우저 없이 창 하나로 쓰세요. 계정과 데이터는 웹과
+                  같고, 새 버전은 앱이 알아서 받습니다.
+                </p>
+              </div>
+              <Link
+                to="/download"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl px-6 py-3 text-[15px] font-semibold text-white transition-transform hover:scale-[1.02]"
+                style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
+              >
+                <Download className="h-4 w-4" />
+                다운로드
+              </Link>
+            </div>
+          </GlassCard>
+        </div>
+      </section>
+
       {/* ═══ 푸터 ═══ */}
       <footer className="relative z-10 border-t border-white/8 px-6 py-14">
         <div className="mx-auto max-w-6xl">
@@ -808,6 +864,11 @@ export default function LandingPage() {
                     <a href="#pricing" className="hover:text-white/70">
                       요금제
                     </a>
+                  </li>
+                  <li>
+                    <Link to="/download" className="hover:text-white/70">
+                      데스크톱 앱 다운로드
+                    </Link>
                   </li>
                   <li>
                     <a href="#faq" className="hover:text-white/70">
@@ -861,9 +922,18 @@ export default function LandingPage() {
               본 서비스는 한의사의 임상 의사결정을 보조하기 위한 참고 정보를 제공하며, 의료행위를
               대체하지 않습니다. 모든 진단과 처방의 책임은 이를 수행하는 한의사에게 있습니다.
             </p>
-            <p className="mt-4 text-[12px] text-white/25">
-              © {new Date().getFullYear()} 온고지신 AI. All rights reserved.
-            </p>
+            {/* 버전 표기 — 문의가 들어왔을 때 "무슨 버전 쓰고 계세요"를
+                되묻지 않으려면, 쓰는 사람이 스스로 찾을 수 있는 자리에
+                적혀 있어야 한다. */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/25">
+              <span>© {new Date().getFullYear()} 온고지신 AI. All rights reserved.</span>
+              <span aria-hidden className="text-white/15">
+                ·
+              </span>
+              <span className="font-mono">
+                웹 v{APP_VERSION} ({BUILD_DATE}) · 데스크톱 v{DESKTOP_VERSION}
+              </span>
+            </div>
           </div>
         </div>
       </footer>
