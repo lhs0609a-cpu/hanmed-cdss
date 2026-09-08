@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum Gender {
@@ -41,6 +42,23 @@ export enum BodyStrength {
   EXCESS = 'excess',       // 실(實) - 튼튼
 }
 
+/**
+ * 어느 코퍼스에서 온 치험례인가.
+ *
+ * 한국 현대 임상 기록과 중국 고전 의안은 읽는 방식이 다르다. 고전은 문언문에
+ * 서술이 짧고("許（左）　天氣溫和，頭暈輒劇…"), 현대 사례는 한국어에 회차별
+ * 경과가 붙는다. 한 목록에 섞으면 검색 결과가 읽히지 않는다.
+ *
+ * 그래서 같은 표에 두되 축을 나눈다 — 목록은 기본적으로 KOREAN 만 보여주고,
+ * 고전은 한의사가 명시적으로 골랐을 때 나온다.
+ */
+export enum CaseCorpus {
+  /** 한국 현대 임상 기록 (이종대 선생 계열 자료) */
+  KOREAN = 'korean',
+  /** 중국 고전 의안 — 中醫笈成(CC0) 수록 청대 이전 의안 */
+  CLASSICAL = 'classical',
+}
+
 @Entity('clinical_cases')
 export class ClinicalCase {
   @PrimaryGeneratedColumn('uuid')
@@ -48,6 +66,20 @@ export class ClinicalCase {
 
   @Column({ unique: true })
   sourceId: string; // 원본 기록 번호 (예: LEE-1993-001)
+
+  @Column({ type: 'varchar', length: 16, default: CaseCorpus.KOREAN })
+  @Index()
+  corpus: CaseCorpus;
+
+  /**
+   * 고전 의안의 저본(底本) — 어느 판본을 옮긴 것인가.
+   *
+   * 공중영역 자료라도 저본을 못 대면 임상에서 인용할 수 없다. 中醫笈成
+   * 87종 중 60종은 저본 표기가 없어 여기가 null 이 된다. 비워 두고 화면에
+   * '저본 미상'으로 드러내는 편이, 그럴듯한 판본명을 지어 넣는 것보다 낫다.
+   */
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  sourceEdition: string | null;
 
   @Column()
   recordedYear: number;

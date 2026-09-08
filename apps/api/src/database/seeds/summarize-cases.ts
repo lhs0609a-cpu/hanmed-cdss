@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { dataSourceOptions } from '../data-source';
-import { ClinicalCase } from '../entities/clinical-case.entity';
+import { CaseCorpus, ClinicalCase } from '../entities/clinical-case.entity';
 import OpenAI from 'openai';
 
 /**
@@ -167,8 +167,18 @@ async function main(): Promise<void> {
 
     if (ID_ARG) {
       qb.andWhere('c.id = :id', { id: ID_ARG.slice('--id='.length) });
-    } else if (!FORCE) {
-      qb.andWhere('c."summarizedAt" IS NULL');
+    } else {
+      // 고전 의안(문언문)은 요약하지 않는다.
+      //
+      // 여기서 만드는 것은 한국어 요약이다. 문언문 의안을 기계에 넘기면
+      // 그건 요약이 아니라 번역이 되고, 번역된 처방명·약재명은 원어와 미묘하게
+      // 어긋난다. 이 제품은 그 어긋남이 그대로 처방으로 이어지는 자리에 있다.
+      // 고전은 원문과 서지사항으로 읽게 두는 편이 낫다.
+      qb.andWhere('c.corpus = :corpus', { corpus: CaseCorpus.KOREAN });
+
+      if (!FORCE) {
+        qb.andWhere('c."summarizedAt" IS NULL');
+      }
     }
 
     const cases = await qb.getMany();

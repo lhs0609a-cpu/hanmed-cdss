@@ -109,11 +109,21 @@ async function main() {
   let failed = 0;
   const start = Date.now();
 
-  // 배치 단위로 페이지네이션 + OpenAI 일괄 호출
+  // 배치 단위로 읽어 OpenAI 에 일괄 호출.
+  //
+  // OFFSET 을 쓰지 않는다. 조건이 'embedding IS NULL' 인데 처리할 때마다 그
+  // 조건에서 빠져나가므로, OFFSET 을 올리면 아직 안 채운 행을 건너뛴다.
+  // 실제로 10,045건을 걸어 두고 5,045건만 처리하고 끝났고, 다시 돌리니
+  // 남은 5,000건 중 2,500건만 처리됐다 — 매번 절반씩 남는다(2026-09).
+  //
+  // 대신 항상 앞에서 PAGE 개를 가져온다. 처리된 행은 다음 조회 대상에서
+  // 저절로 빠진다. --reembed 일 때는 조건이 줄지 않으므로 그때만 OFFSET 을 쓴다.
   const PAGE = opts.batch;
   let offset = 0;
-  while (offset < total) {
-    const rows = await qb.clone().skip(offset).take(PAGE).getMany();
+  while (processed < total) {
+    const page = qb.clone().take(PAGE);
+    if (opts.reembed) page.skip(offset);
+    const rows = await page.getMany();
     if (rows.length === 0) break;
 
     const inputs = rows.map(buildEmbeddingInput);

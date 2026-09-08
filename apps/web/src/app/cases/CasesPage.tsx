@@ -15,6 +15,7 @@ import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ErrorMessage, SearchCategoryFilter, DEFAULT_SEARCH_CATEGORIES } from '@/components/common'
 import { logError } from '@/lib/errors'
 import { ProtectedCaseText, ProtectedRegion } from '@/components/cases/ProtectedCaseText'
+import { LiteratureCaseReports } from '@/components/cases/LiteratureCaseReports'
 import { api } from '@/services/api'
 import {
   CASE_BROWSE_FREE_PAGES,
@@ -763,6 +764,16 @@ export default function CasesPage() {
             </button>
           )
         })}
+
+        {/* 학술 증례보고 — 같은 검색어로 학회지 증례를 곁들인다.
+            치험례(원문·경과 있음)와 섞지 않고 접힌 패널로 둔다. */}
+        {!loading && !error && (
+          <LiteratureCaseReports
+            search={debouncedSearch}
+            apiBase={CASES_API_BASE}
+            token={token}
+          />
+        )}
 
         {/* 빈 결과 */}
         {!loading && !error && !paywalled && cases.length === 0 && (

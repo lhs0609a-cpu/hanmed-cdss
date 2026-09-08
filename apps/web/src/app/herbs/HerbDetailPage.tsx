@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import api from '@/services/api'
 import { CaseEvidencePanel } from '@/components/evidence/CaseEvidencePanel'
+import { SafetyReportPanel } from '@/components/evidence/SafetyReportPanel'
 
 interface Compound {
   id: string
@@ -287,6 +288,16 @@ export default function HerbDetailPage() {
               약재 → 그 약재가 든 처방 → 그 처방을 쓴 사례, 그리고 단방 사례까지 이어 붙인다. */}
           {herb.standardName && (
             <CaseEvidencePanel kind="herb" name={herb.standardName} limit={4} />
+          )}
+
+          {/* 이상반응 보고 — 치험례 바로 아래 둔다. "이걸 쓰면 낫는다" 옆에
+              "이런 일이 있었다" 가 같이 있어야 판단이 된다. */}
+          {herb.standardName && (
+            <SafetyReportPanel
+              herbName={herb.standardName}
+              scientificName={herb.scientificName}
+              limit={4}
+            />
           )}
 
           {/* 포함된 처방 */}

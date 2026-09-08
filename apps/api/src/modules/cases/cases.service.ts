@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import OpenAI from 'openai';
 import {
+  CaseCorpus,
   ClinicalCase,
   TreatmentOutcome,
 } from '../../database/entities/clinical-case.entity';
@@ -43,6 +44,33 @@ const TEASER_COLUMNS = [
 ] as const;
 const EMBED_MODEL = 'text-embedding-3-small';
 const SIMILAR_CACHE_TTL = 300; // 5분 — 같은 쿼리 반복 호출 방지
+
+/**
+ * 아무것도 고르지 않았을 때 보이는 코퍼스.
+ *
+ * 고전 의안(中醫笈成 CC0, 7,920건)을 들여오면서 필요해졌다. 그쪽은 문언문이라
+ * "역류성 식도염"으로 검색하는 한의사에게 섞여 나오면 결과가 읽히지 않는다.
+ * 자료가 늘었는데 검색이 나빠지면 는 게 아니다.
+ *
+ * 그래서 기본은 한국 현대 임상 기록이고, 고전은 명시적으로 골라야 나온다.
+ * 새 조회 메서드를 만들 때는 반드시 scopeToCorpus 를 통과시킨다 —
+ * 한 군데라도 빠지면 그 화면에서만 한문이 튀어나온다.
+ */
+const DEFAULT_CORPUS = CaseCorpus.KOREAN;
+
+/**
+ * 조회를 코퍼스 범위로 묶는다. corpus 가 'all' 이면 묶지 않는다.
+ */
+function scopeToCorpus(
+  qb: SelectQueryBuilder<ClinicalCase>,
+  alias: string,
+  corpus?: CaseCorpus | 'all',
+): SelectQueryBuilder<ClinicalCase> {
+  if (corpus === 'all') return qb;
+  return qb.andWhere(`${alias}.corpus = :corpus`, {
+    corpus: corpus || DEFAULT_CORPUS,
+  });
+}
 
 @Injectable()
 export class CasesService {
@@ -107,6 +135,8 @@ export class CasesService {
     threshold?: number; // 0~1, 기본 0.38
     constitution?: string;
     outcome?: string;
+    /** 기본은 한국 현대 임상 기록. 고전 의안은 명시적으로 골라야 나온다. */
+    corpus?: CaseCorpus | 'all';
   }) {
     const topK = Math.min(input.topK ?? 10, 50);
     // 0.3 은 너무 헐거워 "소화불량 수면장애" 에 여드름 사례가 통과했다.
@@ -141,9 +171,13 @@ export class CasesService {
     }
 
     // embedding 컬럼이 있는 케이스만 가져옴. 추가 필터(체질·결과)도 적용.
-    const qb = this.casesRepository
-      .createQueryBuilder('c')
-      .where('c.embedding IS NOT NULL');
+    const qb = scopeToCorpus(
+      this.casesRepository
+        .createQueryBuilder('c')
+        .where('c.embedding IS NOT NULL'),
+      'c',
+      input.corpus,
+    );
     if (input.constitution) {
       qb.andWhere('c.patientConstitution = :constitution', {
         constitution: input.constitution,
@@ -300,6 +334,10 @@ export class CasesService {
           constitution: input.constitution,
         });
       }
+      // 코퍼스 범위는 여기서 건다. 위의 terms.forEach 가 i===0 에서 qb.where()
+      // 를 부르는데 TypeORM 의 where() 는 앞서 쌓은 조건을 통째로 지운다 —
+      // 먼저 걸어 두면 조용히 사라진다.
+      scopeToCorpus(qb, 'c');
       cases = await qb.take(50).getMany();
       if (cases.length > 0) matchCriteria.push('주소증·증상 텍스트 매칭');
     }
@@ -463,6 +501,10 @@ export class CasesService {
           qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
         }
 
+        // 아래 분기들이 qb.where() 로 조건을 세우므로 코퍼스는 그 뒤에 건다.
+        // where() 는 앞선 조건을 지운다.
+        scopeToCorpus(qb, 'c');
+
         const total = await qb.getCount();
 
         // 경과 분포 — 완치/호전을 성공으로 본다.
@@ -583,6 +625,8 @@ export class CasesService {
             } else {
               qb.where('c.patternDiagnosis ILIKE :n', { n: `%${name}%` });
             }
+            // 위 분기가 qb.where() 를 쓰므로 코퍼스는 마지막에 건다.
+            scopeToCorpus(qb, 'c');
             out[name] = await qb.getCount();
           }),
         );
@@ -600,6 +644,8 @@ export class CasesService {
       searchField?: string;
       constitution?: string;
       outcome?: string;
+      /** 기본은 한국 현대 임상 기록. 고전 의안은 명시적으로 골라야 나온다. */
+      corpus?: CaseCorpus | 'all';
     },
   ) {
     const cacheKey = `list:${page}:${limit}:${JSON.stringify(filters || {})}`;
@@ -608,6 +654,7 @@ export class CasesService {
       cacheKey,
       async () => {
         const qb = this.casesRepository.createQueryBuilder('c');
+        scopeToCorpus(qb, 'c', filters?.corpus);
 
         // 목록에 필요한 컬럼만 읽는다. 원문·변증추론·경과는 DB 에서 꺼내지도 않는다 —
         // 응답 매핑에서 빼는 것만으로는 캐시·로그에 남을 여지가 있고,
@@ -689,16 +736,20 @@ export class CasesService {
     return this.cacheService.getOrSet(
       `daily:${seed}:${count}`,
       async () => {
-        const total = await this.casesRepository.count();
+        // 오늘의 치험례 카드에 문언문이 뜨면 곤란하다. 한국 현대 기록만 센다.
+        const total = await this.casesRepository.count({
+          where: { corpus: DEFAULT_CORPUS },
+        });
         if (total === 0) return [];
 
         // 자투리 페이지(마지막 window 미만)는 버린다 — 걸리는 날 카드가 초라해진다.
         const pages = Math.max(1, Math.floor(total / window));
         const offset = (seed % pages) * window;
 
-        const rows = await this.casesRepository
-          .createQueryBuilder('c')
-          .select([...TEASER_COLUMNS])
+        const rows = await scopeToCorpus(
+          this.casesRepository.createQueryBuilder('c').select([...TEASER_COLUMNS]),
+          'c',
+        )
           .orderBy('c.createdAt', 'DESC')
           .skip(offset)
           .take(window)
@@ -739,23 +790,42 @@ export class CasesService {
     return this.cacheService.getOrSetWithLock(
       cacheKey,
       async () => {
-        const total = await this.casesRepository.count();
-        const byConstitution = await this.casesRepository
+        // total 은 한국 현대 기록만 센다. 고전 의안까지 합친 수를 '치험례 N건'
+        // 으로 내걸면, 그 숫자를 보고 들어온 한의사가 목록에서 못 찾는다.
+        // 전체가 궁금하면 byCorpus 를 본다 — 사실은 사실대로 둔다.
+        const total = await this.casesRepository.count({
+          where: { corpus: DEFAULT_CORPUS },
+        });
+        const byCorpus = await this.casesRepository
           .createQueryBuilder('case')
-          .select('case.patientConstitution', 'constitution')
+          .select('case.corpus', 'corpus')
           .addSelect('COUNT(*)', 'count')
+          .groupBy('case.corpus')
+          .getRawMany();
+
+        const byConstitution = await scopeToCorpus(
+          this.casesRepository
+            .createQueryBuilder('case')
+            .select('case.patientConstitution', 'constitution')
+            .addSelect('COUNT(*)', 'count'),
+          'case',
+        )
           .groupBy('case.patientConstitution')
           .getRawMany();
 
-        const byOutcome = await this.casesRepository
-          .createQueryBuilder('case')
-          .select('case.treatmentOutcome', 'outcome')
-          .addSelect('COUNT(*)', 'count')
+        const byOutcome = await scopeToCorpus(
+          this.casesRepository
+            .createQueryBuilder('case')
+            .select('case.treatmentOutcome', 'outcome')
+            .addSelect('COUNT(*)', 'count'),
+          'case',
+        )
           .groupBy('case.treatmentOutcome')
           .getRawMany();
 
         return {
           total,
+          byCorpus,
           byConstitution,
           byOutcome,
         };

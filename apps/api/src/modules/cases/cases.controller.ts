@@ -23,6 +23,7 @@ import {
   CASE_BROWSE_FREE_PAGES,
   CASE_LIST_PAGE_SIZE_MAX,
 } from './case-browse';
+import { CaseCorpus } from '../../database/entities/clinical-case.entity';
 import { SubscriptionTier } from '../../database/entities/user.entity';
 import { FeatureKey, tierHasFeature } from '../../database/entities/plan-features';
 
@@ -70,6 +71,14 @@ export class CasesController {
   @ApiQuery({ name: 'searchField', required: false, type: String })
   @ApiQuery({ name: 'constitution', required: false, type: String })
   @ApiQuery({ name: 'outcome', required: false, type: String })
+  @ApiQuery({
+    name: 'corpus',
+    required: false,
+    enum: [...Object.values(CaseCorpus), 'all'],
+    description:
+      "기본 'korean' — 한국 현대 임상 기록. 'classical' 은 중국 고전 의안(문언문)," +
+      " 'all' 은 둘 다. 아무것도 넘기지 않으면 지금까지와 같은 목록이 나온다.",
+  })
   async findAll(
     @Req() req: any,
     @Query('page') page = 1,
@@ -78,6 +87,7 @@ export class CasesController {
     @Query('searchField') searchField?: string,
     @Query('constitution') constitution?: string,
     @Query('outcome') outcome?: string,
+    @Query('corpus') corpus?: CaseCorpus | 'all',
   ) {
     const tier: SubscriptionTier = req.user?.subscriptionTier ?? SubscriptionTier.FREE;
 
@@ -96,6 +106,7 @@ export class CasesController {
       searchField,
       constitution,
       outcome,
+      corpus,
     });
 
     // 목록에는 미끼 필드만 담는다. 원문·변증추론·경과는 여기서 절대 나가지 않는다 —
