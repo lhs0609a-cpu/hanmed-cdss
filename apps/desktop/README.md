@@ -92,6 +92,7 @@ scripts\build-desktop.bat
 | `OngojisinAI-Portable-1.0.0.exe` | Windows 무설치 (설치 권한 없는 원내 PC용) |
 | `OngojisinAI-1.0.0-arm64.dmg` | macOS Apple 실리콘 |
 | `OngojisinAI-1.0.0-x64.dmg` | macOS 인텔 |
+| `OngojisinAI-1.0.0-*.zip` | macOS 자동 업데이트용. 사람이 받는 파일이 아니다 — electron-updater 는 맥에서 dmg 로는 업데이트하지 못하고 zip 만 읽는다. dmg 만 올리면 맥 사용자는 새 버전을 손으로 받아야 한다. |
 | `latest.yml` / `latest-mac.yml` | 자동 업데이트가 읽는 메타데이터 |
 
 Windows 설치 파일은 설치 마법사(경로 선택 · 바탕화면/시작 메뉴 아이콘 · 제어판의
@@ -127,6 +128,14 @@ electron-builder 를 그냥 돌리면 앱 폴더에 `node_modules` 가 없는 �
 개발 의존성을 걷어내 버려서, electron-builder 가 실행 도중 자기 자신과
 `7zip-bin` 을 지우고 `ENOENT ... 7za.exe` 로 죽는다. 실행에 필요한 코드는
 전부 `out/` 번들 안에 있으므로(electron.vite.config.ts 참고) 그 단계는 필요 없다.
+
+**dmg 볼륨 이름은 ASCII 이고 배경은 단색이다.** 처음에는 `온고지신 AI ${version}`
+으로 두고 기본 배경을 썼는데, GitHub 맥 러너에서 dmg 빌드가
+`FileNotFoundError: /Volumes/온고지신 AI 1.0.0/.background/background.tiff` 로
+죽었다. dmg-builder 가 마운트된 볼륨에 배경 이미지를 깔고 파이썬 `mac_alias`
+로 다시 읽는데, 한글이 섞인 볼륨 경로에서 그 왕복이 어긋난다. 볼륨 이름을
+ASCII 로 바꾸고 `backgroundColor` 를 줘서 이미지 합성 단계를 아예 건너뛴다.
+설치 창에 보이는 앱 이름은 `productName`(한글) 그대로다.
 
 **아이콘은 `resources/icon.png` 하나다.** electron-builder 가 여기서 `.ico` 와
 `.icns` 를 만들어 쓴다. `apps/web/public/icon-512.png` 와 같은 그림이다.

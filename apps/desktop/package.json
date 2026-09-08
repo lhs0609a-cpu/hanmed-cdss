@@ -85,6 +85,10 @@
         {
           "target": "dmg",
           "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
         }
       ],
       "icon": "resources/icon.png",
@@ -92,7 +96,8 @@
       "artifactName": "OngojisinAI-${version}-${arch}.${ext}"
     },
     "dmg": {
-      "title": "온고지신 AI ${version}",
+      "title": "Ongojisin AI ${version}",
+      "backgroundColor": "#05070D",
       "artifactName": "OngojisinAI-${version}-${arch}.${ext}"
     }
   }
