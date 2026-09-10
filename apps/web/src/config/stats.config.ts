@@ -6,37 +6,38 @@
  */
 
 /**
- * 기본 데이터베이스 통계 — 전부 운영 DB 실측값이다.
+ * 폴백 통계 — 이제 화면의 1차 출처가 아니다.
  *
- * 2026-09-04 확인. 이 숫자들이 홈페이지 히어로와 요금제 화면에 그대로
- * 나가므로, 어림잡은 값을 넣으면 안 된다. 하나가 틀리면 나머지도 못
- * 믿는다.
+ * 2026-09-09 부터 홈페이지 히어로는 GET /stats/public 이 세어 준 DB 실측값을
+ * 쓴다(usePublicStats). 여기 있는 값은 API 가 답하기 전 첫 페인트와, API 가
+ * 죽었을 때의 폴백으로만 남는다.
  *
- * 그날 바로잡은 것 세 가지.
- *   cases     6,000 → 6,454   (clinical_cases 실측)
- *   herbs       500 → 636     (herbs_master 실측)
+ * 손으로 적는 방식은 반드시 어긋난다. 실제로 어긋나 있었다 — 치험례를
+ * 8,579 건까지 모아 놓고 홈페이지는 6,454 건을 걸고 있었고, 문헌은
+ * 42,182 편인데 35,800 편이라고 적혀 있었다. 그래서 세는 일을 DB 에 맡겼다.
  *
- * 2026-09-08 갱신. 치험례 수집을 한 바퀴 돌린 뒤 실측.
- *   cases      6,454 → 8,579  (방약합편 본문 1,895 + 워드문서 230 추가)
- *   references 35,800 → 42,182 (PubMed 이상반응 증례 4,290 추가)
- * 여기에 고전 의안 7,920건이 따로 들어왔지만 cases 에 더하지 않았다 —
- * 아래 classicalCases 주석 참고.
- *
- * formulas 는 429 그대로 둔다. 한 번 404 로 고쳤다가 되돌렸다.
- * 처방 화면(FormulasPage)은 DB 가 아니라 public/data/all-formulas.json 을
- * 읽고, 그 파일에 429건이 들어 있다. API 의 formulas 테이블은 404행이지만
- * 사용자가 실제로 보는 것은 429건이다. 화면이 429 를 보여주는데 히어로가
- * 404 라고 하면 그게 더 이상하다.
+ * formulas 는 404 로 맞춘다. 예전에는 429(all-formulas.json 배열 길이)를
+ * 걸었다 — 처방 화면이 DB 가 아니라 그 파일을 읽어서다. 이제 네 숫자 모두
+ * DB 를 기준으로 통일했으므로 폴백도 같은 기준으로 둔다. 다만 처방 화면이
+ * 아직 429건을 보여주므로 25건의 간극이 남아 있다. 그 간극은 데이터를
+ * 맞춰서 없앨 일이지, 숫자를 골라 적어서 덮을 일이 아니다.
  *
  * 재확인 방법:
- *   SELECT COUNT(*) FROM clinical_cases;      -- cases
+ *   SELECT COUNT(*) FROM clinical_cases
+ *    WHERE corpus = 'korean' AND "excludedReason" IS NULL;      -- cases
+ *   SELECT COUNT(*) FROM clinical_cases
+ *    WHERE corpus = 'classical' AND "excludedReason" IS NULL;
  *   SELECT COUNT(*) FROM formulas;            -- formulas
  *   SELECT COUNT(*) FROM herbs_master;        -- herbs
  *   SELECT COUNT(*) FROM clinical_references; -- references
  */
 export const BASE_STATS = {
   // 치험례 — 이 제품의 핵심 자산. 40년치 축적분.
-  cases: 8579,
+  //
+  // 8,579건 중 116건은 목록에서 뺐다(excludedReason). 학술지 목차, 처방
+  // 해설 본문, 본초 강좌, 밴드 신변잡기 같은 것이 문서 통째로 수집되면서
+  // 같은 표에 들어와 있었다. 세는 수와 목록에 보이는 수는 같아야 한다.
+  cases: 8463,
 
   /**
    * 고전 의안 — 中醫笈成(CC0) 수록 청대 이전 의안 7,920건.
@@ -49,10 +50,10 @@ export const BASE_STATS = {
   classicalCases: 7920,
 
   /**
-   * 처방 — public/data/all-formulas.json 기준(사용자가 화면에서 보는 수).
-   * DB 의 formulas 테이블은 404행이라 값이 다르다. 둘 중 화면 쪽을 쓴다.
+   * 처방 — formulas 테이블 기준.
+   * 처방 화면은 아직 all-formulas.json(429건)을 읽으므로 25건 차이가 난다.
    */
-  formulas: 429,
+  formulas: 404,
 
   // 약재
   herbs: 636,
