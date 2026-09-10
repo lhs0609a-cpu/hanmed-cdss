@@ -129,7 +129,10 @@ export function toLoginErrorView(err: unknown, email: string): LoginErrorView {
       if (status === 0 || status === undefined) {
         return {
           code: 'NETWORK',
-          message: '서버에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.',
+          message:
+            typeof navigator !== 'undefined' && navigator.onLine === false
+              ? '인터넷 연결이 끊겼습니다. 연결 상태를 확인해 주세요.'
+              : '로그인 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
         }
       }
       return { code, message }
