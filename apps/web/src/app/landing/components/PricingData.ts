@@ -64,7 +64,7 @@ export const PLAN_TIERS: PlanTier[] = [
     features: [
       'Free의 모든 기능',
       'AI 챗봇 월 200회',
-      '치험례 6,000건 전체 열람',
+      '치험례 전체 열람',
       '내 케이스 내보내기 (PDF/이미지)',
       '기본 통계',
       '초과 시 건당 200원',
@@ -146,15 +146,30 @@ export const BILLING_ADDON = {
  * 361 혈이 아니라 58 혈이 실려 있다. 361 은 WHO 표준의 전체 수였다.
  * 열어 본 사람이 바로 아는 숫자를 내걸면 나머지 숫자도 같이 죽는다.
  *
- * 전부 BASE_STATS 에서 읽는다. 여기에 손으로 적으면 DB 가 늘어도 화면은
- * 그대로다.
+ * 이제 숫자는 /stats/public 이 세어 준다(usePublicStats). 여기에 손으로
+ * 적으면 DB 가 늘어도 화면은 그대로다 — 실제로 치험례가 8,579 건인데
+ * 홈페이지는 6,454 건을 걸고 있었다.
+ *
+ * BASE_STATS 는 API 가 답하기 전 첫 페인트와 실패 시 폴백으로만 남는다.
  */
-export const VERIFIED_FACTS = [
-  { value: BASE_STATS.cases.toLocaleString(), unit: '건', label: '40년치 임상 치험례' },
-  { value: BASE_STATS.references.toLocaleString(), unit: '편', label: '국내외 학술 문헌' },
-  { value: BASE_STATS.herbs.toLocaleString(), unit: '종', label: '약재 정보' },
-  { value: BASE_STATS.formulas.toLocaleString(), unit: '종', label: '처방 데이터' },
-] as const
+export interface VerifiedFactSource {
+  cases: number
+  references: number
+  herbs: number
+  formulas: number
+}
+
+export function buildVerifiedFacts(stats: VerifiedFactSource) {
+  return [
+    { value: stats.cases.toLocaleString(), unit: '건', label: '40년치 임상 치험례' },
+    { value: stats.references.toLocaleString(), unit: '편', label: '국내외 학술 문헌' },
+    { value: stats.herbs.toLocaleString(), unit: '종', label: '약재 정보' },
+    { value: stats.formulas.toLocaleString(), unit: '종', label: '처방 데이터' },
+  ]
+}
+
+/** API 가 답하기 전에 그리는 값. */
+export const VERIFIED_FACTS = buildVerifiedFacts(BASE_STATS)
 
 export function formatKRW(won: number): string {
   return won.toLocaleString('ko-KR')
