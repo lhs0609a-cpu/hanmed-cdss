@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import OpenAI from 'openai';
 import {
   CaseCorpus,
@@ -59,13 +59,20 @@ const SIMILAR_CACHE_TTL = 300; // 5분 — 같은 쿼리 반복 호출 방지
 const DEFAULT_CORPUS = CaseCorpus.KOREAN;
 
 /**
- * 조회를 코퍼스 범위로 묶는다. corpus 가 'all' 이면 묶지 않는다.
+ * 조회를 코퍼스 범위로 묶고, 목록에서 뺀 행을 걸러낸다.
+ * corpus 가 'all' 이면 코퍼스는 묶지 않되 제외 필터는 그대로 건다.
+ *
+ * 제외 필터를 여기 같이 두는 이유 — 사유는 screen-cases 가 건별로 판정해
+ * excludedReason 에 남긴다(목차 줄·처방도표·본초 강좌·신변잡기). 조회
+ * 메서드마다 조건을 따로 붙이면 한 군데 빠진 화면에서만 목차 줄이 튀어나온다.
+ * 코퍼스와 같은 관문을 쓰게 해서 새 메서드가 이걸 건너뛸 수 없게 한다.
  */
 function scopeToCorpus(
   qb: SelectQueryBuilder<ClinicalCase>,
   alias: string,
   corpus?: CaseCorpus | 'all',
 ): SelectQueryBuilder<ClinicalCase> {
+  qb.andWhere(`${alias}."excludedReason" IS NULL`);
   if (corpus === 'all') return qb;
   return qb.andWhere(`${alias}.corpus = :corpus`, {
     corpus: corpus || DEFAULT_CORPUS,
@@ -738,7 +745,7 @@ export class CasesService {
       async () => {
         // 오늘의 치험례 카드에 문언문이 뜨면 곤란하다. 한국 현대 기록만 센다.
         const total = await this.casesRepository.count({
-          where: { corpus: DEFAULT_CORPUS },
+          where: { corpus: DEFAULT_CORPUS, excludedReason: IsNull() },
         });
         if (total === 0) return [];
 
@@ -794,12 +801,13 @@ export class CasesService {
         // 으로 내걸면, 그 숫자를 보고 들어온 한의사가 목록에서 못 찾는다.
         // 전체가 궁금하면 byCorpus 를 본다 — 사실은 사실대로 둔다.
         const total = await this.casesRepository.count({
-          where: { corpus: DEFAULT_CORPUS },
+          where: { corpus: DEFAULT_CORPUS, excludedReason: IsNull() },
         });
         const byCorpus = await this.casesRepository
           .createQueryBuilder('case')
           .select('case.corpus', 'corpus')
           .addSelect('COUNT(*)', 'count')
+          .where('case."excludedReason" IS NULL')
           .groupBy('case.corpus')
           .getRawMany();
 
