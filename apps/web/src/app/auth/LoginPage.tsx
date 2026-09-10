@@ -22,6 +22,7 @@ const DEMO_CONFIG = {
     email: import.meta.env.VITE_DEMO_EMAIL || 'demo@ongojisin.ai',
     name: import.meta.env.VITE_DEMO_NAME || '체험 사용자',
     subscriptionTier: 'free' as const,
+    isDemo: true,
     isVerified: true,
   },
   token: import.meta.env.VITE_DEMO_TOKEN || '',

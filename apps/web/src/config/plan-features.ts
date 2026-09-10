@@ -107,6 +107,27 @@ const CLINIC_FEATURES = [
   FeatureKey.DEDICATED_SUPPORT,
 ] as const;
 
+/**
+ * 체험(데모) 계정이 쓸 수 있는 기능.
+ * 백엔드 DEMO_FEATURES 와 1:1 동기화 — 양쪽 동시 수정이 원칙이다.
+ *
+ * 데모는 요금제가 아니라 맛보기다. 증상 → 변증 → 처방 추천 → 근거 치험례,
+ * 이 한 줄기만 끝까지 보여주고 나머지는 잠근다. 적색신호는 처방 추천에
+ * 딸린 안전 경고라 함께 연다.
+ */
+const DEMO_FEATURES = [
+  FeatureKey.SYMPTOM_SEARCH,
+  FeatureKey.DIAGNOSIS,
+  FeatureKey.PRESCRIPTION_RECOMMEND,
+  FeatureKey.CASE_SEARCH,
+  FeatureKey.RED_FLAG,
+] as const;
+
+export const DEMO_FEATURE_SET: ReadonlySet<FeatureKey> = new Set(DEMO_FEATURES);
+
+/** 체험 계정에서 열람할 수 있는 치험례 수 */
+export const DEMO_CASE_VIEW_LIMIT = 10;
+
 export const PLAN_FEATURES: Record<SubscriptionTier, ReadonlySet<FeatureKey>> = {
   free: new Set(FREE_FEATURES),
   basic: new Set(BASIC_FEATURES),

@@ -16,6 +16,7 @@ import {
 import {
   FeatureKey,
   PLAN_FEATURES,
+  featuresFor,
   FEATURE_LABELS,
   PRACTITIONER_SEAT_LIMITS,
   CASE_SAVE_LIMITS,
@@ -1286,10 +1287,17 @@ export class TossPaymentsService {
       order: { createdAt: 'DESC' },
     });
 
-    const features = Array.from(PLAN_FEATURES[user.subscriptionTier] ?? []);
+    // 체험 계정은 티어가 free 라도 그보다 좁게 연다. 화면 게이팅이 이
+    // 배열을 그대로 믿으므로(useFeatureAccess), 여기서 좁히면 잠금 카드가
+    // 페이지마다 손대지 않아도 전부 따라온다.
+    const isDemo =
+      user.email === (process.env.DEMO_USER_EMAIL || 'demo@ongojisin.ai');
+    const features = Array.from(featuresFor(user.subscriptionTier, isDemo));
 
     return {
       tier: user.subscriptionTier,
+      /** 체험 계정인가 — 화면이 '업그레이드'와 '회원가입'을 갈라 안내한다 */
+      isDemo,
       expiresAt: user.subscriptionExpiresAt,
       hasBillingKey: !!user.tossBillingKey,
       features, // 현재 티어에서 접근 가능한 FeatureKey 목록 — 프론트 게이팅용

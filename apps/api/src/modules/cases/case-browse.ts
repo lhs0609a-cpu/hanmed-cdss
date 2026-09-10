@@ -2,15 +2,21 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { SubscriptionTier } from '../../database/entities/user.entity';
 import {
   FeatureKey,
-  tierHasFeature,
+  canUseFeature,
   CASE_BROWSE_FREE_PAGES,
   CASE_BROWSE_FREE_CASES,
   CASE_LIST_PAGE_SIZE_MAX,
+  DEMO_CASE_VIEW_LIMIT,
 } from '../../database/entities/plan-features';
 
 // 요금제와 직접 얽힌 숫자라 plan-features 가 단일 출처다. 여기서는 다시 내보내
 // 이 모듈만 import 해도 되게 한다 — 정의가 두 곳에 생기는 것을 막는다.
-export { CASE_BROWSE_FREE_PAGES, CASE_BROWSE_FREE_CASES, CASE_LIST_PAGE_SIZE_MAX };
+export {
+  CASE_BROWSE_FREE_PAGES,
+  CASE_BROWSE_FREE_CASES,
+  CASE_LIST_PAGE_SIZE_MAX,
+  DEMO_CASE_VIEW_LIMIT,
+};
 
 /**
  * 치험례 목록 둘러보기 한도 — 무엇을 보여주고 어디서 지갑을 열게 하는지의 단일 출처.
@@ -51,18 +57,29 @@ export function clampListPaging(
   };
 }
 
-function unlimited(tier: SubscriptionTier): boolean {
-  return tierHasFeature(tier, FeatureKey.CASE_BROWSE_UNLIMITED);
+function unlimited(tier: SubscriptionTier, isDemo: boolean): boolean {
+  return canUseFeature(tier, FeatureKey.CASE_BROWSE_UNLIMITED, isDemo);
 }
 
-/** 이 요청이 무료 한도 너머를 요구하는가 (0-based 오프셋 기준) */
+/**
+ * 이 요청자가 목록으로 도달할 수 있는 건수.
+ *
+ * 체험은 무료 회원(60건)보다 더 좁다. 16,000건이 있다는 것은 보여야 가입할
+ * 이유가 되고, 60건씩 훑게 두면 굳이 가입할 이유가 없어진다.
+ */
+function browseCap(isDemo: boolean): number {
+  return isDemo ? DEMO_CASE_VIEW_LIMIT : CASE_BROWSE_FREE_CASES;
+}
+
+/** 이 요청이 열람 한도 너머를 요구하는가 (0-based 오프셋 기준) */
 export function isBeyondFreeWindow(
   tier: SubscriptionTier,
   page: number,
   limit: number,
+  isDemo = false,
 ): boolean {
-  if (unlimited(tier)) return false;
-  return (page - 1) * limit >= CASE_BROWSE_FREE_CASES;
+  if (unlimited(tier, isDemo)) return false;
+  return (page - 1) * limit >= browseCap(isDemo);
 }
 
 /** 응답 meta 에 붙일 열람 범위 정보 */
@@ -70,15 +87,17 @@ export function browseAccess(
   tier: SubscriptionTier,
   page: number,
   limit: number,
+  isDemo = false,
 ): CaseBrowseAccess {
-  if (unlimited(tier)) {
+  if (unlimited(tier, isDemo)) {
     return { maxPage: null, maxCases: null, limited: false, nextPageLocked: false };
   }
+  const cap = browseCap(isDemo);
   return {
-    maxPage: Math.max(Math.ceil(CASE_BROWSE_FREE_CASES / limit), 1),
-    maxCases: CASE_BROWSE_FREE_CASES,
+    maxPage: Math.max(Math.ceil(cap / limit), 1),
+    maxCases: cap,
     limited: true,
-    nextPageLocked: isBeyondFreeWindow(tier, page + 1, limit),
+    nextPageLocked: isBeyondFreeWindow(tier, page + 1, limit, isDemo),
   };
 }
 
@@ -97,14 +116,17 @@ export const CASE_BROWSE_PAYWALL_CODE = 'CASE_BROWSE_PAYWALL';
  * 숫자는 성공 응답의 meta.access 로 주고, 프론트도 같은 상수를 미러링한다.
  */
 export class CaseBrowsePaywallException extends HttpException {
-  constructor() {
+  constructor(isDemo = false) {
     super(
       {
         statusCode: HttpStatus.PAYMENT_REQUIRED,
         error: CASE_BROWSE_PAYWALL_CODE,
-        message:
-          `무료 회원은 치험례 목록을 ${CASE_BROWSE_FREE_PAGES}페이지(${CASE_BROWSE_FREE_CASES}건)까지 볼 수 있습니다.` +
-          ` 전체 열람은 유료 요금제에서 가능합니다. 검색은 계속 무료로 쓰실 수 있습니다.`,
+        // 체험에는 요금제 이야기를 하지 않는다 — 다음 걸음이 결제가 아니라 가입이다.
+        message: isDemo
+          ? `체험판에서는 치험례를 ${DEMO_CASE_VIEW_LIMIT}건까지 볼 수 있습니다.` +
+            ` 회원가입하면 전체를 검색하고 열람할 수 있습니다.`
+          : `무료 회원은 치험례 목록을 ${CASE_BROWSE_FREE_PAGES}페이지(${CASE_BROWSE_FREE_CASES}건)까지 볼 수 있습니다.` +
+            ` 전체 열람은 유료 요금제에서 가능합니다. 검색은 계속 무료로 쓰실 수 있습니다.`,
       },
       HttpStatus.PAYMENT_REQUIRED,
     );

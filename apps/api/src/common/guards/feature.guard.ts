@@ -11,7 +11,7 @@ import {
   FeatureKey,
   FEATURE_LABELS,
   PLAN_FEATURES,
-  tierHasFeature,
+  canUseFeature,
 } from '../../database/entities/plan-features';
 import { SubscriptionTier } from '../../database/entities/user.entity';
 
@@ -53,8 +53,10 @@ export class FeatureGuard implements CanActivate {
     // 인증이 헐거운 경로 하나로 전체 게이트가 뚫린다.
     const tier: SubscriptionTier =
       req?.user?.subscriptionTier ?? SubscriptionTier.FREE;
+    // 체험 계정은 티어와 무관하게 DEMO_FEATURES 만 쓴다.
+    const isDemo = req?.user?.isDemo === true;
 
-    if (tierHasFeature(tier, feature)) return true;
+    if (canUseFeature(tier, feature, isDemo)) return true;
 
     const label = FEATURE_LABELS[feature] ?? feature;
     const min = this.minTierFor(feature);
@@ -64,6 +66,19 @@ export class FeatureGuard implements CanActivate {
       [SubscriptionTier.PROFESSIONAL]: 'Pro',
       [SubscriptionTier.CLINIC]: 'Clinic',
     };
+
+    // 체험 계정에는 요금제 이야기를 하지 않는다. 아직 회원이 아니라
+    // 업그레이드할 요금제가 없다. 다음 걸음은 결제가 아니라 가입이다.
+    if (isDemo) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.PAYMENT_REQUIRED,
+          error: 'FEATURE_NOT_IN_DEMO',
+          message: `${label}은(는) 체험판에서 열리지 않습니다. 회원가입하면 바로 쓸 수 있습니다.`,
+        },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
 
     throw new HttpException(
       {

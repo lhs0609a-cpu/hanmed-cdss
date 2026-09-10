@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UserThrottlerGuard, AI_THROTTLER_NAME } from './modules/auth/guards/user-throttler.guard';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { DemoReadOnlyGuard } from './common/guards/demo-readonly.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { PatientsModule } from './modules/patients/patients.module';
@@ -226,6 +227,12 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     {
       provide: APP_GUARD,
       useClass: UserThrottlerGuard,
+    },
+    // 체험 계정 쓰기 차단 — 계정 하나를 모두가 나눠 쓰므로 아무것도 남기지
+    // 않는다. @RequireFeature 가 안 붙은 경로로 새는 것을 막는 마지막 문이다.
+    {
+      provide: APP_GUARD,
+      useClass: DemoReadOnlyGuard,
     },
     // 전역 예외 필터 (Sentry 에러 추적)
     {

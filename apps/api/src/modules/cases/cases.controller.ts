@@ -97,8 +97,9 @@ export class CasesController {
 
     // 벽 너머는 쿼리를 돌리기 전에 끊는다. 데이터를 뽑아 놓고 지우는 방식은
     // 언젠가 한 군데서 새게 되어 있다.
-    if (isBeyondFreeWindow(tier, safePage, safeLimit)) {
-      throw new CaseBrowsePaywallException();
+    const isDemo = req?.user?.isDemo === true;
+    if (isBeyondFreeWindow(tier, safePage, safeLimit, isDemo)) {
+      throw new CaseBrowsePaywallException(isDemo);
     }
 
     const raw = await this.casesService.findAll(safePage, safeLimit, {
@@ -120,7 +121,7 @@ export class CasesController {
         ...raw.meta,
         // 프론트가 벽에 부딪히기 전에 그릴 수 있게 미리 알려 준다.
         // 실패한 요청으로 벽을 알게 하면 그건 버그처럼 보인다.
-        access: browseAccess(tier, safePage, safeLimit),
+        access: browseAccess(tier, safePage, safeLimit, isDemo),
       },
     };
   }

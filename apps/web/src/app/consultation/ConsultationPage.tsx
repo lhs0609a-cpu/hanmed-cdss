@@ -45,6 +45,7 @@ import { MedicineSchool, SCHOOL_INFO } from '@/types'
 import api from '@/services/api'
 import { logError } from '@/lib/errors'
 import { ErrorMessage } from '@/components/common'
+import { DemoSignupPrompt } from '@/components/common/DemoSignupPrompt'
 import TourGuide, { TourRestartButton } from '@/components/common/TourGuide'
 import { CaseMatchListItem } from '@/components/case-match'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
@@ -1137,6 +1138,9 @@ export default function ConsultationPage() {
           {/* 단계 3: 처방 확인 - 결과 영역에서 표시 */}
           {wizardStep === 3 && (
             <div className="space-y-6" data-tour="result-area">
+              {/* 체험 계정이 한 바퀴를 끝냈다 — 가치를 확인한 그 자리에서 가입을 묻는다.
+                  체험이 아니면 아무것도 그리지 않는다. */}
+              <DemoSignupPrompt triggered={recommendations.length > 0} />
               {/* ① 컨텍스트 바 — 이 결과가 "누구의" 것인지 한 줄로. 데모면 예시임을 명시하고
                   곧바로 내 환자 입력으로 넘길 CTA 를 함께 둔다. */}
               {isDemoRun && recommendations.length > 0 && (

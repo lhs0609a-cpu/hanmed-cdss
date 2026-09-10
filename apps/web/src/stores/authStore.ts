@@ -24,6 +24,14 @@ interface User {
   email: string
   name: string
   subscriptionTier: string
+  /**
+   * 체험 계정인가.
+   *
+   * 구독 정보 응답에도 들어 있지만 여기에도 둔다 — 그쪽은 한 번 왕복해야
+   * 오고, 그 사이 첫 페인트에서 잠긴 화면이 잠깐 열려 보인다. 잠깐 열렸다
+   * 닫히는 게 처음부터 잠겨 있는 것보다 나쁘다.
+   */
+  isDemo?: boolean
   isVerified: boolean
   role?: UserRole
   status?: 'active' | 'suspended' | 'banned'
