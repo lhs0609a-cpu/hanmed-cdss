@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { trackGrowth } from '@/lib/growth'
 
 type LandingProperties = Record<string, string | number | boolean>
 type AnalyticsWindow = Window & {
@@ -8,6 +9,7 @@ type AnalyticsWindow = Window & {
 /** Public marketing events never use the authenticated clinical analytics API. */
 function emit(name: string, properties: LandingProperties = {}) {
   if (navigator.doNotTrack === '1') return
+  if (name === 'demo_completed') trackGrowth('demo_completed')
   const detail = {
     name,
     properties: { surface: 'landing', ...properties },

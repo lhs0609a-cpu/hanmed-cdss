@@ -7,6 +7,7 @@ import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import type { LoginResponse } from '@/types'
+import { trackGrowth, growthErrorCode, flushGrowth } from '@/lib/growth'
 
 /** 면허증 사본 첨부 한도 — 서버(license-document.service)와 같은 값이어야 한다. */
 const LICENSE_FILE_MAX_BYTES = 10 * 1024 * 1024
@@ -170,22 +171,27 @@ export default function RegisterPage() {
     setError('')
 
     if (formData.password !== formData.confirmPassword) {
+      trackGrowth('signup_error', { code: 'password_mismatch' })
       setError('비밀번호가 일치하지 않습니다.')
       return
     }
     if (formData.password.length < 8) {
+      trackGrowth('signup_error', { code: 'password_short' })
       setError('비밀번호는 8자 이상이어야 합니다.')
       return
     }
     if (requiresLicense && !licenseValid) {
+      trackGrowth('signup_error', { code: 'license_format' })
       setError(licenseFormatChecks.reason ?? '면허번호를 확인해주세요.')
       return
     }
-    if (requiresLicense && !licenseFile) {
-      setError('면허증 사본을 첨부해주세요. 검수에 필요합니다.')
+    if (!allRequiredConsentsChecked) {
+      trackGrowth('signup_error', { code: 'consent_required' })
+      setError('필수 약관에 동의해주세요.')
       return
     }
 
+    trackGrowth('signup_submit')
     setIsLoading(true)
     try {
       const response = await api.post<LoginResponse>('/auth/register', {
@@ -205,6 +211,8 @@ export default function RegisterPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
+      trackGrowth('signup_success')
+      void flushGrowth()
 
       // 면허증은 가입이 끝난 **뒤에** 올린다. 업로드 엔드포인트는 인증이
       // 필요하고, 공개로 열어 두면 아무나 파일을 밀어 넣을 수 있다.
@@ -218,7 +226,8 @@ export default function RegisterPage() {
             headers: { 'Content-Type': 'multipart/form-data' },
           })
         } catch {
-          navigate('/settings?license=upload-failed')
+          trackGrowth('signup_error', { code: 'license_upload_failed' })
+          navigate('/dashboard/settings?license=upload-failed')
           return
         }
       }
@@ -227,6 +236,7 @@ export default function RegisterPage() {
       // CSV 마이그레이션(미리보기 전용)은 첫 관문에서 강등했다.
       navigate('/dashboard')
     } catch (err) {
+      trackGrowth('signup_error', { code: growthErrorCode(err) })
       setError(getErrorMessage(err))
     } finally {
       setIsLoading(false)
@@ -397,9 +407,8 @@ export default function RegisterPage() {
 
           {requiresLicense && (
             <Field
-              label={`${licenseRule.label.replace(/번호$/, '증')} 사본`}
-              required
-              hint="JPG · PNG · PDF, 10MB 이하"
+              label={`${licenseRule.label.replace(/번호$/, '증')} 사본 (나중에 제출 가능)`}
+              hint="JPG · PNG · WebP · PDF, 10MB 이하"
               error={licenseFileError}
             >
               {licenseFile ? (
@@ -431,6 +440,7 @@ export default function RegisterPage() {
                 />
               )}
               <p className="mt-1.5 text-[12px] text-neutral-500">
+                지금 파일이 없어도 가입할 수 있습니다. 가입 후 설정에서 제출하면 면허 검수가 진행됩니다.{' '}
                 운영팀이 직접 확인합니다. 사본은 비공개로 보관되며 검수 외 용도로 쓰지 않습니다.
               </p>
             </Field>
@@ -520,12 +530,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={
-              isLoading ||
-              !allRequiredConsentsChecked ||
-              !licenseValid ||
-              (requiresLicense && !licenseFile)
-            }
+            disabled={isLoading}
             className="w-full h-14 mt-2 accent-gradient accent-glow disabled:opacity-40 text-white text-[16px] font-semibold rounded-md transition-all active:scale-[0.99] flex items-center justify-center gap-2"
           >
             {isLoading ? (

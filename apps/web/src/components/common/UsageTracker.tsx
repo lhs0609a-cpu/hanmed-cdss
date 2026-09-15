@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useFeatureTracking } from '@/hooks/useFeatureTracking'
+import { useAuthStore } from '@/stores/authStore'
+import { growthAllowed } from '@/lib/growth'
 
 /**
  * 화면 이동을 기록한다.
@@ -18,14 +20,13 @@ import { useFeatureTracking } from '@/hooks/useFeatureTracking'
  */
 export function UsageTracker() {
   const location = useLocation()
-  const { trackPageView, flushBuffer } = useFeatureTracking()
-  const lastPath = useRef<string | null>(null)
+  const authenticated = useAuthStore(state => state.isAuthenticated && !!state.accessToken)
+  return authenticated && location.pathname.startsWith('/dashboard') && growthAllowed() ? <AuthenticatedUsageTracker /> : null
+}
 
-  useEffect(() => {
-    if (lastPath.current === location.pathname) return
-    lastPath.current = location.pathname
-    trackPageView()
-  }, [location.pathname, trackPageView])
+function AuthenticatedUsageTracker() {
+  // The hook records page views itself. A second effect used to double-count them.
+  const { flushBuffer } = useFeatureTracking()
 
   useEffect(() => {
     const onHide = () => {

@@ -8,8 +8,6 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
-  FileText,
-  Layers,
   LockKeyhole,
   Menu,
   Search,
@@ -18,12 +16,11 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { LogoMark } from '@/components/common'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
 import { usePublicStats } from '@/hooks/usePublicStats'
 import { useLandingTracking } from './components/useLandingTracking'
-import { ClinicalDemo, type DemoEvent } from './components/ClinicalDemo'
+import { ClinicalDemo, type DemoEvent } from './components/PublicCaseDemo'
 import {
   ANNUAL_DISCOUNT_LABEL,
   BILLING_ADDON,
@@ -32,6 +29,7 @@ import {
   PLAN_TIERS,
 } from './components/PricingData'
 import './landing.css'
+import './conversion.css'
 
 const NAV = [
   { href: '#demo', label: '제품 체험' },
@@ -69,7 +67,7 @@ const FAQS = [
   },
   {
     q: '가입 전에 제품을 체험할 수 있나요?',
-    a: '이 페이지의 샘플 케이스로 소견 정리부터 근거 검토까지 사용 흐름을 확인할 수 있습니다. ‘프로그램 둘러보기’를 누르면 게스트 모드로 실제 화면에 들어갑니다. 샘플 데모는 가상 데이터로 구성되며 실제 AI 분석이나 환자 기록 저장을 수행하지 않습니다.',
+    a: '가입 없이 공개 학회지 증례의 소견·변증·처방·경과와 원문 출처를 살펴볼 수 있습니다. 문헌을 요약한 고정 예시이며 실시간 검색이나 AI 분석 결과는 아닙니다. ‘실제 프로그램 둘러보기’에서는 게스트 모드로 제품 화면을 확인할 수 있습니다.',
   },
   {
     q: '무료 플랜은 어디까지 사용할 수 있나요?',
@@ -93,7 +91,7 @@ function Brand() {
   return (
     <Link to="/" className="landing-brand" aria-label="온고지신 AI 홈">
       <span className="landing-brand-mark">
-        <LogoMark variant="bare" size={31} />
+        <img src="/brand/logo-knowledge-v1.png" width={40} height={40} alt="" />
       </span>
       <span>
         온고지신<span className="brand-ai">AI</span>
@@ -109,16 +107,16 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isAnnual, setIsAnnual] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const [productView, setProductView] = useState(0)
+  const [productView, setProductView] = useState(1)
   const menuButton = useRef<HTMLButtonElement>(null)
   const productButtons = useRef<(HTMLButtonElement | null)[]>([])
   const selectedProduct = PRODUCT_VIEWS[productView]
 
   useSEO({
-    title: '진료의 판단에, 확인할 수 있는 근거를',
+    title: '처방이 고민될 때, 비슷한 치험례부터 | 온고지신 AI',
     description:
-      '축적된 치험례와 임상 문헌을 오늘의 진료 가까이에. 변증 후보부터 처방 정보와 환자 기록까지, 한의사를 위한 온고지신 AI.',
-    ogImage: 'https://ongojisin.ai/brand/clinical/og-clinical-v1.png',
+      '한의사를 위한 치험례 검색과 처방·약재 정보. 가입 없이 공개 증례를 살펴보고, 기간 제한 없는 무료 플랜으로 시작하세요.',
+    ogImage: 'https://www.ongojisin.co.kr/brand/clinical/og-clinical-v1.png',
   })
 
   useEffect(() => {
@@ -173,6 +171,7 @@ export default function LandingPage() {
             <Link
               to="/register"
               className="landing-button landing-button-small"
+              data-growth="signup_header"
               onClick={() => trackButtonClick('landing_signup_header')}
             >
               무료로 시작하기
@@ -211,6 +210,7 @@ export default function LandingPage() {
             <Link
               to="/register"
               className="landing-button"
+              data-growth="signup_mobile"
               onClick={() => trackButtonClick('landing_signup_mobile')}
             >
               무료로 시작하기
@@ -230,98 +230,160 @@ export default function LandingPage() {
               한의사를 위한 임상 워크스페이스
             </span>
             <h1 id="hero-title">
-              진료의 판단에,
+              처방이 고민될 때,
               <br />
-              <em>확인할 수 있는</em>
+              <em>비슷한 치험례부터</em>
               <br />
-              근거를.
+              찾아보세요.
             </h1>
             <p className="hero-description">
-              축적된 치험례와 임상 문헌을 오늘의 진료 가까이에.
-              <br className="desktop-break" /> 변증 후보부터 처방 정보와 환자
-              기록까지,
-              <br className="desktop-break" /> 온고지신 AI와 함께 연결하세요.
+              환자 소견과 관련된 치험례를 찾고,
+              <br />
+              처방 구성·진료 경과·출처를 함께 검토하세요.
             </p>
             <div className="hero-actions">
-              <Link
-                to="/register"
-                className="landing-button"
-                onClick={() => trackButtonClick('landing_signup_hero')}
-              >
-                무료로 시작하기
-                <ArrowUpRight size={18} aria-hidden="true" />
-              </Link>
               <a
                 href="#demo"
-                className="landing-button landing-button-outline"
+                className="landing-button"
+                data-growth="demo_start"
                 onClick={() => trackButtonClick('landing_demo_start')}
               >
-                샘플 케이스 체험
-                <ArrowDown size={16} aria-hidden="true" />
+                가입 없이 샘플 보기 <ArrowDown size={17} aria-hidden="true" />
               </a>
+              <Link
+                to="/register"
+                className="landing-button landing-button-outline"
+                data-growth="signup_hero"
+                onClick={() => trackButtonClick('landing_signup_hero')}
+              >
+                무료 회원가입 <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
             </div>
             <p className="hero-footnote">
-              <Check size={14} aria-hidden="true" />
-              신용카드 없이 시작<span aria-hidden="true">·</span>기간 제한 없는
-              무료 플랜
+              <Check size={15} /> 카드 등록 없음 · 무료 플랜은 기간 제한 없음
             </p>
           </div>
-          <div className="hero-visual">
-            <picture>
-              <source
-                type="image/webp"
-                srcSet="/brand/clinical/clarity-hero-768.webp 768w, /brand/clinical/clarity-hero-1536.webp 1536w"
-                sizes="(max-width: 959px) 100vw, 54vw"
-              />
+          <div className="hero-people-product">
+            <div className="hero-practitioner">
+              <div className="practitioner-copy">
+                <span>온고지신 AI</span>
+                <strong>
+                  진료의 중심은
+                  <br />
+                  언제나 한의사.
+                </strong>
+                <p>
+                  찾고, 비교하고, 판단하는
+                  <br />
+                  선생님의 진료를 돕습니다.
+                </p>
+              </div>
               <img
-                src="/brand/clinical/clarity-hero-1536.webp"
-                alt="여러 겹의 옅은 비취색 유리가 하나의 선명한 흐름으로 연결되는 조형물"
-                width={1536}
-                height={1024}
+                className="practitioner-photo"
+                src="/brand/model-cutout.webp"
+                width={376}
+                height={1392}
+                alt="흰 가운을 입고 미소 짓는 온고지신 AI 브랜드 모델"
                 fetchPriority="high"
-                decoding="async"
               />
-            </picture>
-            <span className="hero-art-caption">
-              오래된 지혜, 새로운 연결.<span>KNOWLEDGE, CONNECTED.</span>
-            </span>
-            <a
-              className="hero-product-card"
-              href="#demo"
-              aria-label="샘플 케이스 데모로 이동"
-            >
-              <div className="hero-product-bar">
+              <span className="practitioner-label">브랜드 모델 이미지</span>
+            </div>
+            <div className="hero-result">
+              <div className="hero-result-header">
                 <span>
-                  <Sparkles size={15} aria-hidden="true" />
-                  임상 근거 워크스페이스
+                  <Search size={17} /> 치험례 검색
                 </span>
-                <span className="hero-preview-label">화면 예시</span>
+                <span>실제 제품 화면</span>
               </div>
-              <div className="hero-product-main">
-                <span className="hero-product-icon">
-                  <ClipboardList size={20} aria-hidden="true" />
-                </span>
-                <div>
-                  <span className="hero-product-label">문진 소견</span>
-                  <strong>환자의 이야기에서 시작해요</strong>
-                </div>
-                <ArrowUpRight size={18} aria-hidden="true" />
+              <img
+                src="/screens/cases.webp"
+                alt="온고지신 AI 치험례 검색 화면: 증상과 처방으로 기록을 탐색하는 제품 인터페이스"
+                width={1600}
+                height={911}
+                fetchPriority="high"
+              />
+              <div className="hero-result-caption">
+                <strong>증상만 찾는 데서 끝나지 않도록.</strong>
+                <span>소견 → 관련 기록 → 처방과 경과 → 출처 확인</span>
               </div>
-              <div className="hero-product-flow">
-                <span>소견 정리</span>
-                <ChevronDown size={13} aria-hidden="true" />
-                <span>관련 기록</span>
-                <ChevronDown size={13} aria-hidden="true" />
-                <span>
-                  근거 확인
-                  <Check size={12} aria-hidden="true" />
-                </span>
-              </div>
-              <div className="hero-product-bottom">
-                <span className="status-dot" aria-hidden="true" />
-                최종 판단은 언제나 한의사가 합니다.
-              </div>
-            </a>
+              <a
+                href="#demo"
+                data-growth="demo_preview"
+                className="landing-text-link"
+              >
+                공개 증례 한 건 직접 살펴보기 <ArrowRight size={17} />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="demo"
+          className="landing-section landing-container"
+          aria-labelledby="demo-title"
+        >
+          <div className="section-heading section-heading-split">
+            <div>
+              <span className="landing-eyebrow">MEET YOUR WORKSPACE</span>
+              <h2 id="demo-title">
+                내 환자와 무엇이 비슷한지,
+                <br />
+                기록을 직접 비교해 보세요.
+              </h2>
+            </div>
+            <p>
+              공개 학회지 증례의 소견부터 처방과 경과까지.
+              <br />
+              아래 항목을 눌러 원문과 함께 확인하세요.
+            </p>
+          </div>
+          <ClinicalDemo onEvent={handleDemoEvent} onTry={handleTry} />
+        </section>
+
+        <section
+          id="evidence"
+          className="landing-section landing-container evidence-compact"
+          aria-labelledby="evidence-title"
+        >
+          <div className="section-heading">
+            <span className="landing-eyebrow">직접 확인할 수 있는 정보</span>
+            <h2 id="evidence-title">
+              답만 읽지 말고,
+              <br />
+              판단의 근거까지 확인하세요.
+            </h2>
+          </div>
+          <div className="trust-strip">
+            <div>
+              <BookOpen size={22} />
+              <h3>출처까지 확인</h3>
+              <p>
+                치험례와 문헌의 원문 정보를 확인하고, 환자 소견과 기록의 차이를
+                비교합니다.
+              </p>
+              <a href="#demo" className="landing-text-link">
+                공개 문헌 예시 보기 <ArrowRight size={15} />
+              </a>
+            </div>
+            <div>
+              <ShieldCheck size={22} />
+              <h3>의료진이 검토하고 결정</h3>
+              <p>
+                변증 후보와 참고 기록을 검토하는 도구입니다. 최종 진단과 처방은
+                한의사가 결정합니다.
+              </p>
+            </div>
+            <div>
+              <LockKeyhole size={22} />
+              <h3>체험에 환자 정보는 필요 없어요</h3>
+              <p>
+                공개 증례로 먼저 살펴보세요. 실제 이용 시 정보 처리 범위도
+                확인할 수 있습니다.
+              </p>
+              <Link to="/privacy">
+                개인정보처리방침 <ArrowUpRight size={14} />
+              </Link>
+            </div>
           </div>
         </section>
         <section
@@ -354,31 +416,6 @@ export default function LandingPage() {
         </section>
 
         <section
-          id="demo"
-          className="landing-section landing-container"
-          aria-labelledby="demo-title"
-        >
-          <div className="section-heading section-heading-split">
-            <div>
-              <span className="landing-eyebrow">MEET YOUR WORKSPACE</span>
-              <h2 id="demo-title">
-                설명보다 먼저,
-                <br />
-                직접 경험해 보세요.
-              </h2>
-            </div>
-            <p>
-              하나의 케이스를 따라가며 살펴보세요.
-              <br />
-              정보가 정리되고, 근거가 연결되고,
-              <br />
-              판단을 위한 맥락이 만들어집니다.
-            </p>
-          </div>
-          <ClinicalDemo onEvent={handleDemoEvent} onTry={handleTry} />
-        </section>
-
-        <section
           id="features"
           className="landing-section landing-features"
           aria-labelledby="features-title"
@@ -394,35 +431,6 @@ export default function LandingPage() {
                 생각할 여유를 더하세요.
               </h2>
               <p>진료에 필요한 정보를, 필요한 자리에.</p>
-            </div>
-            <div className="feature-pillars">
-              <article>
-                <span className="pillar-number">01</span>
-                <BookOpen size={23} aria-hidden="true" />
-                <h3>근거를 가까이</h3>
-                <p>
-                  책장과 검색창에 흩어진 치험례와 처방 정보를 한곳에서
-                  탐색합니다.
-                </p>
-              </article>
-              <article>
-                <span className="pillar-number">02</span>
-                <Layers size={23} aria-hidden="true" />
-                <h3>맥락을 함께</h3>
-                <p>
-                  증상만으로 끝나지 않도록. 문진 소견과 관련 기록을 함께
-                  검토합니다.
-                </p>
-              </article>
-              <article>
-                <span className="pillar-number">03</span>
-                <FileText size={23} aria-hidden="true" />
-                <h3>기록을 이어서</h3>
-                <p>
-                  환자 정보와 진료 기록을 정리하고, 다음 진료에서 다시
-                  살펴봅니다.
-                </p>
-              </article>
             </div>
             <div className="product-showcase">
               <div className="product-showcase-copy">
@@ -528,125 +536,6 @@ export default function LandingPage() {
         </section>
 
         <section
-          id="evidence"
-          className="landing-section landing-container"
-          aria-labelledby="evidence-title"
-        >
-          <div className="evidence-grid">
-            <div className="evidence-art">
-              <img
-                src="/brand/clinical/evidence-layers-1024.webp"
-                alt="겹겹의 기록을 통과하는 빛으로 근거를 확인하는 과정을 표현한 조형물"
-                width={1024}
-                height={683}
-                loading="lazy"
-                decoding="async"
-              />
-              <span>FROM INFORMATION TO UNDERSTANDING</span>
-            </div>
-            <div className="evidence-copy">
-              <span className="landing-eyebrow">EVIDENCE, WITH CONTEXT</span>
-              <h2 id="evidence-title">
-                답을 보는 것에서,
-                <br />
-                <em>근거를 읽는 것으로.</em>
-              </h2>
-              <p>
-                임상 정보는 맥락과 함께 읽어야 합니다.
-                <br />
-                온고지신 AI는 한의사가 직접 비교하고
-                <br className="desktop-break" /> 검토할 수 있는 정보를 가까이에
-                둡니다.
-              </p>
-              <ol>
-                <li>
-                  <span>01</span>
-                  <div>
-                    <h3>어디에서 왔는지</h3>
-                    <p>치험례와 문헌의 출처를 살펴봅니다.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>02</span>
-                  <div>
-                    <h3>무엇이 같고 다른지</h3>
-                    <p>환자 소견과 참고 기록의 맥락을 비교합니다.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>03</span>
-                  <div>
-                    <h3>어떻게 판단할지</h3>
-                    <p>후보를 검토하고 최종 결정은 한의사가 합니다.</p>
-                  </div>
-                </li>
-              </ol>
-              <a href="#demo" className="landing-text-link">
-                근거 확인 흐름 체험하기
-                <ArrowRight size={17} aria-hidden="true" />
-              </a>
-            </div>
-          </div>
-          <div className="trust-strip">
-            <div>
-              <LockKeyhole size={21} aria-hidden="true" />
-              <h3>정보 보호 원칙</h3>
-              <Link to="/privacy">
-                개인정보처리방침 확인
-                <ArrowUpRight size={14} aria-hidden="true" />
-              </Link>
-            </div>
-            <div>
-              <Users size={21} aria-hidden="true" />
-              <h3>팀에 맞는 접근 범위</h3>
-              <p>Clinic 플랜의 직역별 권한과 감사 로그</p>
-            </div>
-            <div>
-              <ShieldCheck size={21} aria-hidden="true" />
-              <h3>의료진 중심의 결정</h3>
-              <p>진단과 처방의 최종 판단은 한의사에게</p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="flow"
-          className="landing-flow-section"
-          aria-labelledby="flow-title"
-        >
-          <div className="landing-container flow-inner">
-            <div>
-              <span className="landing-eyebrow">A MORE CONNECTED DAY</span>
-              <h2 id="flow-title">
-                진료의 흐름은 자연스럽게.
-                <br />
-                정보의 연결은 촘촘하게.
-              </h2>
-              <p>
-                소견 정리에서 참고 기록 탐색, 진료 기록까지.
-                <br />
-                매일의 진료를 위한 도구를 하나의 공간에서 만나세요.
-              </p>
-              <div className="flow-inline">
-                <span>문진</span>
-                <ArrowRight size={15} aria-hidden="true" />
-                <span>근거 검토</span>
-                <ArrowRight size={15} aria-hidden="true" />
-                <span>판단과 기록</span>
-              </div>
-            </div>
-            <img
-              src="/brand/clinical/connected-workflow-1024.webp"
-              alt="세 개의 단계를 하나의 비취색 유리 흐름으로 연결한 조형물"
-              width={1024}
-              height={683}
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        </section>
-
-        <section
           id="pricing"
           className="landing-section landing-container"
           aria-labelledby="pricing-title"
@@ -660,108 +549,132 @@ export default function LandingPage() {
             </h2>
             <p>필요한 기능과 AI 사용량에 맞는 플랜을 선택하세요.</p>
           </div>
-          <div className="pricing-toggle" role="group" aria-label="결제 주기">
-            <button
-              type="button"
-              aria-pressed={!isAnnual}
-              onClick={() => {
-                setIsAnnual(false)
-                trackButtonClick('landing_billing_monthly')
-              }}
-            >
-              월 결제
-            </button>
-            <button
-              type="button"
-              aria-pressed={isAnnual}
-              onClick={() => {
-                setIsAnnual(true)
-                trackButtonClick('landing_billing_annual')
-              }}
-            >
-              연 결제<span>{ANNUAL_DISCOUNT_LABEL}</span>
-            </button>
-          </div>
-          <div className="pricing-grid">
-            {PLAN_TIERS.map((plan) => (
-              <article
-                className={`pricing-card ${plan.highlight ? 'pricing-card-featured' : ''}`}
-                key={plan.id}
-              >
-                <div className="pricing-card-heading">
-                  <h3>{plan.name}</h3>
-                  {plan.highlight && <span>매일의 진료에</span>}
-                </div>
-                <p className="pricing-tagline">{plan.tagline}</p>
-                <div className="pricing-price">
-                  <strong>
-                    {plan.monthly === 0
-                      ? '무료'
-                      : formatKRW(isAnnual ? plan.yearly : plan.monthly)}
-                  </strong>
-                  {plan.monthly > 0 && (
-                    <span>원 / {isAnnual ? '년' : '월'}</span>
-                  )}
-                </div>
-                <p className="pricing-allowance">
-                  AI 챗봇 월 {formatKRW(plan.includedQueries)}회 포함
-                </p>
-                <Link
-                  to="/register"
-                  className={`landing-button ${plan.highlight ? '' : 'landing-button-outline'}`}
-                  onClick={() =>
-                    trackButtonClick(
-                      `landing_plan_${plan.id}_${isAnnual ? 'annual' : 'monthly'}`,
-                    )
-                  }
-                >
-                  {plan.cta}
-                  <ArrowUpRight size={16} aria-hidden="true" />
-                </Link>
-                <ul>
-                  {plan.features.map((feature) => (
-                    <li key={feature}>
-                      <Check size={15} aria-hidden="true" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-          <div className="pricing-addon">
+          <div className="free-start-card">
             <div>
-              <span className="addon-label">CLINIC ADD-ON</span>
-              <h3>{BILLING_ADDON.name}</h3>
+              <span className="case-badge">기간 제한 없는 무료 플랜</span>
+              <h3>카드 없이, 필요한 기능부터.</h3>
               <p>
-                Clinic 플랜에 별도로 추가하는 부가서비스입니다. 연동·자동 제출의
-                지원 범위는 도입 전 확인해 주세요.
+                처방·약재·경혈 DB · 환자 등록과 진료 기록
+                <br />
+                약물 상호작용 기본 점검 · AI 챗봇 월 50회
               </p>
+              <span>치험례 전체 열람은 Basic 이상에서 제공됩니다.</span>
             </div>
-            <div>
-              <strong>
-                {formatKRW(
-                  isAnnual ? BILLING_ADDON.yearly : BILLING_ADDON.monthly,
-                )}
-                <span>원 / {isAnnual ? '년' : '월'}</span>
-              </strong>
-              <a
-                href="mailto:lhs0609c@naver.com?subject=%EC%98%A8%EA%B3%A0%EC%A7%80%EC%8B%A0%20AI%20%EB%8F%84%EC%9E%85%20%EB%AC%B8%EC%9D%98"
-                onClick={() => trackButtonClick('landing_addon_contact')}
-              >
-                도입 문의
-                <ArrowUpRight size={15} aria-hidden="true" />
-              </a>
-            </div>
+            <Link
+              to="/register"
+              className="landing-button"
+              data-growth="signup_free_plan"
+            >
+              무료 계정 만들기 <ArrowRight size={17} />
+            </Link>
           </div>
-          <p className="pricing-note">
-            표시 금액은 부가세 별도입니다. 연 결제 선택 시 연간 총액이
-            표시됩니다.
-            <br />
-            결제일 기준 자동 갱신되며, 해지·환불 조건은{' '}
-            <Link to="/subscription-terms">구독 약관</Link>과{' '}
-            <Link to="/refund-policy">환불정책</Link>에서 확인할 수 있습니다.
-          </p>
+          <details className="full-pricing">
+            <summary data-growth="pricing_expand">
+              전체 요금제·기능·결제 조건 비교하기 <ChevronDown size={18} />
+            </summary>
+            <div className="pricing-toggle" role="group" aria-label="결제 주기">
+              <button
+                type="button"
+                aria-pressed={!isAnnual}
+                onClick={() => {
+                  setIsAnnual(false)
+                  trackButtonClick('landing_billing_monthly')
+                }}
+              >
+                월 결제
+              </button>
+              <button
+                type="button"
+                aria-pressed={isAnnual}
+                onClick={() => {
+                  setIsAnnual(true)
+                  trackButtonClick('landing_billing_annual')
+                }}
+              >
+                연 결제<span>{ANNUAL_DISCOUNT_LABEL}</span>
+              </button>
+            </div>
+            <div className="pricing-grid">
+              {PLAN_TIERS.map((plan) => (
+                <article
+                  className={`pricing-card ${plan.highlight ? 'pricing-card-featured' : ''}`}
+                  key={plan.id}
+                >
+                  <div className="pricing-card-heading">
+                    <h3>{plan.name}</h3>
+                    {plan.highlight && <span>매일의 진료에</span>}
+                  </div>
+                  <p className="pricing-tagline">{plan.tagline}</p>
+                  <div className="pricing-price">
+                    <strong>
+                      {plan.monthly === 0
+                        ? '무료'
+                        : formatKRW(isAnnual ? plan.yearly : plan.monthly)}
+                    </strong>
+                    {plan.monthly > 0 && (
+                      <span>원 / {isAnnual ? '년' : '월'}</span>
+                    )}
+                  </div>
+                  <p className="pricing-allowance">
+                    AI 챗봇 월 {formatKRW(plan.includedQueries)}회 포함
+                  </p>
+                  <Link
+                    to="/register"
+                    className={`landing-button ${plan.highlight ? '' : 'landing-button-outline'}`}
+                    onClick={() =>
+                      trackButtonClick(
+                        `landing_plan_${plan.id}_${isAnnual ? 'annual' : 'monthly'}`,
+                      )
+                    }
+                  >
+                    {plan.cta}
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </Link>
+                  <ul>
+                    {plan.features.map((feature) => (
+                      <li key={feature}>
+                        <Check size={15} aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <div className="pricing-addon">
+              <div>
+                <span className="addon-label">CLINIC ADD-ON</span>
+                <h3>{BILLING_ADDON.name}</h3>
+                <p>
+                  Clinic 플랜에 별도로 추가하는 부가서비스입니다. 연동·자동
+                  제출의 지원 범위는 도입 전 확인해 주세요.
+                </p>
+              </div>
+              <div>
+                <strong>
+                  {formatKRW(
+                    isAnnual ? BILLING_ADDON.yearly : BILLING_ADDON.monthly,
+                  )}
+                  <span>원 / {isAnnual ? '년' : '월'}</span>
+                </strong>
+                <a
+                  href="mailto:lhs0609c@naver.com?subject=%EC%98%A8%EA%B3%A0%EC%A7%80%EC%8B%A0%20AI%20%EB%8F%84%EC%9E%85%20%EB%AC%B8%EC%9D%98"
+                  onClick={() => trackButtonClick('landing_addon_contact')}
+                >
+                  도입 문의
+                  <ArrowUpRight size={15} aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+            <p className="pricing-note">
+              표시 금액은 부가세 별도입니다. 연 결제 선택 시 연간 총액이
+              표시됩니다.
+              <br />
+              결제일 기준 자동 갱신되며, 해지·환불 조건은{' '}
+              <Link to="/subscription-terms">구독 약관</Link>과{' '}
+              <Link to="/refund-policy">환불정책</Link>에서 확인할 수 있습니다.
+            </p>
+          </details>
         </section>
 
         <section
@@ -826,15 +739,16 @@ export default function LandingPage() {
               YOUR NEXT CHAPTER OF PRACTICE
             </span>
             <h2 id="final-cta-title">
-              쌓여온 지혜를,
+              다음 진료에서 쓸 도구,
               <br />
-              오늘의 진료에.
+              오늘 무료로 시작하세요.
             </h2>
-            <p>첫 케이스부터 온고지신 AI와 함께하세요.</p>
+            <p>처방·약재 정보와 AI 챗봇부터 직접 사용해 보세요.</p>
             <div>
               <Link
                 to="/register"
                 className="landing-button landing-button-light"
+                data-growth="signup_footer"
                 onClick={() => trackButtonClick('landing_signup_footer')}
               >
                 무료로 시작하기
@@ -850,7 +764,7 @@ export default function LandingPage() {
               </button>
             </div>
             <span className="final-cta-note">
-              설치 없이 브라우저에서 · 무료 플랜 제공
+              설치 없이 브라우저에서 · 카드 등록 없이 시작
             </span>
           </div>
           <div className="final-cta-art" aria-hidden="true">

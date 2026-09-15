@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import api from '@/services/api'
 import { getErrorMessage } from '@/lib/errors'
 import { toLoginErrorView, type LoginErrorView } from './loginError'
+import { trackGrowth, growthErrorCode } from '@/lib/growth'
 import { useSEO, PAGE_SEO } from '@/hooks/useSEO'
 import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import type { LoginResponse } from '@/types'
@@ -68,9 +69,11 @@ export default function LoginPage() {
         return
       }
       login(data.user, data.accessToken, data.refreshToken)
+      trackGrowth('login_success')
       goNext()
     } catch (err) {
       const view = toLoginErrorView(err, email)
+      trackGrowth('login_error', { code: growthErrorCode(err) })
       setLoginError(view)
       // 고쳐야 할 칸으로 커서를 옮긴다. 어디를 고쳐야 하는지 화면이
       // 말해 주면서 손까지 데려다주는 편이 낫다.
@@ -104,6 +107,7 @@ export default function LoginPage() {
       })
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
+      trackGrowth('login_success')
       goNext()
     } catch (err) {
       setError(getErrorMessage(err))

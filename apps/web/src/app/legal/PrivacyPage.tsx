@@ -3,9 +3,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { COMPANY_INFO, companyField } from '@/config/company.config';
+import { useState } from 'react';
+import { setGrowthOptOut } from '@/lib/growth';
 
 export default function PrivacyPage() {
   const navigate = useNavigate();
+  const [analyticsDisabled, setAnalyticsDisabled] = useState(() => { try { return localStorage.getItem('ongojisin_growth_optout') === '1'; } catch { return false; } });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -27,6 +30,12 @@ export default function PrivacyPage() {
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none">
+            <div className="mb-6 rounded-lg bg-blue-50 p-4 text-sm">
+              <h2 className="font-semibold">방문 분석 설정</h2>
+              <p className="my-2">서비스 개선을 위해 무작위 브라우저·세션 식별자, 공개 페이지 경로, 광고 캠페인 코드, 기기 구분, 클릭 위치, 스크롤 도달률, 참여 시간 및 가입·기능 사용 성공 여부를 수집합니다. 입력 내용, 비밀번호, 면허증, 진료 내용, 페이지 화면 녹화는 수집하지 않습니다. 분석 기록과 브라우저 식별자는 최대 90일 보관합니다. 브라우저의 추적 거부(DNT/GPC) 설정을 존중합니다.</p>
+              <button type="button" className="rounded border border-blue-300 bg-white px-3 py-2" onClick={() => { const next = !analyticsDisabled; setGrowthOptOut(next); setAnalyticsDisabled(next); }}>{analyticsDisabled ? '이 브라우저에서 방문 분석 허용' : '이 브라우저에서 방문 분석 거부'}</button>
+              <p className="mt-2" role="status">현재 설정: {analyticsDisabled ? '분석 거부' : '분석 허용 (DNT/GPC 설정 시 제외)'}</p>
+            </div>
             <p className="text-gray-700 leading-relaxed">
               {companyField('name')}(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「개인정보 보호법」
               및 관계 법령이 정한 바를 준수하여, 적법하게 개인정보를 처리하고 안전하게 관리하고 있습니다.

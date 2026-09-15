@@ -2,6 +2,7 @@ import { lazyWithReload as lazy } from '@/lib/lazyWithReload'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { UsageTracker } from '@/components/common/UsageTracker'
+import { GrowthTracker } from '@/components/common/GrowthTracker'
 import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
@@ -104,6 +105,7 @@ const SubscriptionTermsPage = lazy(() => import('@/app/legal').then((m) => ({ de
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
 const AdminOpsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminOpsPage })))
+const AdminGrowthPage = lazy(() => import('@/app/admin/AdminGrowthPage'))
 const AdminUsersPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminUsersPage })))
 const AdminSubscriptionsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminSubscriptionsPage })))
 const AdminAuditLogsPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminAuditLogsPage })))
@@ -126,6 +128,7 @@ const route = (element: React.ReactNode) => <RouteBoundary>{element}</RouteBound
 function App() {
   return (
     <HanjaSettingsProvider>
+      <GrowthTracker />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -286,6 +289,7 @@ function App() {
           }
         >
           <Route index element={route(<AdminDashboardPage />)} />
+          <Route path="growth" element={route(<AdminGrowthPage />)} />
           <Route path="ops" element={route(<AdminOpsPage />)} />
           <Route path="users" element={route(<AdminUsersPage />)} />
           <Route path="subscriptions" element={route(<AdminSubscriptionsPage />)} />

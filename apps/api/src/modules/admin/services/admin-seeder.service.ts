@@ -22,26 +22,21 @@ export class AdminSeederService implements OnModuleInit {
 
   private async seedSuperAdmin() {
     try {
-      // 환경 변수에서 관리자 정보 가져오기 (기본값 설정)
-      const adminEmail = this.configService.get<string>('SUPER_ADMIN_EMAIL') || 'lhs0609c@naver.com';
-      const adminPassword = this.configService.get<string>('SUPER_ADMIN_PASSWORD') || 'lhs0609c@naver.com';
-
       // 이미 SUPER_ADMIN이 있는지 확인
       const existingSuperAdmin = await this.userRepository.findOne({
         where: { role: UserRole.SUPER_ADMIN },
       });
 
       if (existingSuperAdmin) {
-        // SUPER_ADMIN이 이미 있고 같은 이메일이면 비밀번호만 업데이트
-        if (existingSuperAdmin.email === adminEmail) {
-          const hashedPassword = await bcrypt.hash(adminPassword, 10);
-          existingSuperAdmin.passwordHash = hashedPassword;
-          existingSuperAdmin.status = UserStatus.ACTIVE;
-          await this.userRepository.save(existingSuperAdmin);
-          this.logger.log(`SUPER_ADMIN 비밀번호 업데이트 완료: ${adminEmail}`);
-        } else {
-          this.logger.log(`SUPER_ADMIN이 이미 존재합니다: ${existingSuperAdmin.email}`);
-        }
+        // Restart/deployment must not reset passwords or reactivate suspended accounts.
+        this.logger.log('SUPER_ADMIN이 이미 존재합니다. 계정을 변경하지 않습니다.');
+        return;
+      }
+
+      const adminEmail = this.configService.get<string>('SUPER_ADMIN_EMAIL');
+      const adminPassword = this.configService.get<string>('SUPER_ADMIN_PASSWORD');
+      if (!adminEmail || !adminPassword) {
+        this.logger.warn('관리자 초기 생성 정보가 설정되지 않아 자동 생성을 생략합니다.');
         return;
       }
 
