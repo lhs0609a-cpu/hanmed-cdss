@@ -39,6 +39,8 @@ const STATS_ONLY = process.argv.includes('--stats-only');
 const PURGE = process.argv.includes('--purge');
 const DRY_RUN = process.argv.includes('--dry-run');
 const PER_TOPIC = Number(argValue('per-topic') ?? '200') || 200;
+/** 주제 라벨 일부. 주면 그 주제만 돈다 (예: --topic=이상반응) */
+const TOPIC = argValue('topic');
 const MIN_YEAR =
   Number(argValue('min-year') ?? '') || new Date().getFullYear() - 10;
 
@@ -123,7 +125,7 @@ async function main(): Promise<void> {
     const before = await ingest.stats();
     const started = Date.now();
 
-    const r = await ingest.harvestNow(PER_TOPIC, MIN_YEAR);
+    const r = await ingest.harvestNow(PER_TOPIC, MIN_YEAR, TOPIC);
 
     const mins = Math.round((Date.now() - started) / 60000);
     console.log(

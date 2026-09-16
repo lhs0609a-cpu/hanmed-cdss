@@ -13,7 +13,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import api from '@/services/api'
 
 // 이벤트 타입
 export type EventType =
@@ -140,6 +139,8 @@ export function useFeatureTracking() {
    */
   const flushBuffer = useCallback(async () => {
     try {
+      const token = useAuthStore.getState().accessToken
+      if (!token) return
       const bufferStr = localStorage.getItem(EVENT_BUFFER_KEY)
       if (!bufferStr) return
 
@@ -150,7 +151,9 @@ export function useFeatureTracking() {
       localStorage.setItem(EVENT_BUFFER_KEY, '[]')
 
       // 서버 전송 (실패해도 무시 - 분석 데이터라 크리티컬하지 않음)
-      await api.post('/analytics/events', { events: buffer }).catch(() => {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.kr/api/v1'}/analytics/events`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ events: buffer }), keepalive: true,
+      }).catch(() => {
         // 실패 시 콘솔에만 로그
         console.debug('[Analytics] 이벤트 전송 실패:', buffer.length, '건')
       })
@@ -306,17 +309,7 @@ export function useFeatureTracking() {
 
     // 페이지 언로드 시 플러시
     const handleUnload = () => {
-      // sendBeacon으로 비동기 전송 시도
-      const bufferStr = localStorage.getItem(EVENT_BUFFER_KEY)
-      if (bufferStr) {
-        const buffer = JSON.parse(bufferStr)
-        if (buffer.length > 0) {
-          navigator.sendBeacon?.(
-            `${import.meta.env.VITE_API_URL || ''}/analytics/events`,
-            JSON.stringify({ events: buffer })
-          )
-        }
-      }
+      void flushBuffer()
     }
 
     window.addEventListener('beforeunload', handleUnload)

@@ -10,6 +10,9 @@ import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
 import { PracticeAnalyticsService } from './practice-analytics.service';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsEventsController } from './analytics-events.controller';
+import { GrowthEventsController, AdminGrowthController } from './growth.controller';
+import { GrowthService } from './growth.service';
+import { GrowthLiveService } from './growth-live.service';
 
 @Module({
   imports: [
@@ -23,8 +26,8 @@ import { AnalyticsEventsController } from './analytics-events.controller';
       AnalyticsEvent,
     ]),
   ],
-  controllers: [AnalyticsController, AnalyticsEventsController],
-  providers: [PracticeAnalyticsService],
+  controllers: [AnalyticsController, AnalyticsEventsController, GrowthEventsController, AdminGrowthController],
+  providers: [PracticeAnalyticsService, GrowthService, GrowthLiveService],
   exports: [PracticeAnalyticsService],
 })
 export class AnalyticsModule {}

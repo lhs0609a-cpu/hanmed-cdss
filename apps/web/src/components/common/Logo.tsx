@@ -20,7 +20,8 @@
  * 단색으로 성립하는 편이 재현 조건 전부를 통과한다.
  */
 
-const BRAND = '#3182F6'
+// Generated book-and-sprout mark for screens; retain the monochrome vector for print.
+const SCREEN_MARK = '/brand/logo-knowledge-v1.png'
 
 /** 마크 기하 — 64×64 좌표계. 광학 중심 (32,32). 좌우 대칭은 아니다(15° 기울어져 있다). */
 const MARK_VIEWBOX = '0 0 64 64'
@@ -116,7 +117,10 @@ export function LogoMark({
   variant = 'squircle',
   title = '온고지신 AI',
   className,
-}: Pick<LogoProps, 'size' | 'variant' | 'flat' | 'title' | 'className' | 'glyph'>) {
+}: Pick<
+  LogoProps,
+  'size' | 'variant' | 'flat' | 'title' | 'className' | 'glyph'
+>) {
   if (variant === 'bare') {
     return (
       <svg
@@ -135,19 +139,19 @@ export function LogoMark({
   }
 
   return (
-    <svg
-      role="img"
-      aria-label={title}
+    <img
+      src={SCREEN_MARK}
+      alt={title}
       className={className}
       width={size}
       height={size}
-      viewBox={MARK_VIEWBOX}
-      style={{ flexShrink: 0, display: 'block' }}
-    >
-      <title>{title}</title>
-      <rect x="3" y="3" width="58" height="58" rx="17" fill={BRAND} />
-      <MarkGeometry geometry={INSET_GEOMETRY} color="#ffffff" />
-    </svg>
+      style={{
+        flexShrink: 0,
+        display: 'block',
+        borderRadius: Math.round(size * 0.25),
+        background: '#12685d',
+      }}
+    />
   )
 }
 

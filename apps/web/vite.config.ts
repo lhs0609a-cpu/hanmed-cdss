@@ -14,12 +14,17 @@ const readVersion = (relPath: string): string =>
 const WEB_VERSION = readVersion('./package.json')
 const DESKTOP_VERSION = readVersion('../desktop/package.json')
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(WEB_VERSION),
     __DESKTOP_VERSION__: JSON.stringify(DESKTOP_VERSION),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+    // A separate, explicit preview mode keeps local development credentials/settings intact.
+    // Browsers call their own origin; Vite forwards only /api to the fixed HTTPS API host.
+    ...(mode === 'connected'
+      ? { 'import.meta.env.VITE_API_URL': JSON.stringify('/api/v1') }
+      : {}),
   },
   resolve: {
     alias: {
@@ -30,11 +35,22 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: mode === 'connected' ? 'https://api.ongojisin.co.kr' : 'http://localhost:3001',
         changeOrigin: true,
       },
     },
   },
+  preview: mode === 'connected' ? {
+    host: '127.0.0.1',
+    port: 4176,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'https://api.ongojisin.co.kr',
+        changeOrigin: true,
+      },
+    },
+  } : undefined,
   build: {
     chunkSizeWarningLimit: 800,
     rollupOptions: {
@@ -51,4 +67,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { gcDrafts } from '@/lib/formDraft'
+import { trackGrowth } from '@/lib/growth'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.ongojisin.co.kr/api/v1'
 
@@ -53,6 +54,10 @@ api.interceptors.request.use(
 // Response interceptor - 래핑 해제, 재시도, 401 에러 처리
 api.interceptors.response.use(
   (response) => {
+    const path = (response.config.url || '').split('?')[0]
+    if (response.config.method === 'post' && ['/prescriptions/recommend', '/cases/search', '/ai/chat', '/ai/pattern-diagnosis', '/ai/scientific-rationale/generate'].includes(path)) {
+      trackGrowth('feature_used', { target: path.slice(1).replace(/\//g, ':') })
+    }
     // 백엔드 TransformInterceptor가 { success, data, timestamp } 형식으로 래핑함
     if (response.data && response.data.success !== undefined) {
       response.data = response.data.data
@@ -103,7 +108,9 @@ api.interceptors.response.use(
     }
 
     // 401 에러 - 토큰 만료
-    if (error.response?.status === 401) {
+    const token = useAuthStore.getState().accessToken
+    const requestPath = (config?.url || '').split('?')[0]
+    if (error.response?.status === 401 && token && config?.headers?.Authorization === `Bearer ${token}` && !requestPath.startsWith('/auth/') && requestPath !== '/analytics/events') {
       // 진료 입력 중일 수 있으므로 드래프트는 그대로 두고 로그아웃만 한다.
       // 재로그인 후 형태별 페이지가 loadDraft 로 자동 복원한다.
       useAuthStore.getState().logout()

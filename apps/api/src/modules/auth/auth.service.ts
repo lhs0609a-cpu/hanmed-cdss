@@ -511,6 +511,9 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        // 화면이 첫 페인트부터 체험 범위로 잠그려면 로그인 응답에 있어야 한다.
+        // 구독 정보를 기다리면 그 사이 잠긴 화면이 잠깐 열려 보인다.
+        isDemo: true,
         subscriptionTier: user.subscriptionTier,
         isVerified: user.isVerified,
         role: user.role,

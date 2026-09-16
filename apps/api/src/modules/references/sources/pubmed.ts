@@ -114,6 +114,35 @@ export const PUBMED_TOPICS: PubMedTopic[] = [
       '("Herb-Drug Interactions"[MeSH Terms] OR "herb-drug interaction"[Title/Abstract] OR "herbal hepatotoxicity"[Title/Abstract])',
   },
   {
+    /**
+     * 한약 이상반응 증례 — 이 자료실에서 유일하게 '하지 말 것'을 말하는 축이다.
+     *
+     * 해외 한약 증례보고를 뒤지다 보면 상당수가 독성·약인성 간손상 같은
+     * 이상반응이다. 치험례를 찾는 입장에서는 걸려 나오면 방해가 되는
+     * 것들이라 처음에는 걸러낼 대상으로 봤다.
+     *
+     * 그런데 임상에서 더 급한 물음은 "이 처방을 쓰면 낫는가" 보다
+     * "이 환자에게 이 약재를 써도 되는가" 다. 국내 자료에는 이만한 규모의
+     * 이상반응 증례가 없다. 버릴 것이 아니라 따로 세울 축이다.
+     *
+     * SAFETY 로 분류해 치험례와 섞이지 않게 하고, 화면에서는 경고로 쓴다.
+     * 위쪽 '한약 안전성·상호작용' 은 상호작용 기전 문헌이고 이쪽은 실제로
+     * 사람에게 일어난 사건의 기록이라, 주제를 나눠 둔다.
+     *
+     * 실측(2026-09): 이 쿼리에 임상 필터를 붙이면 PubMed 에 7,669건이 있고,
+     * 그중 증례보고를 받아 안전성 증례가 124건에서 2,879건이 됐다.
+     * 최신순으로 끊으므로 per-topic 을 올리지 않으면 앞부분만 다시 받는다.
+     */
+    label: '한약 이상반응 증례',
+    category: ReferenceCategory.SAFETY,
+    query:
+      '(("Drugs, Chinese Herbal"[MeSH Terms] OR "Plant Preparations"[MeSH Terms]' +
+      ' OR "herbal medicine"[Title/Abstract] OR "traditional medicine"[Title/Abstract])' +
+      ' AND ("adverse effects"[Subheading] OR "toxicity"[Subheading]' +
+      ' OR poisoning[Title/Abstract] OR hepatotoxicity[Title/Abstract]' +
+      ' OR "adverse event"[Title/Abstract]))',
+  },
+  {
     // 처음에는 "수기치료 AND 전통의학" 으로 두 조건을 모두 요구했더니 375건밖에
     // 걸리지 않았다(다른 분류의 1/10). 추나는 한의사가 매일 하는 시술인데
     // 자료실에서만 얇았다. 전통의학 조건을 떼고 수기치료 자체를 넓게 잡는다.

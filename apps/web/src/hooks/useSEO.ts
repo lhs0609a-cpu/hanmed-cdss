@@ -49,9 +49,7 @@ export function useSEO({
     }
 
     // 로봇 메타 태그
-    if (noIndex) {
-      updateMeta('robots', 'noindex, nofollow')
-    }
+    updateMeta('robots', noIndex ? 'noindex, nofollow' : 'index, follow')
 
     // Open Graph
     updateMeta('og:title', fullTitle, true)

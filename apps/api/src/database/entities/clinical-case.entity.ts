@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum Gender {
@@ -41,6 +42,41 @@ export enum BodyStrength {
   EXCESS = 'excess',       // 실(實) - 튼튼
 }
 
+/**
+ * 어느 코퍼스에서 온 치험례인가.
+ *
+ * 한국 현대 임상 기록과 중국 고전 의안은 읽는 방식이 다르다. 고전은 문언문에
+ * 서술이 짧고("許（左）　天氣溫和，頭暈輒劇…"), 현대 사례는 한국어에 회차별
+ * 경과가 붙는다. 한 목록에 섞으면 검색 결과가 읽히지 않는다.
+ *
+ * 그래서 같은 표에 두되 축을 나눈다 — 목록은 기본적으로 KOREAN 만 보여주고,
+ * 고전은 한의사가 명시적으로 골랐을 때 나온다.
+ */
+export enum CaseCorpus {
+  /** 한국 현대 임상 기록 (이종대 선생 계열 자료) */
+  KOREAN = 'korean',
+  /** 중국 고전 의안 — 中醫笈成(CC0) 수록 청대 이전 의안 */
+  CLASSICAL = 'classical',
+}
+
+/**
+ * 목록에서 빼는 사유. 치험례가 아니거나, 치험례이되 읽을 알맹이가 없는 것.
+ */
+export enum ExclusionReason {
+  /** 목차·색인 줄. 처방명과 증상만 나열되고 진료 서술이 없다 */
+  INDEX = 'index',
+  /** 처방 해설·도표·강의자료. 환자가 없다 */
+  LECTURE = 'lecture',
+  /** 본초 설명, 약재 채취·성상·수치법 */
+  MATERIA = 'materia',
+  /** 학술 초록·임상연구 요약. 원문이 여기 없다 */
+  ABSTRACT = 'abstract',
+  /** 신변잡기·질문글·역사 일화. 진료 기록이 아니다 */
+  CHATTER = 'chatter',
+  /** 치험례이나 증상도 처방도 경과도 남아 있지 않다 */
+  EMPTY = 'empty',
+}
+
 @Entity('clinical_cases')
 export class ClinicalCase {
   @PrimaryGeneratedColumn('uuid')
@@ -48,6 +84,20 @@ export class ClinicalCase {
 
   @Column({ unique: true })
   sourceId: string; // 원본 기록 번호 (예: LEE-1993-001)
+
+  @Column({ type: 'varchar', length: 16, default: CaseCorpus.KOREAN })
+  @Index()
+  corpus: CaseCorpus;
+
+  /**
+   * 고전 의안의 저본(底本) — 어느 판본을 옮긴 것인가.
+   *
+   * 공중영역 자료라도 저본을 못 대면 임상에서 인용할 수 없다. 中醫笈成
+   * 87종 중 60종은 저본 표기가 없어 여기가 null 이 된다. 비워 두고 화면에
+   * '저본 미상'으로 드러내는 편이, 그럴듯한 판본명을 지어 넣는 것보다 낫다.
+   */
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  sourceEdition: string | null;
 
   @Column()
   recordedYear: number;
@@ -229,6 +279,28 @@ export class ClinicalCase {
   /** 구조화 요약을 만든 시점 — null 이면 아직 안 돌린 것 */
   @Column({ type: 'timestamptz', nullable: true })
   summarizedAt: Date | null;
+
+  /**
+   * 왜 목록에서 뺐는가. null 이면 정상 노출.
+   *
+   * 수집 원본이 문서 통째라, 치험례가 아닌 덩어리가 같은 표에 들어와 있었다 —
+   * 방약합편 목차 줄("156. 삼기탕 1-2. 탈항 여 51세 주부"), 처방도표 강의자료,
+   * 본초 강좌, 밴드에 올라온 신변잡기, 약재 채취법 설명. 한의사가 목록에서
+   * 이걸 열면 얻을 것이 없다.
+   *
+   * 지우지 않고 사유를 남기는 이유: 판정이 틀릴 수 있고, 파서를 고치면
+   * 되살아날 것들이 섞여 있다(색인 줄의 원본 사례는 다른 행에 있다).
+   * 조회 경로는 scopeToCorpus 한 곳에서 이 컬럼으로 걸러낸다.
+   *
+   * 값은 ExclusionReason 중 하나.
+   */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  @Index()
+  excludedReason: string | null;
+
+  /** 노출 판정을 돌린 시점 — null 이면 아직 안 본 것 */
+  @Column({ type: 'timestamptz', nullable: true })
+  screenedAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

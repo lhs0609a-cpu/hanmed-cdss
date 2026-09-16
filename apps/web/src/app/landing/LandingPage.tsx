@@ -1,940 +1,880 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  ClipboardList,
+  Download,
+  LockKeyhole,
+  Menu,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  X,
+} from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useSEO } from '@/hooks/useSEO'
-import { ArrowRight, Check, ChevronDown, Download, Menu, X } from 'lucide-react'
-import { LogoMark } from '@/components/common'
-import { BASE_STATS } from '@/config/stats.config'
+import { usePublicStats } from '@/hooks/usePublicStats'
+import { useLandingTracking } from './components/useLandingTracking'
+import { ClinicalDemo, type DemoEvent } from './components/PublicCaseDemo'
 import { APP_VERSION, BUILD_DATE, DESKTOP_VERSION } from '@/config/version'
 import {
-  MockupPatternDiagnosis,
-  MockupCaseSearch,
-  MockupClaimCheck,
-  MockupInteraction,
-  MockupFormulaSearch,
-} from '@/components/common/FeatureMockups'
-import { MeshBackdrop, GridFloor, GrainOverlay, Orb, GlassOrb } from './components/AbstractBackdrop'
-import { AppWindowMockup } from './components/AppWindowMockup'
-import {
-  PLAN_TIERS,
-  BILLING_ADDON,
-  VERIFIED_FACTS,
   ANNUAL_DISCOUNT_LABEL,
+  BILLING_ADDON,
+  buildVerifiedFacts,
   formatKRW,
+  PLAN_TIERS,
 } from './components/PricingData'
+import './landing.css'
+import './conversion.css'
 
-/* ────────────────────────────────────────────────────────────
-   공통 프리미티브
-   ──────────────────────────────────────────────────────────── */
-
-/** 글래스 카드 — 랜딩 전역에서 재사용 */
-function GlassCard({
-  children,
-  className = '',
-  glow = false,
-}: {
-  children: React.ReactNode
-  className?: string
-  glow?: boolean
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 backdrop-blur-xl ${className}`}
-      style={{
-        background:
-          'linear-gradient(160deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)',
-        boxShadow: glow
-          ? '0 30px 90px -30px rgba(49,130,246,0.45), inset 0 1px 0 rgba(255,255,255,0.12)'
-          : '0 20px 60px -30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.10)',
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-/** 섹션 상단 라벨 */
-function SectionEyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[12px] font-medium tracking-wide text-white/60 backdrop-blur">
-      {children}
-    </span>
-  )
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  desc,
-}: {
-  eyebrow: string
-  title: React.ReactNode
-  desc?: string
-}) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <SectionEyebrow>{eyebrow}</SectionEyebrow>
-      <h2 className="mt-5 text-[32px] font-bold leading-[1.22] tracking-[-0.02em] text-white sm:text-[42px]">
-        {title}
-      </h2>
-      {desc && (
-        <p className="mt-4 text-[15px] leading-relaxed text-white/55 sm:text-[17px]">{desc}</p>
-      )}
-    </div>
-  )
-}
-
-// href 로 시작하는 항목은 같은 페이지 앵커, to 가 있는 항목은 라우트 이동이다.
-// 다운로드는 별도 페이지라 앵커로 둘 수 없다 — 앵커로 두면 눌러도 아무 일이
-// 일어나지 않는다.
-const NAV_LINKS: { href?: string; to?: string; label: string }[] = [
-  { href: '#features', label: '기능' },
-  { href: '#flow', label: '작동 방식' },
+// href 는 같은 페이지 안의 앵커, to 는 다른 화면으로의 이동이다.
+// 데스크톱 앱은 별도 페이지라 앵커로 둘 수 없다 — 앵커로 두면 눌러도
+// 아무 일이 일어나지 않는다.
+const NAV: { href?: string; to?: string; label: string }[] = [
+  { href: '#demo', label: '제품 체험' },
+  { href: '#features', label: '주요 기능' },
+  { href: '#evidence', label: '근거와 신뢰' },
   { href: '#pricing', label: '요금제' },
-  { to: '/download', label: '다운로드' },
-  { href: '#faq', label: 'FAQ' },
+  { to: '/download', label: '데스크톱 앱' },
 ]
-
-/* ────────────────────────────────────────────────────────────
-   콘텐츠
-   ──────────────────────────────────────────────────────────── */
-
-const PAIN_POINTS = [
+const PRODUCT_VIEWS = [
   {
-    n: '01',
-    title: '변증은 머릿속에,\n근거는 책장에',
-    body: '판단은 이미 서 있는데, 뒷받침할 조문과 유사 사례를 찾으려면 진료를 멈춰야 합니다.',
-  },
-  {
-    n: '02',
-    title: '차트를 쓰다 보면\n다음 환자가 밀린다',
-    body: '진료보다 기록에 시간이 더 드는 날이 있습니다. SOAP 형식을 갖추려면 더 그렇습니다.',
-  },
-  {
-    n: '03',
-    title: '삭감은 늘\n한참 뒤에 알게 된다',
-    body: '청구 시점에는 문제가 보이지 않고, 심사 결과가 와야 무엇이 잘못됐는지 알 수 있습니다.',
-  },
-]
-
-const FEATURES = [
-  {
-    mockup: MockupPatternDiagnosis,
-    shot: '/screens/pattern.webp',
     title: '변증 후보 추론',
-    body: '증상·설진·맥진을 입력하면 팔강·장부 변증 후보를 입력 소견과의 일치도 순으로 제시합니다. 근거가 된 조문과 사례를 함께 보여줘 판단을 검증할 수 있습니다.',
+    label: '변증',
+    image: '/screens/pattern.webp',
+    icon: Sparkles,
+    text: '입력한 소견과 변증 후보를 함께 살펴보세요. 후보의 근거를 확인하며 임상 판단을 이어갈 수 있습니다.',
   },
   {
-    mockup: MockupCaseSearch,
-    shot: '/screens/cases.webp',
     title: '치험례 검색',
-    body: '지금 보고 있는 환자와 닮은 실제 임상 사례를 찾아, 어떤 처방이 어떤 경과로 이어졌는지 확인합니다.',
+    label: '치험례',
+    image: '/screens/cases.webp',
+    icon: Search,
+    text: '환자와 닮은 임상 기록을 찾아보세요. 증상뿐 아니라 처방 구성과 진료 경과까지 맥락을 함께 읽습니다.',
   },
   {
-    mockup: MockupClaimCheck,
-    title: '수가·상병 코드 조회',
-    body: '한방 수가 코드와 산정 기준을 처방 화면을 벗어나지 않고 찾아봅니다. 청구 프로그램 연동과 자동 제출은 아직 지원하지 않습니다.',
-  },
-  {
-    mockup: MockupInteraction,
-    title: '약물 상호작용 점검',
-    body: '환자가 복용 중인 양약과 한약재의 상호작용을 처방 시점에 검사합니다.',
-  },
-  {
-    mockup: MockupFormulaSearch,
-    shot: '/screens/formulas.webp',
     title: '처방 데이터베이스',
-    body: `방약합편 기반 처방 ${BASE_STATS.formulas}건을 구성·효능·가감으로 탐색하고, 유사 처방과 비교합니다.`,
+    label: '처방',
+    image: '/screens/formulas.webp',
+    icon: BookOpen,
+    text: '처방의 구성과 효능, 가감 정보를 한곳에서 탐색하세요. 필요한 정보를 진료 가까이에 둡니다.',
   },
-]
-
-const FLOW_STEPS = [
-  {
-    step: '01',
-    title: '증상 입력',
-    body: '문진 내용을 그대로 적거나 말하면 됩니다. 형식을 맞출 필요는 없습니다.',
-  },
-  {
-    step: '02',
-    title: '근거와 함께 후보 제시',
-    body: '변증 후보, 처방 후보, 참고 치험례가 약재 구성과 근거를 달고 나옵니다.',
-  },
-  {
-    step: '03',
-    title: '한의사가 결정',
-    body: '제안은 후보일 뿐입니다. 선택과 가감은 한의사가 하고, 시스템은 그 결정을 기록합니다.',
-  },
-  {
-    step: '04',
-    title: '차트와 설명자료로',
-    body: '결정한 내용이 환자 차트에 남고, 환자 설명자료와 진료 근거서로 바로 출력됩니다.',
-  },
-]
-
+] as const
 const FAQS = [
   {
-    q: '온고지신 AI는 정확히 무엇인가요?',
-    a: '한의사를 위한 임상 결정 보조(CDSS)입니다. 증상을 입력하면 변증 후보와 처방 후보를 근거·약재 구성·유사 치험례와 함께 제시하고, 환자 차트와 설명자료로 이어집니다. 보험 청구 프로그램을 대체하지는 않으며, 수가·상병 코드 조회를 보조합니다.',
+    q: '온고지신 AI는 어떤 서비스인가요?',
+    a: '한의사를 위한 임상 의사결정 지원 서비스(CDSS)입니다. 변증 후보 추론, 치험례 검색, 처방·약재 정보 조회, 약물 상호작용 점검, 환자 기록 등 진료에 필요한 도구를 제공합니다. 최종 진단과 처방은 한의사가 결정합니다.',
   },
   {
-    q: 'AI가 진단을 대신하나요?',
-    a: '아닙니다. AI가 내놓는 것은 근거가 붙은 후보이며, 진단과 처방의 최종 결정은 한의사가 합니다. 시스템은 그 결정 과정을 기록해 이후 검토할 수 있게 합니다.',
+    q: '가입 전에 제품을 체험할 수 있나요?',
+    a: '가입 없이 공개 학회지 증례의 소견·변증·처방·경과와 원문 출처를 살펴볼 수 있습니다. 문헌을 요약한 고정 예시이며 실시간 검색이나 AI 분석 결과는 아닙니다. ‘실제 프로그램 둘러보기’에서는 게스트 모드로 제품 화면을 확인할 수 있습니다.',
   },
   {
-    q: '무료 플랜으로 어디까지 쓸 수 있나요?',
-    a: '처방·약재·경혈 데이터베이스 열람, 환자 등록과 진료 기록 작성 같은 핵심 임상 기능은 무료 플랜에서 계속 쓸 수 있습니다. AI 챗봇은 월 50회까지 제공됩니다.',
+    q: '무료 플랜은 어디까지 사용할 수 있나요?',
+    a: '처방·약재·경혈 데이터베이스 열람, 환자 등록 및 진료 기록 작성, 약물 상호작용 기본 점검을 제공하며 AI 챗봇은 월 50회 포함됩니다. 무료 플랜에는 사용 기간 제한이 없습니다. 기능별 상세 범위는 요금표에서 확인할 수 있습니다.',
   },
   {
-    q: '기존에 쓰던 차트 데이터를 옮길 수 있나요?',
-    a: 'CSV 파일을 올리면 구조를 자동으로 분석해 환자·진료 기록으로 변환합니다. 별도의 EMR 종류 선택 없이 파일만 넣으면 됩니다.',
+    q: '기존 차트 데이터를 가져올 수 있나요?',
+    a: 'CSV 파일을 통한 환자·진료 기록 가져오기를 지원합니다. 파일에 포함된 항목과 변환 결과를 확인한 후 사용해 주세요. 사용 중인 시스템의 내보내기 형식이나 도입 절차는 이메일로 문의할 수 있습니다.',
   },
   {
-    q: '연간 결제는 얼마나 저렴한가요?',
-    a: `연간 결제 시 ${ANNUAL_DISCOUNT_LABEL} 혜택이 적용됩니다. 언제든 월 결제로 전환할 수 있습니다.`,
+    q: '환자 정보와 접근 권한은 어떻게 관리하나요?',
+    a: '환자 정보 보호와 이용 범위는 개인정보처리방침에서 확인할 수 있습니다. Clinic 플랜은 직역별 권한 분리와 한의원 감사 로그를 제공합니다. 서버 보관 등 필요한 기능의 제공 플랜을 확인한 후 도입해 주세요.',
   },
   {
-    q: '환자 개인정보는 어떻게 보호되나요?',
-    a: '환자 식별 정보는 암호화해 저장하며, 한의원 단위로 접근 권한을 분리합니다. 직역(원장·한의사·접수·간호·청구)별로 볼 수 있는 범위가 나뉘고, 접근 기록은 감사 로그로 남습니다.',
+    q: '연간 결제와 보험청구 부가서비스가 궁금합니다.',
+    a: `연간 결제에는 ${ANNUAL_DISCOUNT_LABEL} 혜택이 적용되며 요금표에 연간 총 결제 금액이 표시됩니다. 보험청구·삭감방지는 별도 요금의 부가서비스입니다. 기존 청구 프로그램의 연동·자동 제출 지원 여부와 도입 가능한 범위는 신청 전 문의해 주세요.`,
   },
 ]
 
-/* ────────────────────────────────────────────────────────────
-   페이지
-   ──────────────────────────────────────────────────────────── */
+function Brand() {
+  return (
+    <Link to="/" className="landing-brand" aria-label="온고지신 AI 홈">
+      <span className="landing-brand-mark">
+        <img src="/brand/logo-knowledge-v1.png" width={40} height={40} alt="" />
+      </span>
+      <span>
+        온고지신<span className="brand-ai">AI</span>
+      </span>
+    </Link>
+  )
+}
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const enterAsGuest = useAuthStore((state) => state.enterAsGuest)
-  useSEO()
-
+  const { stats, isLive } = usePublicStats()
+  const { trackButtonClick, trackFeatureUsed } = useLandingTracking()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isAnnual, setIsAnnual] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [productView, setProductView] = useState(1)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  const productButtons = useRef<(HTMLButtonElement | null)[]>([])
+  const selectedProduct = PRODUCT_VIEWS[productView]
 
-  const handleTryProgram = () => {
-    enterAsGuest()
+  useSEO({
+    title: '처방이 고민될 때, 비슷한 치험례부터 | 온고지신 AI',
+    description:
+      '한의사를 위한 치험례 검색과 처방·약재 정보. 가입 없이 공개 증례를 살펴보고, 기간 제한 없는 무료 플랜으로 시작하세요.',
+    ogImage: 'https://www.ongojisin.co.kr/brand/clinical/og-clinical-v1.png',
+  })
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const escape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+        menuButton.current?.focus()
+      }
+    }
+    const media = window.matchMedia('(min-width: 960px)')
+    const resize = () => {
+      if (media.matches) setMobileMenuOpen(false)
+    }
+    document.addEventListener('keydown', escape)
+    media.addEventListener('change', resize)
+    return () => {
+      document.removeEventListener('keydown', escape)
+      media.removeEventListener('change', resize)
+    }
+  }, [mobileMenuOpen])
+
+  const handleTry = () => {
+    trackButtonClick('landing_guest_try')
+    // Preserve an authenticated session when returning from the marketing page.
+    const auth = useAuthStore.getState()
+    if (!auth.isAuthenticated) auth.enterAsGuest()
     navigate('/dashboard')
   }
+  const handleDemoEvent = (event: DemoEvent, detail: string) =>
+    trackFeatureUsed(event, { context: detail, surface: 'landing' })
 
   return (
-    <div className="ojs-immersive relative min-h-screen overflow-x-hidden bg-[#05070D] text-white antialiased">
-      {/* ═══ 전역 배경 ═══ */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
-        <MeshBackdrop />
-        <GrainOverlay opacity={0.14} />
-      </div>
-
-      {/* ═══ 내비게이션 ═══ */}
-      <header className="sticky top-0 z-50">
-        <div
-          className="border-b border-white/8 backdrop-blur-xl"
-          style={{ background: 'rgba(5,7,13,0.62)' }}
-        >
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-            <Link to="/" className="flex items-center gap-2.5">
-              <LogoMark size={32} />
-              <span className="text-[16px] font-bold tracking-tight">온고지신 AI</span>
+    <div className="clinical-landing">
+      <a className="landing-skip" href="#main">
+        본문으로 바로가기
+      </a>
+      <header className="landing-header">
+        <div className="landing-container landing-header-inner">
+          <Brand />
+          <nav className="landing-desktop-nav" aria-label="주 메뉴">
+            {NAV.map((item) =>
+              item.to ? (
+                <Link key={item.label} to={item.to}>
+                  {item.label}
+                </Link>
+              ) : (
+                <a key={item.label} href={item.href}>
+                  {item.label}
+                </a>
+              ),
+            )}
+          </nav>
+          <div className="landing-header-actions">
+            <Link to="/login" className="landing-login">
+              로그인
             </Link>
-
-            <nav className="hidden items-center gap-8 md:flex">
-              {NAV_LINKS.map((l) =>
-                l.to ? (
-                  <Link
-                    key={l.label}
-                    to={l.to}
-                    className="text-[14px] text-white/55 transition-colors hover:text-white"
-                  >
-                    {l.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    className="text-[14px] text-white/55 transition-colors hover:text-white"
-                  >
-                    {l.label}
-                  </a>
-                ),
-              )}
-            </nav>
-
-            <div className="hidden items-center gap-3 md:flex">
-              <Link
-                to="/login"
-                className="text-[14px] font-medium text-white/70 transition-colors hover:text-white"
-              >
-                로그인
-              </Link>
-              <Link
-                to="/register"
-                className="rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-transform hover:scale-[1.02]"
-                style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
-              >
-                무료로 시작
-              </Link>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              className="md:hidden"
-              aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div
-            className="border-b border-white/8 px-6 py-4 backdrop-blur-xl md:hidden"
-            style={{ background: 'rgba(5,7,13,0.92)' }}
-          >
-            <nav className="flex flex-col gap-1">
-              {NAV_LINKS.map((l) =>
-                l.to ? (
-                  <Link
-                    key={l.label}
-                    to={l.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg px-2 py-2.5 text-[15px] text-white/70"
-                  >
-                    {l.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg px-2 py-2.5 text-[15px] text-white/70"
-                  >
-                    {l.label}
-                  </a>
-                ),
-              )}
-              <div className="mt-3 flex flex-col gap-2 border-t border-white/8 pt-4">
-                <Link to="/login" className="rounded-lg px-2 py-2.5 text-[15px] text-white/70">
-                  로그인
-                </Link>
-                <Link
-                  to="/register"
-                  className="rounded-lg px-4 py-2.5 text-center text-[15px] font-semibold"
-                  style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
-                >
-                  무료로 시작
-                </Link>
-              </div>
-            </nav>
-          </div>
-        )}
-      </header>
-
-      {/* ═══ 히어로 ═══ */}
-      <section className="relative z-10 overflow-hidden px-6 pb-24 pt-20 sm:pt-28">
-        <Orb size="34rem" color="rgba(49,130,246,0.55)" className="-left-40 -top-32" />
-        <Orb size="28rem" color="rgba(120,86,255,0.45)" className="-right-32 top-10" delay="-4s" />
-        <GlassOrb size="10rem" className="right-[8%] top-[52%] hidden lg:block" delay="-2s" />
-        <GlassOrb size="5.5rem" className="left-[6%] top-[30%] hidden lg:block" delay="-7s" />
-        <GridFloor />
-
-        <div className="relative mx-auto max-w-6xl">
-          {/* 넓은 화면에서는 카피 왼쪽 · 모델 오른쪽. 좁은 화면에서는 카피만 가운데로. */}
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="text-center lg:text-left">
-          <div className="ojs-rise">
-            {/* "SINCE 1986" 만 쓰면 회사가 1986년에 생긴 것으로 읽힌다.
-                40년 된 것은 법인이 아니라 임상 기록이므로 그 말을 붙여 둔다.
-                건수는 바로 아래 근거 막대에 크게 나오므로 여기서는 뺀다. */}
-            <SectionEyebrow>
-              <span className="font-bold tracking-[0.08em] text-white/85">SINCE 1986</span>
-              <span className="mx-2 text-white/25">·</span>
-              40년치 임상 기록
-            </SectionEyebrow>
-          </div>
-
-          <h1
-            className="ojs-rise mt-7 text-[40px] font-bold leading-[1.14] tracking-[-0.035em] sm:text-[68px]"
-            style={{ animationDelay: '0.06s' }}
-          >
-            <span
-              className="bg-clip-text text-transparent"
-              style={
-                {
-                  '--ojs-text-gradient': 'linear-gradient(180deg, #FFFFFF 0%, #A9C2EC 100%)',
-                } as React.CSSProperties
-              }
-            >
-              40년치 임상 기록으로
-              <br />
-              오늘의 환자를 봅니다
-            </span>
-          </h1>
-
-          <p
-            className="ojs-rise mx-auto mt-6 max-w-2xl text-[16px] leading-relaxed text-white/60 sm:text-[19px] lg:mx-0"
-            style={{ animationDelay: '0.12s' }}
-          >
-            {/* 가운뎃점 뒤에서 줄이 끊긴다. keep-all 도 문장부호에서는 끊으므로
-                430px 에서 "구성· / 근거까지" 가 됐다. 뜻이 같은 '과' 로 바꾸면
-                끊길 자리가 띄어쓰기로 옮겨간다. */}
-            증상을 입력하면 가장 가까운 치험례와 처방 후보를 약재 구성과 근거까지 붙여
-            30초에 돌려드립니다.{' '}
-            <br className="hidden sm:block" />
-            최종 판단은 언제나 한의사가 합니다.
-          </p>
-
-          <div
-            className="ojs-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
-            style={{ animationDelay: '0.18s' }}
-          >
-            <div className="relative">
-              <div
-                aria-hidden
-                className="ojs-pulse-glow absolute -inset-3 rounded-2xl blur-xl"
-                style={{
-                  background: 'radial-gradient(circle, rgba(49,130,246,0.55), transparent 70%)',
-                }}
-              />
-              <Link
-                to="/register"
-                className="relative inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-[16px] font-semibold text-white transition-transform hover:scale-[1.02]"
-                style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
-              >
-                무료로 시작하기
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleTryProgram}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/14 bg-white/5 px-7 py-3.5 text-[16px] font-semibold text-white/90 backdrop-blur-xl transition-colors hover:bg-white/10"
-            >
-              둘러보기
-            </button>
-          </div>
-
-          <p className="ojs-rise mt-5 text-[13px] text-white/35" style={{ animationDelay: '0.24s' }}>
-            신용카드 없이 시작 · 무료 플랜은 기간 제한 없이 사용
-          </p>
-            </div>
-
-            {/* 브랜드 모델 — 배경을 따낸 누끼라 다크 지면 위에 그대로 선다. */}
-            <div
-              className="ojs-rise relative flex justify-center"
-              style={{ animationDelay: '0.26s' }}
-            >
-              <div
-                aria-hidden
-                className="absolute bottom-0 h-[85%] w-[110%] rounded-full blur-3xl"
-                style={{
-                  background:
-                    'radial-gradient(ellipse 45% 50% at 50% 55%, rgba(49,130,246,0.38), transparent 70%)',
-                }}
-              />
-              {/* 바닥에 닿는 그림자 — 인물이 공중에 뜬 느낌을 없앤다 */}
-              <div
-                aria-hidden
-                className="absolute bottom-1 h-6 w-[70%] rounded-[100%] blur-md"
-                style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.55), transparent 70%)' }}
-              />
-              <img
-                src="/brand/model-cutout.webp"
-                alt="온고지신 AI 브랜드 모델"
-                width={381}
-                height={1400}
-                loading="eager"
-                decoding="async"
-                className="relative h-[420px] w-auto sm:h-[520px] lg:h-[600px]"
-              />
-            </div>
-          </div>
-
-          {/* 근거 막대 — 첫 화면 안에 들어와야 한다.
-              헤드라인이 "40년치 임상 기록으로" 라고 약속했으면 그 근거가
-              스크롤 전에 보여야 한다. 예전에는 앱 목업 아래에 있어서
-              화면 두 번을 내려야 나왔다 — 그러면 약속만 하고 증거는 안 대는
-              꼴이 된다. */}
-          <div
-            className="ojs-rise mt-12 rounded-2xl border border-white/10 px-4 py-6 backdrop-blur-xl sm:mt-14 sm:px-8 sm:py-7"
-            style={{
-              background:
-                'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)',
-            }}
-          >
-            <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-4 sm:gap-y-0">
-              {VERIFIED_FACTS.map((f, i) => (
-                <div
-                  key={f.label}
-                  className={`text-center ${i > 0 ? 'sm:border-l sm:border-white/10' : ''}`}
-                >
-                  <p className="text-[30px] font-bold tabular-nums tracking-tight text-white sm:text-[38px]">
-                    {f.value}
-                    <span className="ml-0.5 text-[16px] font-semibold text-white/45">{f.unit}</span>
-                  </p>
-                  <p className="mt-1.5 text-[12px] leading-snug text-white/50 sm:text-[13px]">
-                    {f.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="ojs-rise mt-14 sm:mt-16" style={{ animationDelay: '0.3s' }}>
-            <AppWindowMockup />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ 문제 제기 ═══ */}
-      <section className="relative z-10 px-6 py-24">
-        <SectionHeading
-          eyebrow="왜 필요한가"
-          title={
-            <>
-              진료실에서 매일
-              <br />
-              반복되는 세 가지
-            </>
-          }
-        />
-
-        <div className="mx-auto mt-14 grid max-w-5xl gap-5 md:grid-cols-3">
-          {PAIN_POINTS.map((p) => (
-            <GlassCard key={p.n} className="p-7">
-              <span className="text-[13px] font-bold tabular-nums text-[#5B8DEF]">{p.n}</span>
-              <h3 className="mt-4 whitespace-pre-line text-[20px] font-bold leading-snug tracking-tight text-white">
-                {p.title}
-              </h3>
-              <p className="mt-3 text-[14px] leading-relaxed text-white/50">{p.body}</p>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ 기능 ═══ */}
-      <section id="features" className="relative z-10 scroll-mt-20 px-6 py-24">
-        <Orb size="30rem" color="rgba(49,130,246,0.30)" className="left-1/2 top-0 -translate-x-1/2" />
-
-        <SectionHeading
-          eyebrow="기능"
-          title={
-            <>
-              판단을 대신하지 않습니다.
-              <br />
-              근거를 옆에 둡니다
-            </>
-          }
-          desc="진료 흐름을 끊지 않는 자리에 필요한 정보를 놓았습니다."
-        />
-
-        <div className="mx-auto mt-14 grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(({ mockup: Mockup, shot, title, body }) => (
-            <GlassCard
-              key={title}
-              className="p-6 transition-transform duration-300 hover:-translate-y-1"
-            >
-              {/* 실제 제품 화면을 그대로 쓴다.
-                  손으로 그린 축소 목업은 "있어 보이는 그림" 이지 증거가 아니다.
-                  캡처가 아직 없는 기능만 기존 목업으로 남긴다. */}
-              <div className="mb-5 overflow-hidden rounded-xl border border-white/10">
-                {shot ? (
-                  <img
-                    src={shot}
-                    alt={`${title} 실제 화면`}
-                    width={1600}
-                    height={911}
-                    loading="lazy"
-                    decoding="async"
-                    className="block h-40 w-full object-cover object-top sm:h-44"
-                  />
-                ) : (
-                  <Mockup size="md" />
-                )}
-              </div>
-              <h3 className="text-[17px] font-bold tracking-tight text-white">{title}</h3>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-white/50">{body}</p>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ 작동 방식 ═══ */}
-      <section id="flow" className="relative z-10 scroll-mt-20 px-6 py-24">
-        <SectionHeading
-          eyebrow="작동 방식"
-          title="입력에서 청구까지, 한 번만 씁니다"
-          desc="같은 내용을 두 번 입력하지 않도록 설계했습니다."
-        />
-
-        <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {FLOW_STEPS.map((s) => (
-            <GlassCard key={s.step} className="p-6">
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-[13px] font-bold"
-                style={{
-                  background:
-                    'linear-gradient(135deg, rgba(49,130,246,0.35), rgba(120,86,255,0.25))',
-                }}
-              >
-                {s.step}
-              </div>
-              <h3 className="mt-4 text-[16px] font-bold tracking-tight text-white">{s.title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-white/50">{s.body}</p>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ 요금제 ═══ */}
-      <section id="pricing" className="relative z-10 scroll-mt-20 px-6 py-24">
-        <Orb size="32rem" color="rgba(120,86,255,0.28)" className="right-0 top-20" delay="-5s" />
-
-        <SectionHeading
-          eyebrow="요금제"
-          title="쓰는 만큼만 지불합니다"
-          desc="핵심 임상 기능은 무료 플랜에서 계속 사용할 수 있습니다."
-        />
-
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <span
-            className={`text-[14px] ${!isAnnual ? 'font-semibold text-white' : 'text-white/45'}`}
-          >
-            월 결제
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isAnnual}
-            aria-label="연간 결제로 전환"
-            onClick={() => setIsAnnual((v) => !v)}
-            className="relative h-6 w-11 rounded-full border border-white/15 transition-colors"
-            style={{ background: isAnnual ? '#3182F6' : 'rgba(255,255,255,0.10)' }}
-          >
-            <span
-              className="absolute top-1/2 rounded-full bg-white transition-transform"
-              style={{
-                height: '1.1rem',
-                width: '1.1rem',
-                marginTop: '-0.55rem',
-                transform: isAnnual ? 'translateX(1.35rem)' : 'translateX(0.15rem)',
-              }}
-            />
-          </button>
-          <span className={`text-[14px] ${isAnnual ? 'font-semibold text-white' : 'text-white/45'}`}>
-            연 결제
-          </span>
-          <span className="rounded-full border border-[#3182F6]/30 bg-[#3182F6]/15 px-2.5 py-0.5 text-[12px] font-semibold text-[#8AB4FF]">
-            {ANNUAL_DISCOUNT_LABEL}
-          </span>
-        </div>
-
-        <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {PLAN_TIERS.map((plan) => {
-            const price = isAnnual ? plan.yearly : plan.monthly
-            const suffix = plan.monthly === 0 ? '' : isAnnual ? '원 / 년' : '원 / 월'
-            return (
-              <GlassCard
-                key={plan.id}
-                glow={plan.highlight}
-                className={`flex flex-col p-6 ${plan.highlight ? 'ring-1 ring-[#3182F6]/45' : ''}`}
-              >
-                {plan.highlight && (
-                  <span className="mb-3 inline-flex w-fit rounded-full bg-[#3182F6] px-2.5 py-0.5 text-[11px] font-bold">
-                    가장 많이 선택
-                  </span>
-                )}
-                <h3 className="text-[18px] font-bold tracking-tight text-white">{plan.name}</h3>
-                <p className="mt-1 text-[13px] text-white/45">{plan.tagline}</p>
-
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-[30px] font-bold tabular-nums tracking-tight text-white">
-                    {price === 0 ? '무료' : formatKRW(price)}
-                  </span>
-                  {suffix && <span className="text-[13px] text-white/45">{suffix}</span>}
-                </div>
-                <p className="mt-1.5 text-[12px] text-white/35">
-                  AI 챗봇 월 {formatKRW(plan.includedQueries)}회 포함
-                </p>
-
-                <ul className="mt-6 flex-1 space-y-2.5">
-                  {plan.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2 text-[13px] leading-relaxed text-white/65"
-                    >
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5B8DEF]" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  to="/register"
-                  className={`mt-7 rounded-lg py-2.5 text-center text-[14px] font-semibold transition-colors ${
-                    plan.highlight
-                      ? 'text-white'
-                      : 'border border-white/14 bg-white/5 text-white/85 hover:bg-white/10'
-                  }`}
-                  style={
-                    plan.highlight
-                      ? { background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }
-                      : undefined
-                  }
-                >
-                  {plan.cta}
-                </Link>
-              </GlassCard>
-            )
-          })}
-        </div>
-
-        <div className="mx-auto mt-5 max-w-6xl">
-          <GlassCard className="flex flex-col items-start justify-between gap-5 p-6 sm:flex-row sm:items-center">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-[16px] font-bold tracking-tight text-white">
-                  {BILLING_ADDON.name}
-                </h3>
-                <span className="rounded-md border border-white/12 bg-white/5 px-2 py-0.5 text-[11px] text-white/50">
-                  부가서비스
-                </span>
-              </div>
-              <p className="mt-1.5 text-[13px] text-white/50">{BILLING_ADDON.description}</p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-[22px] font-bold tabular-nums tracking-tight text-white">
-                {formatKRW(isAnnual ? BILLING_ADDON.yearly : BILLING_ADDON.monthly)}
-                <span className="ml-1 text-[13px] font-medium text-white/45">
-                  원 / {isAnnual ? '년' : '월'}
-                </span>
-              </p>
-              <p className="mt-0.5 text-[12px] text-white/35">기존 플랜에 추가</p>
-            </div>
-          </GlassCard>
-        </div>
-
-        <p className="mx-auto mt-6 max-w-2xl text-center text-[12px] leading-relaxed text-white/30">
-          표시 금액은 부가세 별도입니다. 결제일 기준으로 자동 갱신되며, 언제든 해지할 수 있습니다.
-        </p>
-      </section>
-
-      {/* ═══ FAQ ═══ */}
-      <section id="faq" className="relative z-10 scroll-mt-20 px-6 py-24">
-        <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" />
-
-        <div className="mx-auto mt-12 max-w-3xl space-y-3">
-          {FAQS.map((faq, i) => {
-            const open = openFaq === i
-            return (
-              <GlassCard key={faq.q}>
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(open ? null : i)}
-                  aria-expanded={open}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-                >
-                  <span className="text-[15px] font-semibold text-white">{faq.q}</span>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-white/40 transition-transform duration-200 ${
-                      open ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {open && (
-                  <p className="px-6 pb-5 text-[14px] leading-relaxed text-white/55">{faq.a}</p>
-                )}
-              </GlassCard>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* ═══ 마무리 CTA ═══ */}
-      <section className="relative z-10 overflow-hidden px-6 py-28">
-        <Orb size="36rem" color="rgba(49,130,246,0.45)" className="left-1/2 top-0 -translate-x-1/2" />
-        <GlassOrb size="8rem" className="left-[12%] top-[20%] hidden lg:block" delay="-3s" />
-        <GlassOrb size="6rem" className="right-[14%] top-[58%] hidden lg:block" delay="-8s" />
-
-        <div className="relative mx-auto max-w-3xl text-center">
-          <div className="relative mx-auto mb-8 w-fit">
-            <div
-              aria-hidden
-              className="absolute -inset-4 rounded-full blur-2xl"
-              style={{
-                background: 'radial-gradient(circle, rgba(49,130,246,0.45), transparent 70%)',
-              }}
-            />
-            <img
-              src="/brand/model-avatar.webp"
-              alt="온고지신 AI 브랜드 모델"
-              width={104}
-              height={104}
-              loading="lazy"
-              decoding="async"
-              className="relative h-[104px] w-[104px] rounded-full border border-white/20 object-cover shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)]"
-            />
-          </div>
-
-          <h2 className="text-[34px] font-bold leading-[1.2] tracking-[-0.025em] text-white sm:text-[48px]">
-            오늘 진료부터
-            <br />
-            바로 써보세요
-          </h2>
-          <p className="mx-auto mt-5 max-w-xl text-[16px] leading-relaxed text-white/55">
-            설치할 것도, 계약할 것도 없습니다. 가입하면 바로 첫 환자를 등록할 수 있습니다.
-          </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-[16px] font-semibold text-white transition-transform hover:scale-[1.02]"
-              style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
+              className="landing-button landing-button-small"
+              data-growth="signup_header"
+              onClick={() => trackButtonClick('landing_signup_header')}
             >
               무료로 시작하기
-              <ArrowRight className="h-4 w-4" />
+              <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
-            <button
-              type="button"
-              onClick={handleTryProgram}
-              className="inline-flex items-center rounded-xl border border-white/14 bg-white/5 px-8 py-3.5 text-[16px] font-semibold text-white/90 backdrop-blur-xl transition-colors hover:bg-white/10"
-            >
-              둘러보기
-            </button>
           </div>
+          <button
+            type="button"
+            className="landing-menu-button"
+            ref={menuButton}
+            aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="landing-mobile-nav"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
-      </section>
-
-      {/* ═══ 데스크톱 앱 ═══ */}
-      <section className="relative z-10 px-6 pb-24">
-        <div className="mx-auto max-w-4xl">
-          <GlassCard className="p-6 sm:p-8">
-            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h3 className="text-[18px] font-semibold text-white">데스크톱 앱</h3>
-                  <span className="rounded-md border border-white/12 bg-white/5 px-2 py-0.5 font-mono text-[11.5px] text-white/60">
-                    v{DESKTOP_VERSION}
-                  </span>
-                </div>
-                <p className="mt-2 max-w-md text-[14px] leading-relaxed text-white/55">
-                  Windows · macOS 에 설치해 브라우저 없이 창 하나로 쓰세요. 계정과 데이터는 웹과
-                  같고, 새 버전은 앱이 알아서 받습니다.
-                </p>
-              </div>
-              <Link
-                to="/download"
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl px-6 py-3 text-[15px] font-semibold text-white transition-transform hover:scale-[1.02]"
-                style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
+        {mobileMenuOpen && (
+          <nav
+            className="landing-mobile-nav"
+            id="landing-mobile-nav"
+            aria-label="모바일 메뉴"
+          >
+            {NAV.map((item) =>
+              item.to ? (
+                <Link
+                  to={item.to}
+                  key={item.label}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              ) : (
+                <a
+                  href={item.href}
+                  key={item.label}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+              ),
+            )}
+            <Link to="/login">로그인</Link>
+            <Link
+              to="/register"
+              className="landing-button"
+              data-growth="signup_mobile"
+              onClick={() => trackButtonClick('landing_signup_mobile')}
+            >
+              무료로 시작하기
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </nav>
+        )}
+      </header>
+      <main id="main">
+        <section
+          className="landing-hero landing-container"
+          aria-labelledby="hero-title"
+        >
+          <div className="hero-copy">
+            <span className="hero-eyebrow">
+              <span aria-hidden="true" />
+              한의사를 위한 임상 워크스페이스
+            </span>
+            <h1 id="hero-title">
+              처방이 고민될 때,
+              <br />
+              <em>비슷한 치험례부터</em>
+              <br />
+              찾아보세요.
+            </h1>
+            <p className="hero-description">
+              환자 소견과 관련된 치험례를 찾고,
+              <br />
+              처방 구성·진료 경과·출처를 함께 검토하세요.
+            </p>
+            <div className="hero-actions">
+              <a
+                href="#demo"
+                className="landing-button"
+                data-growth="demo_start"
+                onClick={() => trackButtonClick('landing_demo_start')}
               >
-                <Download className="h-4 w-4" />
-                다운로드
+                가입 없이 샘플 보기 <ArrowDown size={17} aria-hidden="true" />
+              </a>
+              <Link
+                to="/register"
+                className="landing-button landing-button-outline"
+                data-growth="signup_hero"
+                onClick={() => trackButtonClick('landing_signup_hero')}
+              >
+                무료 회원가입 <ArrowUpRight size={17} aria-hidden="true" />
               </Link>
             </div>
-          </GlassCard>
-        </div>
-      </section>
-
-      {/* ═══ 푸터 ═══ */}
-      <footer className="relative z-10 border-t border-white/8 px-6 py-14">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col justify-between gap-10 md:flex-row">
-            <div className="max-w-sm">
-              <div className="flex items-center gap-2.5">
-                <LogoMark size={32} />
-                <span className="text-[16px] font-bold tracking-tight">온고지신 AI</span>
+            <p className="hero-footnote">
+              <Check size={15} /> 카드 등록 없음 · 무료 플랜은 기간 제한 없음
+            </p>
+          </div>
+          <div className="hero-people-product">
+            <div className="hero-practitioner">
+              <div className="practitioner-copy">
+                <span>온고지신 AI</span>
+                <strong>
+                  진료의 중심은
+                  <br />
+                  언제나 한의사.
+                </strong>
+                <p>
+                  찾고, 비교하고, 판단하는
+                  <br />
+                  선생님의 진료를 돕습니다.
+                </p>
               </div>
-              <p className="mt-4 text-[13px] leading-relaxed text-white/40">
-                한의사의 임상 판단을 보조하는 진료 차트 · 결정 지원 시스템입니다. 진단과 처방의 최종
-                결정은 한의사가 합니다.
+              <img
+                className="practitioner-photo"
+                src="/brand/model-cutout.webp"
+                width={376}
+                height={1392}
+                alt="흰 가운을 입고 미소 짓는 온고지신 AI 브랜드 모델"
+                fetchPriority="high"
+              />
+              <span className="practitioner-label">브랜드 모델 이미지</span>
+            </div>
+            <div className="hero-result">
+              <div className="hero-result-header">
+                <span>
+                  <Search size={17} /> 치험례 검색
+                </span>
+                <span>실제 제품 화면</span>
+              </div>
+              <img
+                src="/screens/cases.webp"
+                alt="온고지신 AI 치험례 검색 화면: 증상과 처방으로 기록을 탐색하는 제품 인터페이스"
+                width={1600}
+                height={911}
+                fetchPriority="high"
+              />
+              <div className="hero-result-caption">
+                <strong>증상만 찾는 데서 끝나지 않도록.</strong>
+                <span>소견 → 관련 기록 → 처방과 경과 → 출처 확인</span>
+              </div>
+              <a
+                href="#demo"
+                data-growth="demo_preview"
+                className="landing-text-link"
+              >
+                공개 증례 한 건 직접 살펴보기 <ArrowRight size={17} />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="demo"
+          className="landing-section landing-container"
+          aria-labelledby="demo-title"
+        >
+          <div className="section-heading section-heading-split">
+            <div>
+              <span className="landing-eyebrow">MEET YOUR WORKSPACE</span>
+              <h2 id="demo-title">
+                내 환자와 무엇이 비슷한지,
+                <br />
+                기록을 직접 비교해 보세요.
+              </h2>
+            </div>
+            <p>
+              공개 학회지 증례의 소견부터 처방과 경과까지.
+              <br />
+              아래 항목을 눌러 원문과 함께 확인하세요.
+            </p>
+          </div>
+          <ClinicalDemo onEvent={handleDemoEvent} onTry={handleTry} />
+        </section>
+
+        <section
+          id="evidence"
+          className="landing-section landing-container evidence-compact"
+          aria-labelledby="evidence-title"
+        >
+          <div className="section-heading">
+            <span className="landing-eyebrow">직접 확인할 수 있는 정보</span>
+            <h2 id="evidence-title">
+              답만 읽지 말고,
+              <br />
+              판단의 근거까지 확인하세요.
+            </h2>
+          </div>
+          <div className="trust-strip">
+            <div>
+              <BookOpen size={22} />
+              <h3>출처까지 확인</h3>
+              <p>
+                치험례와 문헌의 원문 정보를 확인하고, 환자 소견과 기록의 차이를
+                비교합니다.
+              </p>
+              <a href="#demo" className="landing-text-link">
+                공개 문헌 예시 보기 <ArrowRight size={15} />
+              </a>
+            </div>
+            <div>
+              <ShieldCheck size={22} />
+              <h3>의료진이 검토하고 결정</h3>
+              <p>
+                변증 후보와 참고 기록을 검토하는 도구입니다. 최종 진단과 처방은
+                한의사가 결정합니다.
               </p>
             </div>
-
-            <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
-              <div>
-                <h4 className="text-[13px] font-semibold text-white/80">제품</h4>
-                <ul className="mt-3 space-y-2 text-[13px] text-white/40">
-                  <li>
-                    <a href="#features" className="hover:text-white/70">
-                      기능
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#pricing" className="hover:text-white/70">
-                      요금제
-                    </a>
-                  </li>
-                  <li>
-                    <Link to="/download" className="hover:text-white/70">
-                      데스크톱 앱 다운로드
-                    </Link>
-                  </li>
-                  <li>
-                    <a href="#faq" className="hover:text-white/70">
-                      FAQ
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-[13px] font-semibold text-white/80">회사</h4>
-                <ul className="mt-3 space-y-2 text-[13px] text-white/40">
-                  <li>
-                    <Link to="/terms" className="hover:text-white/70">
-                      이용약관
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/privacy" className="hover:text-white/70">
-                      개인정보처리방침
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/refund-policy" className="hover:text-white/70">
-                      환불정책
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-[13px] font-semibold text-white/80">문의</h4>
-                <ul className="mt-3 space-y-2 text-[13px] text-white/40">
-                  <li>
-                    {/* 주소 가운데서 쪼개지지 않게 한다.
-                        768px 에서 "lhs0609c@n / aver.com" 으로 잘렸다. 이메일은
-                        한 덩어리로 읽히지 않으면 옮겨 적을 수 없다. 칸보다 길면
-                        줄바꿈 대신 그 줄만 가로로 흐르게 둔다. */}
-                    <a
-                      href="mailto:lhs0609c@naver.com"
-                      className="inline-block max-w-full overflow-x-auto whitespace-nowrap align-bottom hover:text-white/70"
-                    >
-                      lhs0609c@naver.com
-                    </a>
-                  </li>
-                </ul>
-              </div>
+            <div>
+              <LockKeyhole size={22} />
+              <h3>체험에 환자 정보는 필요 없어요</h3>
+              <p>
+                공개 증례로 먼저 살펴보세요. 실제 이용 시 정보 처리 범위도
+                확인할 수 있습니다.
+              </p>
+              <Link to="/privacy">
+                개인정보처리방침 <ArrowUpRight size={14} />
+              </Link>
             </div>
           </div>
-
-          <div className="mt-12 border-t border-white/8 pt-7">
-            <p className="text-[12px] leading-relaxed text-white/30">
-              본 서비스는 한의사의 임상 의사결정을 보조하기 위한 참고 정보를 제공하며, 의료행위를
-              대체하지 않습니다. 모든 진단과 처방의 책임은 이를 수행하는 한의사에게 있습니다.
+        </section>
+        <section
+          className="landing-stats landing-container"
+          aria-label="서비스 수록 데이터"
+        >
+          <div className="stats-intro">
+            <span className="landing-eyebrow">BUILT ON KNOWLEDGE</span>
+            <p>
+              오랜 임상의 축적을
+              <br />
+              <strong>오늘의 진료로.</strong>
             </p>
-            {/* 버전 표기 — 문의가 들어왔을 때 "무슨 버전 쓰고 계세요"를
-                되묻지 않으려면, 쓰는 사람이 스스로 찾을 수 있는 자리에
-                적혀 있어야 한다. */}
-            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/25">
-              <span>© {new Date().getFullYear()} 온고지신 AI. All rights reserved.</span>
-              <span aria-hidden className="text-white/15">
-                ·
+          </div>
+          <dl>
+            {buildVerifiedFacts(stats).map((fact) => (
+              <div key={fact.label}>
+                <dt>{fact.label}</dt>
+                <dd>
+                  {fact.value}
+                  <span>{fact.unit}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="stats-source">
+            {isLive ? '공개 데이터 집계 기준' : '최근 등록된 데이터 기준'} ·
+            자료 수는 임상적 유효성의 평가 수치가 아닙니다.
+          </p>
+        </section>
+
+        <section
+          id="features"
+          className="landing-section landing-features"
+          aria-labelledby="features-title"
+        >
+          <div className="landing-container">
+            <div className="section-heading section-heading-center">
+              <span className="landing-eyebrow">
+                DESIGNED AROUND YOUR PRACTICE
               </span>
-              <span className="font-mono">
-                웹 v{APP_VERSION} ({BUILD_DATE}) · 데스크톱 v{DESKTOP_VERSION}
-              </span>
+              <h2 id="features-title">
+                찾는 시간을 줄이고,
+                <br />
+                생각할 여유를 더하세요.
+              </h2>
+              <p>진료에 필요한 정보를, 필요한 자리에.</p>
+            </div>
+            <div className="product-showcase">
+              <div className="product-showcase-copy">
+                <span className="landing-eyebrow">
+                  THE PRODUCT, IN PRACTICE
+                </span>
+                <h3>{selectedProduct.title}</h3>
+                <p>{selectedProduct.text}</p>
+                <button
+                  type="button"
+                  className="landing-text-link"
+                  onClick={handleTry}
+                >
+                  실제 프로그램 둘러보기
+                  <ArrowUpRight size={17} aria-hidden="true" />
+                </button>
+                <div
+                  role="tablist"
+                  aria-label="제품 화면 선택"
+                  className="product-view-tabs"
+                >
+                  {PRODUCT_VIEWS.map(({ label, icon: Icon }, index) => (
+                    <button
+                      type="button"
+                      role="tab"
+                      key={label}
+                      id={`product-tab-${index}`}
+                      aria-selected={productView === index}
+                      aria-controls="product-screen-panel"
+                      tabIndex={productView === index ? 0 : -1}
+                      ref={(node) => {
+                        productButtons.current[index] = node
+                      }}
+                      onClick={() => {
+                        setProductView(index)
+                        trackButtonClick(`landing_product_${index}`)
+                      }}
+                      onKeyDown={(event) => {
+                        let next = index
+                        if (event.key === 'ArrowRight')
+                          next = (index + 1) % PRODUCT_VIEWS.length
+                        else if (event.key === 'ArrowLeft')
+                          next =
+                            (index + PRODUCT_VIEWS.length - 1) %
+                            PRODUCT_VIEWS.length
+                        else if (event.key === 'Home') next = 0
+                        else if (event.key === 'End')
+                          next = PRODUCT_VIEWS.length - 1
+                        else return
+                        event.preventDefault()
+                        setProductView(next)
+                        productButtons.current[next]?.focus()
+                      }}
+                    >
+                      <Icon size={15} aria-hidden="true" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div
+                className="product-screen"
+                role="tabpanel"
+                id="product-screen-panel"
+                aria-labelledby={`product-tab-${productView}`}
+              >
+                <div className="product-screen-top">
+                  <span className="window-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span>ongojisin.ai</span>
+                  <span>실제 제품 화면</span>
+                </div>
+                <img
+                  key={selectedProduct.image}
+                  src={selectedProduct.image}
+                  alt={`${selectedProduct.title} 실제 제품 화면`}
+                  width={1600}
+                  height={911}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            </div>
+            <div className="feature-utilities">
+              <span>진료를 함께 돕는 도구</span>
+              <p>
+                <ShieldCheck size={16} aria-hidden="true" />
+                약물 상호작용 점검
+              </p>
+              <p>
+                <ClipboardList size={16} aria-hidden="true" />
+                수가·상병 코드 조회
+              </p>
+              <p>
+                <Users size={16} aria-hidden="true" />
+                환자·진료 기록 관리
+              </p>
             </div>
           </div>
+        </section>
+
+        <section
+          id="pricing"
+          className="landing-section landing-container"
+          aria-labelledby="pricing-title"
+        >
+          <div className="section-heading section-heading-center">
+            <span className="landing-eyebrow">ROOM TO GROW</span>
+            <h2 id="pricing-title">
+              무료로 시작하고,
+              <br />
+              진료에 맞춰 넓혀가세요.
+            </h2>
+            <p>필요한 기능과 AI 사용량에 맞는 플랜을 선택하세요.</p>
+          </div>
+          <div className="free-start-card">
+            <div>
+              <span className="case-badge">기간 제한 없는 무료 플랜</span>
+              <h3>카드 없이, 필요한 기능부터.</h3>
+              <p>
+                처방·약재·경혈 DB · 환자 등록과 진료 기록
+                <br />
+                약물 상호작용 기본 점검 · AI 챗봇 월 50회
+              </p>
+              <span>치험례 전체 열람은 Basic 이상에서 제공됩니다.</span>
+            </div>
+            <Link
+              to="/register"
+              className="landing-button"
+              data-growth="signup_free_plan"
+            >
+              무료 계정 만들기 <ArrowRight size={17} />
+            </Link>
+          </div>
+          <details className="full-pricing">
+            <summary data-growth="pricing_expand">
+              전체 요금제·기능·결제 조건 비교하기 <ChevronDown size={18} />
+            </summary>
+            <div className="pricing-toggle" role="group" aria-label="결제 주기">
+              <button
+                type="button"
+                aria-pressed={!isAnnual}
+                onClick={() => {
+                  setIsAnnual(false)
+                  trackButtonClick('landing_billing_monthly')
+                }}
+              >
+                월 결제
+              </button>
+              <button
+                type="button"
+                aria-pressed={isAnnual}
+                onClick={() => {
+                  setIsAnnual(true)
+                  trackButtonClick('landing_billing_annual')
+                }}
+              >
+                연 결제<span>{ANNUAL_DISCOUNT_LABEL}</span>
+              </button>
+            </div>
+            <div className="pricing-grid">
+              {PLAN_TIERS.map((plan) => (
+                <article
+                  className={`pricing-card ${plan.highlight ? 'pricing-card-featured' : ''}`}
+                  key={plan.id}
+                >
+                  <div className="pricing-card-heading">
+                    <h3>{plan.name}</h3>
+                    {plan.highlight && <span>매일의 진료에</span>}
+                  </div>
+                  <p className="pricing-tagline">{plan.tagline}</p>
+                  <div className="pricing-price">
+                    <strong>
+                      {plan.monthly === 0
+                        ? '무료'
+                        : formatKRW(isAnnual ? plan.yearly : plan.monthly)}
+                    </strong>
+                    {plan.monthly > 0 && (
+                      <span>원 / {isAnnual ? '년' : '월'}</span>
+                    )}
+                  </div>
+                  <p className="pricing-allowance">
+                    AI 챗봇 월 {formatKRW(plan.includedQueries)}회 포함
+                  </p>
+                  <Link
+                    to="/register"
+                    className={`landing-button ${plan.highlight ? '' : 'landing-button-outline'}`}
+                    onClick={() =>
+                      trackButtonClick(
+                        `landing_plan_${plan.id}_${isAnnual ? 'annual' : 'monthly'}`,
+                      )
+                    }
+                  >
+                    {plan.cta}
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </Link>
+                  <ul>
+                    {plan.features.map((feature) => (
+                      <li key={feature}>
+                        <Check size={15} aria-hidden="true" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <div className="pricing-addon">
+              <div>
+                <span className="addon-label">CLINIC ADD-ON</span>
+                <h3>{BILLING_ADDON.name}</h3>
+                <p>
+                  Clinic 플랜에 별도로 추가하는 부가서비스입니다. 연동·자동
+                  제출의 지원 범위는 도입 전 확인해 주세요.
+                </p>
+              </div>
+              <div>
+                <strong>
+                  {formatKRW(
+                    isAnnual ? BILLING_ADDON.yearly : BILLING_ADDON.monthly,
+                  )}
+                  <span>원 / {isAnnual ? '년' : '월'}</span>
+                </strong>
+                <a
+                  href="mailto:lhs0609c@naver.com?subject=%EC%98%A8%EA%B3%A0%EC%A7%80%EC%8B%A0%20AI%20%EB%8F%84%EC%9E%85%20%EB%AC%B8%EC%9D%98"
+                  onClick={() => trackButtonClick('landing_addon_contact')}
+                >
+                  도입 문의
+                  <ArrowUpRight size={15} aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+            <p className="pricing-note">
+              표시 금액은 부가세 별도입니다. 연 결제 선택 시 연간 총액이
+              표시됩니다.
+              <br />
+              결제일 기준 자동 갱신되며, 해지·환불 조건은{' '}
+              <Link to="/subscription-terms">구독 약관</Link>과{' '}
+              <Link to="/refund-policy">환불정책</Link>에서 확인할 수 있습니다.
+            </p>
+          </details>
+        </section>
+
+        <section
+          id="faq"
+          className="landing-section landing-faq landing-container"
+          aria-labelledby="faq-title"
+        >
+          <div className="faq-heading">
+            <span className="landing-eyebrow">A LITTLE MORE CLARITY</span>
+            <h2 id="faq-title">
+              궁금한 점을
+              <br />
+              남기지 않도록.
+            </h2>
+            <p>도입에 도움이 필요하신가요?</p>
+            <a
+              href="mailto:lhs0609c@naver.com"
+              className="landing-text-link"
+              onClick={() => trackButtonClick('landing_contact')}
+            >
+              이메일로 문의하기
+              <ArrowUpRight size={17} aria-hidden="true" />
+            </a>
+          </div>
+          <div className="faq-list">
+            {FAQS.map((faq, index) => (
+              <div
+                className={`faq-item ${openFaq === index ? 'is-open' : ''}`}
+                key={faq.q}
+              >
+                <h3>
+                  <button
+                    type="button"
+                    id={`faq-trigger-${index}`}
+                    aria-expanded={openFaq === index}
+                    aria-controls={`faq-answer-${index}`}
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  >
+                    {faq.q}
+                    <ChevronDown size={19} aria-hidden="true" />
+                  </button>
+                </h3>
+                <div
+                  id={`faq-answer-${index}`}
+                  role="region"
+                  aria-labelledby={`faq-trigger-${index}`}
+                  hidden={openFaq !== index}
+                >
+                  <p>{faq.a}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="landing-final-cta landing-container"
+          aria-labelledby="final-cta-title"
+        >
+          <div className="final-cta-inner">
+            <span className="landing-eyebrow">
+              YOUR NEXT CHAPTER OF PRACTICE
+            </span>
+            <h2 id="final-cta-title">
+              다음 진료에서 쓸 도구,
+              <br />
+              오늘 무료로 시작하세요.
+            </h2>
+            <p>처방·약재 정보와 AI 챗봇부터 직접 사용해 보세요.</p>
+            <div>
+              <Link
+                to="/register"
+                className="landing-button landing-button-light"
+                data-growth="signup_footer"
+                onClick={() => trackButtonClick('landing_signup_footer')}
+              >
+                무료로 시작하기
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </Link>
+              <button
+                type="button"
+                className="final-try-button"
+                onClick={handleTry}
+              >
+                프로그램 둘러보기
+                <ArrowRight size={17} aria-hidden="true" />
+              </button>
+            </div>
+            <span className="final-cta-note">
+              설치 없이 브라우저에서 · 카드 등록 없이 시작
+            </span>
+          </div>
+          <div className="final-cta-art" aria-hidden="true">
+            <img
+              src="/brand/clinical/clarity-hero-768.webp"
+              alt=""
+              width={768}
+              height={512}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </section>
+        <section
+          className="landing-container landing-desktop-app"
+          aria-labelledby="desktop-app-title"
+        >
+          <div>
+            <h2 id="desktop-app-title">
+              데스크톱 앱
+              <span className="desktop-app-version">v{DESKTOP_VERSION}</span>
+            </h2>
+            <p>
+              Windows · macOS 에 설치해 브라우저 없이 창 하나로 쓰세요. 계정과
+              기록은 웹과 같고, 새 버전은 앱이 알아서 받습니다.
+            </p>
+          </div>
+          <Link
+            to="/download"
+            className="landing-button landing-button-small"
+            data-growth="desktop_download_landing"
+            onClick={() => trackButtonClick('landing_desktop_download')}
+          >
+            <Download size={16} aria-hidden="true" />
+            다운로드
+          </Link>
+        </section>
+      </main>
+      <footer className="landing-footer landing-container">
+        <div className="landing-footer-top">
+          <div>
+            <Brand />
+            <p>
+              오래된 지혜에 새로운 연결을.
+              <br />
+              한의사를 위한 임상 워크스페이스.
+            </p>
+          </div>
+          <nav aria-label="하단 제품 메뉴">
+            <strong>제품</strong>
+            <a href="#demo">제품 체험</a>
+            <a href="#features">주요 기능</a>
+            <a href="#pricing">요금제</a>
+            <Link to="/download">데스크톱 앱 다운로드</Link>
+            <a href="#faq">자주 묻는 질문</a>
+          </nav>
+          <nav aria-label="서비스 정책">
+            <strong>서비스 안내</strong>
+            <Link to="/terms">이용약관</Link>
+            <Link to="/privacy">개인정보처리방침</Link>
+            <Link to="/subscription-terms">구독 약관</Link>
+            <Link to="/refund-policy">환불정책</Link>
+          </nav>
+          <div className="footer-contact">
+            <strong>함께 시작해요</strong>
+            <a href="mailto:lhs0609c@naver.com">
+              lhs0609c@naver.com
+              <ArrowUpRight size={14} aria-hidden="true" />
+            </a>
+            <Link to="/login">
+              기존 회원 로그인
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+        <div className="landing-footer-bottom">
+          <p>
+            본 서비스는 한의사의 임상 의사결정을 보조하는 참고 정보를
+            제공합니다. 모든 진단과 처방의 최종 판단은 한의사가 합니다.
+          </p>
+          <span>© {new Date().getFullYear()} 온고지신 AI</span>
+          {/* 버전 표기 — 문의가 들어왔을 때 "무슨 버전 쓰고 계세요"를 되묻지
+              않으려면, 쓰는 사람이 스스로 찾을 수 있는 자리에 적혀 있어야
+              한다. */}
+          <span className="landing-version">
+            웹 v{APP_VERSION} ({BUILD_DATE}) · 데스크톱 v{DESKTOP_VERSION}
+          </span>
         </div>
       </footer>
     </div>

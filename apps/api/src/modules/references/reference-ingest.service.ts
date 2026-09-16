@@ -111,7 +111,18 @@ export class ReferenceIngestService {
    * 키가 없어도 돈다(초당 3회 제한). 있으면 초당 10회까지 빨라진다.
    * 1만 건은 한 번에 끝나지 않는다 — 주제별 상한을 두고 여러 번 돌려 쌓는다.
    */
-  async harvestPubMed(perTopic = 400, minYear = 2015): Promise<HarvestResult> {
+  async harvestPubMed(
+    perTopic = 400,
+    minYear = 2015,
+    /**
+     * 주제 라벨의 일부. 주면 그 주제만 돈다.
+     *
+     * 주제가 28개라 전체 한 바퀴가 몇 시간이다. 주제 하나를 새로 넣고
+     * 그것만 채우고 싶을 때 나머지 27개를 다시 두드릴 이유가 없다 —
+     * 상류(NCBI)에도 우리에게도 낭비다.
+     */
+    topicFilter?: string | null,
+  ): Promise<HarvestResult> {
     const result = emptyResult(ReferenceSource.PUBMED);
     const client = new PubMedClient({
       apiKey: process.env.NCBI_API_KEY || null,
@@ -125,7 +136,16 @@ export class ReferenceIngestService {
 
     // 치료수단 기준 7개 + 주소증 기준 21개. 주소증 쪽이 없으면 분포가
     // 우연에 맡겨진다 — 실제로 암 보조치료가 견비통의 10배가 됐었다.
-    for (const topic of ALL_TOPICS) {
+    const topics = topicFilter
+      ? ALL_TOPICS.filter((t) => t.label.includes(topicFilter))
+      : ALL_TOPICS;
+    if (topics.length === 0) {
+      throw new Error(
+        `'${topicFilter}' 에 해당하는 주제가 없습니다. 가능한 주제: ${ALL_TOPICS.map((t) => t.label).join(', ')}`,
+      );
+    }
+
+    for (const topic of topics) {
       try {
         const raws = await client.harvestTopic(topic);
         const saved = await this.save(raws);
@@ -157,13 +177,17 @@ export class ReferenceIngestService {
    * 초기 적재도 이걸 여러 번 돌려 쌓는다. 이미 있는 것은 갱신만 되고
    * 중복으로 쌓이지 않으므로 몇 번을 돌려도 안전하다.
    */
-  async harvestNow(perTopic: number, minYear: number): Promise<HarvestResult> {
+  async harvestNow(
+    perTopic: number,
+    minYear: number,
+    topicFilter?: string | null,
+  ): Promise<HarvestResult> {
     if (this.running) {
       throw new Error('이미 수집이 돌고 있습니다. 끝난 뒤 다시 시도해 주세요.');
     }
     this.running = true;
     try {
-      return await this.harvestPubMed(perTopic, minYear);
+      return await this.harvestPubMed(perTopic, minYear, topicFilter);
     } finally {
       this.running = false;
     }

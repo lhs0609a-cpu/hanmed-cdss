@@ -152,12 +152,16 @@ export class PrognosisService {
     constitution?: string,
     formula?: string,
   ): Promise<SimilarCaseStats> {
-    // 유사 케이스 검색을 위한 쿼리 빌더
-    const queryBuilder = this.clinicalCaseRepository.createQueryBuilder('case');
+    // 유사 케이스 검색을 위한 쿼리 빌더.
+    // 목차 줄·강의자료로 판정된 행은 예후 통계의 분모에서 뺀다 —
+    // 그런 행에는 실제 경과가 없어 완치율을 그만큼 흐린다.
+    const queryBuilder = this.clinicalCaseRepository
+      .createQueryBuilder('case')
+      .where('case."excludedReason" IS NULL');
 
     // 기본 조건: 증상 일치
     if (symptoms.length > 0) {
-      queryBuilder.where(
+      queryBuilder.andWhere(
         `case.symptoms::text ILIKE ANY(ARRAY[:...symptoms])`,
         { symptoms: symptoms.map(s => `%${s}%`) },
       );

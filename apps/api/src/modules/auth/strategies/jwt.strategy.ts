@@ -48,10 +48,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user.subscriptionExpiresAt !== undefined &&
       new Date(user.subscriptionExpiresAt) < new Date();
 
+    // 체험 계정인가.
+    //
+    // 만료 강등과 같은 자리에서 판정한다. 이 값이 req.user 의 출처라서,
+    // 가드마다 따로 물으면 언젠가 한 곳이 빠진다. 그리고 빠진 그 한 곳이
+    // 모두가 나눠 쓰는 계정에 환자 정보를 받아 준다 — 실제로 그랬다.
+    const isDemo =
+      user.email ===
+      (process.env.DEMO_USER_EMAIL || 'demo@ongojisin.ai');
+
     return {
       id: user.id,
       email: user.email,
       name: user.name,
+      isDemo,
       subscriptionTier: expired ? SubscriptionTier.FREE : user.subscriptionTier,
       // 화면이 "구독이 만료됐다" 와 "원래 무료다" 를 구분해 안내할 수 있어야 한다.
       subscriptionExpired: expired,

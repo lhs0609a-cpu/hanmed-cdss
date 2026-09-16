@@ -228,10 +228,73 @@ export const PLAN_FEATURES: Record<SubscriptionTier, ReadonlySet<FeatureKey>> = 
 };
 
 /**
+ * 체험(데모) 계정이 쓸 수 있는 기능.
+ *
+ * 데모는 요금제가 아니라 맛보기다. 티어와 따로 두는 이유가 둘 있다.
+ *
+ * 하나, 데모 계정은 하나를 모든 방문자가 나눠 쓴다(demo@ongojisin.ai).
+ * 그런데 free 티어에 PATIENT_MANAGEMENT 가 열려 있어서, 체험해 본 사람이
+ * 넣은 환자 정보를 다음 방문자가 그대로 봤다. 실제로 환자 14명·진료기록
+ * 13건이 나흘에 걸쳐 쌓여 있었다. 남의 진료 기록이 보이는 화면을 체험이라고
+ * 부를 수는 없다.
+ *
+ * 둘, 데모가 free 와 같으면 가입할 이유가 없다. 이 제품이 파는 것은
+ * "증상을 넣으면 처방과 그 근거가 나온다"이고, 체험은 그 한 줄기를 끝까지
+ * 보여주면 된다. 나머지는 잠가서 무엇을 얻는지 보이게 한다.
+ *
+ * 여는 것 — 증상 검색 → 변증 → 처방 추천 → 근거 치험례, 그리고 적색신호.
+ * 적색신호를 빼지 않는 이유: 처방 추천에 딸린 안전 경고라, 추천만 보여주고
+ * 경고를 가리면 체험이 실제보다 위험해 보이는 게 아니라 위험해진다.
+ *
+ * 잠그는 것 — 환자 명부·진료 기록(공유 계정이라 애초에 못 쓴다), 커뮤니티,
+ * 침구 혈자리, 한약재 상세, AI 챗봇, 그리고 유료 기능 전부.
+ */
+export const DEMO_FEATURES: ReadonlySet<FeatureKey> = new Set<FeatureKey>([
+  FeatureKey.SYMPTOM_SEARCH,
+  FeatureKey.DIAGNOSIS,
+  FeatureKey.PRESCRIPTION_RECOMMEND,
+  FeatureKey.CASE_SEARCH,
+  FeatureKey.RED_FLAG,
+]);
+
+/**
+ * 체험 계정에서 열람할 수 있는 치험례 수.
+ *
+ * 검색은 열어 두되 훑기는 막는다 — 16,000건이 있다는 것은 보여야 가입할
+ * 이유가 되고, 전부 보여 주면 가입할 이유가 없어진다. free 의 60건(3페이지)
+ * 보다 좁게 잡는다.
+ */
+export const DEMO_CASE_VIEW_LIMIT = 10;
+
+/**
  * 단일 헬퍼: 티어가 특정 기능에 접근 가능한가?
  */
 export function tierHasFeature(tier: SubscriptionTier, key: FeatureKey): boolean {
   return PLAN_FEATURES[tier]?.has(key) ?? false;
+}
+
+/**
+ * 이 요청자가 쓸 수 있는 기능 집합.
+ *
+ * 게이트가 여러 군데(FeatureGuard, 구독 정보 응답, 치험례 한도)에서 같은
+ * 판단을 해야 해서 한 곳에 둔다. 데모냐 아니냐를 가드마다 따로 물으면
+ * 언젠가 한 곳이 빠지고, 빠진 그 한 곳이 공유 계정을 다시 열어 준다.
+ */
+export function featuresFor(
+  tier: SubscriptionTier,
+  isDemo = false,
+): ReadonlySet<FeatureKey> {
+  if (isDemo) return DEMO_FEATURES;
+  return PLAN_FEATURES[tier] ?? PLAN_FEATURES[SubscriptionTier.FREE];
+}
+
+/** 이 요청자가 이 기능을 쓸 수 있는가. */
+export function canUseFeature(
+  tier: SubscriptionTier,
+  key: FeatureKey,
+  isDemo = false,
+): boolean {
+  return featuresFor(tier, isDemo).has(key);
 }
 
 /**
