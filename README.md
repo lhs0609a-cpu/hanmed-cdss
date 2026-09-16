@@ -30,7 +30,8 @@ hanmed-cdss/
 ├── apps/
 │   ├── web/              # React 프론트엔드
 │   ├── api/              # NestJS 백엔드
-│   └── ai-engine/        # FastAPI AI 서비스
+│   ├── ai-engine/        # FastAPI AI 서비스
+│   └── desktop/          # Electron 데스크톱 셸 (Windows/macOS 설치 파일)
 ├── packages/
 │   └── shared-types/     # 공유 타입
 ├── tools/
@@ -95,6 +96,27 @@ pnpm docker:logs  # 로그 확인
 pnpm db:migrate   # 마이그레이션 실행
 pnpm db:seed      # 시드 데이터 삽입
 ```
+
+## 데스크톱 앱 배포
+
+사용자는 홈페이지의 `/download` 에서 Windows · macOS 설치 파일을 받는다. 그 페이지는
+GitHub 릴리스를 읽어 버튼을 그리므로, **릴리스가 없으면 받을 파일도 없다.**
+
+새 버전을 내보내는 순서:
+
+```bash
+# 1. apps/desktop/package.json 의 version 을 올린다 (버전의 유일한 출처)
+# 2. 같은 번호로 태그를 밀면 끝
+git commit -am "chore(desktop): v1.1.0"
+git tag v1.1.0 && git push && git push --tags
+```
+
+`.github/workflows/release-desktop.yml` 이 두 OS 에서 빌드해 릴리스에 파일을 붙인다.
+자세한 내용과 서명·아이콘 이야기는 [apps/desktop/README.md](apps/desktop/README.md).
+
+화면에 나가는 버전 숫자는 손으로 적지 않는다. `apps/web/vite.config.ts` 가 빌드
+시점에 `apps/web/package.json` 과 `apps/desktop/package.json` 을 읽어 넣고,
+`apps/web/src/config/version.ts` 를 거쳐 랜딩 푸터와 `/download` 에 나온다.
 
 ## 환경 변수
 
