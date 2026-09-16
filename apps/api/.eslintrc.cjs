@@ -47,6 +47,11 @@ module.exports = {
     '@typescript-eslint/no-empty-interface': 'warn',
     '@typescript-eslint/ban-ts-comment': 'warn',
     '@typescript-eslint/no-var-requires': 'warn',
+    // 고전 의안을 다루는 코드의 주석에는 원문이 그대로 인용되고, 거기에는
+    // 전각 공백(U+3000)이 구분자로 들어 있다. 주석에서까지 에러로 잡으면
+    // 인용문을 고쳐 쓰게 되고, 그러면 무엇을 구분자로 삼는지가 사라진다.
+    // 코드에서는 여전히 에러다 — 정규식에는 \u3000 으로 적는다.
+    'no-irregular-whitespace': ['error', { skipComments: true }],
     'no-empty': ['error', { allowEmptyCatch: true }],
     'no-console': 'off',
   },
