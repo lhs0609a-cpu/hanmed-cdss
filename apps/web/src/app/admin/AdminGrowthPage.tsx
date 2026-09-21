@@ -30,6 +30,8 @@ type Session = {
   journey: { type: string; page: string; at: string }[]
 }
 type Report = {
+  excludedQaSessions?: number
+  demoFunnel?: { type: string; count: number; conversion: number | null }[]
   summary: {
     visitors: number
     recentVisitors?: number
@@ -93,6 +95,8 @@ const labels: Record<string, string> = {
   signup_success: '가입 완료',
   feature_used: '기능 사용',
   demo_completed: '샘플 체험 완료',
+  demo_viewed: '샘플 결과 노출',
+  demo_started: '샘플 조작 시작',
   signup_error: '가입 오류',
   login_success: '로그인 완료',
   login_error: '로그인 오류',
@@ -196,6 +200,12 @@ export default function AdminGrowthPage() {
   return (
     <div className="space-y-6 text-slate-900">
       <GrowthLivePanel />
+      {data?.excludedQaSessions !== undefined && <p className="text-sm text-slate-500">기간 분석에서 QA {data.excludedQaSessions}세션 제외 · QA 표식이 있는 세션 전체를 제외합니다.</p>}
+      {data?.demoFunnel && <section className={card}>
+        <h2 className="font-semibold">샘플 체험 → 가입</h2>
+        <p className="my-3 text-sm text-slate-500">결과가 화면에 노출된 뒤 탭 또는 다음 버튼 조작 → 3개 항목 확인 → 가입 입력 → 가입 완료 순서입니다. 같은 세션 안의 순차 전환이며, 새 계측 적용 후 기록부터 표시합니다.</p>
+        <Table headers={['단계', '세션', '이전 단계 대비']} rows={data.demoFunnel.map(step => [labels[step.type] || step.type, step.count, rate(step.conversion)])} />
+      </section>}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">유입 · 전환 분석</h1>

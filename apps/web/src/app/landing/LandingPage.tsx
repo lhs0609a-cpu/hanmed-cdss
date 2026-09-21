@@ -43,6 +43,9 @@ const NAV: { href?: string; to?: string; label: string }[] = [
   { href: '#pricing', label: '요금제' },
   { to: '/download', label: '데스크톱 앱' },
 ]
+/** 클릭 기록에 쓸 메뉴 이름. 앵커(#demo)와 라우트(/download)를 같은 규칙으로 줄인다. */
+const navSlug = (item: { href?: string; to?: string }) =>
+  (item.href ?? item.to ?? '').replace(/[^a-z0-9]/gi, '')
 const PRODUCT_VIEWS = [
   {
     title: '변증 후보 추론',
@@ -166,11 +169,19 @@ export default function LandingPage() {
           <nav className="landing-desktop-nav" aria-label="주 메뉴">
             {NAV.map((item) =>
               item.to ? (
-                <Link key={item.label} to={item.to}>
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  data-growth={`nav_${navSlug(item)}`}
+                >
                   {item.label}
                 </Link>
               ) : (
-                <a key={item.label} href={item.href}>
+                <a
+                  key={item.label}
+                  href={item.href}
+                  data-growth={`nav_${navSlug(item)}`}
+                >
                   {item.label}
                 </a>
               ),
@@ -197,6 +208,7 @@ export default function LandingPage() {
             aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
             aria-expanded={mobileMenuOpen}
             aria-controls="landing-mobile-nav"
+            data-growth="mobile_menu_toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -208,11 +220,13 @@ export default function LandingPage() {
             id="landing-mobile-nav"
             aria-label="모바일 메뉴"
           >
+
             {NAV.map((item) =>
               item.to ? (
                 <Link
                   to={item.to}
                   key={item.label}
+                  data-growth={`nav_mobile_${navSlug(item)}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
@@ -222,6 +236,7 @@ export default function LandingPage() {
                 <a
                   href={item.href}
                   key={item.label}
+                  data-growth={`nav_mobile_${navSlug(item)}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
@@ -271,7 +286,7 @@ export default function LandingPage() {
                 data-growth="demo_start"
                 onClick={() => trackButtonClick('landing_demo_start')}
               >
-                가입 없이 샘플 보기 <ArrowDown size={17} aria-hidden="true" />
+                가입 없이 증례 1개 보기 <ArrowDown size={17} aria-hidden="true" />
               </a>
               <Link
                 to="/register"
@@ -466,6 +481,7 @@ export default function LandingPage() {
                   type="button"
                   className="landing-text-link"
                   onClick={handleTry}
+                  data-growth="guest_product"
                 >
                   실제 프로그램 둘러보기
                   <ArrowUpRight size={17} aria-hidden="true" />
@@ -481,6 +497,7 @@ export default function LandingPage() {
                       role="tab"
                       key={label}
                       id={`product-tab-${index}`}
+                      data-growth={`product_tab_${index}`}
                       aria-selected={productView === index}
                       aria-controls="product-screen-panel"
                       tabIndex={productView === index ? 0 : -1}
@@ -599,6 +616,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 aria-pressed={!isAnnual}
+                data-growth="billing_monthly"
                 onClick={() => {
                   setIsAnnual(false)
                   trackButtonClick('landing_billing_monthly')
@@ -609,6 +627,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 aria-pressed={isAnnual}
+                data-growth="billing_annual"
                 onClick={() => {
                   setIsAnnual(true)
                   trackButtonClick('landing_billing_annual')
@@ -732,6 +751,7 @@ export default function LandingPage() {
                   <button
                     type="button"
                     id={`faq-trigger-${index}`}
+                    data-growth={`faq_${index}`}
                     aria-expanded={openFaq === index}
                     aria-controls={`faq-answer-${index}`}
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
@@ -780,6 +800,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 className="final-try-button"
+                data-growth="guest_footer"
                 onClick={handleTry}
               >
                 프로그램 둘러보기

@@ -7,6 +7,7 @@ import {
   isMarketingPage,
   trackGrowth,
 } from '@/lib/growth'
+import { startWebVitals } from '@/lib/vitals'
 
 export function GrowthTracker() {
   const { pathname } = useLocation()
@@ -87,8 +88,9 @@ export function GrowthTracker() {
         height: document.documentElement.scrollHeight,
       })
     }
-    const formStart = () => {
-      if (pathname === '/register' && !started) {
+    const formStart = (event: FocusEvent) => {
+      const field = event.target
+      if (pathname === '/register' && !started && field instanceof Element && field.matches('input:not([type="submit"]):not([type="button"]), select, textarea')) {
         started = true
         trackGrowth('signup_start')
       }
@@ -97,12 +99,33 @@ export function GrowthTracker() {
       if (pathname === '/register')
         trackGrowth('signup_error', { code: 'browser_validation' })
     }
-    const error = () => trackGrowth('client_error', { code: 'runtime' })
+    // 'runtime' 하나로 뭉뚱그리면 재현할 수 없다. 오류 이름은 알파벳만
+    // 남겨 보내고, 다른 출처 스크립트가 가려 버린 오류는 따로 표시한다.
+    const errorCode = (value: unknown, event?: ErrorEvent) => {
+      if (value instanceof Error) {
+        const name = value.name.replace(/[^a-zA-Z]/g, '').toLowerCase()
+        return `runtime_${name || 'error'}`.slice(0, 80)
+      }
+      if (event && !event.filename) return 'runtime_crossorigin'
+      return 'runtime'
+    }
+    const error = (event: ErrorEvent) => {
+      trackGrowth('client_error', {
+        code: errorCode(event.error, event),
+        target: 'landing_20260916',
+      })
+    }
+    const rejection = (event: PromiseRejectionEvent) =>
+      trackGrowth('client_error', {
+        code: `rejection_${errorCode(event.reason)}`.slice(0, 80),
+        target: 'landing_20260916',
+      })
     // Delay initial event so StrictMode's discarded effect cannot double-count views.
     const first = setTimeout(() => {
       viewed = true
       trackGrowth('page_view', { viewId })
       update()
+      startWebVitals()
     }, 0)
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') engagement()
@@ -114,7 +137,7 @@ export function GrowthTracker() {
     document.addEventListener('invalid', invalid, true)
     window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('error', error)
-    window.addEventListener('unhandledrejection', error)
+    window.addEventListener('unhandledrejection', rejection)
     return () => {
       clearTimeout(first)
       clearInterval(interval)
@@ -127,7 +150,7 @@ export function GrowthTracker() {
       document.removeEventListener('invalid', invalid, true)
       window.removeEventListener('scroll', update)
       window.removeEventListener('error', error)
-      window.removeEventListener('unhandledrejection', error)
+      window.removeEventListener('unhandledrejection', rejection)
     }
   }, [pathname])
   return null

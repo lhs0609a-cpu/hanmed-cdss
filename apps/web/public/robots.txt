@@ -3,5 +3,13 @@ Allow: /
 Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /api/
+# 토큰이 들어간 공유 링크는 색인되면 안 된다.
+Disallow: /guide/
+Disallow: /t/
+Disallow: /health/saju/report/
+Disallow: /health/saju/payment
+Disallow: /patient/
+Disallow: /reset-password
+Disallow: /welcome/
 
 Sitemap: https://ongojisin.ai/sitemap.xml

@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, BookOpen, Check, Search } from 'lucide-react'
 
 export type DemoEvent =
+  | 'demo_viewed'
+  | 'demo_started'
   | 'demo_step_selected'
   | 'demo_evidence_opened'
   | 'demo_completed'
@@ -18,10 +20,33 @@ export function ClinicalDemo({
   onTry: () => void
 }) {
   const [tab, setTab] = useState(0)
+  const panel = useRef<HTMLDivElement>(null)
+  const viewed = useRef(false)
+  const started = useRef(false)
+  const notify = useRef(onEvent)
+  notify.current = onEvent
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting) && !viewed.current) {
+        viewed.current = true
+        notify.current('demo_viewed', 'digestion')
+      }
+    }, { threshold: 0.5 })
+    if (panel.current) observer.observe(panel.current)
+    return () => observer.disconnect()
+  }, [])
   const visited = useRef(new Set([0]))
   const completed = useRef(false)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
   function select(index: number) {
+    if (!viewed.current) {
+      viewed.current = true
+      onEvent('demo_viewed', 'digestion')
+    }
+    if (!started.current) {
+      started.current = true
+      onEvent('demo_started', 'digestion')
+    }
     setTab(index)
     visited.current.add(index)
     onEvent('demo_step_selected', `digestion:${index + 1}`)
@@ -96,6 +121,7 @@ export function ClinicalDemo({
           role="tabpanel"
           aria-labelledby={`sample-tab-${tab}`}
           className="case-panel"
+          ref={panel}
           tabIndex={0}
         >
           {tab === 0 && (
@@ -188,7 +214,8 @@ export function ClinicalDemo({
       </div>
       <div className="case-conversion">
         <div>
-          <strong>이제 진료에 필요한 도구를 직접 써보세요.</strong>
+          <strong>다음에는 필요한 처방·약재 정보를 직접 찾아보세요.</strong>
+          <p>무료 계정으로 처방·약재 데이터베이스를 열람하고 AI 챗봇에 질문할 수 있습니다.</p>
           <p>
             <Check size={15} /> 무료 플랜 · AI 챗봇 월 50회 · 카드 등록 없음
           </p>
@@ -198,7 +225,7 @@ export function ClinicalDemo({
           className="landing-button"
           data-growth="signup_after_demo"
         >
-          무료 계정 만들기 <ArrowRight size={17} />
+          무료 계정으로 시작하기 <ArrowRight size={17} />
         </Link>
         <button
           type="button"
