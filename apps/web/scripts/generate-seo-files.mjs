@@ -23,6 +23,8 @@ const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../public')
 const ROUTES = [
   { path: '/', lastmod: '2026-09-21' },
   { path: '/register', lastmod: '2026-09-21' },
+  { path: '/cases', lastmod: '2026-09-21' },
+  { path: '/formulas', lastmod: '2026-09-21' },
   { path: '/health', lastmod: '2026-09-21' },
   { path: '/health/community', lastmod: '2026-09-21' },
   { path: '/health/qna', lastmod: '2026-09-21' },
