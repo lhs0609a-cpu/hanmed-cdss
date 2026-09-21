@@ -1,43 +1,49 @@
 /**
  * 공개 페이지를 진짜 HTML 로 구워 낸다. `vite build` 뒤에 돈다.
  *
- * 왜 프리렌더인가 — 이 사이트는 순수 SPA 라 본문이 JS 실행 뒤에야 생긴다.
- * 수천 쪽을 그렇게 올리면 크롤러가 렌더링 예산을 쓰느라 색인이 느리고
- * 들쭉날쭉하다. 공개 대상인 고전 의안은 1746년 기록이라 내용이 변하지
- * 않으므로, 런타임 함수를 두는 것보다 빌드 때 굽는 편이 단순하고 싸다.
+ * 왜 프리렌더인가 — 이 사이트는 순수 SPA 라 본문이 JS 실행 뒤에야 생기고,
+ * index.html 의 머리말은 모든 경로에서 홈의 것이다. 그대로 두면 수천 쪽이
+ * "나는 홈의 사본" 이라고 선언하며 나간다. 사이트맵에 실어 놓고 색인하지
+ * 말라고 말하는 셈이다.
+ *
+ * 세 종류를 굽는다.
+ *   - 고정 경로: 머리말만 제 것으로 바꾼다. 본문은 React 가 그린다.
+ *   - 고전 의안·처방: 본문까지 굽는다. 1746년 기록이라 내용이 안 변한다.
+ *   - 증상 체크·체질 TMI: 앱과 같은 모듈로 같은 값을 계산해 굽는다.
  *
  * 크롤러와 사람에게 같은 것을 준다. 크롤러에만 전문을 주면 클로킹이라
  * 색인에서 빠진다 — 가려진 부분은 isAccessibleForFree:false 로 선언한다.
- *
- * API 가 죽어 있어도 빌드를 깨뜨리지 않는다. 경고만 남기고 정적 경로만
- * 담은 사이트맵으로 끝낸다. 콘텐츠 하나 때문에 배포 전체가 막히면 안 된다.
  */
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { build } from 'esbuild'
+import { ORIGIN, STATIC_ROUTES } from './public-routes.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const DIST = resolve(HERE, '../dist')
-const ORIGIN = 'https://www.ongojisin.co.kr'
+const WEB = resolve(HERE, '..')
+const DIST = resolve(WEB, 'dist')
 const API =
   process.env.PRERENDER_API_URL || 'https://api.ongojisin.co.kr/api/v1'
 
-/** 정적 경로 — generate-seo-files.mjs 와 같은 목록이어야 한다. */
-const STATIC_ROUTES = [
-  { path: '/', lastmod: '2026-09-21' },
-  { path: '/register', lastmod: '2026-09-21' },
-  { path: '/cases', lastmod: '2026-09-21' },
-  { path: '/formulas', lastmod: '2026-09-21' },
-  { path: '/health', lastmod: '2026-09-21' },
-  { path: '/health/community', lastmod: '2026-09-21' },
-  { path: '/health/qna', lastmod: '2026-09-21' },
-  { path: '/health/tmi', lastmod: '2026-09-21' },
-  { path: '/health/saju', lastmod: '2026-09-21' },
-  { path: '/terms', lastmod: '2026-09-08' },
-  { path: '/privacy', lastmod: '2026-09-08' },
-  { path: '/refund-policy', lastmod: '2026-09-08' },
-  { path: '/subscription-terms', lastmod: '2026-09-08' },
-]
+/**
+ * API 가 죽어 있으면 빌드를 세운다.
+ *
+ * 예전에는 경고만 남기고 정적 경로 13개짜리 사이트맵으로 끝냈다. 조용히
+ * 성공하는 바람에 3,883쪽이 빠진 채 배포되었고 몇 주 동안 아무도 몰랐다.
+ * 빌드가 실패하면 직전 배포가 그대로 살아 있다 — 콘텐츠가 통째로 빠진
+ * 것이 새로 올라가는 것보다 낫다.
+ *
+ * API 가 아직 없는 첫 배포에서만 PRERENDER_ALLOW_EMPTY=1 로 넘어간다.
+ */
+const ALLOW_EMPTY = process.env.PRERENDER_ALLOW_EMPTY === '1'
+
+/**
+ * 체질 TMI 는 7천 쪽이라 배포 용량의 대부분(~45MB)을 차지한다. 호스팅이
+ * 파일 수나 용량에서 걸리면 PRERENDER_TMI=none 으로 끈다 — 사이트맵과
+ * 주소는 그대로 남고, 머리말은 useSEO 가 브라우저에서 고쳐 준다.
+ */
+const PRERENDER_TMI = process.env.PRERENDER_TMI !== 'none'
 
 const escape = (value) =>
   String(value ?? '')
@@ -46,14 +52,55 @@ const escape = (value) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
 
-async function getJson(path) {
-  const res = await fetch(`${API}${path}`, {
-    headers: { accept: 'application/json' },
+/**
+ * 앱의 TS 모듈을 그대로 빌려 쓴다.
+ *
+ * 체질·사주 계산을 이 스크립트에 베껴 두면 앱이 바뀔 때 구워 둔 쪽만
+ * 옛값을 들고 남는다 — 크롤러와 사람이 다른 것을 보게 된다.
+ */
+async function loadAppModule(entry) {
+  const outfile = resolve(
+    WEB,
+    'node_modules/.cache/prerender',
+    `${entry.replace(/[^\w]/g, '_')}.mjs`,
+  )
+  await build({
+    entryPoints: [resolve(WEB, 'src', entry)],
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile,
+    alias: { '@': resolve(WEB, 'src') },
+    logLevel: 'error',
   })
-  if (!res.ok) throw new Error(`${path} → ${res.status}`)
-  const body = await res.json()
-  // 이 API 는 성공 응답을 { success, data } 로 감싼다.
-  return body && typeof body === 'object' && 'data' in body ? body.data : body
+  return import(pathToFileURL(outfile).href)
+}
+
+/** 배포 직후라 API 가 아직 안 떴을 수 있다. 몇 번 기다려 준다. */
+async function getJson(path, attempt = 1) {
+  try {
+    const res = await fetch(`${API}${path}`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!res.ok) {
+      const error = new Error(`${path} → ${res.status}`)
+      // 4xx 는 다시 물어도 같은 답이다. 429 만 기다릴 값어치가 있다.
+      error.permanent = res.status >= 400 && res.status < 500 && res.status !== 429
+      throw error
+    }
+    const body = await res.json()
+    // 이 API 는 성공 응답을 { success, data } 로 감싼다.
+    return body && typeof body === 'object' && 'data' in body ? body.data : body
+  } catch (error) {
+    if (error.permanent || attempt > 3) throw error
+    const wait = attempt * 5000
+    console.warn(
+      `prerender: ${error.message} — ${wait / 1000}초 뒤 다시 (${attempt}/3)`,
+    )
+    await new Promise((done) => setTimeout(done, wait))
+    return getJson(path, attempt + 1)
+  }
 }
 
 /** 목록 끝까지 따라간다. 한 번에 주는 최대치가 50 이다. */
@@ -81,6 +128,7 @@ function loadShell() {
 /**
  * 껍데기의 머리말을 이 쪽 내용으로 바꾸고, #root 안에 본문을 심는다.
  * React 가 붙으면 같은 내용으로 다시 그리므로 화면이 튀지 않는다.
+ * bodyHtml 이 없으면 머리말만 고친다 — 본문은 React 에 맡긴다.
  */
 function renderPage(shell, { url, title, description, bodyHtml, jsonLd }) {
   // 치환이 안 되면 모든 쪽이 홈의 제목·canonical 을 달고 나간다. 조용히
@@ -127,12 +175,15 @@ function renderPage(shell, { url, title, description, bodyHtml, jsonLd }) {
     `<meta property="og:description" content="${escape(description)}" />`,
     'og:description',
   )
-  html = swap(
-    html,
-    /<\/head>/,
-    `  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n  </head>`,
-    '</head>',
-  )
+  if (jsonLd) {
+    html = swap(
+      html,
+      /<\/head>/,
+      `  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n  </head>`,
+      '</head>',
+    )
+  }
+  if (!bodyHtml) return html
   return swap(
     html,
     /<div id="root"><\/div>/,
@@ -224,17 +275,100 @@ function formulaPage(teaser) {
   }
 }
 
+/** 증상 셀프체크. 사람들이 검색창에 치는 말이 그대로 제목이다. */
+function healthCheckPage(check) {
+  const url = `${ORIGIN}/health/check/${encodeURIComponent(check.slug)}`
+  const km = check.result.koreanMedicine
+  return {
+    url,
+    title: `${check.title} | 온고지신 AI`,
+    description: `${check.subtitle} — ${check.description}`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: check.title,
+      url,
+      inLanguage: 'ko',
+      description: check.description,
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <p class="prerender-kicker">${escape(check.category)} · 약 ${escape(check.estimatedMinutes)}분</p>
+        <h1>${escape(check.title)}</h1>
+        <p>${escape(check.subtitle)}</p>
+        <p>${escape(check.description)}</p>
+        <h2>이런 것을 확인합니다</h2>
+        <ul>${check.questions.map((q) => `<li>${escape(q)}</li>`).join('')}</ul>
+        <h2>한의학에서는</h2>
+        <p><strong>${escape(km.term)}(${escape(km.termHanja)})</strong> — ${escape(km.explanation)}</p>
+        <p class="prerender-note">스스로 확인해 보는 도구입니다. 진단이 아니며, 증상이 이어지면 의료기관에서 진료받으세요.</p>
+      </article>`,
+  }
+}
+
+/**
+ * 체질 TMI.
+ *
+ * 실존 인물의 이름으로 검색되는 쪽이다. 공개된 생년월일에서 기계적으로
+ * 뽑은 추론이지 본인이 밝힌 건강 정보가 아니므로, 그 사실을 본문과 구조화
+ * 데이터 양쪽에 적는다 — 검색 결과에 이름과 함께 뜨는 쪽이기 때문이다.
+ */
+function celebPage(celeb, analysis, info) {
+  const url = `${ORIGIN}/health/tmi/${encodeURIComponent(celeb.id)}`
+  const aside = '공개된 생년월일로 계산한 추론이며, 본인이 밝힌 건강 정보가 아닙니다.'
+  const strongest = Object.entries(analysis.balance).sort(
+    (a, b) => b[1] - a[1],
+  )[0][0]
+  const description = `${celeb.name}의 생년월일로 본 사주 오행과 추론 체질(${info.name}). ${aside}`
+  return {
+    url,
+    title: `${celeb.name} 체질 — 사주로 본 ${info.name} | 온고지신 AI`,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: `${celeb.name} 체질 — 사주로 본 ${info.name}`,
+      url,
+      inLanguage: 'ko',
+      description,
+      disambiguatingDescription: aside,
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <p class="prerender-kicker">${escape(celeb.group ?? celeb.category)}</p>
+        <h1>${escape(celeb.name)} — ${escape(info.name)}</h1>
+        <dl>
+          <dt>생년월일</dt><dd>${escape(celeb.birthDate)}</dd>
+          <dt>추론 체질</dt><dd>${escape(info.name)}(${escape(info.nameHanja)}) · ${escape(info.nickname)}</dd>
+          <dt>강한 오행</dt><dd>${escape(strongest)}</dd>
+          <dt>강한 장부</dt><dd>${escape(analysis.health.strongOrgan)}</dd>
+          <dt>약한 장부</dt><dd>${escape(analysis.health.weakOrgan)}</dd>
+        </dl>
+        <p>${escape(info.description)}</p>
+        <p class="prerender-note">공개된 생년월일로 사주 오행을 계산해 사상체질을 추론한 재미 콘텐츠입니다. ${escape(aside)} 진단이 아닙니다.</p>
+      </article>`,
+  }
+}
+
 function write(routePath, html) {
   const dir = resolve(DIST, `.${routePath}`)
   mkdirSync(dir, { recursive: true })
   writeFileSync(resolve(dir, 'index.html'), html)
 }
 
+/**
+ * 사이트맵의 주소는 canonical 과 한 글자도 다르지 않아야 한다. 한글
+ * 경로를 이쪽은 원문으로, canonical 은 퍼센트 인코딩으로 적으면 크롤러가
+ * 같은 쪽인지 한 번 더 판단해야 한다 — 굳이 물어볼 일을 만들지 않는다.
+ */
+const encodePath = (path) =>
+  path.split('/').map(encodeURIComponent).join('/')
+
 function writeSitemap(routes) {
   const body = routes
     .map(
       (r) =>
-        `  <url>\n    <loc>${escape(ORIGIN + (r.path === '/' ? '' : r.path))}</loc>\n    <lastmod>${r.lastmod}</lastmod>\n  </url>`,
+        `  <url>\n    <loc>${escape(ORIGIN + (r.path === '/' ? '' : encodePath(r.path)))}</loc>\n    <lastmod>${r.lastmod}</lastmod>\n  </url>`,
     )
     .join('\n')
   writeFileSync(
@@ -243,9 +377,68 @@ function writeSitemap(routes) {
   )
 }
 
+/** 고정 경로 — 머리말만 제 것으로 바꾼다. */
+function writeStaticRoutes(shell, routes) {
+  for (const route of STATIC_ROUTES) {
+    routes.push({ path: route.path, lastmod: route.lastmod })
+    if (route.skipPrerender) continue
+    write(
+      route.path,
+      renderPage(shell, {
+        url: ORIGIN + route.path,
+        title: route.title,
+        description: route.description,
+      }),
+    )
+  }
+}
+
+/** 앱 데이터로 굽는 쪽 — 증상 체크와 체질 TMI. 그린 수를 돌려준다. */
+async function writeAppDataRoutes(shell, routes, today) {
+  const [{ healthChecks }, celebs, { CONSTITUTIONS }, saju, { CODE_TO_TYPE }] =
+    await Promise.all([
+      loadAppModule('data/healthChecks.ts'),
+      loadAppModule('data/celebs/index.ts').then((m) => m.getAllCelebrities()),
+      loadAppModule('data/constitutions.ts'),
+      loadAppModule('lib/saju.ts'),
+      loadAppModule('data/celebs/types.ts'),
+    ])
+
+  for (const check of healthChecks) {
+    const path = `/health/check/${check.slug}`
+    write(path, renderPage(shell, healthCheckPage(check)))
+    routes.push({ path, lastmod: today })
+  }
+
+  let tmi = 0
+  for (const celeb of celebs) {
+    const path = `/health/tmi/${celeb.id}`
+    if (!PRERENDER_TMI) {
+      routes.push({ path, lastmod: today })
+      continue
+    }
+    // 화면과 같은 함수로 같은 값을 얻는다. celeb.constitution 은 미리
+    // 계산해 둔 코드라 화면이 쓰는 값과 어긋날 수 있어 보조로만 쓴다.
+    const analysis = saju.analyzeProfile(celeb.birthDate, celeb.birthHour)
+    const info =
+      CONSTITUTIONS[analysis.health.constitution] ??
+      CONSTITUTIONS[CODE_TO_TYPE[celeb.constitution]]
+    if (!info) continue
+    write(path, renderPage(shell, celebPage(celeb, analysis, info)))
+    routes.push({ path, lastmod: today })
+    tmi++
+  }
+  return { checks: healthChecks.length, tmi }
+}
+
 async function main() {
   const shell = loadShell()
-  const routes = [...STATIC_ROUTES]
+  const routes = []
+  const today = new Date().toISOString().slice(0, 10)
+
+  writeStaticRoutes(shell, routes)
+  const app = await writeAppDataRoutes(shell, routes, today)
+
   let cases = []
   let formulas = []
   let stamps = { cases: [], formulas: [] }
@@ -256,10 +449,19 @@ async function main() {
       getJson('/public/sitemap-entries'),
     ])
   } catch (error) {
+    if (!ALLOW_EMPTY)
+      throw new Error(
+        `공개 콘텐츠를 못 받았다 (${error.message}).\n` +
+          `  API(${API}) 가 떴는지 확인하고 다시 배포할 것.\n` +
+          `  API 가 아직 없는 첫 배포라면 PRERENDER_ALLOW_EMPTY=1 로 넘어간다.`,
+      )
     console.warn(
-      `prerender: 공개 콘텐츠를 못 받았다 (${error.message}). 정적 경로만 싣는다.`,
+      `prerender: 공개 콘텐츠를 못 받았다 (${error.message}). 의안·처방 3,800여 쪽이 빠진 채로 나간다.`,
     )
     writeSitemap(routes)
+    console.log(
+      `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, 체질 TMI ${app.tmi}쪽, 의안·처방 0쪽`,
+    )
     return
   }
 
@@ -270,26 +472,26 @@ async function main() {
     ...stamps.cases.map((e) => [`/cases/${e.slug}`, e.lastmod]),
     ...stamps.formulas.map((e) => [`/formulas/${e.slug}`, e.lastmod]),
   ])
-  const fallback = new Date().toISOString().slice(0, 10)
 
   for (const teaser of cases) {
     const path = `/cases/${teaser.slug}`
     write(path, renderPage(shell, casePage(teaser)))
-    routes.push({ path, lastmod: lastmod.get(path) ?? fallback })
+    routes.push({ path, lastmod: lastmod.get(path) ?? today })
   }
   for (const teaser of formulas) {
     const path = `/formulas/${teaser.slug}`
     write(path, renderPage(shell, formulaPage(teaser)))
-    routes.push({ path, lastmod: lastmod.get(path) ?? fallback })
+    routes.push({ path, lastmod: lastmod.get(path) ?? today })
   }
   writeSitemap(routes)
   console.log(
-    `prerender: 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, 사이트맵 ${routes.length}개 주소`,
+    `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
+      `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽 ` +
+      `— 사이트맵 ${routes.length}개 주소`,
   )
 }
 
 main().catch((error) => {
-  // 여기까지 온 것은 dist 가 없는 것 같은 진짜 실패다. 그건 빌드를 세운다.
   console.error('prerender 실패:', error.message)
   process.exit(1)
 })
