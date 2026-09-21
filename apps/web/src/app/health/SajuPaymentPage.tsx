@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -8,6 +9,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { getSajuName, getSajuPrice } from '@/lib/saju-products'
 
 export default function SajuPaymentPage() {
+  useSEO({ title: '결제', noIndex: true })
+
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const inputData = useSajuStore((s) => s.inputData)

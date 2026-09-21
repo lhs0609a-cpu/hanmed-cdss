@@ -2,6 +2,7 @@
  * 내 체질 진단 페이지
  * 생년월일 + 간단 설문 → 체질 판정 + 결과
  */
+import { useSEO } from '@/hooks/useSEO'
 import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -76,6 +77,12 @@ const defaultSurvey: SurveyAnswer = {
 }
 
 export default function MyConstitutionPage() {
+  useSEO({
+    title: '내 체질 알아보기',
+    description: '생년월일을 입력하면 사주와 오행을 분석해 사상체질을 추론해 드립니다.',
+    keywords: ['체질검사', '사상체질', '사주'],
+  })
+
   const [step, setStep] = useState<Step>('input')
   const [birthDate, setBirthDate] = useState('')
   const [birthHour, setBirthHour] = useState<string>('')

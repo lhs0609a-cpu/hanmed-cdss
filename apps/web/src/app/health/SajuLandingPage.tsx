@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Sparkles, ChevronRight, Shield, Zap, BookOpen, Star, Heart } from 'lucide-react'
@@ -28,6 +29,13 @@ const differentiators = [
 ]
 
 export default function SajuLandingPage() {
+  useSEO({
+    title: '사주 건강 리포트',
+    description:
+      '생년월일시에 담긴 오행의 기운을 한의학으로 풉니다. 체질과 건강을 아우르는 심층 리포트.',
+    keywords: ['사주', '오행', '체질', '건강운'],
+  })
+
   return (
     <div>
       {/* Hero */}

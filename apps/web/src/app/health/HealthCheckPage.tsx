@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSEO } from '@/hooks/useSEO'
 import { useParams, Link } from 'react-router-dom'
 import { getHealthCheckBySlug, healthChecks } from '@/data/healthChecks'
 import {
@@ -31,6 +32,15 @@ export default function HealthCheckPage() {
   const [copied, setCopied] = useState(false)
 
   const checkedCount = useMemo(() => checked.filter(Boolean).length, [checked])
+
+  // 훅은 아래 early return 위에 있어야 한다.
+  useSEO({
+    title: check ? check.title : '건강체크',
+    description: check
+      ? `${check.subtitle} — ${check.description}`
+      : '증상으로 알아보는 한의학 셀프체크.',
+    keywords: check ? [check.title, check.category, '건강체크', '한의학'] : ['건강체크'],
+  })
 
   if (!check) {
     return (

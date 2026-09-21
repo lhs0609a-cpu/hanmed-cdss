@@ -8,6 +8,11 @@ interface SEOProps {
   ogImage?: string
   ogType?: 'website' | 'article'
   noIndex?: boolean
+  /**
+   * 이 쪽이 다른 쪽의 사본일 때 원본 경로. 같은 화면을 두 주소로 띄우면
+   * 둘 다 색인에서 빠지므로, 사본은 원본을 가리켜야 한다.
+   */
+  canonicalPath?: string
 }
 
 const SITE_ORIGIN = 'https://www.ongojisin.co.kr'
@@ -24,6 +29,7 @@ export function useSEO({
   ogImage,
   ogType = 'website',
   noIndex = false,
+  canonicalPath,
 }: SEOProps = {}) {
   useEffect(() => {
     // 페이지 타이틀 설정
@@ -47,7 +53,7 @@ export function useSEO({
 
     // index.html 의 canonical 은 홈 주소로 고정돼 있었다. 갱신하지 않으면
     // 모든 하위 경로가 "나는 홈의 사본" 이라고 선언해 색인에서 빠진다.
-    let path = location.pathname
+    let path = canonicalPath ?? location.pathname
     while (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
     const canonicalUrl = SITE_ORIGIN + (path === '/' ? '' : path)
     const existing = document.querySelector('link[rel="canonical"]')
@@ -91,7 +97,7 @@ export function useSEO({
     return () => {
       document.title = `${DEFAULT_TITLE} - 한의학 CDSS`
     }
-  }, [title, description, keywords, ogImage, ogType, noIndex])
+  }, [title, description, keywords, ogImage, ogType, noIndex, canonicalPath])
 }
 
 /**

@@ -9,32 +9,15 @@
  * ongojisin.ai 는 DNS 에 A 레코드조차 없는데, canonical·og:url·사이트맵이
  * 전부 그 주소를 가리키고 있었다. 30일 구글 유입 1명은 그 결과다.
  *
- * 경로 목록은 손으로 관리한다. 라우터에서 자동으로 뽑으면 로그인·결제·
- * 리포트 열람처럼 색인되면 안 되는 경로까지 흘러 들어간다.
+ * 경로 목록은 public-routes.mjs 에 있다 — 프리렌더와 같은 것을 본다.
  */
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ORIGIN = 'https://www.ongojisin.co.kr'
-const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../public')
+import { ORIGIN, STATIC_ROUTES as ROUTES } from './public-routes.mjs'
 
-/** changefreq/priority 는 구글이 무시한 지 오래라 넣지 않는다. */
-const ROUTES = [
-  { path: '/', lastmod: '2026-09-21' },
-  { path: '/register', lastmod: '2026-09-21' },
-  { path: '/cases', lastmod: '2026-09-21' },
-  { path: '/formulas', lastmod: '2026-09-21' },
-  { path: '/health', lastmod: '2026-09-21' },
-  { path: '/health/community', lastmod: '2026-09-21' },
-  { path: '/health/qna', lastmod: '2026-09-21' },
-  { path: '/health/tmi', lastmod: '2026-09-21' },
-  { path: '/health/saju', lastmod: '2026-09-21' },
-  { path: '/terms', lastmod: '2026-09-08' },
-  { path: '/privacy', lastmod: '2026-09-08' },
-  { path: '/refund-policy', lastmod: '2026-09-08' },
-  { path: '/subscription-terms', lastmod: '2026-09-08' },
-]
+const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../public')
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
