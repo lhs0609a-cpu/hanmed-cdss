@@ -12,6 +12,15 @@ const PUBLIC = [
   '/privacy',
   '/refund-policy',
   '/subscription-terms',
+  // 서버의 PUBLIC_PAGES 와 같은 목록이어야 한다 (growth-events.ts).
+  '/health',
+  '/health/community',
+  '/health/qna',
+  '/health/tmi',
+  '/health/tmi/my-type',
+  '/health/tmi/compare',
+  '/health/saju',
+  '/health/saju/input',
 ]
 export const isMarketingPage = (page: string) => PUBLIC.includes(page)
 export const growthPage = (page = location.pathname) =>

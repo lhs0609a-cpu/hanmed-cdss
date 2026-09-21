@@ -159,7 +159,7 @@ export default function LandingPage() {
           <Brand />
           <nav className="landing-desktop-nav" aria-label="주 메뉴">
             {NAV.map((item) => (
-              <a key={item.href} href={item.href}>
+              <a key={item.href} href={item.href} data-growth={`nav_${item.href.slice(1)}`}>
                 {item.label}
               </a>
             ))}
@@ -185,6 +185,7 @@ export default function LandingPage() {
             aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
             aria-expanded={mobileMenuOpen}
             aria-controls="landing-mobile-nav"
+            data-growth="mobile_menu_toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -199,6 +200,7 @@ export default function LandingPage() {
             {NAV.map((item) => (
               <a
                 href={item.href}
+                data-growth={`nav_mobile_${item.href.slice(1)}`}
                 key={item.href}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -248,7 +250,7 @@ export default function LandingPage() {
                 data-growth="demo_start"
                 onClick={() => trackButtonClick('landing_demo_start')}
               >
-                가입 없이 샘플 보기 <ArrowDown size={17} aria-hidden="true" />
+                가입 없이 증례 1개 보기 <ArrowDown size={17} aria-hidden="true" />
               </a>
               <Link
                 to="/register"
@@ -443,6 +445,7 @@ export default function LandingPage() {
                   type="button"
                   className="landing-text-link"
                   onClick={handleTry}
+                  data-growth="guest_product"
                 >
                   실제 프로그램 둘러보기
                   <ArrowUpRight size={17} aria-hidden="true" />
@@ -458,6 +461,7 @@ export default function LandingPage() {
                       role="tab"
                       key={label}
                       id={`product-tab-${index}`}
+                      data-growth={`product_tab_${index}`}
                       aria-selected={productView === index}
                       aria-controls="product-screen-panel"
                       tabIndex={productView === index ? 0 : -1}
@@ -576,6 +580,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 aria-pressed={!isAnnual}
+                data-growth="billing_monthly"
                 onClick={() => {
                   setIsAnnual(false)
                   trackButtonClick('landing_billing_monthly')
@@ -586,6 +591,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 aria-pressed={isAnnual}
+                data-growth="billing_annual"
                 onClick={() => {
                   setIsAnnual(true)
                   trackButtonClick('landing_billing_annual')
@@ -709,6 +715,7 @@ export default function LandingPage() {
                   <button
                     type="button"
                     id={`faq-trigger-${index}`}
+                    data-growth={`faq_${index}`}
                     aria-expanded={openFaq === index}
                     aria-controls={`faq-answer-${index}`}
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
@@ -757,6 +764,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 className="final-try-button"
+                data-growth="guest_footer"
                 onClick={handleTry}
               >
                 프로그램 둘러보기

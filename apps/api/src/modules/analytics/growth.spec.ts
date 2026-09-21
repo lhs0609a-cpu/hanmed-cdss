@@ -20,6 +20,11 @@ const event = (patch = {}) => ({
   ...patch,
 });
 describe('growth collection', () => {
+  it.each(['demo_viewed', 'demo_started'])('accepts the %s stage without collecting form content', type => {
+    const [row] = parseGrowthEvents({ events: [event({ type, name: 'PRIVATE_NAME' })] });
+    expect(row.type).toBe(`growth_${type}`);
+    expect(JSON.stringify(row)).not.toContain('PRIVATE_NAME');
+  });
   it('keeps only safe metadata, no identifiers or clinical/form content', () => {
     const [row] = parseGrowthEvents({
       events: [
@@ -64,6 +69,21 @@ describe('growth collection', () => {
       { events: [event({ type: 'anything' })] },
     ])
       expect(() => parseGrowthEvents(body)).toThrow();
+  });
+  it('keeps the valid events when one in the batch is malformed', () => {
+    // 브라우저는 4xx 를 최종 응답으로 보고 보낸 배치를 통째로 버린다.
+    // 한 건이 잘못됐다고 나머지 29 건까지 사라지면 안 된다.
+    const rows = parseGrowthEvents({
+      events: [
+        event(),
+        event({ page: '/dashboard/patients/123' }),
+        event({ type: 'signup_success' }),
+      ],
+    });
+    expect(rows.map((row) => row.type)).toEqual([
+      'growth_page_view',
+      'growth_signup_success',
+    ]);
   });
   it('ignores out-of-bounds or non-numeric coordinates', () => {
     const [row] = parseGrowthEvents({
@@ -114,6 +134,31 @@ function rows(types: string[], sessionId = randomUUID(), offset = -3600000) {
   }));
 }
 describe('growth metrics', () => {
+  it('uses the same observed-page cohort for exit numerator and denominator', () => {
+    const report = summarizeGrowth([...rows(['page_view']), ...rows(['page_engagement']), ...rows(['page_view'], randomUUID(), -1000)], now);
+    expect(report.pages[0]).toMatchObject({ sessions: 2, exits: 1, exitRate: 100 });
+    expect(summarizeGrowth(rows(['page_engagement']), now).pages[0].exitRate).toBeNull();
+  });
+  it('excludes the entire QA session even if the marker appears later', () => {
+    const qa = rows(['page_view', 'click']);
+    qa[1].properties.source = 'deployment_check';
+    const mediumQa = rows(['page_view', 'signup_success']);
+    Object.assign(mediumQa[1].properties, { medium: 'qa' });
+    const report = summarizeGrowth([...qa, ...mediumQa, ...rows(['page_view'])], now);
+    expect(report.excludedQaSessions).toBe(2);
+    expect(report.summary.sessions).toBe(1);
+    expect(report.sources).not.toContain('deployment_check');
+    expect(report.summary.signups).toBe(0);
+  });
+  it('counts demo-to-signup stages in order once per session', () => {
+    const report = summarizeGrowth([
+      ...rows(['page_view', 'demo_viewed', 'demo_started', 'demo_started', 'demo_completed', 'signup_start', 'signup_success']),
+      ...rows(['page_view', 'demo_viewed', 'demo_completed']),
+      ...rows(['demo_completed']),
+    ], now);
+    expect(report.demoFunnel.map(stage => stage.count)).toEqual([2, 1, 1, 1, 1]);
+    expect(summarizeGrowth([], now).demoFunnel.every(stage => stage.conversion === null)).toBe(true);
+  });
   it('counts recent unique browsers, not open thirty-minute sessions', () => {
     const recent = rows(['page_view'], randomUUID(), -60000);
     const sameVisitor = rows(['page_view'], randomUUID(), -120000);

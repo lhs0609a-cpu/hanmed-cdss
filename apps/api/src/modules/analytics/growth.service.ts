@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { AnalyticsEvent } from '../../database/entities/analytics-event.entity';
+import { GROWTH_TYPES } from './growth-events';
 
 type Row = Pick<
   AnalyticsEvent,
@@ -20,6 +21,8 @@ export function summarizeGrowth(
   source = '',
   device = '',
 ) {
+  const qaSessions = new Set(rows.filter(r => r.properties.source === 'deployment_check' || r.properties.medium === 'qa').map(r => r.sessionId));
+  rows = rows.filter(r => !qaSessions.has(r.sessionId));
   const groups = new Map<string, Row[]>();
   for (const r of rows) {
     const list = groups.get(r.sessionId) || [];
@@ -145,7 +148,7 @@ export function summarizeGrowth(
           (r) => r.type === 'growth_page_view' && r.properties.page === page,
         ),
       );
-      const exits = closed.filter((s) => s.exit === page).length;
+      const exits = visits.filter((s) => s.closed && s.exit === page).length;
       const scrolls = visits.map((s) =>
         Math.max(
           0,
@@ -218,6 +221,16 @@ export function summarizeGrowth(
     days.set(date, day);
   }
   return {
+    excludedQaSessions: qaSessions.size,
+    demoFunnel: ['demo_viewed', 'demo_started', 'demo_completed', 'signup_start', 'signup_success'].map((type, index, steps) => {
+      const countThrough = (last: number) => sessions.filter(s => {
+        let step = 0;
+        for (const row of s.list) if (row.type === `growth_${steps[step]}`) step++;
+        return step > last;
+      }).length;
+      const count = countThrough(index);
+      return { type, count, conversion: pct(count, index ? countThrough(index - 1) : count) };
+    }),
     summary: {
       recentVisitors: new Set(sessions.filter((s) => now - +s.lastAt <= 300000).map((s) => s.visitor)).size,
       visitors: new Set(sessions.map((s) => s.visitor)).size,
@@ -332,21 +345,7 @@ export class GrowthService {
     const rows = await this.events
       .createQueryBuilder('e')
       .where('e.type IN (:...types)', {
-        types: [
-          'page_view',
-          'page_engagement',
-          'click',
-          'signup_start',
-          'signup_submit',
-          'signup_success',
-          'signup_error',
-          'login_success',
-          'login_error',
-          'demo_completed',
-          'feature_used',
-          'client_error',
-          'web_vital',
-        ].map((t) => `growth_${t}`),
+        types: GROWTH_TYPES.map((t) => `growth_${t}`),
       })
       .andWhere('e.createdAt >= :start', { start })
       .orderBy('e.createdAt', 'ASC')

@@ -225,8 +225,14 @@ export default function RegisterPage() {
           await api.post('/users/me/license-file', body, {
             headers: { 'Content-Type': 'multipart/form-data' },
           })
-        } catch {
-          trackGrowth('signup_error', { code: 'license_upload_failed' })
+        } catch (uploadError) {
+          // 실패 코드를 남기지 않으면 원인을 좁힐 수 없다. 관측된 실패
+          // 2건은 서버 로그에 흔적조차 없었다 — 상태 코드가 있어야
+          // 네트워크 중단인지 인증 만료인지 구분한다.
+          trackGrowth('signup_error', {
+            code: `license_upload_${growthErrorCode(uploadError)}`,
+          })
+          void flushGrowth()
           navigate('/dashboard/settings?license=upload-failed')
           return
         }
