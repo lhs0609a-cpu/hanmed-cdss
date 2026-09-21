@@ -10,6 +10,7 @@ interface SEOProps {
   noIndex?: boolean
 }
 
+const SITE_ORIGIN = 'https://www.ongojisin.co.kr'
 const DEFAULT_TITLE = '온고지신 AI'
 const DEFAULT_DESCRIPTION = `40년 임상 경험의 ${formatStatNumber(BASE_STATS.cases)} 치험례 데이터와 AI가 결합된 한의학 CDSS`
 
@@ -43,6 +44,24 @@ export function useSEO({
 
     // 기본 메타 태그
     updateMeta('description', description)
+
+    // index.html 의 canonical 은 홈 주소로 고정돼 있었다. 갱신하지 않으면
+    // 모든 하위 경로가 "나는 홈의 사본" 이라고 선언해 색인에서 빠진다.
+    let path = location.pathname
+    while (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
+    const canonicalUrl = SITE_ORIGIN + (path === '/' ? '' : path)
+    const existing = document.querySelector('link[rel="canonical"]')
+    if (noIndex) {
+      existing?.remove()
+    } else {
+      const canonical =
+        (existing as HTMLLinkElement | null) ??
+        document.head.appendChild(
+          Object.assign(document.createElement('link'), { rel: 'canonical' }),
+        )
+      canonical.href = canonicalUrl
+    }
+    updateMeta('og:url', canonicalUrl, true)
 
     if (keywords.length > 0) {
       updateMeta('keywords', keywords.join(', '))
