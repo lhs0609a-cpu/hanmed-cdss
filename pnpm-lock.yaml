@@ -494,6 +494,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.16
         version: 10.4.24(postcss@8.5.6)
+      esbuild:
+        specifier: ^0.21.5
+        version: 0.21.5
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
