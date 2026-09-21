@@ -39,7 +39,7 @@ const LIMIT_ARG = process.argv.find((a) => a.startsWith('--limit='));
 const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.slice('--limit='.length), 10) : 0;
 
 /** 토큰 구분자 — 전각 공백이 기본이고 일반 공백도 섞여 있다. */
-const SEP = /[　\s]+/;
+const SEP = /[\u3000\s]+/;
 /** 약재명（용량·포제）. 꼬리 문장부호 하나까지 허용한다. */
 const TOKEN = /^([一-鿿□]{1,10})(?:[（(]([^）)]{1,60})[）)])?[。，、]?$/;
 /** 방제 이름의 꼬리 글자 */

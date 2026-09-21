@@ -1546,6 +1546,50 @@
 .landing-footer-bottom > span {
   white-space: nowrap;
 }
+/* 버전 줄은 숫자가 길어지면 줄바꿈이 필요하다 — 저작권 줄과 달리 붙잡아 두지
+   않는다. */
+.landing-footer-bottom > .landing-version {
+  white-space: normal;
+  font-variant-numeric: tabular-nums;
+}
+/* 데스크톱 앱 안내 — 마지막 CTA 와 푸터 사이에 한 줄로 눕는 띠. */
+.landing-desktop-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 34px;
+  margin-top: 56px;
+  border-top: 1px solid var(--cl-line);
+}
+.landing-desktop-app h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.desktop-app-version {
+  padding: 2px 7px;
+  border: 1px solid var(--cl-line);
+  border-radius: 5px;
+  background: var(--cl-sage);
+  color: var(--cl-green);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.landing-desktop-app p {
+  max-width: 440px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--cl-muted);
+}
+.landing-desktop-app .landing-button {
+  gap: 8px;
+}
 @keyframes cl-appear {
   from {
     opacity: 0.5;

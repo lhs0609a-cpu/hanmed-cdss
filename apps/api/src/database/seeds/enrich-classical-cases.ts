@@ -58,10 +58,10 @@ const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.slice('--limit='.length), 10) : 0;
 /** 재진 단락의 머리글자 */
 const FOLLOWUP = /^(又|再診|二診|三診|四診|五診|六診|復診|次診|續診)/;
 /** 남자 표기 — 성씨 뒤 또는 괄호 안의 左 */
-const MALE_MARK = /^[一-鿿]?左[　\s(（]|^[一-鿿][（(]左[）)]/;
+const MALE_MARK = /^[一-鿿]?左[\u3000\s(（]|^[一-鿿][（(]左[）)]/;
 /** 여자 표기 — 右, 그리고 그 자체로 여성인 호칭 */
-const FEMALE_MARK = /^[一-鿿]?右[　\s(（]|^[一-鿿][（(]右[）)]/;
-const FEMALE_WORD = /^[一-鿿]氏[　\s(（]|媼|嫗|婦人|少婦|老婦|孀/;
+const FEMALE_MARK = /^[一-鿿]?右[\u3000\s(（]|^[一-鿿][（(]右[）)]/;
+const FEMALE_WORD = /^[一-鿿]氏[\u3000\s(（]|媼|嫗|婦人|少婦|老婦|孀/;
 /** 병기(病機)에 쓰이는 글자 — 하나라도 있어야 변증으로 본다 */
 const PATHOGENESIS =
   /[虛實寒熱濕風痰火瘀氣血陰陽鬱滯逆陷衰亢燥毒積聚結傷損虧犯乘侮動閉脫痺痹厥疳]/;
@@ -72,7 +72,7 @@ const CURED = /(痊愈|痊癒|全愈|病愈|即愈|果愈|尋愈|遂愈|竟愈|�
 /** 좋아졌다고 적힌 것 */
 const IMPROVED = /(漸愈|漸退|漸減|已減|已减|大減|大效|獲效|奏效|即效|見效|稍安|漸安|病退)/;
 
-const SEP = /[　\s]+/;
+const SEP = /[\u3000\s]+/;
 const TOKEN = /^([一-鿿□]{1,10})(?:[（(]([^）)]{1,60})[）)])?[。，、]?$/;
 
 const stripParens = (s: string): string => s.replace(/[（(][^）)]*[）)]/g, '');
@@ -154,7 +154,7 @@ export function enrichClassical(text: string): ClassicalEnrichment {
     const m = FOLLOWUP.exec(line);
     if (!m) continue;
     if (isHerbLine(line)) continue;
-    const change = line.slice(m[0].length).replace(/^[　\s]+/, '').trim();
+    const change = line.slice(m[0].length).replace(/^[\u3000\s]+/, '').trim();
     if (!change) continue;
     courseSteps.push({ step: m[1], change: change.slice(0, 400) });
   }

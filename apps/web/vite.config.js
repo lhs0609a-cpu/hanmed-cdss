@@ -1,15 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { readFileSync } from 'fs';
+// 버전은 한 곳에서만 읽는다.
+// 설치 파일의 버전은 apps/desktop/package.json 이 유일한 출처다 —
+// electron-builder 가 거기서 읽어 파일 이름과 업데이트 메타데이터를 만든다.
+// 웹이 그 숫자를 따로 적어두면 릴리스마다 두 곳이 어긋나고,
+// 다운로드 페이지가 없는 파일을 가리키게 된다.
+var readVersion = function (relPath) {
+    return JSON.parse(readFileSync(path.resolve(__dirname, relPath), 'utf-8')).version;
+};
+var WEB_VERSION = readVersion('./package.json');
+var DESKTOP_VERSION = readVersion('../desktop/package.json');
 export default defineConfig(function (_a) {
     var mode = _a.mode;
     return ({
-        // A separate, explicit preview mode keeps local development credentials/settings intact.
-        // Browsers call their own origin; Vite forwards only /api to the fixed HTTPS API host.
-        define: mode === 'connected'
-            ? { 'import.meta.env.VITE_API_URL': JSON.stringify('/api/v1') }
-            : undefined,
         plugins: [react()],
+        define: Object.assign({
+            __APP_VERSION__: JSON.stringify(WEB_VERSION),
+            __DESKTOP_VERSION__: JSON.stringify(DESKTOP_VERSION),
+            __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+            // A separate, explicit preview mode keeps local development credentials/settings intact.
+            // Browsers call their own origin; Vite forwards only /api to the fixed HTTPS API host.
+        }, mode === 'connected'
+            ? { 'import.meta.env.VITE_API_URL': JSON.stringify('/api/v1') }
+            : {}),
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, './src'),
@@ -19,7 +34,7 @@ export default defineConfig(function (_a) {
             port: 3000,
             proxy: {
                 '/api': {
-                    target: 'http://localhost:3001',
+                    target: mode === 'connected' ? 'https://api.ongojisin.co.kr' : 'http://localhost:3001',
                     changeOrigin: true,
                 },
             },

@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
+  Download,
   LockKeyhole,
   Menu,
   Search,
@@ -21,6 +22,7 @@ import { useSEO } from '@/hooks/useSEO'
 import { usePublicStats } from '@/hooks/usePublicStats'
 import { useLandingTracking } from './components/useLandingTracking'
 import { ClinicalDemo, type DemoEvent } from './components/PublicCaseDemo'
+import { APP_VERSION, BUILD_DATE, DESKTOP_VERSION } from '@/config/version'
 import {
   ANNUAL_DISCOUNT_LABEL,
   BILLING_ADDON,
@@ -31,12 +33,19 @@ import {
 import './landing.css'
 import './conversion.css'
 
-const NAV = [
+// href 는 같은 페이지 안의 앵커, to 는 다른 화면으로의 이동이다.
+// 데스크톱 앱은 별도 페이지라 앵커로 둘 수 없다 — 앵커로 두면 눌러도
+// 아무 일이 일어나지 않는다.
+const NAV: { href?: string; to?: string; label: string }[] = [
   { href: '#demo', label: '제품 체험' },
   { href: '#features', label: '주요 기능' },
   { href: '#evidence', label: '근거와 신뢰' },
   { href: '#pricing', label: '요금제' },
+  { to: '/download', label: '데스크톱 앱' },
 ]
+/** 클릭 기록에 쓸 메뉴 이름. 앵커(#demo)와 라우트(/download)를 같은 규칙으로 줄인다. */
+const navSlug = (item: { href?: string; to?: string }) =>
+  (item.href ?? item.to ?? '').replace(/[^a-z0-9]/gi, '')
 const PRODUCT_VIEWS = [
   {
     title: '변증 후보 추론',
@@ -158,11 +167,25 @@ export default function LandingPage() {
         <div className="landing-container landing-header-inner">
           <Brand />
           <nav className="landing-desktop-nav" aria-label="주 메뉴">
-            {NAV.map((item) => (
-              <a key={item.href} href={item.href} data-growth={`nav_${item.href.slice(1)}`}>
-                {item.label}
-              </a>
-            ))}
+            {NAV.map((item) =>
+              item.to ? (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  data-growth={`nav_${navSlug(item)}`}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  data-growth={`nav_${navSlug(item)}`}
+                >
+                  {item.label}
+                </a>
+              ),
+            )}
           </nav>
           <div className="landing-header-actions">
             <Link to="/login" className="landing-login">
@@ -197,17 +220,30 @@ export default function LandingPage() {
             id="landing-mobile-nav"
             aria-label="모바일 메뉴"
           >
-            {NAV.map((item) => (
-              <a
-                href={item.href}
-                data-growth={`nav_mobile_${item.href.slice(1)}`}
-                key={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.label}
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-            ))}
+
+            {NAV.map((item) =>
+              item.to ? (
+                <Link
+                  to={item.to}
+                  key={item.label}
+                  data-growth={`nav_mobile_${navSlug(item)}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              ) : (
+                <a
+                  href={item.href}
+                  key={item.label}
+                  data-growth={`nav_mobile_${navSlug(item)}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+              ),
+            )}
             <Link to="/login">로그인</Link>
             <Link
               to="/register"
@@ -786,6 +822,30 @@ export default function LandingPage() {
             />
           </div>
         </section>
+        <section
+          className="landing-container landing-desktop-app"
+          aria-labelledby="desktop-app-title"
+        >
+          <div>
+            <h2 id="desktop-app-title">
+              데스크톱 앱
+              <span className="desktop-app-version">v{DESKTOP_VERSION}</span>
+            </h2>
+            <p>
+              Windows · macOS 에 설치해 브라우저 없이 창 하나로 쓰세요. 계정과
+              기록은 웹과 같고, 새 버전은 앱이 알아서 받습니다.
+            </p>
+          </div>
+          <Link
+            to="/download"
+            className="landing-button landing-button-small"
+            data-growth="desktop_download_landing"
+            onClick={() => trackButtonClick('landing_desktop_download')}
+          >
+            <Download size={16} aria-hidden="true" />
+            다운로드
+          </Link>
+        </section>
       </main>
       <footer className="landing-footer landing-container">
         <div className="landing-footer-top">
@@ -802,6 +862,7 @@ export default function LandingPage() {
             <a href="#demo">제품 체험</a>
             <a href="#features">주요 기능</a>
             <a href="#pricing">요금제</a>
+            <Link to="/download">데스크톱 앱 다운로드</Link>
             <a href="#faq">자주 묻는 질문</a>
           </nav>
           <nav aria-label="서비스 정책">
@@ -829,6 +890,12 @@ export default function LandingPage() {
             제공합니다. 모든 진단과 처방의 최종 판단은 한의사가 합니다.
           </p>
           <span>© {new Date().getFullYear()} 온고지신 AI</span>
+          {/* 버전 표기 — 문의가 들어왔을 때 "무슨 버전 쓰고 계세요"를 되묻지
+              않으려면, 쓰는 사람이 스스로 찾을 수 있는 자리에 적혀 있어야
+              한다. */}
+          <span className="landing-version">
+            웹 v{APP_VERSION} ({BUILD_DATE}) · 데스크톱 v{DESKTOP_VERSION}
+          </span>
         </div>
       </footer>
     </div>
