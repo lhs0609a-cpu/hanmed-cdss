@@ -12,4 +12,4 @@ Disallow: /patient/
 Disallow: /reset-password
 Disallow: /welcome/
 
-Sitemap: https://ongojisin.ai/sitemap.xml
+Sitemap: https://www.ongojisin.co.kr/sitemap.xml
