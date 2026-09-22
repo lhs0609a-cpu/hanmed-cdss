@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -7,6 +8,8 @@ import { useState } from 'react';
 import { setGrowthOptOut } from '@/lib/growth';
 
 export default function PrivacyPage() {
+  useSEO({ title: '개인정보처리방침', description: '온고지신 AI 가 수집하는 개인정보의 항목과 이용·보관 기준.' });
+
   const navigate = useNavigate();
   const [analyticsDisabled, setAnalyticsDisabled] = useState(() => { try { return localStorage.getItem('ongojisin_growth_optout') === '1'; } catch { return false; } });
 

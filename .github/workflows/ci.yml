@@ -105,12 +105,20 @@ jobs:
         run: pnpm --filter @hanmed/web build
         env:
           VITE_API_URL: https://api.example.com
+          # CI 는 "빌드가 되는가" 만 본다. 프리렌더는 기본값으로 공개 API 가
+          # 죽어 있으면 빌드를 세우는데, 그 판단은 배포에서만 뜻이 있다.
+          # 여기서 켜 두면 API 가 잠깐 흔들릴 때마다 남의 PR 이 붉어진다.
+          PRERENDER_ALLOW_EMPTY: "1"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-build
-          path: apps/web/dist
+          # 체질 TMI 7천 쪽은 굽는 것까지가 검증이다. 올리고 내리는 데만
+          # 몇 분씩 걸리는데 E2E 는 그 쪽을 보지 않는다.
+          path: |
+            apps/web/dist
+            !apps/web/dist/health/tmi
           retention-days: 7
 
   # API 빌드 (nest build = tsc, 타입 체크를 겸한다)

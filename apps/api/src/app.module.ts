@@ -59,6 +59,7 @@ import { MfdsDrugModule } from './modules/mfds-drug/mfds-drug.module';
 import { MfdsDurModule } from './modules/mfds-dur/mfds-dur.module';
 import { SeederModule } from './seed/seeder.module';
 import { StatsModule } from './modules/stats/stats.module';
+import { PublicContentModule } from './modules/public-content/public-content.module';
 import { HealthController } from './health.controller';
 import { PatientAccessLog } from './database/entities/patient-access-log.entity';
 
@@ -222,6 +223,7 @@ import { PatientAccessLog } from './database/entities/patient-access-log.entity'
     // 시드 모듈 (운영에서는 standalone 컨텍스트로만 사용)
     SeederModule,
     StatsModule,           // 홈페이지 지표 — DB 실측
+    PublicContentModule,   // 로그인 전 공개 콘텐츠 — 고전 의안·처방 티저
   ],
   controllers: [HealthController],
   providers: [

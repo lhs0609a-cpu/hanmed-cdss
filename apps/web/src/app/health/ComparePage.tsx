@@ -2,6 +2,7 @@
  * 궁합 비교 페이지
  * 두 사람의 체질/오행 궁합 분석
  */
+import { useSEO } from '@/hooks/useSEO'
 import { useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -31,6 +32,12 @@ interface PersonData {
 }
 
 export default function ComparePage() {
+  useSEO({
+    title: '체질 궁합 비교',
+    description: '두 사람의 생년월일로 오행 궁합과 체질 조합을 비교해 봅니다.',
+    keywords: ['체질궁합', '오행', '사주궁합'],
+  })
+
   const [person1, setPerson1] = useState<PersonData | null>(null)
   const [person2, setPerson2] = useState<PersonData | null>(null)
   const [showResult, setShowResult] = useState(false)

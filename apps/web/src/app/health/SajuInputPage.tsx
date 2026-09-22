@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO'
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -28,6 +29,9 @@ const hourOptions = [
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SajuInputPage() {
+  // 결제로 가는 길목이라 색인 대상이 아니다.
+  useSEO({ title: '사주 정보 입력', noIndex: true })
+
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const setInputData = useSajuStore((s) => s.setInputData)

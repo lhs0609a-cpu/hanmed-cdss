@@ -104,6 +104,12 @@ const SubscriptionTermsPage = lazy(() => import('@/app/legal').then((m) => ({ de
 
 // 데스크톱 앱 다운로드 (lazy — 방문자 대부분은 안 거치는 경로)
 const DownloadPage = lazy(() => import('@/app/download/DownloadPage'))
+// 공개 티저 네 화면은 한 파일에 있다 — 같은 청크를 쓰게 두는 편이 낫다.
+const publicPages = () => import('@/app/public/PublicContentPages')
+const PublicCasesPage = lazy(() => publicPages().then((m) => ({ default: m.PublicCasesPage })))
+const PublicCaseDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicCaseDetailPage })))
+const PublicFormulasPage = lazy(() => publicPages().then((m) => ({ default: m.PublicFormulasPage })))
+const PublicFormulaDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicFormulaDetailPage })))
 
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
@@ -139,6 +145,11 @@ function App() {
         <Route path="/start" element={<AdLandingPage />} />
         <Route path="/trial" element={<AdLandingPage />} />
         <Route path="/download" element={route(<DownloadPage />)} />
+        {/* 검색으로 들어오는 공개 티저. 본문 일부만 보여주고 나머지는 로그인. */}
+        <Route path="/cases" element={route(<PublicCasesPage />)} />
+        <Route path="/cases/:slug" element={route(<PublicCaseDetailPage />)} />
+        <Route path="/formulas" element={route(<PublicFormulasPage />)} />
+        <Route path="/formulas/:slug" element={route(<PublicFormulaDetailPage />)} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

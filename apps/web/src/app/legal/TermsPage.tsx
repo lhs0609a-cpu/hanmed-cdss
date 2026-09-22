@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -5,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { COMPANY_INFO, companyField } from '@/config/company.config';
 
 export default function TermsPage() {
+  useSEO({ title: '이용약관', description: '온고지신 AI 서비스 이용약관.' });
+
   const navigate = useNavigate();
 
   return (

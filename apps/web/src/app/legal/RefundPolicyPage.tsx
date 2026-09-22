@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
@@ -6,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { COMPANY_INFO, companyField } from '@/config/company.config';
 
 export default function RefundPolicyPage() {
+  useSEO({ title: '환불 정책', description: '온고지신 AI 구독과 단건 결제의 환불 기준.' });
+
   const navigate = useNavigate();
 
   return (

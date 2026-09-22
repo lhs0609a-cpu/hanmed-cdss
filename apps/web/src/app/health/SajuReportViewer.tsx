@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useSEO } from '@/hooks/useSEO'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -16,6 +17,10 @@ import { ELEMENT_EMOJI, type ElementBalance } from '@/lib/saju'
 import { ElementBar } from '@/components/health/ElementChart'
 
 export default function SajuReportViewer() {
+  // 개인 리포트다. robots.txt 로도 막지만 토큰 링크가 새 나가는 경우를
+  // 대비해 쪽 자체가 색인 거부를 말하게 둔다.
+  useSEO({ title: '사주 건강 리포트', noIndex: true })
+
   const { id, token: pathToken } = useParams<{ id?: string; token?: string }>()
   const [searchParams] = useSearchParams()
   // id 경로에서도 ?token=xxx 로 전달 가능

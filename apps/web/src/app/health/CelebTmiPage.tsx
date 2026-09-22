@@ -3,6 +3,7 @@
  * 셀럽/캐릭터 체질 분석 카드 그리드 + 트렌딩 캐러셀 + 커뮤니티
  * 10K+ entries: virtual scroll + debounced search + precomputed constitution
  */
+import { useSEO } from '@/hooks/useSEO'
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -141,6 +142,13 @@ function useRiskSortedCelebs() {
 }
 
 export default function CelebTmiPage() {
+  useSEO({
+    title: '체질 TMI',
+    description:
+      '셀럽의 생년월일로 사주를 분석하고, 오행 밸런스에서 사상체질을 추론해요. 내 최애는 무슨 체질?',
+    keywords: ['체질', '사상체질', '사주', '오행'],
+  })
+
   const [selectedCategory, setSelectedCategory] = useState<CelebCategory | 'all' | 'risk2026'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebouncedValue(searchQuery, 300)

@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Info } from 'lucide-react';
@@ -6,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { COMPANY_INFO, companyField } from '@/config/company.config';
 
 export default function SubscriptionTermsPage() {
+  useSEO({ title: '정기결제 이용약관', description: '온고지신 AI 정기결제의 청구 주기와 해지 방법.' });
+
   const navigate = useNavigate();
 
   return (

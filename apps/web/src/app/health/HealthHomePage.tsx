@@ -1,3 +1,4 @@
+import { useSEO } from '@/hooks/useSEO'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { healthChecks } from '@/data/healthChecks'
@@ -103,6 +104,13 @@ function useRiskCelebs() {
 }
 
 export default function HealthHomePage() {
+  useSEO({
+    title: '건강 정보',
+    description:
+      '사소한 증상에 숨은 신호를 한의학으로 읽어봅니다. 2분 셀프체크, 체질 TMI, 한의사 답변.',
+    keywords: ['한의학', '건강체크', '사상체질', '체질진단'],
+  })
+
   const tickerCelebs = useTickerCelebs()
   const riskCelebs = useRiskCelebs()
   const row1 = tickerCelebs.slice(0, 20)

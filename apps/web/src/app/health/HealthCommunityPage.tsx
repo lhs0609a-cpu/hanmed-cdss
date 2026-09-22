@@ -3,6 +3,7 @@
  * 체질별 토픽 + 게시글 목록 + 탭 필터 + 인기 토픽
  */
 import { useState, useMemo } from 'react'
+import { useSEO } from '@/hooks/useSEO'
 import { Link } from 'react-router-dom'
 import {
   MessageSquare,
@@ -76,6 +77,15 @@ const POPULAR_TOPICS = [
 type ConstitutionFilter = 'all' | ConstitutionType
 
 export default function HealthCommunityPage() {
+  // /health/qna 는 이 화면을 그대로 다시 띄운다. 둘 다 스스로를 원본이라
+  // 하면 같은 내용의 주소가 둘이라 양쪽 다 색인에서 빠진다.
+  useSEO({
+    title: '건강 커뮤니티',
+    description: '체질 TMI 결과로 대화하고, 건강 경험을 나누는 곳.',
+    canonicalPath: '/health/community',
+    keywords: ['건강커뮤니티', '체질', '한의학'],
+  })
+
   const [activeTab, setActiveTab] = useState<TabId>('all')
   const [constitutionFilter, setConstitutionFilter] = useState<ConstitutionFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')

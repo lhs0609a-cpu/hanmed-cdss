@@ -3,6 +3,7 @@
  * 사주 팔자 + 오행 차트 + 체질 분석 + 재미 요소
  */
 import { useMemo } from 'react'
+import { useSEO } from '@/hooks/useSEO'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -67,6 +68,16 @@ export default function CelebDetailPage() {
       .filter(c => c.id !== celeb.id)
       .slice(0, 8)
   }, [celeb, analysis])
+
+  useSEO({
+    title: celeb ? `${celeb.name} 체질` : '체질 TMI',
+    description:
+      celeb && analysis
+        ? `${celeb.name}의 생년월일로 본 사주 오행과 추론 체질. 재미로 보는 체질 이야기입니다.`
+        : '셀럽의 사주 오행으로 추론한 사상체질을 봅니다.',
+    ogType: 'article',
+    keywords: celeb ? [celeb.name, '체질', '사주', '오행'] : ['체질'],
+  })
 
   if (!celeb || !analysis) {
     return (
@@ -160,6 +171,14 @@ export default function CelebDetailPage() {
             <span>만 {getAge(celeb.birthDate)}세</span>
           )}
         </div>
+
+        {/* 이 쪽은 이제 실명으로 검색된다. 공개된 생년월일에서 기계적으로
+            뽑은 추론이라는 것을 화면에도 적어 둔다 — 프리렌더가 같은
+            문장을 HTML 에도 싣는다. */}
+        <p className="mt-4 text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
+          공개된 생년월일로 사주 오행을 계산해 사상체질을 추론한 재미 콘텐츠입니다.
+          본인이 밝힌 건강 정보가 아니며, 진단도 아닙니다.
+        </p>
       </motion.section>
 
       {/* 사주 팔자 */}
