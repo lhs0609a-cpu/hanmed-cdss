@@ -625,6 +625,84 @@ const urlsetXml = (rows) =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map(urlBlock).join('\n')}\n</urlset>\n`
 
 /**
+ * RSS 2.0 피드.
+ *
+ * 네이버 서치어드바이저는 사이트맵과 별도로 RSS 를 받는다. 사이트맵이
+ * "이런 주소가 다 있다" 라면 RSS 는 "이것이 새로 생겼다" 다 — 로봇이
+ * 다음 방문을 기다리지 않고 먼저 와 본다.
+ *
+ * 그래서 전부 싣지 않는다. 5만 건을 밀어 넣으면 무엇이 새것인지 말하지
+ * 못하는 두 번째 사이트맵이 될 뿐이다. 최근에 바뀐 것부터 100건만 싣고,
+ * 나머지는 사이트맵이 맡는다.
+ *
+ * 날짜는 우리가 그 쪽을 마지막으로 고친 날(lastmod)이지 논문이 발표된
+ * 해가 아니다. 1746년 의안에 1746년을 적으면 피드가 전부 옛날 것으로
+ * 보이고, 로봇이 새 글을 찾는 데 쓰지 못한다.
+ */
+const RSS_ITEM_LIMIT = 100
+
+function writeRss(items) {
+  /**
+   * 종류마다 최근 것을 고른 뒤 합쳐서 날짜순으로 싣는다.
+   *
+   * 날짜순으로만 자르면 100건이 전부 한 책의 의안이 된다. 한 코퍼스는
+   * 대개 같은 날 통째로 들어와 lastmod 가 같고, 그중 가장 최근 코퍼스가
+   * 목록을 다 먹기 때문이다. 그러면 피드가 이 사이트에 본초와 문헌이
+   * 있다는 것을 한 줄도 말하지 못한다.
+   *
+   * 고르는 것은 순서지 날짜가 아니다. 항목마다 제 lastmod 를 그대로
+   * 달고 나가므로 피드가 없는 새것을 있다고 말하지 않는다.
+   */
+  const byKind = new Map()
+  for (const item of items) {
+    if (!item.title || !item.lastmod) continue
+    const kind = item.path.split('/')[1]
+    const lane = byKind.get(kind) ?? []
+    lane.push(item)
+    byKind.set(kind, lane)
+  }
+  const newestFirst = (a, b) =>
+    a.lastmod === b.lastmod ? 0 : a.lastmod < b.lastmod ? 1 : -1
+  const quota = Math.max(1, Math.ceil(RSS_ITEM_LIMIT / Math.max(1, byKind.size)))
+  const rows = [...byKind.values()]
+    .flatMap((lane) => lane.sort(newestFirst).slice(0, quota))
+    .sort(newestFirst)
+    .slice(0, RSS_ITEM_LIMIT)
+  if (!rows.length) return 0
+  const rfc822 = (day) => new Date(`${day}T00:00:00Z`).toUTCString()
+  // 쪽 제목은 끝에 사이트 이름을 달고 있다. 피드는 이미 채널 이름으로
+  // 사이트를 말하고 있어서, 항목마다 또 붙이면 목록이 같은 글자로 덮인다.
+  const trim = (title) => title.replace(/\s*\|\s*온고지신 AI\s*$/, '')
+  const body = rows
+    .map(
+      (item) => `    <item>
+      <title>${escape(trim(item.title))}</title>
+      <link>${escape(ORIGIN + encodePath(item.path))}</link>
+      <guid isPermaLink="true">${escape(ORIGIN + encodePath(item.path))}</guid>
+      <description>${escape(item.description ?? item.title)}</description>
+      <pubDate>${rfc822(item.lastmod)}</pubDate>
+    </item>`,
+    )
+    .join(String.fromCharCode(10))
+  writeFileSync(
+    resolve(DIST, 'rss.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>온고지신 AI — 한의학 임상 자료</title>
+    <link>${ORIGIN}</link>
+    <description>고전 의안, 처방, 본초, 침구·한약 임상 문헌에 새로 열린 자료.</description>
+    <language>ko</language>
+    <lastBuildDate>${rfc822(rows[0].lastmod)}</lastBuildDate>
+${body}
+  </channel>
+</rss>
+`,
+  )
+  return rows.length
+}
+
+/**
  * 사이트맵을 종류별로 쪼개고 색인으로 묶는다.
  *
  * 왜 색인인가 — 주소가 5만을 넘으면 규격상 한 파일에 담을 수 없다. 넘긴
@@ -790,11 +868,20 @@ async function main() {
     ...(stamps.references ?? []).map((e) => [`/references/${e.slug}`, e.lastmod]),
   ])
 
+  /**
+   * RSS 에 실을 후보. 쪽을 구우면서 같이 모은다 — 제목과 설명은 이미
+   * 만들어 둔 것이고, 나중에 다시 만들면 화면과 피드가 갈라진다.
+   */
+  const feed = []
+
   const bake = (list, group, prefix, build) => {
     for (const teaser of list) {
       const path = `${prefix}/${teaser.slug}`
-      write(path, renderPage(shell, build(teaser)))
-      group.push({ path, lastmod: lastmod.get(path) ?? today })
+      const page = build(teaser)
+      write(path, renderPage(shell, page))
+      const at = lastmod.get(path) ?? today
+      group.push({ path, lastmod: at })
+      feed.push({ path, lastmod: at, title: page.title, description: page.description })
     }
   }
 
@@ -814,8 +901,16 @@ async function main() {
   let bakedReferences = 0
   for (const teaser of references) {
     if (PRERENDER_REFERENCES === 'all' || hasKorean(teaser)) {
-      write(`/references/${teaser.slug}`, renderPage(shell, referencePage(teaser)))
+      const path = `/references/${teaser.slug}`
+      const page = referencePage(teaser)
+      write(path, renderPage(shell, page))
       bakedReferences++
+      feed.push({
+        path,
+        lastmod: lastmod.get(path) ?? today,
+        title: page.title,
+        description: page.description,
+      })
     }
   }
   // 주소는 굽든 말든 사이트맵에 남는다. 굽지 않은 쪽의 머리말은 useSEO 가
@@ -844,6 +939,7 @@ async function main() {
     groups.journals.push({ path, lastmod: today })
   }
 
+  const rssItems = writeRss(feed)
   const files = writeSitemap(groups)
   const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
@@ -851,7 +947,7 @@ async function main() {
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
       `학술지 ${journals.length}쪽 ` +
-      `— 사이트맵 ${total}개 주소, ${files.length}개 파일`,
+      `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건`,
   )
 }
 
