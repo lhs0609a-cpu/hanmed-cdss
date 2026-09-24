@@ -23,7 +23,10 @@ export const escape = (value) =>
  * React 가 붙으면 같은 내용으로 다시 그리므로 화면이 튀지 않는다.
  * bodyHtml 이 없으면 머리말만 고친다 — 본문은 React 에 맡긴다.
  */
-export function renderPage(shell, { url, title, description, bodyHtml, jsonLd }) {
+export function renderPage(
+  shell,
+  { url, title, description, bodyHtml, jsonLd, canonical },
+) {
   // 치환이 안 되면 모든 쪽이 홈의 제목·canonical 을 달고 나간다. 조용히
   // 넘어가면 수천 쪽이 중복으로 잡히므로, 못 찾으면 빌드를 세운다.
   const swap = (html, pattern, replacement, what) => {
@@ -47,7 +50,7 @@ export function renderPage(shell, { url, title, description, bodyHtml, jsonLd })
   html = swap(
     html,
     /<link rel="canonical"[^>]*>/,
-    `<link rel="canonical" href="${escape(url)}" />`,
+    `<link rel="canonical" href="${escape(canonical ?? url)}" />`,
     'canonical',
   )
   html = swap(
@@ -272,6 +275,17 @@ export const REFERENCE_SOURCE_LABEL = {
  */
 export function referencePage(teaser) {
   const url = `${ORIGIN}/references/${encodeURIComponent(teaser.slug)}`
+  /**
+   * 같은 논문이 두 주소로 있을 때는 대표를 가리킨다.
+   *
+   * 같은 글이 학술지와 초록집에 따로 올라오거나 색인이 두 번 되면 내용이
+   * 같은 쪽이 둘 생긴다(68묶음 352쪽). canonical 이 자기 자신을 가리키면
+   * 검색엔진이 어느 쪽을 실을지 스스로 고르고, 그 판단이 갈리면 둘 다
+   * 묻힌다. 서버가 정해 준 대표를 그대로 쓴다.
+   */
+  const canonical = teaser.canonicalSlug
+    ? `${ORIGIN}/references/${encodeURIComponent(teaser.canonicalSlug)}`
+    : url
   const heading = teaser.titleKo ?? teaser.title
   const evidence = EVIDENCE_LABEL[teaser.evidenceType] ?? '문헌'
   const category = REFERENCE_CATEGORY_LABEL[teaser.category] ?? '문헌'
@@ -281,6 +295,7 @@ export function referencePage(teaser) {
     `${category} · ${evidence}. ${teaser.journal ?? ''} ${teaser.publishedYear ?? ''} — ${heading}`.trim()
   return {
     url,
+    canonical,
     title: `${heading} — ${evidence} | 온고지신 AI`,
     description,
     jsonLd: {

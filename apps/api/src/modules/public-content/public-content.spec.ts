@@ -17,8 +17,33 @@ import {
 /** 저장소가 어떤 조건으로 불렸는지 기록하는 가짜. */
 function repo(rows: any[]) {
   const calls: any[] = [];
+  /**
+   * 질의 빌더도 흉내 낸다. 사이트맵이 중복을 걸러 내려고 DISTINCT ON 을
+   * 쓰는데, 그건 find() 의 조건 객체로는 적을 수 없어 빌더로 간다.
+   * 무엇을 물었는지 기록해 두면 시험이 조건을 들여다볼 수 있다.
+   */
+  const builder: any = { steps: [] as string[] };
+  for (const step of [
+    'select',
+    'addSelect',
+    'distinctOn',
+    'where',
+    'andWhere',
+    'groupBy',
+    'having',
+    'orderBy',
+    'addOrderBy',
+  ])
+    builder[step] = (...args: any[]) => {
+      builder.steps.push(`${step}:${JSON.stringify(args[0] ?? '')}`);
+      return builder;
+    };
+  builder.getMany = jest.fn(async () => rows);
+  builder.getRawMany = jest.fn(async () => rows);
   return {
     calls,
+    builder,
+    createQueryBuilder: jest.fn(() => builder),
     find: jest.fn(async (options: any) => {
       calls.push(options);
       return rows;
@@ -94,6 +119,7 @@ const referenceRow = {
   category: 'acupuncture',
   evidenceType: 'rct',
   language: 'ko',
+  contentHash: 'hash-abc',
   updatedAt: new Date('2026-09-01T00:00:00Z'),
 };
 
@@ -326,6 +352,37 @@ describe('공개 콘텐츠', () => {
     // 우리가 쓴 한국어 요약은 우리 것이라 내보낸다 — 네이버가 읽을 본문이다.
     expect(teaser.summaryKo).toBe(referenceRow.summaryKo);
     expect(teaser.url).toContain('kci.go.kr');
+  });
+
+  it('같은 내용이 두 주소로 있으면 대표를 가리킨다', async () => {
+    // 같은 글이 학술지와 초록집에 따로 올라오거나 색인이 두 번 되면
+    // 내용이 같은 쪽이 둘 생긴다. canonical 이 자기 자신을 가리키면
+    // 검색엔진이 어느 쪽을 실을지 스스로 고르고, 갈리면 둘 다 묻힌다.
+    const first = { ...referenceRow, externalId: 'ART000000001' };
+    const references = repo([{ ...referenceRow, externalId: 'ART000000002' }]);
+    references.findOne = jest
+      .fn()
+      .mockResolvedValueOnce({ ...referenceRow, externalId: 'ART000000002' })
+      .mockResolvedValueOnce(first);
+    const teaser = await svc(
+      repo([]),
+      repo([]),
+      repo([]),
+      references,
+    ).getReference('kci-ART000000002');
+    expect(teaser.slug).toBe('kci-ART000000002');
+    expect(teaser.canonicalSlug).toBe('kci-ART000000001');
+  });
+
+  it('중복이 아니면 canonical 은 자기 자신이다', async () => {
+    const references = repo([referenceRow]);
+    const teaser = await svc(
+      repo([]),
+      repo([]),
+      repo([]),
+      references,
+    ).getReference('kci-ART003301341');
+    expect(teaser.canonicalSlug).toBe(teaser.slug);
   });
 
   it('조작된 문헌 주소로 다른 자료를 긁을 수 없다', () => {
