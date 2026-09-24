@@ -601,8 +601,23 @@ async function main() {
    * 않는다.
    */
   const hasKorean = (r) => Boolean(r.titleKo || r.summaryKo)
+  /**
+   * 사이트맵에 실린 것만 굽는다.
+   *
+   * 사이트맵은 내용이 같은 것 중 대표 하나만 싣는다(352쪽이 그렇게 빠진다).
+   * 그런데 굽는 것은 목록 응답으로 만드는데, 목록에서는 canonicalSlug 가
+   * 자기 자신이라 중복 두 쪽이 모두 자기를 가리키는 HTML 로 구워졌다 —
+   * 사이트맵은 하나만 싣는데 구운 쪽은 둘 다 "내가 정본" 이라고 말하는 꼴이다.
+   *
+   * 대표가 아닌 것은 굽지 않는다. 그 주소로 들어오면 서버리스 함수가
+   * 만들고, 그쪽은 한 건씩 묻기 때문에 대표를 제대로 찾아 가리킨다.
+   */
+  const canonicalSlugs = new Set(
+    (stamps.references ?? []).map((e) => e.slug),
+  )
   let bakedReferences = 0
   for (const teaser of references) {
+    if (!canonicalSlugs.has(teaser.slug)) continue
     if (PRERENDER_REFERENCES === 'all' || hasKorean(teaser)) {
       const path = `/references/${teaser.slug}`
       const page = referencePage(teaser)
