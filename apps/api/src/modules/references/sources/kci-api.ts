@@ -355,6 +355,58 @@ export class KciApiClient {
 
     return out;
   }
+
+  /**
+   * 제목에 검색어가 들어간 논문을 받는다.
+   *
+   * 학술지 단위 수집(fetchJournalArticles)이 놓치는 것을 메운다. 한의학
+   * 학술지만 훑으면 타 분야 학술지에 실린 한의학 연구가 통째로 빠진다 —
+   * 추나는 1,947편이 있는데 우리가 들고 있던 것은 표본 100건 중 1건뿐이었다.
+   * 재활의학·물리치료 학술지에 실려서다.
+   *
+   * 검색어는 시술·분야 이름과 처방명만 쓴다. 약재 이름으로 찾으면 안 된다
+   * — 大棗를 "대조" 로 찾으면 대조군 논문이 쏟아진다(relatedResearch.ts).
+   */
+  async fetchByTitle(term: string, maxPages = 30): Promise<RawReference[]> {
+    const out: RawReference[] = [];
+    let page = 1;
+    let total = Infinity;
+
+    while ((page - 1) * MAX_DISPLAY < total && page <= maxPages) {
+      const xml = await this.getPageWithRetry({
+        apiCode: 'articleSearch',
+        title: term,
+        page,
+        displayCount: MAX_DISPLAY,
+      });
+
+      if (total === Infinity) {
+        total = parseInt(tag(xml, 'total') ?? '0', 10) || 0;
+        if (total === 0) break;
+      }
+
+      const records = xml.split('<record>').slice(1);
+      if (records.length === 0) break;
+
+      for (const rec of records) {
+        const ref = toReference(rec, term);
+        if (ref) out.push(ref);
+      }
+
+      page += 1;
+      await sleep(DELAY_MS);
+    }
+
+    // 조용히 덜 받는 것이 가장 나쁘다. 학술지 수집에서 1,525편이 그렇게
+    // 빠져 있었다 — 로그가 멀쩡해서 아무도 몰랐다.
+    if (total !== Infinity && out.length < total) {
+      this.log(
+        `"${term}": 총 ${total}건 중 ${out.length}건만 받았습니다 (쪽 상한 ${maxPages}).`,
+      );
+    }
+
+    return out;
+  }
 }
 
 /** 검색 결과 한 건을 우리 문헌 형태로 옮긴다. */
