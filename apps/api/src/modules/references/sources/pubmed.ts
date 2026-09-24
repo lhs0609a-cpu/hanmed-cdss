@@ -163,6 +163,57 @@ export const PUBMED_TOPICS: PubMedTopic[] = [
     query:
       '("Medicine, Korean Traditional"[MeSH Terms] OR "Korean medicine"[Title/Abstract] OR "Kampo"[Title/Abstract])',
   },
+  /*
+   * 아래 다섯은 2026-09-24 에 더했다.
+   *
+   * 임상 필터를 건 채로 PubMed 에 직접 물어 보니 한의학 관련 문헌이
+   * 34,557건인데 우리가 들고 있는 것은 21,000건대였다. 어디가 비었는지
+   * 세어 보고 메운 것이다. 세어 본 수(임상 필터 적용, 겹침 포함):
+   *
+   *   식물요법          9,980
+   *   지압·경혈         4,399
+   *   동아시아 전통의학   3,970
+   *   중의학 일반        3,542
+   *   기공·양생         1,463
+   *
+   * 중의학이 비어 있던 것은 위의 '변증·진단' 이 "Medicine, Chinese
+   * Traditional/diagnosis" 로 하위주제까지 좁혀 물었기 때문이다. 진단이
+   * 아닌 중의학 임상 문헌은 어느 주제에도 걸리지 않았다.
+   *
+   * "Plant Extracts"/"Plant Preparations"(25,063건)는 일부러 뺐다.
+   * 임상 필터를 걸어도 크랜베리·에키네시아 같은 서양 허브 시험이 대부분이라
+   * 한의사·한의대생이 찾는 것과 결이 다르다. 넣으려면 따로 판단할 일이다.
+   */
+  {
+    label: '중의학 일반',
+    category: ReferenceCategory.OTHER,
+    query:
+      '("Medicine, Chinese Traditional"[MeSH Terms] OR "traditional Chinese medicine"[Title/Abstract])',
+  },
+  {
+    label: '식물요법·본초',
+    category: ReferenceCategory.HERBAL,
+    query:
+      '("Phytotherapy"[MeSH Terms] OR "Plants, Medicinal"[MeSH Terms] OR "Materia Medica"[MeSH Terms] OR phytotherapy[Title/Abstract])',
+  },
+  {
+    label: '지압·경혈',
+    category: ReferenceCategory.ACUPUNCTURE,
+    query:
+      '("Acupressure"[MeSH Terms] OR "Acupuncture Points"[MeSH Terms] OR acupressure[Title/Abstract] OR "acupoint"[Title/Abstract])',
+  },
+  {
+    label: '동아시아 전통의학',
+    category: ReferenceCategory.OTHER,
+    query:
+      '("Medicine, East Asian Traditional"[MeSH Terms] OR "East Asian traditional medicine"[Title/Abstract])',
+  },
+  {
+    label: '기공·양생',
+    category: ReferenceCategory.REHAB,
+    query:
+      '("Qigong"[MeSH Terms] OR "Tai Ji"[MeSH Terms] OR qigong[Title/Abstract] OR "tai chi"[Title/Abstract])',
+  },
 ];
 
 /**
