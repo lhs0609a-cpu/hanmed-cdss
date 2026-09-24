@@ -72,6 +72,8 @@ type ReferenceTeaser = {
   category: string
   evidenceType: string
   language: string
+  /** 같은 내용이 두 주소로 있을 때의 대표 주소 조각 */
+  canonicalSlug?: string
   locked: string[]
 }
 
@@ -612,6 +614,14 @@ export function PublicReferenceDetailPage() {
   )
   const heading = data ? (data.titleKo ?? data.title) : ''
   useSEO({
+    /**
+     * 같은 논문이 두 주소로 있을 때는 서버가 정해 준 대표를 가리킨다.
+     * 구운 쪽(page-builders.mjs)과 같은 값을 써야 크롤러와 사람이 같은
+     * 것을 본다.
+     */
+    canonicalPath: data?.canonicalSlug
+      ? `/references/${encodeURIComponent(data.canonicalSlug)}`
+      : undefined,
     title: data
       ? `${heading} — ${EVIDENCE_LABEL[data.evidenceType] ?? '문헌'}`
       : '문헌 정보',

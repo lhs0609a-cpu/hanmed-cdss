@@ -172,6 +172,7 @@ const REFERENCE_TEASER_COLUMNS = [
   'category',
   'evidenceType',
   'language',
+  'contentHash',
   'updatedAt',
 ] as const;
 
@@ -258,6 +259,16 @@ export type ReferenceTeaser = {
   category: string;
   evidenceType: string;
   language: string;
+  /**
+   * 같은 논문이 두 주소로 있을 때 대표 주소 조각.
+   *
+   * 같은 글이 학술지와 초록집에 따로 올라오거나 색인이 두 번 되면 내용이
+   * 같은 쪽이 둘 생긴다(68묶음 352쪽). 그대로 두면 검색엔진이 어느 쪽을
+   * 실을지 스스로 고르고, 그 판단이 갈리면 둘 다 묻힌다.
+   *
+   * 보통은 자기 자신이고, 중복일 때만 다른 주소가 온다.
+   */
+  canonicalSlug: string;
   locked: string[];
 };
 
@@ -522,7 +533,25 @@ export class PublicContentService {
     });
     const teaser = row && this.toReferenceTeaser(row);
     if (!teaser) throw new NotFoundException('공개된 문헌이 아닙니다.');
-    return teaser;
+    return { ...teaser, canonicalSlug: await this.canonicalFor(row!) };
+  }
+
+  /**
+   * 같은 내용을 가진 것들 중 대표 하나를 고른다.
+   *
+   * 먼저 들어온 것을 대표로 삼는다 — 어느 쪽을 고르든 상관없지만 규칙이
+   * 흔들리면 안 된다. 오늘은 A 를, 내일은 B 를 가리키면 검색엔진은 둘 다
+   * 믿지 않는다.
+   */
+  private async canonicalFor(row: Partial<Reference>): Promise<string> {
+    const self = referenceSlug(row.source!, row.externalId!)!;
+    if (!row.contentHash) return self;
+    const primary = await this.references.findOne({
+      select: ['source', 'externalId'],
+      where: { contentHash: row.contentHash, ...PUBLIC_REFERENCE_WHERE },
+      order: { createdAt: 'ASC', externalId: 'ASC' },
+    });
+    return (primary && referenceSlug(primary.source, primary.externalId)) ?? self;
   }
 
   /**
@@ -546,11 +575,26 @@ export class PublicContentService {
         where: publicHerbWhere(),
         order: { standardName: 'ASC' },
       }),
-      this.references.find({
-        select: ['source', 'externalId', 'updatedAt'],
-        where: PUBLIC_REFERENCE_WHERE,
-        order: { externalId: 'ASC' },
-      }),
+      /**
+       * 내용이 같은 것은 대표 하나만 싣는다.
+       *
+       * 같은 논문이 두 주소로 있는 것이 68묶음 352쪽이다. 둘 다 사이트맵에
+       * 실으면 색인해 달라고 해 놓고 어느 쪽이 진짜인지는 검색엔진에게
+       * 떠넘기는 셈이다. 먼저 들어온 것을 대표로 삼는다 — 상세 쪽의
+       * canonical 과 같은 규칙이라 둘이 어긋나지 않는다.
+       */
+      this.references
+        .createQueryBuilder('r')
+        .select(['r.source', 'r.externalId', 'r.updatedAt'])
+        .distinctOn(['r.contentHash'])
+        .where('r.source IN (:...sources)', {
+          sources: [ReferenceSource.PUBMED, ReferenceSource.KCI],
+        })
+        .andWhere('r.url IS NOT NULL')
+        .orderBy('r.contentHash', 'ASC')
+        .addOrderBy('r.createdAt', 'ASC')
+        .addOrderBy('r.externalId', 'ASC')
+        .getMany(),
     ]);
     const day = (d: Date) => new Date(d).toISOString().slice(0, 10);
     const kept = (rows: { slug: string | null; lastmod: string }[]) =>
@@ -641,6 +685,8 @@ export class PublicContentService {
       category: row.category!,
       evidenceType: row.evidenceType!,
       language: row.language!,
+      // 목록에서는 자기 자신. 대표를 찾으려면 건마다 질의가 한 번 더 든다.
+      canonicalSlug: referenceSlug(row.source!, row.externalId!)!,
       locked: REFERENCE_LOCKED,
     };
   }
