@@ -285,7 +285,7 @@ function casePage(teaser) {
   }
 }
 
-function formulaPage(teaser) {
+function formulaPage(teaser, related = []) {
   const url = `${ORIGIN}/formulas/${encodeURIComponent(teaser.slug)}`
   const hanja = teaser.hanja ? `(${teaser.hanja})` : ''
   const title = `${teaser.name}${hanja} 주치와 출전 | 온고지신 AI`
@@ -317,6 +317,7 @@ function formulaPage(teaser) {
           ${teaser.indication ? `<dt>주치</dt><dd>${escape(teaser.indication)}</dd>` : ''}
           ${teaser.aliases.length ? `<dt>이명</dt><dd>${escape(teaser.aliases.join(', '))}</dd>` : ''}
         </dl>
+        ${relatedHtml(related)}
         ${lockedHtml(teaser.locked)}
         <p class="prerender-note">의료인을 위한 임상 참고 자료입니다. 일반인 대상 의학적 조언의 근거로 쓸 수 없습니다.</p>
       </article>`,
@@ -340,7 +341,7 @@ const herbKicker = (h) =>
     ? h.category
     : (h.taxonomy ?? h.medicinalPart ?? '한약재')
 
-function herbPage(teaser) {
+function herbPage(teaser, related = []) {
   const url = `${ORIGIN}/herbs/${encodeURIComponent(teaser.slug)}`
   const hanja = teaser.hanja ? `(${teaser.hanja})` : ''
   const title = `${teaser.name}${hanja} — 성미·귀경과 기원 | 온고지신 AI`
@@ -387,6 +388,7 @@ function herbPage(teaser) {
           ${teaser.meridianTropism.length ? `<dt>귀경</dt><dd>${escape(teaser.meridianTropism.join(', '))}</dd>` : ''}
           ${teaser.efficacy ? `<dt>효능</dt><dd>${escape(teaser.efficacy)}</dd>` : ''}
         </dl>
+        ${relatedHtml(related)}
         ${lockedHtml(teaser.locked)}
         <p class="prerender-note">학명·라틴생약명·약용부위·수재 공정서는 식품의약품안전처 생약 약재정보의 공식 값입니다. 성미·귀경·효능은 고전 기술을 정리한 참고값이므로 임상 적용 전 원전을 확인하십시오.</p>
       </article>`,
@@ -520,6 +522,33 @@ function journalPage(journal, sample) {
         <p class="prerender-note">서지 정보와 원문 링크는 KCI·PubMed 에서 수집했습니다. 초록 원문은 저작권이 출판사에 있어 싣지 않습니다.</p>
       </article>`,
   }
+}
+
+/**
+ * 쪽 아래에 붙는 관련 연구 목록.
+ *
+ * 화면(PublicContentPages.tsx)이 같은 자료로 같은 것을 그린다. 여기만
+ * 두면 크롤러가 본 것을 사람이 못 보게 되고 그건 클로킹이다.
+ */
+function relatedHtml(papers) {
+  if (!papers.length) return ''
+  return `
+        <section class="public-related">
+          <h2>관련 연구</h2>
+          <ul class="public-list">
+            ${papers
+              .map(
+                (p) =>
+                  `<li><a href="/references/${encodeURIComponent(p.slug)}"><strong>${escape(
+                    p.title,
+                  )}</strong><span>${escape(EVIDENCE_LABEL[p.evidenceType] ?? '')}${
+                    p.journal ? ` · ${escape(p.journal)}` : ''
+                  }${p.publishedYear ? ` · ${escape(p.publishedYear)}` : ''}</span></a></li>`,
+              )
+              .join('')}
+          </ul>
+          <p class="public-related-note">이름이 제목이나 요약에 나오는 문헌을 모은 것입니다. 해당 처방·약재를 다룬 연구인지는 원문에서 확인하십시오.</p>
+        </section>`
 }
 
 /** 증상 셀프체크. 사람들이 검색창에 치는 말이 그대로 제목이다. */
@@ -885,9 +914,49 @@ async function main() {
     }
   }
 
+  /**
+   * 처방·본초에 걸리는 논문을 여기서 짝지어 둔다.
+   *
+   * 같은 일을 DB 에 시키면 LIKE '%이름%' 가 4만 행을 훑어 24초가 걸렸다 —
+   * 인증 없는 경로에 둘 수 있는 질의가 아니다. 논문 전부가 이미 손에 있으니
+   * 여기서 맞춘다.
+   *
+   * 화면도 같은 것을 그려야 해서 정적 JSON 으로 함께 떨군다. 여기만 굽고
+   * 화면이 모르면 React 가 붙는 순간 목록이 사라진다 — 크롤러가 본 것을
+   * 사람이 못 보는 셈이라 클로킹이다.
+   *
+   * PRERENDER_REFERENCES=none 이면 논문을 받아 오지 않으므로 짝도 비어
+   * 있다. 그때는 양쪽 모두 이 칸을 그리지 않아 서로 어긋나지 않는다.
+   */
+  const { papersForFormula, papersForHerb } = await loadAppModule(
+    'lib/relatedResearch.ts',
+  )
+  const relatedFormulas = {}
+  const relatedHerbs = {}
+  for (const teaser of formulas)
+    relatedFormulas[teaser.slug] = papersForFormula(teaser.name, references)
+  for (const teaser of herbs)
+    relatedHerbs[teaser.slug] = papersForHerb(teaser.scientificName, references)
+  mkdirSync(resolve(DIST, 'data'), { recursive: true })
+  writeFileSync(
+    resolve(DIST, 'data/related-formulas.json'),
+    JSON.stringify(relatedFormulas),
+  )
+  writeFileSync(
+    resolve(DIST, 'data/related-herbs.json'),
+    JSON.stringify(relatedHerbs),
+  )
+  const relatedPairs =
+    Object.values(relatedFormulas).filter((v) => v.length).length +
+    Object.values(relatedHerbs).filter((v) => v.length).length
+
   bake(cases, groups.cases, '/cases', casePage)
-  bake(formulas, groups.formulas, '/formulas', formulaPage)
-  bake(herbs, groups.herbs, '/herbs', herbPage)
+  bake(formulas, groups.formulas, '/formulas', (t) =>
+    formulaPage(t, relatedFormulas[t.slug] ?? []),
+  )
+  bake(herbs, groups.herbs, '/herbs', (t) =>
+    herbPage(t, relatedHerbs[t.slug] ?? []),
+  )
 
   /**
    * 문헌은 용량 때문에 굽는 것을 고른다. 고르지 않은 것도 주소는 사이트맵에
@@ -947,7 +1016,8 @@ async function main() {
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
       `학술지 ${journals.length}쪽 ` +
-      `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건`,
+      `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
+      `관련 연구 ${relatedPairs}쪽`,
   )
 }
 

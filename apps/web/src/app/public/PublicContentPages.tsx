@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '@/services/api'
 import { useSEO } from '@/hooks/useSEO'
 import { trackGrowth } from '@/lib/growth'
+import type { RelatedPaper } from '@/lib/relatedResearch'
 import './public-content.css'
 
 /**
@@ -209,6 +210,7 @@ export function PublicFormulaDetailPage() {
   const { data, error } = useJson<FormulaTeaser>(
     slug ? `/public/formulas/${encodeURIComponent(slug)}` : null,
   )
+  const related = useRelated('formulas', slug)
   useSEO({
     title: data
       ? `${data.name}${data.hanja ? `(${data.hanja})` : ''} 주치와 출전`
@@ -251,6 +253,7 @@ export function PublicFormulaDetailPage() {
           </>
         ) : null}
       </dl>
+      <Related papers={related} />
       <Locked locked={data.locked} target="formula" />
       <p className="public-note prerender-note">
         의료인을 위한 임상 참고 자료입니다. 일반인 대상 의학적 조언의 근거로
@@ -416,6 +419,58 @@ export function PublicFormulasPage() {
 }
 
 /**
+ * 관련 연구 — 빌드 때 짝지어 둔 것을 읽는다.
+ *
+ * API 에 묻지 않는 이유: 같은 일을 DB 에 시키면 LIKE '%이름%' 가 4만 행을
+ * 훑어 24초가 걸린다. 인증 없는 경로에 둘 수 있는 질의가 아니다.
+ * 프리렌더가 이미 맞춰 둔 것을 정적 파일로 받는다 — 구운 HTML 과 같은
+ * 자료라서 크롤러와 사람이 같은 것을 본다.
+ */
+function useRelated(kind: 'formulas' | 'herbs', slug: string) {
+  const [map, setMap] = useState<Record<string, RelatedPaper[]> | null>(null)
+  useEffect(() => {
+    let live = true
+    fetch(`/data/related-${kind}.json`)
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((json) => live && setMap(json))
+      // 이 칸은 없어도 쪽이 성립한다. 못 받으면 조용히 비운다.
+      .catch(() => live && setMap({}))
+    return () => {
+      live = false
+    }
+  }, [kind])
+  return map?.[slug] ?? []
+}
+
+/** 쪽 아래 관련 연구 목록. 프리렌더의 relatedHtml 과 같은 것을 그린다. */
+function Related({ papers }: { papers: RelatedPaper[] }) {
+  if (!papers.length) return null
+  return (
+    <section className="public-related">
+      <h2>관련 연구</h2>
+      <ul className="public-list">
+        {papers.map((p) => (
+          <li key={p.slug}>
+            <Link to={`/references/${encodeURIComponent(p.slug)}`}>
+              <strong>{p.title}</strong>
+              <span>
+                {EVIDENCE_LABEL[p.evidenceType] ?? ''}
+                {p.journal ? ` · ${p.journal}` : ''}
+                {p.publishedYear ? ` · ${p.publishedYear}` : ''}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="public-related-note">
+        이름이 제목이나 요약에 나오는 문헌을 모은 것입니다. 해당 처방·약재를
+        다룬 연구인지는 원문에서 확인하십시오.
+      </p>
+    </section>
+  )
+}
+
+/**
  * 분류가 붙지 않은 약재의 category 값. 636종 중 490종이 여기 해당한다.
  * 머리글에 그대로 쓰면 대부분의 쪽이 "미분류" 로 시작한다.
  */
@@ -439,6 +494,7 @@ export function PublicHerbDetailPage() {
   const { data, error } = useJson<HerbTeaser>(
     slug ? `/public/herbs/${encodeURIComponent(slug)}` : null,
   )
+  const related = useRelated('herbs', slug)
   useSEO({
     title: data
       ? `${data.name}${data.hanja ? `(${data.hanja})` : ''} — 성미·귀경과 기원`
@@ -530,6 +586,7 @@ export function PublicHerbDetailPage() {
           </>
         ) : null}
       </dl>
+      <Related papers={related} />
       <Locked locked={data.locked} target="herb" />
       <p className="public-note prerender-note">
         학명·라틴생약명·약용부위·수재 공정서는 식품의약품안전처 생약 약재정보의
