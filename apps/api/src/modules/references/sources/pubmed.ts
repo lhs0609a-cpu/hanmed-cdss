@@ -214,6 +214,26 @@ export const PUBMED_TOPICS: PubMedTopic[] = [
     query:
       '("Qigong"[MeSH Terms] OR "Tai Ji"[MeSH Terms] OR qigong[Title/Abstract] OR "tai chi"[Title/Abstract])',
   },
+  {
+    /*
+     * 약용식물 제제 — 앞서 일부러 뺐다가 넣은 주제다.
+     *
+     * 임상 필터를 걸어도 25,063건이고, 그 안에는 크랜베리·에키네시아처럼
+     * 동아시아 전통의학과 무관한 서양 허브 시험이 섞인다. 한의사가 진료
+     * 중에 찾는 것과는 결이 다르다.
+     *
+     * 그럼에도 넣는 이유는 읽는 사람이 한의사만이 아니기 때문이다.
+     * 본초학·약리학을 공부하는 한의대생과 연구자에게 식물제제 임상시험은
+     * 변두리가 아니라 본령이다.
+     *
+     * 분류는 한약·본초로 두되, 쪽마다 근거유형이 그대로 드러나므로
+     * 한의학 임상 근거인 척하지는 않는다.
+     */
+    label: '약용식물 제제',
+    category: ReferenceCategory.HERBAL,
+    query:
+      '("Plant Extracts"[MeSH Terms] OR "Plant Preparations"[MeSH Terms])',
+  },
 ];
 
 /**

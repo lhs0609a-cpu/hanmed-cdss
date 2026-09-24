@@ -5,6 +5,11 @@
   "outputDirectory": "apps/web/dist",
   "framework": "vite",
   "rewrites": [
+    { "source": "/references/:slug", "destination": "/api/render" },
+    { "source": "/cases/:slug", "destination": "/api/render" },
+    { "source": "/formulas/:slug", "destination": "/api/render" },
+    { "source": "/herbs/:slug", "destination": "/api/render" },
+    { "source": "/journals/:slug", "destination": "/api/render" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
