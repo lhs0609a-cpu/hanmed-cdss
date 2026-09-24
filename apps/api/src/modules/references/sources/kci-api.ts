@@ -366,11 +366,24 @@ export class KciApiClient {
    *
    * 검색어는 시술·분야 이름과 처방명만 쓴다. 약재 이름으로 찾으면 안 된다
    * — 大棗를 "대조" 로 찾으면 대조군 논문이 쏟아진다(relatedResearch.ts).
+   *
+   * ── 받은 것을 그대로 믿지 않는다 ──────────────────────────────────
+   *
+   * KCI 의 제목 검색은 글자 그대로 찾지 않고 형태소로 푼다. "추나" 를 물으면
+   * 1,947건이 오는데 그 안에 醜 개념의 미학과 秋浦 黃愼의 疏箚가 들어 있고,
+   * "구법" 은 19,052건에 입당구법순례행기와 중국어 통사론이 들어 있다.
+   * 그대로 저장했더니 한국추진공학회지 102편, 한국항공우주학회지 33편이
+   * 한의학 문헌으로 쌓였다.
+   *
+   * 그래서 돌려받은 제목에 검색어가 글자 그대로 들어 있는 것만 남긴다.
+   * 추나는 받은 제목 290개 중 10개만 통과한다 — 나머지는 애초에 추나
+   * 논문이 아니었다.
    */
   async fetchByTitle(term: string, maxPages = 30): Promise<RawReference[]> {
     const out: RawReference[] = [];
     let page = 1;
     let total = Infinity;
+    let dropped = 0;
 
     while ((page - 1) * MAX_DISPLAY < total && page <= maxPages) {
       const xml = await this.getPageWithRetry({
@@ -390,23 +403,35 @@ export class KciApiClient {
 
       for (const rec of records) {
         const ref = toReference(rec, term);
-        if (ref) out.push(ref);
+        if (ref && titleContains(ref, term)) out.push(ref);
+        else if (ref) dropped += 1;
       }
 
       page += 1;
       await sleep(DELAY_MS);
     }
 
-    // 조용히 덜 받는 것이 가장 나쁘다. 학술지 수집에서 1,525편이 그렇게
-    // 빠져 있었다 — 로그가 멀쩡해서 아무도 몰랐다.
-    if (total !== Infinity && out.length < total) {
-      this.log(
-        `"${term}": 총 ${total}건 중 ${out.length}건만 받았습니다 (쪽 상한 ${maxPages}).`,
-      );
-    }
+    // 몇 건을 왜 버렸는지 남긴다. 거른 수가 0 이면 필터가 죽은 것이고,
+    // 거의 전부면 그 검색어가 한의학 말이 아니라는 뜻이다.
+    if (dropped)
+      this.log(`"${term}": 제목에 검색어가 없어 ${dropped}건을 버렸습니다.`);
 
     return out;
   }
+}
+
+/**
+ * 제목에 검색어가 글자 그대로 들어 있는가.
+ *
+ * KCI 가 형태소로 풀어 준 결과를 우리가 다시 좁힌다. 한국어 원제를 먼저
+ * 보고, 없으면 원제(영문)를 본다 — 영문 검색어를 쓸 때를 위해 대소문자는
+ * 가리지 않는다.
+ */
+export function titleContains(ref: RawReference, term: string): boolean {
+  const needle = term.trim();
+  if (!needle) return false;
+  if ((ref.titleKo ?? '').includes(needle)) return true;
+  return ref.title.toLowerCase().includes(needle.toLowerCase());
 }
 
 /** 검색 결과 한 건을 우리 문헌 형태로 옮긴다. */
