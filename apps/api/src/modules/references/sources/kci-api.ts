@@ -355,6 +355,100 @@ export class KciApiClient {
 
     return out;
   }
+
+  /**
+   * 제목에 검색어가 들어간 논문을 받는다.
+   *
+   * 학술지 단위 수집(fetchJournalArticles)이 놓치는 것을 메운다. 한의학
+   * 학술지만 훑으면 타 분야 학술지에 실린 한의학 연구가 통째로 빠진다 —
+   * 추나는 1,947편이 있는데 우리가 들고 있던 것은 표본 100건 중 1건뿐이었다.
+   * 재활의학·물리치료 학술지에 실려서다.
+   *
+   * 검색어는 시술·분야 이름과 처방명만 쓴다. 약재 이름으로 찾으면 안 된다
+   * — 大棗를 "대조" 로 찾으면 대조군 논문이 쏟아진다(relatedResearch.ts).
+   *
+   * ── 받은 것을 그대로 믿지 않는다 ──────────────────────────────────
+   *
+   * KCI 의 제목 검색은 글자 그대로 찾지 않고 형태소로 푼다. "추나" 를 물으면
+   * 1,947건이 오는데 그 안에 醜 개념의 미학과 秋浦 黃愼의 疏箚가 들어 있고,
+   * "구법" 은 19,052건에 입당구법순례행기와 중국어 통사론이 들어 있다.
+   * 그대로 저장했더니 한국추진공학회지 102편, 한국항공우주학회지 33편이
+   * 한의학 문헌으로 쌓였다.
+   *
+   * 그래서 돌려받은 제목에 검색어가 글자 그대로 들어 있는 것만 남긴다.
+   * 추나는 받은 제목 290개 중 10개만 통과한다 — 나머지는 애초에 추나
+   * 논문이 아니었다.
+   *
+   * 글자가 들어 있어도 다른 말일 수 있다. 辨證(변증)은 辨證法(변증법)의
+   * 일부라서, 헤겔의 변증법 논문 646편이 한의학 문헌으로 들어왔다.
+   * 그런 말은 exclude 로 막는다.
+   */
+  async fetchByTitle(
+    term: string,
+    maxPages = 30,
+    exclude: readonly string[] = [],
+  ): Promise<RawReference[]> {
+    const out: RawReference[] = [];
+    let page = 1;
+    let total = Infinity;
+    let dropped = 0;
+
+    while ((page - 1) * MAX_DISPLAY < total && page <= maxPages) {
+      const xml = await this.getPageWithRetry({
+        apiCode: 'articleSearch',
+        title: term,
+        page,
+        displayCount: MAX_DISPLAY,
+      });
+
+      if (total === Infinity) {
+        total = parseInt(tag(xml, 'total') ?? '0', 10) || 0;
+        if (total === 0) break;
+      }
+
+      const records = xml.split('<record>').slice(1);
+      if (records.length === 0) break;
+
+      for (const rec of records) {
+        const ref = toReference(rec, term);
+        if (ref && titleContains(ref, term, exclude)) out.push(ref);
+        else if (ref) dropped += 1;
+      }
+
+      page += 1;
+      await sleep(DELAY_MS);
+    }
+
+    // 몇 건을 왜 버렸는지 남긴다. 거른 수가 0 이면 필터가 죽은 것이고,
+    // 거의 전부면 그 검색어가 한의학 말이 아니라는 뜻이다.
+    if (dropped)
+      this.log(`"${term}": 제목에 검색어가 없어 ${dropped}건을 버렸습니다.`);
+
+    return out;
+  }
+}
+
+/**
+ * 제목에 검색어가 글자 그대로 들어 있는가.
+ *
+ * KCI 가 형태소로 풀어 준 결과를 우리가 다시 좁힌다. 한국어 원제를 먼저
+ * 보고, 없으면 원제(영문)를 본다 — 영문 검색어를 쓸 때를 위해 대소문자는
+ * 가리지 않는다.
+ */
+export function titleContains(
+  ref: RawReference,
+  term: string,
+  exclude: readonly string[] = [],
+): boolean {
+  const needle = term.trim();
+  if (!needle) return false;
+  const korean = ref.titleKo ?? '';
+  // 제외어가 먼저다. 검색어가 더 긴 말의 일부로 들어간 것을 걸러낸다.
+  if (exclude.some((bad) => korean.includes(bad))) return false;
+  if (korean.includes(needle)) return true;
+  if (exclude.some((bad) => ref.title.toLowerCase().includes(bad.toLowerCase())))
+    return false;
+  return ref.title.toLowerCase().includes(needle.toLowerCase());
 }
 
 /** 검색 결과 한 건을 우리 문헌 형태로 옮긴다. */
