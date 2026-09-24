@@ -378,8 +378,16 @@ export class KciApiClient {
    * 그래서 돌려받은 제목에 검색어가 글자 그대로 들어 있는 것만 남긴다.
    * 추나는 받은 제목 290개 중 10개만 통과한다 — 나머지는 애초에 추나
    * 논문이 아니었다.
+   *
+   * 글자가 들어 있어도 다른 말일 수 있다. 辨證(변증)은 辨證法(변증법)의
+   * 일부라서, 헤겔의 변증법 논문 646편이 한의학 문헌으로 들어왔다.
+   * 그런 말은 exclude 로 막는다.
    */
-  async fetchByTitle(term: string, maxPages = 30): Promise<RawReference[]> {
+  async fetchByTitle(
+    term: string,
+    maxPages = 30,
+    exclude: readonly string[] = [],
+  ): Promise<RawReference[]> {
     const out: RawReference[] = [];
     let page = 1;
     let total = Infinity;
@@ -403,7 +411,7 @@ export class KciApiClient {
 
       for (const rec of records) {
         const ref = toReference(rec, term);
-        if (ref && titleContains(ref, term)) out.push(ref);
+        if (ref && titleContains(ref, term, exclude)) out.push(ref);
         else if (ref) dropped += 1;
       }
 
@@ -427,10 +435,19 @@ export class KciApiClient {
  * 보고, 없으면 원제(영문)를 본다 — 영문 검색어를 쓸 때를 위해 대소문자는
  * 가리지 않는다.
  */
-export function titleContains(ref: RawReference, term: string): boolean {
+export function titleContains(
+  ref: RawReference,
+  term: string,
+  exclude: readonly string[] = [],
+): boolean {
   const needle = term.trim();
   if (!needle) return false;
-  if ((ref.titleKo ?? '').includes(needle)) return true;
+  const korean = ref.titleKo ?? '';
+  // 제외어가 먼저다. 검색어가 더 긴 말의 일부로 들어간 것을 걸러낸다.
+  if (exclude.some((bad) => korean.includes(bad))) return false;
+  if (korean.includes(needle)) return true;
+  if (exclude.some((bad) => ref.title.toLowerCase().includes(bad.toLowerCase())))
+    return false;
   return ref.title.toLowerCase().includes(needle.toLowerCase());
 }
 

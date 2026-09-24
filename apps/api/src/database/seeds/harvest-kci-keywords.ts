@@ -67,6 +67,19 @@ const WITH_FORMULAS = argValue('formulas') !== '0';
  *
  * 손으로 관리한다. 자동으로 뽑으면 "대조" 같은 것이 섞여 들어온다.
  */
+/**
+ * 검색어가 더 긴 말의 일부로 들어가 엉뚱한 분야를 끌어오는 경우.
+ *
+ * 辨證(변증)은 辨證法(변증법)의 일부라서, 그냥 두면 헤겔의 변증법 논문이
+ * 딸려 온다 — 실제로 646편이 들어왔다(시대와 철학·철학연구·헤겔연구).
+ *
+ * 글자가 들어 있다고 같은 말은 아니다. 새 검색어를 넣기 전에 그 말이
+ * 다른 분야의 더 긴 말에 포함되는지 먼저 본다.
+ */
+const EXCLUDE_BY_TERM: Record<string, readonly string[]> = {
+  변증: ['변증법'],
+};
+
 const MODALITY_TERMS = [
   // 시술
   '침구', '약침', '봉약침', '전침', '이침', '매선', '추나', '부항', '뜸',
@@ -135,7 +148,11 @@ async function main() {
   for (const [at, term] of targets.entries()) {
     const head = `[${at + 1}/${targets.length}] ${term}`;
     try {
-      const refs = await client.fetchByTitle(term);
+      const refs = await client.fetchByTitle(
+        term,
+        30,
+        EXCLUDE_BY_TERM[term] ?? [],
+      );
       fetched += refs.length;
       if (TERMS_ONLY || DRY_RUN) {
         console.log(`${head}: ${refs.length}건`);
