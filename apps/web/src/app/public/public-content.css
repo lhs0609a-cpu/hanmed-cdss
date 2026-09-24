@@ -173,6 +173,26 @@
   word-break: keep-all;
 }
 
+/* 관련 연구 — 처방·본초 쪽 아래에 붙는다 */
+.public-related {
+  margin: 2.5rem 0 0;
+}
+
+.public-related h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.public-related-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #64748b;
+  word-break: keep-all;
+}
+
 /* 목록 */
 .public-index {
   max-width: 52rem;
@@ -291,8 +311,12 @@
   .public-teaser dt,
   .public-list span,
   .public-index-lead,
-  .public-original-title {
+  .public-original-title,
+  .public-related-note {
     color: #94a3b8;
+  }
+  .public-related h2 {
+    color: #e2e8f0;
   }
   .public-summary {
     color: #e2e8f0;
