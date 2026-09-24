@@ -34,7 +34,12 @@ const FormulasPage = lazy(() => import('@/app/formulas/FormulasPage'))
 const FormulaDetailPage = lazy(() => import('@/app/formulas/FormulaDetailPage'))
 const HerbsPage = lazy(() => import('@/app/herbs/HerbsPage'))
 const HerbDetailPage = lazy(() => import('@/app/herbs/HerbDetailPage'))
-const PublicHerbsPage = lazy(() => import('@/app/herbs/PublicHerbsPage'))
+/**
+ * 공공데이터(식약처·지식재산처) 한약재 검색. 이름의 Public 은 "공공데이터" 라는
+ * 뜻이지 "로그인 전 공개" 가 아니다 — 로그인 전 공개 본초는 아래 publicPages 에
+ * 따로 있다. 같은 이름으로 두면 라우터에서 어느 쪽인지 구분되지 않는다.
+ */
+const OpenDataHerbsPage = lazy(() => import('@/app/herbs/PublicHerbsPage'))
 const ComboPage = lazy(() => import('@/app/combo/ComboPage'))
 const ConstitutionPage = lazy(() => import('@/app/constitution/ConstitutionPage'))
 const AcupointsPage = lazy(() => import('@/app/acupoints/AcupointsPage'))
@@ -110,6 +115,12 @@ const PublicCasesPage = lazy(() => publicPages().then((m) => ({ default: m.Publi
 const PublicCaseDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicCaseDetailPage })))
 const PublicFormulasPage = lazy(() => publicPages().then((m) => ({ default: m.PublicFormulasPage })))
 const PublicFormulaDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicFormulaDetailPage })))
+const PublicHerbsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicHerbsPage })))
+const PublicHerbDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicHerbDetailPage })))
+const PublicReferencesPage = lazy(() => publicPages().then((m) => ({ default: m.PublicReferencesPage })))
+const PublicReferenceDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicReferenceDetailPage })))
+const PublicJournalsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalsPage })))
+const PublicJournalDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalDetailPage })))
 
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
@@ -150,6 +161,12 @@ function App() {
         <Route path="/cases/:slug" element={route(<PublicCaseDetailPage />)} />
         <Route path="/formulas" element={route(<PublicFormulasPage />)} />
         <Route path="/formulas/:slug" element={route(<PublicFormulaDetailPage />)} />
+        <Route path="/herbs" element={route(<PublicHerbsPage />)} />
+        <Route path="/herbs/:slug" element={route(<PublicHerbDetailPage />)} />
+        <Route path="/references" element={route(<PublicReferencesPage />)} />
+        <Route path="/references/:slug" element={route(<PublicReferenceDetailPage />)} />
+        <Route path="/journals" element={route(<PublicJournalsPage />)} />
+        <Route path="/journals/:slug" element={route(<PublicJournalDetailPage />)} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -236,7 +253,7 @@ function App() {
           <Route path="formulas/:id" element={route(<FormulaDetailPage />)} />
           <Route path="herbs" element={route(<HerbsPage />)} />
           <Route path="herbs/:id" element={route(<HerbDetailPage />)} />
-          <Route path="herbs-db" element={route(<PublicHerbsPage />)} />
+          <Route path="herbs-db" element={route(<OpenDataHerbsPage />)} />
           <Route path="combo" element={route(<ComboPage />)} />
 
           <Route path="constitution" element={route(<ConstitutionPage />)} />

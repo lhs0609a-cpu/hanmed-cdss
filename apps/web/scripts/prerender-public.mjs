@@ -45,6 +45,20 @@ const ALLOW_EMPTY = process.env.PRERENDER_ALLOW_EMPTY === '1'
  */
 const PRERENDER_TMI = process.env.PRERENDER_TMI !== 'none'
 
+/**
+ * 논문은 42,182건이다. 전부 구우면 270MB 남짓이라 TMI(45MB)까지 더해 배포가
+ * 호스팅 한도에 걸린다. 그래서 기본은 '한국어 자료만' 이다.
+ *
+ * 왜 한국어를 고르나 — 네이버는 한국어 본문이 없는 쪽을 색인하지 않는다.
+ * 영문 초록만 있는 PubMed 항목은 구워 봐야 제목 한 줄이 영어인 쪽이 되고,
+ * 구글에서도 원문 사이트에 밀린다. 한국어 제목이나 한국어 요약이 있는
+ * 것부터 굽는 것이 같은 용량으로 가장 많이 읽히는 길이다.
+ *
+ * 굽지 않은 쪽도 사이트맵에는 남는다 — 주소는 살아 있고 머리말은 useSEO 가
+ * 브라우저에서 고쳐 준다. 용량이 허락하면 PRERENDER_REFERENCES=all.
+ */
+const PRERENDER_REFERENCES = process.env.PRERENDER_REFERENCES ?? 'korean'
+
 const escape = (value) =>
   String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -76,8 +90,30 @@ async function loadAppModule(entry) {
   return import(pathToFileURL(outfile).href)
 }
 
+/**
+ * API 요청 사이 최소 간격.
+ *
+ * 서버는 한 아이피에서 초당 5회까지만 받는다(app.module.ts 의 short 한도).
+ * 프리렌더는 그보다 빨리 던질 수 있어서, 그냥 두면 다섯 번에 한 번씩 429 를
+ * 받고 5초를 쉰다 — 문헌 211쪽을 받는 데 그 대기만 3분이 넘게 붙었다.
+ *
+ * 한도를 올리는 쪽이 아니라 이쪽이 맞추는 쪽을 골랐다. 그 한도는 인증 없는
+ * 경로를 지키라고 둔 것이고, 빌드 편하자고 그걸 여는 것은 지키는 이유를
+ * 빌드 시간과 바꾸는 일이다. 4회/초면 한도 아래이고, 211쪽이 1분이 안 된다.
+ */
+const MIN_REQUEST_GAP_MS = 250
+let nextSlot = 0
+
+async function pace() {
+  const now = Date.now()
+  const at = Math.max(now, nextSlot)
+  nextSlot = at + MIN_REQUEST_GAP_MS
+  if (at > now) await new Promise((done) => setTimeout(done, at - now))
+}
+
 /** 배포 직후라 API 가 아직 안 떴을 수 있다. 몇 번 기다려 준다. */
 async function getJson(path, attempt = 1) {
+  await pace()
   try {
     const res = await fetch(`${API}${path}`, {
       headers: { accept: 'application/json' },
@@ -103,13 +139,25 @@ async function getJson(path, attempt = 1) {
   }
 }
 
-/** 목록 끝까지 따라간다. 한 번에 주는 최대치가 50 이다. */
-async function collect(path) {
+/**
+ * 목록 끝까지 따라간다. 한 번에 주는 최대치가 200 이다.
+ *
+ * 쪽 상한을 인자로 받는다 — 문헌은 42,182건이라 500쪽(25,000건)에서 끊기면
+ * 나머지 17,000건이 조용히 빠진다. 상한에 실제로 닿으면 빌드를 세운다.
+ * 조용히 모자란 채 나가는 것이 이 스크립트가 예전에 겪은 바로 그 사고다.
+ */
+const PAGE_SIZE = 200
+
+async function collect(path, maxPages = 500) {
   const all = []
-  for (let page = 1; page <= 500; page++) {
-    const chunk = await getJson(`${path}?page=${page}&limit=50`)
+  for (let page = 1; page <= maxPages; page++) {
+    const chunk = await getJson(`${path}?page=${page}&limit=${PAGE_SIZE}`)
     all.push(...chunk.items)
-    if (all.length >= chunk.total || !chunk.items.length) break
+    if (all.length >= chunk.total || !chunk.items.length) return all
+    if (page === maxPages)
+      throw new Error(
+        `${path} 가 ${maxPages}쪽에서 끊겼다 — ${all.length}/${chunk.total}건. 상한을 올릴 것.`,
+      )
   }
   return all
 }
@@ -275,6 +323,205 @@ function formulaPage(teaser) {
   }
 }
 
+/**
+ * 본초 한 건.
+ *
+ * 공정서 값과 고전 기술 참고값을 한 쪽에 두되 어느 쪽이 어디서 왔는지
+ * 각주에 적는다. 한의사가 무엇을 믿을지 스스로 판단해야 한다.
+ */
+/**
+ * 분류가 붙지 않은 약재의 category 값. 화면(PublicContentPages.tsx)과 같아야
+ * 한다 — 크롤러와 사람이 다른 것을 보면 클로킹이다.
+ */
+const HERB_CATEGORY_UNSET = '미분류'
+
+const herbKicker = (h) =>
+  h.category && h.category !== HERB_CATEGORY_UNSET
+    ? h.category
+    : (h.taxonomy ?? h.medicinalPart ?? '한약재')
+
+function herbPage(teaser) {
+  const url = `${ORIGIN}/herbs/${encodeURIComponent(teaser.slug)}`
+  const hanja = teaser.hanja ? `(${teaser.hanja})` : ''
+  const title = `${teaser.name}${hanja} — 성미·귀경과 기원 | 온고지신 AI`
+  const description =
+    `${teaser.name}${hanja} ${teaser.latinName ?? ''} · ${herbKicker(teaser)}. ` +
+    `${teaser.medicinalPart ? `약용부위 ${teaser.medicinalPart}. ` : ''}${teaser.efficacy ?? ''}`.trim()
+  const 성미 =
+    teaser.properties?.text ??
+    [teaser.properties?.nature, teaser.properties?.flavor].filter(Boolean).join(' · ')
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Substance',
+      name: teaser.name,
+      alternateName: [teaser.hanja, teaser.latinName, teaser.englishName, ...teaser.aliases].filter(
+        Boolean,
+      ),
+      url,
+      inLanguage: 'ko',
+      description: teaser.efficacy ?? undefined,
+      isAccessibleForFree: false,
+      hasPart: {
+        '@type': 'WebPageElement',
+        isAccessibleForFree: false,
+        cssSelector: '.prerender-locked',
+      },
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <p class="prerender-kicker">${escape(herbKicker(teaser))}</p>
+        <h1>${escape(teaser.name)}${escape(hanja)}</h1>
+        <dl>
+          ${teaser.latinName ? `<dt>라틴생약명</dt><dd>${escape(teaser.latinName)}</dd>` : ''}
+          ${teaser.scientificName ? `<dt>기원 학명</dt><dd>${escape(teaser.scientificName)}</dd>` : ''}
+          ${teaser.taxonomy ? `<dt>과명</dt><dd>${escape(teaser.taxonomy)}</dd>` : ''}
+          ${teaser.medicinalPart ? `<dt>약용부위</dt><dd>${escape(teaser.medicinalPart)}</dd>` : ''}
+          ${teaser.pharmacopoeia ? `<dt>수재 공정서</dt><dd>${escape(teaser.pharmacopoeia)}</dd>` : ''}
+          ${teaser.englishName ? `<dt>영문명</dt><dd>${escape(teaser.englishName)}</dd>` : ''}
+          ${teaser.aliases.length ? `<dt>이명</dt><dd>${escape(teaser.aliases.join(', '))}</dd>` : ''}
+          ${성미 ? `<dt>성미</dt><dd>${escape(성미)}</dd>` : ''}
+          ${teaser.meridianTropism.length ? `<dt>귀경</dt><dd>${escape(teaser.meridianTropism.join(', '))}</dd>` : ''}
+          ${teaser.efficacy ? `<dt>효능</dt><dd>${escape(teaser.efficacy)}</dd>` : ''}
+        </dl>
+        ${lockedHtml(teaser.locked)}
+        <p class="prerender-note">학명·라틴생약명·약용부위·수재 공정서는 식품의약품안전처 생약 약재정보의 공식 값입니다. 성미·귀경·효능은 고전 기술을 정리한 참고값이므로 임상 적용 전 원전을 확인하십시오.</p>
+      </article>`,
+  }
+}
+
+/** 근거 유형·분류의 한국어 이름. 화면(PublicContentPages.tsx)과 같아야 한다. */
+const EVIDENCE_LABEL = {
+  systematic_review: '체계적 고찰·메타분석',
+  rct: '무작위 대조 시험',
+  observational: '관찰 연구',
+  case_report: '증례 보고',
+  guideline: '진료지침·고시',
+  review: '종설',
+  unknown: '유형 미상',
+}
+const REFERENCE_CATEGORY_LABEL = {
+  acupuncture: '침구',
+  herbal: '한약·처방',
+  diagnosis: '진단·변증',
+  rehab: '추나·재활',
+  safety: '안전성·상호작용',
+  admin: '행정·청구·심사',
+  other: '기타',
+}
+const REFERENCE_SOURCE_LABEL = {
+  kci: '한국학술지인용색인(KCI)',
+  pubmed: 'PubMed',
+}
+
+/**
+ * 문헌 한 건.
+ *
+ * 초록 원문은 굽지 않는다 — 저작권이 대개 출판사에 있어 서버도 공개
+ * 응답에 싣지 않는다. 여기 실리는 한국어 요약은 우리가 쓴 것이다.
+ */
+function referencePage(teaser) {
+  const url = `${ORIGIN}/references/${encodeURIComponent(teaser.slug)}`
+  const heading = teaser.titleKo ?? teaser.title
+  const evidence = EVIDENCE_LABEL[teaser.evidenceType] ?? '문헌'
+  const category = REFERENCE_CATEGORY_LABEL[teaser.category] ?? '문헌'
+  const source = REFERENCE_SOURCE_LABEL[teaser.source] ?? teaser.source
+  const description =
+    teaser.summaryKo ??
+    `${category} · ${evidence}. ${teaser.journal ?? ''} ${teaser.publishedYear ?? ''} — ${heading}`.trim()
+  return {
+    url,
+    title: `${heading} — ${evidence} | 온고지신 AI`,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'MedicalScholarlyArticle',
+      headline: heading,
+      alternateName: teaser.titleKo && teaser.titleKo !== teaser.title ? teaser.title : undefined,
+      url,
+      inLanguage: teaser.language === 'ko' ? 'ko' : teaser.language,
+      author: teaser.authors.slice(0, 8).map((name) => ({ '@type': 'Person', name })),
+      isPartOf: teaser.journal
+        ? { '@type': 'Periodical', name: teaser.journal }
+        : undefined,
+      datePublished: teaser.publishedYear ? String(teaser.publishedYear) : undefined,
+      identifier: teaser.doi ?? undefined,
+      sameAs: teaser.url,
+      keywords: teaser.keywords.slice(0, 12).join(', ') || undefined,
+      isAccessibleForFree: false,
+      hasPart: {
+        '@type': 'WebPageElement',
+        isAccessibleForFree: false,
+        cssSelector: '.prerender-locked',
+      },
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <p class="prerender-kicker">${escape(category)} · ${escape(evidence)}</p>
+        <h1>${escape(heading)}</h1>
+        ${teaser.titleKo && teaser.titleKo !== teaser.title ? `<p class="public-original-title">${escape(teaser.title)}</p>` : ''}
+        ${teaser.summaryKo ? `<p class="public-summary">${escape(teaser.summaryKo)}</p>` : ''}
+        <dl>
+          ${teaser.journal ? `<dt>학술지</dt><dd>${escape(teaser.journal)}${teaser.publishedYear ? ` (${escape(teaser.publishedYear)})` : ''}</dd>` : ''}
+          ${teaser.authors.length ? `<dt>저자</dt><dd>${escape(teaser.authors.slice(0, 8).join(', '))}</dd>` : ''}
+          <dt>수록</dt><dd>${escape(source)}</dd>
+          ${teaser.doi ? `<dt>DOI</dt><dd>${escape(teaser.doi)}</dd>` : ''}
+          ${teaser.keywords.length ? `<dt>키워드</dt><dd>${escape(teaser.keywords.slice(0, 12).join(', '))}</dd>` : ''}
+          <dt>원문</dt><dd><a href="${escape(teaser.url)}" rel="noopener noreferrer nofollow">원문 보기</a></dd>
+        </dl>
+        ${lockedHtml(teaser.locked)}
+        <p class="prerender-note">서지 정보와 원문 링크는 ${escape(source)}에서 수집했습니다. 한국어 요약은 기계가 만든 것이므로 임상 판단 전 원문을 확인하십시오. 초록 원문은 저작권이 출판사에 있어 싣지 않습니다.</p>
+      </article>`,
+  }
+}
+
+/**
+ * 학술지 허브.
+ *
+ * 한의사는 학술지 이름을 통째로 검색한다. 논문을 한 편씩만 두면 그 검색어에
+ * 닿을 쪽이 없다. 목록 스무 편을 본문에 실어 빈껍데기가 되지 않게 한다.
+ */
+function journalPage(journal, sample) {
+  const url = `${ORIGIN}/journals/${encodeURIComponent(journal.slug)}`
+  const title = `${journal.journal} 수록 논문 ${journal.count}편 | 온고지신 AI`
+  const description = `${journal.journal}에 실린 침구·한약 임상 문헌 ${journal.count}편의 서지와 한국어 요약.`
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: `${journal.journal} 수록 논문`,
+      url,
+      inLanguage: 'ko',
+      description,
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <h1>${escape(journal.journal)}</h1>
+        <p>${escape(journal.journal)}에 실린 문헌 ${escape(journal.count)}편. 초록 원문과 구조 요약은 무료 계정으로 열람할 수 있습니다.</p>
+        <ul class="public-list">
+          ${sample
+            .map(
+              (r) =>
+                `<li><a href="/references/${encodeURIComponent(r.slug)}"><strong>${escape(
+                  r.titleKo ?? r.title,
+                )}</strong><span>${escape(EVIDENCE_LABEL[r.evidenceType] ?? '')}${
+                  r.publishedYear ? ` · ${escape(r.publishedYear)}` : ''
+                }</span></a></li>`,
+            )
+            .join('')}
+        </ul>
+        <p><a href="/journals">다른 학술지 보기</a></p>
+        <p class="prerender-note">서지 정보와 원문 링크는 KCI·PubMed 에서 수집했습니다. 초록 원문은 저작권이 출판사에 있어 싣지 않습니다.</p>
+      </article>`,
+  }
+}
+
 /** 증상 셀프체크. 사람들이 검색창에 치는 말이 그대로 제목이다. */
 function healthCheckPage(check) {
   const url = `${ORIGIN}/health/check/${encodeURIComponent(check.slug)}`
@@ -364,17 +611,57 @@ function write(routePath, html) {
 const encodePath = (path) =>
   path.split('/').map(encodeURIComponent).join('/')
 
-function writeSitemap(routes) {
-  const body = routes
-    .map(
-      (r) =>
-        `  <url>\n    <loc>${escape(ORIGIN + (r.path === '/' ? '' : encodePath(r.path)))}</loc>\n    <lastmod>${r.lastmod}</lastmod>\n  </url>`,
-    )
-    .join('\n')
+/**
+ * 사이트맵 하나에 담을 수 있는 주소 수. 규격 상한은 50,000 이고 구글·네이버
+ * 모두 그 선에서 자른다. 문헌이 들어오면서 전체가 5만을 넘었으므로 여유를
+ * 두고 끊는다 — 상한에 딱 맞추면 자료가 조금만 늘어도 다시 넘친다.
+ */
+const SITEMAP_CHUNK = 40000
+
+const urlBlock = (r) =>
+  `  <url>\n    <loc>${escape(ORIGIN + (r.path === '/' ? '' : encodePath(r.path)))}</loc>\n    <lastmod>${r.lastmod}</lastmod>\n  </url>`
+
+const urlsetXml = (rows) =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.map(urlBlock).join('\n')}\n</urlset>\n`
+
+/**
+ * 사이트맵을 종류별로 쪼개고 색인으로 묶는다.
+ *
+ * 왜 색인인가 — 주소가 5만을 넘으면 규격상 한 파일에 담을 수 없다. 넘긴
+ * 채로 올리면 크롤러가 뒤를 통째로 버리는데, 잘렸다고 알려주지 않는다.
+ * 3,883쪽이 몇 주 동안 조용히 빠져 있던 것과 같은 종류의 사고다.
+ *
+ * 쪼개는 단위는 종류다. 번호로만 자르면 한 종류가 두 파일에 걸쳐 어디까지
+ * 들어갔는지 사람이 셀 수 없다. 종류별로 두면 서치어드바이저와 서치콘솔에서
+ * 어느 묶음이 얼마나 색인됐는지 그대로 읽힌다.
+ */
+function writeSitemap(groups) {
+  const files = []
+  for (const [name, rows] of Object.entries(groups)) {
+    if (!rows.length) continue
+    for (let at = 0; at < rows.length; at += SITEMAP_CHUNK) {
+      const part = rows.slice(at, at + SITEMAP_CHUNK)
+      const suffix = rows.length > SITEMAP_CHUNK ? `-${at / SITEMAP_CHUNK + 1}` : ''
+      const file = `sitemap-${name}${suffix}.xml`
+      writeFileSync(resolve(DIST, file), urlsetXml(part))
+      files.push({
+        file,
+        lastmod: part.reduce((a, r) => (r.lastmod > a ? r.lastmod : a), part[0].lastmod),
+        count: part.length,
+      })
+    }
+  }
+  if (!files.length) throw new Error('사이트맵에 실을 주소가 하나도 없다')
   writeFileSync(
     resolve(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`,
+    `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${files
+      .map(
+        (f) =>
+          `  <sitemap>\n    <loc>${ORIGIN}/${f.file}</loc>\n    <lastmod>${f.lastmod}</lastmod>\n  </sitemap>`,
+      )
+      .join('\n')}\n</sitemapindex>\n`,
   )
+  return files
 }
 
 /** 고정 경로 — 머리말만 제 것으로 바꾼다. */
@@ -394,7 +681,7 @@ function writeStaticRoutes(shell, routes) {
 }
 
 /** 앱 데이터로 굽는 쪽 — 증상 체크와 체질 TMI. 그린 수를 돌려준다. */
-async function writeAppDataRoutes(shell, routes, today) {
+async function writeAppDataRoutes(shell, groups, today) {
   const [{ healthChecks }, celebs, { CONSTITUTIONS }, saju, { CODE_TO_TYPE }] =
     await Promise.all([
       loadAppModule('data/healthChecks.ts'),
@@ -407,14 +694,14 @@ async function writeAppDataRoutes(shell, routes, today) {
   for (const check of healthChecks) {
     const path = `/health/check/${check.slug}`
     write(path, renderPage(shell, healthCheckPage(check)))
-    routes.push({ path, lastmod: today })
+    groups.health.push({ path, lastmod: today })
   }
 
   let tmi = 0
   for (const celeb of celebs) {
     const path = `/health/tmi/${celeb.id}`
     if (!PRERENDER_TMI) {
-      routes.push({ path, lastmod: today })
+      groups.tmi.push({ path, lastmod: today })
       continue
     }
     // 화면과 같은 함수로 같은 값을 얻는다. celeb.constitution 은 미리
@@ -425,7 +712,7 @@ async function writeAppDataRoutes(shell, routes, today) {
       CONSTITUTIONS[CODE_TO_TYPE[celeb.constitution]]
     if (!info) continue
     write(path, renderPage(shell, celebPage(celeb, analysis, info)))
-    routes.push({ path, lastmod: today })
+    groups.tmi.push({ path, lastmod: today })
     tmi++
   }
   return { checks: healthChecks.length, tmi }
@@ -433,61 +720,138 @@ async function writeAppDataRoutes(shell, routes, today) {
 
 async function main() {
   const shell = loadShell()
-  const routes = []
+  /**
+   * 사이트맵은 종류별로 나눠 담는다. 5만 주소를 한 파일에 담을 수 없고,
+   * 나눠 두면 어느 묶음이 얼마나 색인됐는지 서치어드바이저에서 읽힌다.
+   */
+  const groups = {
+    core: [],
+    health: [],
+    tmi: [],
+    cases: [],
+    formulas: [],
+    herbs: [],
+    references: [],
+    journals: [],
+  }
   const today = new Date().toISOString().slice(0, 10)
 
-  writeStaticRoutes(shell, routes)
-  const app = await writeAppDataRoutes(shell, routes, today)
+  writeStaticRoutes(shell, groups.core)
+  const app = await writeAppDataRoutes(shell, groups, today)
 
   let cases = []
   let formulas = []
-  let stamps = { cases: [], formulas: [] }
+  let herbs = []
+  let references = []
+  let journals = []
+  let stamps = { cases: [], formulas: [], herbs: [], references: [] }
   try {
-    ;[cases, formulas, stamps] = await Promise.all([
-      collect('/public/cases'),
-      collect('/public/formulas'),
+    ;[cases, formulas, herbs, references, journals, stamps] = await Promise.all([
+      collect('/public/cases', 100),
+      collect('/public/formulas', 20),
+      collect('/public/herbs', 20),
+      // 42,000건이 200건씩 온다. 상한은 넉넉히 두되, 닿으면 빌드를 세운다.
+      // 굽지 않기로 했으면 받아 오지도 않는다. 42,182건을 200건씩 211번
+      // 왕복하는 데만 몇 분이 걸리는데, 그렇게 받은 것을 한 쪽도 쓰지 않고
+      // 버리는 것은 배포 시간을 그냥 태우는 일이다. 주소는 사이트맵 항목이
+      // 따로 들고 있다.
+      PRERENDER_REFERENCES === 'none'
+        ? Promise.resolve([])
+        : collect('/public/references', 500),
+      getJson('/public/reference-journals'),
       getJson('/public/sitemap-entries'),
     ])
   } catch (error) {
     if (!ALLOW_EMPTY)
       throw new Error(
-        `공개 콘텐츠를 못 받았다 (${error.message}).\n` +
-          `  API(${API}) 가 떴는지 확인하고 다시 배포할 것.\n` +
+        `공개 콘텐츠를 못 받았다 (${error.message}).
+` +
+          `  API(${API}) 가 떴는지 확인하고 다시 배포할 것.
+` +
           `  API 가 아직 없는 첫 배포라면 PRERENDER_ALLOW_EMPTY=1 로 넘어간다.`,
       )
     console.warn(
-      `prerender: 공개 콘텐츠를 못 받았다 (${error.message}). 의안·처방 3,800여 쪽이 빠진 채로 나간다.`,
+      `prerender: 공개 콘텐츠를 못 받았다 (${error.message}). 의안·처방·본초·문헌이 빠진 채로 나간다.`,
     )
-    writeSitemap(routes)
+    writeSitemap(groups)
     console.log(
-      `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, 체질 TMI ${app.tmi}쪽, 의안·처방 0쪽`,
+      `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, 체질 TMI ${app.tmi}쪽, 나머지 0쪽`,
     )
     return
   }
 
   // lastmod 는 기록이 실제로 바뀐 날이어야 한다. 빌드한 날을 적으면 매
-  // 배포마다 3,883개 주소가 전부 "바뀌었다" 고 알리는 셈이라 크롤러가
+  // 배포마다 5만 개 주소가 전부 "바뀌었다" 고 알리는 셈이라 크롤러가
   // 그 신호를 믿지 않게 된다.
   const lastmod = new Map([
     ...stamps.cases.map((e) => [`/cases/${e.slug}`, e.lastmod]),
     ...stamps.formulas.map((e) => [`/formulas/${e.slug}`, e.lastmod]),
+    ...(stamps.herbs ?? []).map((e) => [`/herbs/${e.slug}`, e.lastmod]),
+    ...(stamps.references ?? []).map((e) => [`/references/${e.slug}`, e.lastmod]),
   ])
 
-  for (const teaser of cases) {
-    const path = `/cases/${teaser.slug}`
-    write(path, renderPage(shell, casePage(teaser)))
-    routes.push({ path, lastmod: lastmod.get(path) ?? today })
+  const bake = (list, group, prefix, build) => {
+    for (const teaser of list) {
+      const path = `${prefix}/${teaser.slug}`
+      write(path, renderPage(shell, build(teaser)))
+      group.push({ path, lastmod: lastmod.get(path) ?? today })
+    }
   }
-  for (const teaser of formulas) {
-    const path = `/formulas/${teaser.slug}`
-    write(path, renderPage(shell, formulaPage(teaser)))
-    routes.push({ path, lastmod: lastmod.get(path) ?? today })
+
+  bake(cases, groups.cases, '/cases', casePage)
+  bake(formulas, groups.formulas, '/formulas', formulaPage)
+  bake(herbs, groups.herbs, '/herbs', herbPage)
+
+  /**
+   * 문헌은 용량 때문에 굽는 것을 고른다. 고르지 않은 것도 주소는 사이트맵에
+   * 남는다 — 머리말은 useSEO 가 브라우저에서 고쳐 준다.
+   *
+   * 한국어 기준은 "한국어 제목이나 한국어 요약이 있는가" 다. 둘 다 없으면
+   * 구워 봐야 한국어가 한 글자도 없는 쪽이 되고, 네이버는 그런 쪽을 색인하지
+   * 않는다.
+   */
+  const hasKorean = (r) => Boolean(r.titleKo || r.summaryKo)
+  let bakedReferences = 0
+  for (const teaser of references) {
+    if (PRERENDER_REFERENCES === 'all' || hasKorean(teaser)) {
+      write(`/references/${teaser.slug}`, renderPage(shell, referencePage(teaser)))
+      bakedReferences++
+    }
   }
-  writeSitemap(routes)
+  // 주소는 굽든 말든 사이트맵에 남는다. 굽지 않은 쪽의 머리말은 useSEO 가
+  // 브라우저에서 고쳐 준다.
+  for (const entry of stamps.references ?? [])
+    groups.references.push({
+      path: `/references/${entry.slug}`,
+      lastmod: entry.lastmod,
+    })
+
+  /**
+   * 학술지 허브. 본문에 실을 스무 편은 이미 받아 둔 목록에서 고른다 —
+   * 학술지마다 API 를 다시 물으면 600번을 더 왕복한다.
+   */
+  const byJournal = new Map()
+  for (const r of references) {
+    if (!r.journal) continue
+    const bucket = byJournal.get(r.journal)
+    if (bucket) {
+      if (bucket.length < 20) bucket.push(r)
+    } else byJournal.set(r.journal, [r])
+  }
+  for (const journal of journals) {
+    const path = `/journals/${journal.slug}`
+    write(path, renderPage(shell, journalPage(journal, byJournal.get(journal.journal) ?? [])))
+    groups.journals.push({ path, lastmod: today })
+  }
+
+  const files = writeSitemap(groups)
+  const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
     `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
-      `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽 ` +
-      `— 사이트맵 ${routes.length}개 주소`,
+      `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
+      `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
+      `학술지 ${journals.length}쪽 ` +
+      `— 사이트맵 ${total}개 주소, ${files.length}개 파일`,
   )
 }
 

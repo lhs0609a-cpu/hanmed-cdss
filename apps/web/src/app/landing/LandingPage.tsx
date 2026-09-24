@@ -865,6 +865,22 @@ export default function LandingPage() {
             <Link to="/download">데스크톱 앱 다운로드</Link>
             <a href="#faq">자주 묻는 질문</a>
           </nav>
+          {/*
+            공개 자료로 들어가는 입구.
+
+            오랫동안 이 쪽들은 사이트맵에만 있었다. 사이트맵은 "이런 주소가
+            있다" 고 말할 뿐이고, 크롤러가 무게를 매기는 것은 어디서 링크가
+            걸려 있느냐다 — 홈에서 한 번도 닿지 않는 쪽은 있으나 마나 한
+            취급을 받는다. 사람도 마찬가지로 찾을 길이 없었다.
+          */}
+          <nav aria-label="공개 자료">
+            <strong>공개 자료</strong>
+            <Link to="/cases">고전 의안</Link>
+            <Link to="/formulas">처방 사전</Link>
+            <Link to="/herbs">본초 사전</Link>
+            <Link to="/references">한의학 문헌</Link>
+            <Link to="/journals">학술지별 문헌</Link>
+          </nav>
           <nav aria-label="서비스 정책">
             <strong>서비스 안내</strong>
             <Link to="/terms">이용약관</Link>

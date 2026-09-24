@@ -12,4 +12,21 @@ Disallow: /patient/
 Disallow: /reset-password
 Disallow: /welcome/
 
+# 네이버 크롤러. User-agent: * 로도 통과하지만 명시해 둔다 —
+# 서치어드바이저의 robots.txt 검증이 Yeti 를 이름으로 찾는다.
+User-agent: Yeti
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /guide/
+Disallow: /t/
+Disallow: /health/saju/report/
+Disallow: /health/saju/payment
+Disallow: /patient/
+Disallow: /reset-password
+Disallow: /welcome/
+
+# 사이트맵 색인. 주소가 5만을 넘어 한 파일에 담을 수 없어 종류별로 나뉜다.
+# 색인 하나만 걸어 두면 크롤러가 나머지를 따라간다.
 Sitemap: https://www.ongojisin.co.kr/sitemap.xml

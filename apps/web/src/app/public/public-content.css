@@ -151,6 +151,28 @@
   word-break: keep-all;
 }
 
+/**
+ * 문헌 쪽의 원제와 한국어 요약.
+ *
+ * 한국어 제목이 있으면 그것이 h1 이고 원제는 그 아래 작게 둔다 — 네이버가
+ * 읽는 것은 한국어 쪽이고, 원문을 찾는 사람에게는 원제가 필요하다.
+ */
+.public-original-title {
+  margin: -0.25rem 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.public-summary {
+  margin: 0 0 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: #1e293b;
+  word-break: keep-all;
+}
+
 /* 목록 */
 .public-index {
   max-width: 52rem;
@@ -268,8 +290,12 @@
   .prerender-teaser dt,
   .public-teaser dt,
   .public-list span,
-  .public-index-lead {
+  .public-index-lead,
+  .public-original-title {
     color: #94a3b8;
+  }
+  .public-summary {
+    color: #e2e8f0;
   }
   .prerender-locked,
   .public-locked {
