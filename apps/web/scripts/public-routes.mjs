@@ -45,6 +45,27 @@ export const STATIC_ROUTES = [
     description: '한의학 처방의 주치·출전·이명을 한곳에서 찾아봅니다.',
   },
   {
+    path: '/herbs',
+    lastmod: '2026-09-23',
+    title: '본초 사전 — 기원과 성미·귀경 | 온고지신 AI',
+    description:
+      '대한민국약전·약전외한약규격집에 수재된 한약재의 기원 학명, 라틴생약명, 약용부위, 성미와 귀경을 찾아봅니다.',
+  },
+  {
+    path: '/references',
+    lastmod: '2026-09-23',
+    title: '한의학 문헌 — 침구·한약 임상 연구 | 온고지신 AI',
+    description:
+      'KCI 와 PubMed 에서 모은 침구·한약 임상 문헌의 서지와 한국어 요약을 근거 유형별로 찾아봅니다.',
+  },
+  {
+    path: '/journals',
+    lastmod: '2026-09-23',
+    title: '학술지별 한의학 문헌 | 온고지신 AI',
+    description:
+      '대한한방내과학회지·동의생리병리학회지 등 학술지별로 수록된 침구·한약 임상 문헌을 찾아봅니다.',
+  },
+  {
     path: '/health',
     lastmod: '2026-09-21',
     title: '건강 정보 | 온고지신 AI',

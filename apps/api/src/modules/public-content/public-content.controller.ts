@@ -55,6 +55,64 @@ export class PublicContentController {
     return this.content.getFormula(slug);
   }
 
+  @Get('herbs')
+  @Public()
+  @ApiOperation({ summary: '공개 본초 목록 (티저)' })
+  listHerbs(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.content.listHerbs(toInt(page, 1), toInt(limit, 20), category);
+  }
+
+  @Get('herb-categories')
+  @Public()
+  @ApiOperation({ summary: '본초 분류와 수' })
+  herbCategories() {
+    return this.content.herbCategories();
+  }
+
+  @Get('herbs/:slug')
+  @Public()
+  @ApiOperation({ summary: '공개 본초 한 건 (티저)' })
+  getHerb(@Param('slug') slug: string) {
+    return this.content.getHerb(slug);
+  }
+
+  @Get('references')
+  @Public()
+  @ApiOperation({ summary: '공개 문헌 목록 (티저)' })
+  listReferences(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('source') source?: string,
+    @Query('category') category?: string,
+    @Query('evidenceType') evidenceType?: string,
+    @Query('journal') journal?: string,
+  ) {
+    return this.content.listReferences(toInt(page, 1), toInt(limit, 20), {
+      source,
+      category,
+      evidenceType,
+      journal,
+    });
+  }
+
+  @Get('reference-journals')
+  @Public()
+  @ApiOperation({ summary: '학술지별 문헌 수 — 검색어 허브의 목록' })
+  referenceJournals() {
+    return this.content.referenceJournals();
+  }
+
+  @Get('references/:slug')
+  @Public()
+  @ApiOperation({ summary: '공개 문헌 한 건 (티저)' })
+  getReference(@Param('slug') slug: string) {
+    return this.content.getReference(slug);
+  }
+
   @Get('sitemap-entries')
   @Public()
   @ApiOperation({ summary: '사이트맵이 쓰는 주소와 갱신 시점' })
