@@ -1,0 +1,100 @@
+/* 가이드 — 공개 쪽 스타일(public-content.css)을 바탕에 깔고 필요한 것만 더한다 */
+
+.guide-section {
+  margin: 2.25rem 0 0;
+}
+
+.guide-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.guide-section p {
+  margin: 0 0 0.875rem;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #1e293b;
+  word-break: keep-all;
+}
+
+/*
+  읽는 사람이 손해를 볼 수 있는 지점.
+  대상이 아닌 상병으로 청구하면 삭감된다 — 그런 것은 눈에 띄어야 한다.
+*/
+.guide-caution {
+  margin: 1rem 0 0;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 6px 6px 0;
+  background: #fffbeb;
+  font-size: 0.9375rem !important;
+  line-height: 1.7 !important;
+  color: #78350f !important;
+}
+
+.guide-links {
+  margin-top: 0.75rem;
+}
+
+.guide-sources {
+  margin: 2.5rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.guide-sources h2 {
+  margin: 0 0 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.guide-sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-sources li {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.guide-sources a {
+  color: #1d4ed8;
+  word-break: break-all;
+}
+
+/* 발행일이 아니라 우리가 확인한 날이다 */
+.guide-checked {
+  margin-left: 0.5rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .guide-section h2,
+  .guide-sources h2 {
+    color: #e2e8f0;
+  }
+  .guide-section p {
+    color: #cbd5e1;
+  }
+  .guide-caution {
+    border-left-color: #b45309;
+    background: #2a2111;
+    color: #fcd34d !important;
+  }
+  .guide-sources {
+    border-top-color: #334155;
+  }
+  .guide-sources a {
+    color: #93c5fd;
+  }
+  .guide-checked {
+    color: #94a3b8;
+  }
+}

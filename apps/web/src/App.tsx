@@ -121,6 +121,9 @@ const PublicReferencesPage = lazy(() => publicPages().then((m) => ({ default: m.
 const PublicReferenceDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicReferenceDetailPage })))
 const PublicJournalsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalsPage })))
 const PublicJournalDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalDetailPage })))
+const guidePages = () => import('@/app/guides/GuidePages')
+const GuidesIndexPage = lazy(() => guidePages().then((m) => ({ default: m.GuidesIndexPage })))
+const GuideDetailPage = lazy(() => guidePages().then((m) => ({ default: m.GuideDetailPage })))
 
 // Admin (lazy)
 const AdminDashboardPage = lazy(() => import('@/app/admin').then((m) => ({ default: m.AdminDashboardPage })))
@@ -167,6 +170,8 @@ function App() {
         <Route path="/references/:slug" element={route(<PublicReferenceDetailPage />)} />
         <Route path="/journals" element={route(<PublicJournalsPage />)} />
         <Route path="/journals/:slug" element={route(<PublicJournalDetailPage />)} />
+        <Route path="/guides" element={route(<GuidesIndexPage />)} />
+        <Route path="/guides/:slug" element={route(<GuideDetailPage />)} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
