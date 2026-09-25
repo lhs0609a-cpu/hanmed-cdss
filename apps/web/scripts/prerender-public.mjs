@@ -34,6 +34,7 @@ import {
   referencePage,
   relatedHtml,
   renderPage,
+  guidePage,
   EVIDENCE_LABEL,
 } from './page-builders.mjs'
 
@@ -474,6 +475,7 @@ async function main() {
     herbs: [],
     references: [],
     journals: [],
+    guides: [],
   }
   const today = new Date().toISOString().slice(0, 10)
 
@@ -562,6 +564,17 @@ async function main() {
    * PRERENDER_REFERENCES=none 이면 논문을 받아 오지 않으므로 짝도 비어
    * 있다. 그때는 양쪽 모두 이 칸을 그리지 않아 서로 어긋나지 않는다.
    */
+  /**
+   * 가이드는 우리가 쓴 글이라 API 를 묻지 않는다. 앱과 같은 모듈에서
+   * 같은 자료를 읽어 굽는다 — 화면이 그리는 것과 한 글자도 다르지 않게.
+   */
+  const guideModule = await loadAppModule('data/guides/index.ts')
+  for (const guide of guideModule.GUIDES) {
+    const path = `/guides/${guide.slug}`
+    write(path, renderPage(shell, guidePage(guide, guideModule.guideLinkHref)))
+    groups.guides.push({ path, lastmod: guide.updatedOn })
+  }
+
   const { papersForFormula, papersForHerb } = await loadAppModule(
     'lib/relatedResearch.ts',
   )
@@ -664,7 +677,7 @@ async function main() {
     `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
-      `학술지 ${journals.length}쪽 ` +
+      `학술지 ${journals.length}쪽, 가이드 ${guideModule.GUIDES.length}쪽 ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,
   )

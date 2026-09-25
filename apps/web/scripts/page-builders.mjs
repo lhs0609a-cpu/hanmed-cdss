@@ -410,3 +410,74 @@ export function relatedHtml(papers) {
           <p class="public-related-note">이름이 제목이나 요약에 나오는 문헌을 모은 것입니다. 해당 처방·약재를 다룬 연구인지는 원문에서 확인하십시오.</p>
         </section>`
 }
+
+/**
+ * 가이드 한 편.
+ *
+ * 화면(app/guides/GuidePages.tsx)이 같은 자료로 같은 것을 그린다. 둘이
+ * 갈라지면 크롤러가 본 것을 사람이 못 보게 되고 그건 클로킹이다.
+ *
+ * 출처에 "확인 2026-09-25" 를 붙이는 것은 장식이 아니다. 수가와 고시는
+ * 조용히 바뀌므로, 언제 본 숫자인지 모르면 읽는 사람이 그대로 청구했다가
+ * 삭감된다.
+ */
+export function guidePage(guide, linkHref) {
+  const url = `${ORIGIN}/guides/${encodeURIComponent(guide.slug)}`
+  const sectionHtml = (section) => `
+        <section class="guide-section">
+          <h2>${escape(section.heading)}</h2>
+          ${section.body.map((p) => `<p>${escape(p)}</p>`).join('')}
+          ${section.caution ? `<p class="guide-caution">${escape(section.caution)}</p>` : ''}
+          ${
+            section.links?.length
+              ? `<ul class="public-list guide-links">${section.links
+                  .map(
+                    (l) =>
+                      `<li><a href="${escape(linkHref(l))}"><strong>${escape(
+                        l.label,
+                      )}</strong>${
+                        l.note && !l.note.startsWith('/')
+                          ? `<span>${escape(l.note)}</span>`
+                          : ''
+                      }</a></li>`,
+                  )
+                  .join('')}</ul>`
+              : ''
+          }
+        </section>`
+  return {
+    url,
+    title: `${guide.title} | 온고지신 AI`,
+    description: guide.description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: guide.title,
+      description: guide.description,
+      url,
+      inLanguage: 'ko',
+      dateModified: guide.updatedOn,
+      author: { '@type': 'Organization', name: '온고지신 AI 운영팀' },
+      citation: guide.sources.map((s) => s.url),
+    },
+    bodyHtml: `
+      <article class="prerender-teaser public-teaser guide">
+        <p class="prerender-kicker">${escape(guide.cluster)} · ${escape(guide.audience)}</p>
+        <h1>${escape(guide.title)}</h1>
+        <p class="public-summary">${escape(guide.description)}</p>
+        ${guide.sections.map(sectionHtml).join('')}
+        <section class="guide-sources">
+          <h2>출처</h2>
+          <ul>${guide.sources
+            .map(
+              (s) =>
+                `<li><a href="${escape(s.url)}" rel="noopener noreferrer">${escape(
+                  s.label,
+                )}</a><span class="guide-checked">확인 ${escape(s.checkedOn)}</span></li>`,
+            )
+            .join('')}</ul>
+        </section>
+        <p class="prerender-note">제도와 수가는 해마다 바뀝니다. 본문의 숫자는 출처에 적힌 확인일 기준이며, 청구 전에는 심평원 고시 원문을 다시 확인하십시오. 의료인을 위한 참고 자료이며 진단·처방 지시가 아닙니다.</p>
+      </article>`,
+  }
+}
