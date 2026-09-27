@@ -34,6 +34,7 @@ import {
   referencePage,
   relatedHtml,
   renderPage,
+  guidePage,
   EVIDENCE_LABEL,
 } from './page-builders.mjs'
 
@@ -474,11 +475,27 @@ async function main() {
     herbs: [],
     references: [],
     journals: [],
+    guides: [],
   }
   const today = new Date().toISOString().slice(0, 10)
 
   writeStaticRoutes(shell, groups.core)
   const app = await writeAppDataRoutes(shell, groups, today)
+
+  /**
+   * 가이드는 우리가 쓴 글이라 API 를 묻지 않는다. 앱과 같은 모듈에서 같은
+   * 자료를 읽어 굽는다 — 화면이 그리는 것과 한 글자도 다르지 않게.
+   *
+   * API 를 부르기 전에 굽는다. 뒤에 두었더니 공개 API 가 죽었을 때
+   * (PRERENDER_ALLOW_EMPTY 로 넘어가는 경로) 가이드까지 통째로 빠졌다 —
+   * API 와 아무 상관도 없는 글인데 같이 사라지는 것은 말이 안 된다.
+   */
+  const guideModule = await loadAppModule('data/guides/index.ts')
+  for (const guide of guideModule.GUIDES) {
+    const path = `/guides/${guide.slug}`
+    write(path, renderPage(shell, guidePage(guide, guideModule.guideLinkHref)))
+    groups.guides.push({ path, lastmod: guide.updatedOn })
+  }
 
   let cases = []
   let formulas = []
@@ -516,7 +533,8 @@ async function main() {
     )
     writeSitemap(groups)
     console.log(
-      `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, 체질 TMI ${app.tmi}쪽, 나머지 0쪽`,
+      `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
+        `체질 TMI ${app.tmi}쪽, 가이드 ${guideModule.GUIDES.length}쪽, 나머지 0쪽`,
     )
     return
   }
@@ -664,7 +682,7 @@ async function main() {
     `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
-      `학술지 ${journals.length}쪽 ` +
+      `학술지 ${journals.length}쪽, 가이드 ${guideModule.GUIDES.length}쪽 ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,
   )
