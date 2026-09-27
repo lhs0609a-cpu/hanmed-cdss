@@ -35,6 +35,7 @@ import {
   relatedHtml,
   renderPage,
   guidePage,
+  keywordPage,
   EVIDENCE_LABEL,
 } from './page-builders.mjs'
 
@@ -475,6 +476,7 @@ async function main() {
     herbs: [],
     references: [],
     journals: [],
+    topics: [],
     guides: [],
   }
   const today = new Date().toISOString().slice(0, 10)
@@ -502,9 +504,10 @@ async function main() {
   let herbs = []
   let references = []
   let journals = []
+  let topics = []
   let stamps = { cases: [], formulas: [], herbs: [], references: [] }
   try {
-    ;[cases, formulas, herbs, references, journals, stamps] = await Promise.all([
+    ;[cases, formulas, herbs, references, journals, topics, stamps] = await Promise.all([
       collect('/public/cases', 100),
       collect('/public/formulas', 20),
       collect('/public/herbs', 20),
@@ -517,6 +520,7 @@ async function main() {
         ? Promise.resolve([])
         : collect('/public/references', 500),
       getJson('/public/reference-journals'),
+      getJson('/public/reference-keywords'),
       getJson('/public/sitemap-entries'),
     ])
   } catch (error) {
@@ -676,13 +680,34 @@ async function main() {
   }
 
   const rssItems = writeRss(feed)
+  /**
+   * 주제 허브. 본문에 실을 스무 편은 이미 받아 둔 목록에서 고른다 —
+   * 주제마다 API 를 다시 물으면 1만 번을 더 왕복한다.
+   *
+   * 키워드는 배열이라 한 논문이 여러 주제에 들어간다. 그래서 학술지와
+   * 달리 첫 스무 편을 채우는 데 훑는 양이 많다.
+   */
+  const byTopic = new Map(topics.map((t) => [t.keyword, []]))
+  for (const r of references) {
+    for (const kw of r.keywords ?? []) {
+      const bucket = byTopic.get(kw)
+      if (bucket && bucket.length < 20) bucket.push(r)
+    }
+  }
+  for (const topic of topics) {
+    const path = `/topics/${topic.slug}`
+    write(path, renderPage(shell, keywordPage(topic, byTopic.get(topic.keyword) ?? [])))
+    groups.topics.push({ path, lastmod: today })
+  }
+
   const files = writeSitemap(groups)
   const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
     `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
-      `학술지 ${journals.length}쪽, 가이드 ${guideModule.GUIDES.length}쪽 ` +
+      `학술지 ${journals.length}쪽, 주제 ${topics.length}쪽, ` +
+      `가이드 ${guideModule.GUIDES.length}쪽 ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,
   )

@@ -121,6 +121,8 @@ const PublicReferencesPage = lazy(() => publicPages().then((m) => ({ default: m.
 const PublicReferenceDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicReferenceDetailPage })))
 const PublicJournalsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalsPage })))
 const PublicJournalDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalDetailPage })))
+const PublicKeywordsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicKeywordsPage })))
+const PublicKeywordDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicKeywordDetailPage })))
 const guidePages = () => import('@/app/guides/GuidePages')
 const GuidesIndexPage = lazy(() => guidePages().then((m) => ({ default: m.GuidesIndexPage })))
 const GuideDetailPage = lazy(() => guidePages().then((m) => ({ default: m.GuideDetailPage })))
@@ -170,6 +172,8 @@ function App() {
         <Route path="/references/:slug" element={route(<PublicReferenceDetailPage />)} />
         <Route path="/journals" element={route(<PublicJournalsPage />)} />
         <Route path="/journals/:slug" element={route(<PublicJournalDetailPage />)} />
+        <Route path="/topics" element={route(<PublicKeywordsPage />)} />
+        <Route path="/topics/:slug" element={route(<PublicKeywordDetailPage />)} />
         <Route path="/guides" element={route(<GuidesIndexPage />)} />
         <Route path="/guides/:slug" element={route(<GuideDetailPage />)} />
         <Route path="/login" element={<LoginPage />} />

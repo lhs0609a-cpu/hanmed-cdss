@@ -90,13 +90,22 @@ export class PublicContentController {
     @Query('category') category?: string,
     @Query('evidenceType') evidenceType?: string,
     @Query('journal') journal?: string,
+    @Query('keyword') keyword?: string,
   ) {
     return this.content.listReferences(toInt(page, 1), toInt(limit, 20), {
       source,
       category,
       evidenceType,
       journal,
+      keyword,
     });
+  }
+
+  @Get('reference-keywords')
+  @Public()
+  @ApiOperation({ summary: '주제별 문헌 수 — 검색어 허브의 목록' })
+  referenceKeywords() {
+    return this.content.referenceKeywords();
   }
 
   @Get('reference-journals')
