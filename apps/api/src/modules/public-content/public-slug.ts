@@ -233,7 +233,7 @@ export function journalSlug(journal: string): string | null {
  * 말이 아니다.
  */
 export const KEYWORD_PATTERN =
-  "^[A-Za-z0-9가-힣][A-Za-z0-9가-힣 ,()./\-]*$";
+  "^[A-Za-z0-9가-힣][A-Za-z0-9가-힣 ,()./-]*$";
 export const KEYWORD_MAX_LENGTH = 100;
 
 /** 허브를 만들 최소 편수. 두세 편짜리 목록은 읽을 것이 없다. */
