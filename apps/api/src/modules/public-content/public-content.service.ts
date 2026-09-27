@@ -26,6 +26,9 @@ import {
   JOURNAL_NAME_MAX_LENGTH,
   JOURNAL_NAME_PATTERN,
   journalSlug,
+  KEYWORD_MIN_PAPERS,
+  KEYWORD_STOPLIST,
+  keywordSlug,
   parseCaseSlug,
   parseReferenceSlug,
   referenceSlug,
@@ -456,6 +459,7 @@ export class PublicContentService {
       category?: string;
       evidenceType?: string;
       journal?: string;
+      keyword?: string;
     } = {},
   ) {
     const take = Math.min(Math.max(1, limit), MAX_LIMIT);
@@ -476,6 +480,17 @@ export class PublicContentService {
         // 학술지 이름은 주소에서 오므로 규칙을 통과한 것만 쓴다.
         ...(filter.journal && journalSlug(filter.journal)
           ? { journal: filter.journal }
+          : {}),
+        /**
+         * 주제는 배열 안을 본다. 주소에서 오므로 규칙을 통과한 것만 쓴다 —
+         * 배열 연산자에 임의 문자열을 그대로 넘기지 않는다.
+         */
+        ...(filter.keyword && keywordSlug(filter.keyword)
+          ? {
+              keywords: Raw((alias) => `:keyword = ANY(${alias})`, {
+                keyword: filter.keyword,
+              }),
+            }
           : {}),
       },
       order: { publishedYear: 'DESC', externalId: 'ASC' },
@@ -517,6 +532,35 @@ export class PublicContentService {
     return rows
       .map((r) => ({ ...r, slug: journalSlug(r.journal) }))
       .filter((r): r is { journal: string; count: number; slug: string } =>
+        Boolean(r.slug),
+      );
+  }
+
+  /**
+   * 주제 허브 목록.
+   *
+   * 키워드는 배열 칼럼이라 unnest 로 펼쳐 센다. 표지에 가까운 말
+   * (Humans·Female·연구설계)은 빼고, 편수가 적은 것도 뺀다 — 세 편짜리
+   * 목록은 읽을 것이 없는데 주소만 늘어 색인에서 빈껍데기로 읽힌다.
+   */
+  async referenceKeywords() {
+    const rows = await this.references.query(
+      `with k as (
+         select unnest(r.keywords) kw
+         from clinical_references r
+         where r.source in ('pubmed','kci') and r.url is not null
+       )
+       select kw as keyword, count(*)::int as count
+       from k
+       where kw <> all($1)
+       group by kw
+       having count(*) >= $2
+       order by count(*) desc`,
+      [[...KEYWORD_STOPLIST], KEYWORD_MIN_PAPERS],
+    );
+    return (rows as { keyword: string; count: number }[])
+      .map((r) => ({ ...r, slug: keywordSlug(r.keyword) }))
+      .filter((r): r is { keyword: string; count: number; slug: string } =>
         Boolean(r.slug),
       );
   }

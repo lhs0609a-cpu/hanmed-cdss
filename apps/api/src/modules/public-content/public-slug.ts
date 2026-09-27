@@ -222,3 +222,50 @@ export function journalSlug(journal: string): string | null {
   if (journal.endsWith('.')) return null;
   return new RegExp(JOURNAL_NAME_PATTERN).test(journal) ? journal : null;
 }
+
+/**
+ * 주제(키워드) 허브 주소.
+ *
+ * 한의사는 "요통 침 치료 논문" 처럼 주제로 찾는다. 논문을 한 편씩만 두면
+ * 그 검색어에 닿을 쪽이 없다. 학술지 허브와 같은 이치다.
+ *
+ * 키워드는 MeSH 와 저자 키워드에서 온 문자열을 그대로 쓴다. 우리가 지어낸
+ * 말이 아니다.
+ */
+export const KEYWORD_PATTERN =
+  "^[A-Za-z0-9가-힣][A-Za-z0-9가-힣 ,()./-]*$";
+export const KEYWORD_MAX_LENGTH = 100;
+
+/** 허브를 만들 최소 편수. 두세 편짜리 목록은 읽을 것이 없다. */
+export const KEYWORD_MIN_PAPERS = 3;
+
+/**
+ * 주제로 쓰지 않는 말.
+ *
+ * MeSH 에는 주제가 아니라 표지인 것이 섞여 있다. Humans·Female·Adult 는
+ * 거의 모든 논문에 붙어서 허브를 만들면 "사람 2만 편" 같은 쪽이 된다 —
+ * 읽는 사람에게 아무것도 주지 않으면서 색인만 먹는다.
+ *
+ * 연구설계(Double-Blind Method)와 나라 이름도 같은 이유로 뺀다. 그건
+ * 근거 유형 필터와 출처 필터가 이미 맡고 있다.
+ */
+export const KEYWORD_STOPLIST: readonly string[] = [
+  'Humans', 'Female', 'Male', 'Adult', 'Middle Aged', 'Aged', 'Young Adult',
+  'Adolescent', 'Child', 'Animals', 'Mice', 'Rats', 'Aged, 80 and over',
+  'Infant', 'Child, Preschool', 'Treatment Outcome', 'Double-Blind Method',
+  'Prospective Studies', 'Retrospective Studies',
+  'Randomized Controlled Trials as Topic', 'Reproducibility of Results',
+  'Time Factors', 'Follow-Up Studies', 'Cross-Sectional Studies',
+  'Single-Blind Method', 'Republic of Korea', 'China', 'Japan', 'Pregnancy',
+  // KCI 는 연구분야를 키워드 자리에 넣는다. 2만 편에 붙어 주제가 못 된다.
+  '한의학',
+];
+
+export function keywordSlug(keyword: string): string | null {
+  if (keyword !== keyword.trim()) return null;
+  if (!keyword || keyword.length > KEYWORD_MAX_LENGTH) return null;
+  // 마침표로 끝나면 윈도에서 폴더가 되지 못한다 — 프리렌더가 거기서 선다.
+  if (keyword.endsWith('.')) return null;
+  if (KEYWORD_STOPLIST.includes(keyword)) return null;
+  return new RegExp(KEYWORD_PATTERN).test(keyword) ? keyword : null;
+}

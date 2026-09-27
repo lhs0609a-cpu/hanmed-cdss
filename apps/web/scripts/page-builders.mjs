@@ -481,3 +481,49 @@ export function guidePage(guide, linkHref) {
       </article>`,
   }
 }
+
+/**
+ * 주제 허브.
+ *
+ * 한의사는 "요통 침 치료 논문" 처럼 주제로 찾는다. 논문을 한 편씩만 두면
+ * 그 검색어에 닿을 쪽이 없다. 학술지 허브와 같은 이치다.
+ *
+ * 목록 스무 편을 본문에 실어 빈껍데기가 되지 않게 한다.
+ */
+export function keywordPage(topic, sample) {
+  const url = `${ORIGIN}/topics/${encodeURIComponent(topic.slug)}`
+  const title = `${topic.keyword} — 한의학 문헌 ${topic.count}편 | 온고지신 AI`
+  const description = `${topic.keyword}을(를) 다룬 침구·한약 임상 문헌 ${topic.count}편의 서지와 한국어 요약.`
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: `${topic.keyword} — 한의학 문헌`,
+      url,
+      inLanguage: 'ko',
+      description,
+    },
+    bodyHtml: `
+      <article class="prerender-teaser">
+        <h1>${escape(topic.keyword)}</h1>
+        <p>${escape(topic.keyword)}을(를) 다룬 문헌 ${escape(topic.count)}편. 초록 원문과 구조 요약은 무료 계정으로 열람할 수 있습니다.</p>
+        <ul class="public-list">
+          ${sample
+            .map(
+              (r) =>
+                `<li><a href="/references/${encodeURIComponent(r.slug)}"><strong>${escape(
+                  r.titleKo ?? r.title,
+                )}</strong><span>${escape(EVIDENCE_LABEL[r.evidenceType] ?? '')}${
+                  r.journal ? ` · ${escape(r.journal)}` : ''
+                }${r.publishedYear ? ` · ${escape(r.publishedYear)}` : ''}</span></a></li>`,
+            )
+            .join('')}
+        </ul>
+        <p><a href="/topics">다른 주제 보기</a> · <a href="/journals">학술지별로 보기</a></p>
+        <p class="prerender-note">논문에 붙은 주제어로 모은 것입니다. 서지 정보와 원문 링크는 KCI·PubMed 에서 수집했으며, 초록 원문은 저작권이 출판사에 있어 싣지 않습니다.</p>
+      </article>`,
+  }
+}

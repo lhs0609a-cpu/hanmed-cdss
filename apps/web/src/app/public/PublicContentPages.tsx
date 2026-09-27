@@ -971,3 +971,104 @@ export function PublicJournalDetailPage() {
     </div>
   )
 }
+
+/**
+ * 주제 허브.
+ *
+ * 한의사는 "요통 침 치료 논문" 처럼 주제로 찾는다. 논문을 한 편씩만 두면
+ * 그 검색어에 닿을 쪽이 없다. 학술지 허브와 같은 이치다.
+ *
+ * 목록이 1만 개라 한 화면에 다 그리지 않는다 — 많이 다룬 것부터 400개만
+ * 보이고 나머지는 사이트맵과 각 문헌 쪽의 키워드 줄로 닿는다.
+ */
+const KEYWORD_INDEX_LIMIT = 400
+
+export function PublicKeywordsPage() {
+  const { data, error } = useJson<
+    { keyword: string; slug: string; count: number }[]
+  >('/public/reference-keywords')
+  useSEO({
+    title: '주제별 한의학 문헌',
+    description:
+      '침 치료·요통·불면처럼 주제로 묶은 침구·한약 임상 문헌. 많이 다룬 주제부터 찾아봅니다.',
+  })
+  return (
+    <div className="public-index">
+      <h1>주제별 문헌</h1>
+      <p className="public-index-lead">
+        논문에 붙은 주제어로 문헌을 모아 봅니다. 세 편 이상 다룬 주제만 싣습니다.{' '}
+        <Link to="/journals">학술지별로 보기</Link>
+      </p>
+      {!data ? (
+        <Status error={error} />
+      ) : (
+        <ul className="public-list">
+          {data.slice(0, KEYWORD_INDEX_LIMIT).map((k) => (
+            <li key={k.slug}>
+              <Link to={`/topics/${encodeURIComponent(k.slug)}`}>
+                <strong>{k.keyword}</strong>
+                <span>{k.count.toLocaleString('ko-KR')}편</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export function PublicKeywordDetailPage() {
+  const { slug = '' } = useParams()
+  const [params, setParams] = useSearchParams()
+  const page = Number(params.get('page')) || 1
+  const { data, error } = useJson<Page<ReferenceTeaser>>(
+    slug
+      ? `/public/references?page=${page}&limit=20&keyword=${encodeURIComponent(slug)}`
+      : null,
+  )
+  useSEO({
+    title: `${slug} — 한의학 문헌`,
+    description: `${slug}을(를) 다룬 침구·한약 임상 문헌의 서지와 한국어 요약을 모았습니다.`,
+  })
+  return (
+    <div className="public-index">
+      <h1>{slug}</h1>
+      <p className="public-index-lead">
+        {slug}을(를) 다룬 문헌
+        {data ? ` ${data.total.toLocaleString('ko-KR')}편` : ''}. 초록 원문과 구조
+        요약은 무료 계정으로 열람할 수 있습니다.{' '}
+        <Link to="/topics">다른 주제 보기</Link>
+      </p>
+      {!data ? (
+        <Status error={error} />
+      ) : (
+        <>
+          <ul className="public-list">
+            {data.items.map((item) => (
+              <li key={item.slug}>
+                <Link to={`/references/${encodeURIComponent(item.slug)}`}>
+                  <strong>{item.titleKo ?? item.title}</strong>
+                  <span>
+                    {EVIDENCE_LABEL[item.evidenceType] ?? ''}
+                    {item.journal ? ` · ${item.journal}` : ''}
+                    {item.publishedYear ? ` · ${item.publishedYear}` : ''}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Pager
+            page={data.page}
+            total={data.total}
+            limit={data.limit}
+            onChange={(next) => {
+              const merged = new URLSearchParams(params)
+              merged.set('page', String(next))
+              setParams(merged)
+            }}
+          />
+        </>
+      )}
+    </div>
+  )
+}
