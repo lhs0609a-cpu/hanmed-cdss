@@ -29,4 +29,16 @@ export class NonPayPricesController {
   koreanMedicine(@Query('region') region?: string) {
     return this.service.getKoreanMedicinePrices(region || 'All');
   }
+
+  @Public()
+  @Get('korean-medicine/all')
+  @ApiOperation({
+    summary: '한방 비급여 항목의 전 지역 가격',
+    description:
+      '지역 열여덟 곳을 한 번에 준다. 항목 하나가 지역마다 얼마인지 보여주는 ' +
+      '공개 쪽과 프리렌더가 쓴다 — 지역별로 열여덟 번 묻지 않게.',
+  })
+  koreanMedicineAll() {
+    return this.service.getAllKoreanMedicinePrices();
+  }
 }

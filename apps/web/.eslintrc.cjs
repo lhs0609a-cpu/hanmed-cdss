@@ -31,8 +31,11 @@ module.exports = {
     'coverage',
     'playwright-report',
     'test-results',
-    'public',
-    'scripts',
+    // 앵커를 뺐더니 정적 자산 폴더(web/public)만이 아니라 이름이 public 인
+    // 폴더를 깊이에 상관없이 전부 무시했다. src/app/public 의 공개 쪽들 —
+    // 검색으로 들어오는 화면 전부 — 이 그래서 한 번도 린트되지 않았다.
+    '/public',
+    '/scripts',
     'vite.config.js',
     'vite.config.d.ts',
     '*.timestamp-*.mjs',

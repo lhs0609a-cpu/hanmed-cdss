@@ -36,6 +36,9 @@ import {
   renderPage,
   guidePage,
   keywordPage,
+  nonPayIndexPage,
+  nonPayItemPage,
+  nonPayRegionPage,
   EVIDENCE_LABEL,
 } from './page-builders.mjs'
 
@@ -478,6 +481,7 @@ async function main() {
     journals: [],
     topics: [],
     guides: [],
+    nonpay: [],
   }
   const today = new Date().toISOString().slice(0, 10)
 
@@ -700,6 +704,48 @@ async function main() {
     groups.topics.push({ path, lastmod: today })
   }
 
+  /**
+   * 한방 비급여 진료비.
+   *
+   * 항목 열일곱에 지역 열여덟이면 조합은 306이지만 조합 쪽은 굽지 않는다.
+   * 한 칸이 가진 고유한 내용은 숫자 네 개뿐이고 나머지는 306쪽이 똑같이
+   * 나눠 갖는 껍데기라, 그렇게 만든 쪽끼리 유사문서가 되어 함께 내려간다.
+   * 대신 항목 쪽이 지역 열여덟을 통째로 들고, 지역 쪽이 항목 열일곱을
+   * 통째로 든다 — 조합 쪽보다 한 쪽이 더 많이 준다.
+   *
+   * 다른 자료와 달리 실패해도 빌드를 세우지 않는다. 금액은 원자료가 월 1회
+   * 갱신되는 곁가지이고, 이것 하나 때문에 문헌 수만 쪽의 배포를 막을 이유가
+   * 없다. 대신 조용히 넘어가지 않고 경고를 남긴다.
+   */
+  let nonpayPages = 0
+  try {
+    const np = await loadAppModule('lib/nonpay.ts')
+    const regions = await getJson('/public/nonpay-prices/korean-medicine/all')
+    if (!Array.isArray(regions) || regions.length === 0)
+      throw new Error('지역 목록이 비어 있다')
+
+    write('/nonpay', renderPage(shell, nonPayIndexPage(np, regions)))
+    groups.nonpay.push({ path: '/nonpay', lastmod: today })
+    nonpayPages += 1
+
+    for (const view of np.byItem(regions)) {
+      const path = `/nonpay/${view.slug}`
+      write(path, renderPage(shell, nonPayItemPage(np, view, regions)))
+      groups.nonpay.push({ path, lastmod: today })
+      nonpayPages += 1
+    }
+    for (const region of regions) {
+      const slug = np.nonpayRegionSlug(region.regionName)
+      if (!slug) continue
+      const path = `/nonpay/지역/${slug}`
+      write(path, renderPage(shell, nonPayRegionPage(np, region, regions)))
+      groups.nonpay.push({ path, lastmod: today })
+      nonpayPages += 1
+    }
+  } catch (error) {
+    console.warn(`prerender: 비급여 가격을 굽지 못했다 — ${error.message}`)
+  }
+
   const files = writeSitemap(groups)
   const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
@@ -707,7 +753,7 @@ async function main() {
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
       `학술지 ${journals.length}쪽, 주제 ${topics.length}쪽, ` +
-      `가이드 ${guideModule.GUIDES.length}쪽 ` +
+      `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽 ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,
   )

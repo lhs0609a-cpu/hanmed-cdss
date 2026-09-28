@@ -880,6 +880,9 @@ export default function LandingPage() {
             <Link to="/herbs">본초 사전</Link>
             <Link to="/references">한의학 문헌</Link>
             <Link to="/journals">학술지별 문헌</Link>
+            <Link to="/topics">주제별 문헌</Link>
+            <Link to="/guides">한의사 가이드</Link>
+            <Link to="/nonpay">한방 비급여 가격</Link>
           </nav>
           <nav aria-label="서비스 정책">
             <strong>서비스 안내</strong>
