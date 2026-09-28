@@ -8,6 +8,8 @@ import { CacheService } from '../cache/cache.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { TotpService } from './services/totp.service';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
+import { PasswordHistory } from '../../database/entities/password-history.entity';
+import { User } from '../../database/entities/user.entity';
 
 /**
  * 한의사 면허번호 형식 검증 smoke test.
@@ -36,6 +38,16 @@ describe('AuthService.validateLicenseNumber', () => {
         {
           provide: getRepositoryToken(PasswordResetToken),
           useValue: { findOne: noop, save: noop, delete: noop },
+        },
+        // 면허번호 검증만 보는 시험이지만 AuthService 를 통째로 만들어야 하므로
+        // 생성자가 받는 저장소는 안 쓰더라도 전부 있어야 한다.
+        {
+          provide: getRepositoryToken(PasswordHistory),
+          useValue: { findOne: noop, save: noop, delete: noop, find: noop },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: { findOne: noop, save: noop, update: noop },
         },
       ],
     }).compile();

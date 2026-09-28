@@ -11,6 +11,8 @@ import { CacheService } from '../cache/cache.service';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { TotpService } from './services/totp.service';
 import { PasswordResetToken } from '../../database/entities/password-reset-token.entity';
+import { PasswordHistory } from '../../database/entities/password-history.entity';
+import { User } from '../../database/entities/user.entity';
 
 // Mock bcrypt
 jest.mock('bcrypt');
@@ -83,6 +85,11 @@ describe('AuthService', () => {
         { provide: EncryptionService, useValue: mockEncryptionService },
         { provide: TotpService, useValue: mockTotpService },
         { provide: getRepositoryToken(PasswordResetToken), useValue: mockRepository },
+        // AuthService 가 비밀번호 재사용을 막으려고 이력을, 잠금·2FA 때문에
+        // 사용자 저장소를 직접 받는다. 생성자에 늘어난 것을 여기 안 넣으면
+        // Nest 가 AuthService 자체를 못 만들어서 이 파일의 시험이 전부 선다.
+        { provide: getRepositoryToken(PasswordHistory), useValue: mockRepository },
+        { provide: getRepositoryToken(User), useValue: mockRepository },
       ],
     }).compile();
 
