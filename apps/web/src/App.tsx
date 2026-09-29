@@ -123,6 +123,10 @@ const PublicJournalsPage = lazy(() => publicPages().then((m) => ({ default: m.Pu
 const PublicJournalDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicJournalDetailPage })))
 const PublicKeywordsPage = lazy(() => publicPages().then((m) => ({ default: m.PublicKeywordsPage })))
 const PublicKeywordDetailPage = lazy(() => publicPages().then((m) => ({ default: m.PublicKeywordDetailPage })))
+// 상병코드 두 화면.
+const sickPages = () => import('@/app/public/SickCodePages')
+const SickCodesIndexPage = lazy(() => sickPages().then((m) => ({ default: m.SickCodesIndexPage })))
+const SickCodeDetailPage = lazy(() => sickPages().then((m) => ({ default: m.SickCodeDetailPage })))
 // 비급여 가격 세 화면. 같은 자료를 한 번에 받아 셋이 나눠 쓰므로 한 청크다.
 const nonpayPages = () => import('@/app/public/NonPayPages')
 const NonPayIndexPage = lazy(() => nonpayPages().then((m) => ({ default: m.NonPayIndexPage })))
@@ -180,6 +184,8 @@ function App() {
         <Route path="/topics" element={route(<PublicKeywordsPage />)} />
         <Route path="/topics/:slug" element={route(<PublicKeywordDetailPage />)} />
         {/* 지역 쪽이 먼저다. 뒤에 두면 "지역" 이 항목 슬러그로 먹힌다. */}
+        <Route path="/sick-codes" element={route(<SickCodesIndexPage />)} />
+        <Route path="/sick-codes/:code" element={route(<SickCodeDetailPage />)} />
         <Route path="/nonpay" element={route(<NonPayIndexPage />)} />
         <Route path="/nonpay/지역/:region" element={route(<NonPayRegionPage />)} />
         <Route path="/nonpay/:slug" element={route(<NonPayItemPage />)} />

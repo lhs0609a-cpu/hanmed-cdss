@@ -707,3 +707,140 @@ export function nonPayRegionPage(np, result, results) {
       </article>`,
   }
 }
+
+
+/**
+ * -- 한의과 상병코드 -------------------------------------------------
+ *
+ * 15,923쪽이 서로 닮은 껍데기가 되면 함께 색인에서 내려간다. 그래서 한 쪽이
+ * 코드와 이름만 들고 있지 않게 한다 - 분류 안의 자리(상위·형제·하위)와,
+ * 그 상병명이 제목에 나오는 우리 문헌을 같이 싣는다.
+ *
+ * 이름이 긴 상병은 제목에 나올 리 없어 문헌 칸이 빈다. 그건 사실이니
+ * 비워 둔다 - 억지로 채우려고 이름을 쪼개면 엉뚱한 논문이 붙는다.
+ */
+
+const sickChips = (items, label) =>
+  items.length === 0
+    ? ''
+    : `<h2>${escape(label)}</h2><ul class="public-list public-chips">${items
+        .map(
+          (c) =>
+            `<li><a href="/sick-codes/${escape(c.code)}"><strong>${escape(
+              c.code,
+            )}</strong> ${escape(c.nameKo)}</a></li>`,
+        )
+        .join('')}</ul>`
+
+const SICK_NOTE =
+  '<p class="public-note prerender-note">건강보험심사평가원 질병정보서비스의 ' +
+  '한의과 상병입니다. 청구에 쓰기 전에 심사기준과 고시 원문을 반드시 확인해야 ' +
+  '합니다. 이 쪽은 코드와 이름을 알려줄 뿐 급여 여부를 말하지 않습니다.</p>'
+
+export function sickCodePage(detail) {
+  const url = `${ORIGIN}/sick-codes/${encodeURIComponent(detail.code)}`
+  const title = `${detail.code} ${detail.nameKo} — 한의과 상병코드 | 온고지신 AI`
+  const description =
+    `${detail.code} ${detail.nameKo}` +
+    (detail.nameEn ? ` (${detail.nameEn})` : '') +
+    '. 한의과 상병코드와 같은 분류의 상병, 관련 한의학 문헌.'
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'MedicalCode',
+      code: detail.code,
+      codingSystem: 'KCD',
+      name: detail.nameKo,
+      alternateName: detail.nameEn || undefined,
+      url,
+      inLanguage: 'ko',
+    },
+    bodyHtml: `
+      <article class="public-teaser prerender-teaser">
+        <p class="public-kicker prerender-kicker">한의과 상병코드${
+          detail.parent
+            ? ` · <a href="/sick-codes/${escape(detail.parent.code)}">${escape(
+                detail.parent.code,
+              )} ${escape(detail.parent.nameKo)}</a>`
+            : ''
+        }</p>
+        <h1>${escape(detail.code)} ${escape(detail.nameKo)}</h1>
+        <dl>
+          <dt>코드</dt><dd>${escape(detail.code)}</dd>
+          <dt>한글명</dt><dd>${escape(detail.nameKo)}</dd>
+          ${detail.nameEn ? `<dt>영문명</dt><dd>${escape(detail.nameEn)}</dd>` : ''}
+          <dt>구분</dt><dd>${detail.depth === 3 ? '분류' : '세부 상병'}</dd>
+        </dl>
+        ${sickChips(detail.children ?? [], '이 분류의 세부 상병')}
+        ${sickChips(detail.siblings ?? [], '같은 분류의 다른 상병')}
+        ${
+          (detail.papers ?? []).length > 0
+            ? `<h2>이 상병을 다룬 문헌</h2><ul class="public-list">${detail.papers
+                .map(
+                  (r) =>
+                    `<li><a href="/references/${encodeURIComponent(
+                      r.slug,
+                    )}"><strong>${escape(r.title)}</strong></a></li>`,
+                )
+                .join('')}</ul>`
+            : ''
+        }
+        <p><a href="/sick-codes">다른 상병 보기</a></p>
+        ${SICK_NOTE}
+      </article>`,
+  }
+}
+
+/** 상병 분류 색인. 첫 글자가 KCD 의 장(章)이라 그것으로 묶는다. */
+export function sickCodesIndexPage(categories) {
+  const url = `${ORIGIN}/sick-codes`
+  const title = '한의과 상병코드 — KCD 분류 | 온고지신 AI'
+  const description =
+    '한의과에서 쓰는 한국표준질병사인분류(KCD) 상병코드를 분류별로 찾아봅니다. 코드와 한글·영문 상병명, 관련 한의학 문헌을 함께 봅니다.'
+  const chapters = new Map()
+  for (const c of categories) {
+    const key = c.code[0]
+    if (!chapters.has(key)) chapters.set(key, [])
+    chapters.get(key).push(c)
+  }
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: '한의과 상병코드',
+      url,
+      inLanguage: 'ko',
+      description,
+    },
+    bodyHtml: `
+      <div class="public-index">
+        <h1>한의과 상병코드</h1>
+        <p class="public-index-lead">한의과에서 쓰는 한국표준질병사인분류(KCD) 상병입니다. 분류 ${escape(
+          categories.length.toLocaleString('ko-KR'),
+        )}개를 싣고, 각 분류 쪽에서 그 아래 세부 상병을 봅니다.</p>
+        ${[...chapters.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(
+            ([chapter, rows]) =>
+              `<section><h2>${escape(chapter)} 코드</h2><ul class="public-list">${rows
+                .map(
+                  (r) =>
+                    `<li><a href="/sick-codes/${escape(
+                      r.code,
+                    )}"><strong>${escape(r.code)} ${escape(
+                      r.nameKo,
+                    )}</strong><span>${escape(r.nameEn ?? '')}</span></a></li>`,
+                )
+                .join('')}</ul></section>`,
+          )
+          .join('')}
+        ${SICK_NOTE}
+      </div>`,
+  }
+}

@@ -883,6 +883,7 @@ export default function LandingPage() {
             <Link to="/topics">주제별 문헌</Link>
             <Link to="/guides">한의사 가이드</Link>
             <Link to="/nonpay">한방 비급여 가격</Link>
+            <Link to="/sick-codes">한의과 상병코드</Link>
           </nav>
           <nav aria-label="서비스 정책">
             <strong>서비스 안내</strong>

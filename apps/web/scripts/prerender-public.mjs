@@ -37,6 +37,8 @@ import {
   guidePage,
   keywordPage,
   nonPayIndexPage,
+  sickCodePage,
+  sickCodesIndexPage,
   nonPayItemPage,
   nonPayRegionPage,
   EVIDENCE_LABEL,
@@ -482,6 +484,7 @@ async function main() {
     topics: [],
     guides: [],
     nonpay: [],
+    sick: [],
   }
   const today = new Date().toISOString().slice(0, 10)
 
@@ -783,6 +786,53 @@ async function main() {
     console.warn(`prerender: 비급여 가격을 굽지 못했다 — ${error.message}`)
   }
 
+  /**
+   * 한의과 상병코드.
+   *
+   * 15,923쪽을 다 굽지 않는다. 프리렌더는 쪽마다 파일을 남겨서 지금도
+   * 355MB 인데 여기에 다 더하면 배포가 올라가지 않는다. 분류(세 글자)
+   * 2,203쪽만 굽고, 세부 13,720쪽은 주소만 사이트맵에 싣는다 — 크롤러가
+   * 찾아오면 api/render.mjs 가 그때 만든다. 굽지 않은 문헌 22,000여 쪽이
+   * 이미 그렇게 돌고 있다.
+   *
+   * 분류를 고른 것은 그 쪽이 가장 두껍기 때문이다. 아래 세부 상병 목록을
+   * 통째로 들고 있어서, 구워 두면 크롤러가 거기서 13,720개 주소를 찾아간다.
+   *
+   * 비급여와 같이, 못 받아도 빌드를 세우지 않는다. 적재 전에는 비어 있는
+   * 것이 정상이고, 그것 하나로 문헌 수만 쪽의 배포를 막을 이유가 없다.
+   */
+  let sickPages = 0
+  try {
+    /**
+     * 색인 한 쪽만 굽는다.
+     *
+     * 15,923쪽을 다 구우면 용량이 안 되고, 분류 2,203쪽만 굽더라도 쪽마다
+     * API 를 한 번씩 물어야 해서 빌드에 45분이 붙는다. 한 번 굽는 쪽이
+     * 그만한 시간을 살 만큼 값어치가 크지 않다 — 상세 쪽은 크롤러가 찾아올
+     * 때 api/render.mjs 가 만든다. 굽지 않은 문헌 22,000여 쪽이 이미 그렇게
+     * 돌고 있다.
+     *
+     * 색인은 굽는다. 여기에 분류 2,203개가 링크로 들어 있어서, 크롤러가
+     * 한 쪽만 받아도 나머지로 가는 길을 전부 본다.
+     */
+    const categories = await getJson('/public/sick-codes')
+    if (Array.isArray(categories) && categories.length > 0) {
+      write('/sick-codes', renderPage(shell, sickCodesIndexPage(categories)))
+      groups.sick.push({ path: '/sick-codes', lastmod: today })
+      sickPages += 1
+    }
+    // 상병 주소는 전부 사이트맵에 싣는다. 주소가 없으면 크롤러가 찾아오지
+    // 않고, 찾아오지 않으면 요청 때 만드는 경로도 한 번도 불리지 않는다.
+    for (const row of stamps.sickCodes ?? []) {
+      groups.sick.push({
+        path: `/sick-codes/${row.slug}`,
+        lastmod: row.lastmod,
+      })
+    }
+  } catch (error) {
+    console.warn(`prerender: 상병코드를 굽지 못했다 — ${error.message}`)
+  }
+
   const files = writeSitemap(groups)
   const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
@@ -791,7 +841,8 @@ async function main() {
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
       `학술지 ${journals.length}쪽, 주제 ${topics.length}쪽` +
       `(한국어 ${koTopicPages}쪽 더함), ` +
-      `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽 ` +
+      `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽, ` +
+      `상병 ${groups.sick.length}쪽(구움 ${sickPages}) ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,
   )

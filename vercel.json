@@ -10,6 +10,7 @@
     { "source": "/formulas/:slug", "destination": "/api/render" },
     { "source": "/herbs/:slug", "destination": "/api/render" },
     { "source": "/journals/:slug", "destination": "/api/render" },
+    { "source": "/sick-codes/:slug", "destination": "/api/render" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
