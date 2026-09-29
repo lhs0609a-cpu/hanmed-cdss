@@ -55,6 +55,10 @@ describe('AuthService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      // 비밀번호 이력은 find 로 읽고 delete 로 오래된 것을 지운다.
+      // 빈 배열을 기본값으로 둔다 — 이력이 없는 사용자가 기본 상태다.
+      find: jest.fn().mockResolvedValue([]),
+      delete: jest.fn().mockResolvedValue({ affected: 0 }),
     };
 
     const mockCacheService = {
