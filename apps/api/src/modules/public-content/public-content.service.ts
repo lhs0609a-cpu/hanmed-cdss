@@ -302,6 +302,15 @@ const collapse = (value: string | null | undefined) =>
 
 export const MAX_LIMIT = 200;
 
+import {
+  KO_DISEASE_TERMS,
+  KO_EXCLUDE_BY_TERM,
+  KO_MODALITY_TERMS,
+  KO_TOPIC_MIN_PAPERS,
+  koTopicSlug,
+} from './ko-topics';
+import { SickCode } from '../../database/entities/sick-code.entity';
+
 @Injectable()
 export class PublicContentService {
   constructor(
@@ -313,6 +322,8 @@ export class PublicContentService {
     private readonly herbs: Repository<Herb>,
     @InjectRepository(Reference)
     private readonly references: Repository<Reference>,
+    @InjectRepository(SickCode)
+    private readonly sickCodes: Repository<SickCode>,
   ) {}
 
   /** 책 목록 — 공개 색인 화면의 길잡이. */
@@ -468,6 +479,14 @@ export class PublicContentService {
       filter.source === 'pubmed' || filter.source === 'kci'
         ? (filter.source as ReferenceSource)
         : undefined;
+
+    /**
+     * 주제로 거르기 전에 한국어 어휘를 채워 둔다. 처방 이름이 아직 없으면
+     * 한국어 주제가 영문 주제 규칙으로 걸러져 빈 목록이 나간다.
+     * 어휘가 필요 없는 요청까지 DB 를 한 번 더 부르지 않도록 주제가 있을
+     * 때만 기다린다.
+     */
+    if (filter.keyword) await this.loadKoFormulaTerms();
     const [rows, total] = await this.references.findAndCount({
       select: [...REFERENCE_TEASER_COLUMNS],
       where: {
@@ -482,16 +501,11 @@ export class PublicContentService {
           ? { journal: filter.journal }
           : {}),
         /**
-         * 주제는 배열 안을 본다. 주소에서 오므로 규칙을 통과한 것만 쓴다 —
-         * 배열 연산자에 임의 문자열을 그대로 넘기지 않는다.
+         * 주제는 두 갈래다. 어느 쪽인지는 keywordWhere 가 가른다.
+         * 주소에서 오므로 양쪽 다 규칙을 통과한 것만 쓴다 — 연산자에
+         * 임의 문자열을 그대로 넘기지 않는다.
          */
-        ...(filter.keyword && keywordSlug(filter.keyword)
-          ? {
-              keywords: Raw((alias) => `:keyword = ANY(${alias})`, {
-                keyword: filter.keyword,
-              }),
-            }
-          : {}),
+        ...this.keywordWhere(filter.keyword),
       },
       order: { publishedYear: 'DESC', externalId: 'ASC' },
       skip,
@@ -565,6 +579,163 @@ export class PublicContentService {
       );
   }
 
+  /**
+   * 주제 하나로 문헌을 거를 때 쓰는 where 조각.
+   *
+   * 주제가 두 종류라 갈라진다. 영문 주제는 `keywords` 배열 안에 그 말이
+   * 있는지 보고, 한국어 주제는 제목에 글자 그대로 있는지 본다 — 한국어
+   * 주제는 애초에 그 방식으로 세어서 만든 목록이라 세는 법과 거르는 법이
+   * 같아야 한다. 다르면 "32편" 이라고 적힌 쪽을 열었을 때 다른 수가 나온다.
+   *
+   * 요약(summaryKo)은 보지 않는다. 기계가 만든 요약은 처방명을 틀린다 —
+   * PMID 34713840 은 소요산 연구인데 요약이 작약감초탕이라고 적어 두었다.
+   */
+  private keywordWhere(keyword?: string) {
+    if (!keyword) return {};
+
+    // 한국어 주제 — 주소에서 오므로 우리 어휘에 있는 말만 받는다.
+    if (this.koTopicTerms.has(keyword)) {
+      const bad = KO_EXCLUDE_BY_TERM[keyword] ?? [];
+      return {
+        title: Raw(
+          (alias) =>
+            `(position(:koTerm in coalesce(${alias}, '') || ' ' ||` +
+            ` coalesce("Reference"."titleKo", '')) > 0` +
+            bad
+              .map(
+                (_, i) =>
+                  ` and position(:koBad${i} in coalesce(${alias}, '') || ' ' ||` +
+                  ` coalesce("Reference"."titleKo", '')) = 0`,
+              )
+              .join('') +
+            `)`,
+          {
+            koTerm: keyword,
+            ...Object.fromEntries(bad.map((b, i) => [`koBad${i}`, b])),
+          },
+        ),
+      };
+    }
+
+    // 영문 주제 — 배열 GIN 인덱스를 탄다.
+    if (keywordSlug(keyword)) {
+      return {
+        keywords: Raw((alias) => `:keyword = ANY(${alias})`, { keyword }),
+      };
+    }
+    return {};
+  }
+
+  /**
+   * 한국어 주제 어휘.
+   *
+   * 처방 이름은 여기 베껴 두지 않는다 - DB 가 정본이고, 베껴 두면 처방이
+   * 늘 때 두 곳이 갈라진다. 대신 처음 쓸 때 한 번 읽어 채운다.
+   *
+   * 집계할 때만 채우면 안 된다. 방문자가 목록을 거치지 않고 /topics/사물탕
+   * 을 바로 열면 그 이름이 아직 집합에 없어서, 한국어 주제인데 영문 주제
+   * 규칙으로 걸러져 "0편" 이 나온다.
+   */
+  private koTopicTerms = new Set<string>([
+    ...KO_MODALITY_TERMS,
+    ...KO_DISEASE_TERMS,
+  ]);
+
+  private koFormulaLoad: Promise<string[]> | null = null;
+
+  /** 세 글자 미만 처방명은 뺀다 - 두 글자는 일상어와 겹친다. */
+  private loadKoFormulaTerms(): Promise<string[]> {
+    this.koFormulaLoad ??= this.formulas
+      .createQueryBuilder('f')
+      .select('DISTINCT f.name', 'name')
+      .where("f.name ~ '^[가-힣()]{3,}$'")
+      .getRawMany()
+      .then((rows: { name: string }[]) => {
+        const names = rows.map((r) => r.name);
+        for (const n of names) this.koTopicTerms.add(n);
+        return names;
+      })
+      .catch((error) => {
+        // 한 번 실패했다고 영영 비워 두면 그 뒤 모든 요청이 틀린 답을 준다.
+        this.koFormulaLoad = null;
+        throw error;
+      });
+    return this.koFormulaLoad;
+  }
+
+  private koTopicCache: {
+    term: string;
+    count: number;
+    slug: string;
+    kind: string;
+  }[] | null = null;
+
+  /**
+   * 한국어 주제 허브 목록.
+   *
+   * 어휘 232개를 논문 제목에 맞춰 센다. 32,977편에 한국어 글자가 있으니
+   * 훑는 양이 적지 않다 — 한 번 세고 들고 있는다. 원자료는 수집이 돌 때만
+   * 바뀌고, 그때는 배포가 따라 나간다.
+   */
+  async koreanTopics() {
+    if (this.koTopicCache) return this.koTopicCache;
+
+    const formulaNames = await this.loadKoFormulaTerms();
+
+    const terms = [
+      ...KO_MODALITY_TERMS,
+      ...KO_DISEASE_TERMS,
+      ...formulaNames,
+    ];
+    const kindOf = new Map<string, string>([
+      ...KO_MODALITY_TERMS.map((t) => [t, 'modality'] as [string, string]),
+      ...KO_DISEASE_TERMS.map((t) => [t, 'disease'] as [string, string]),
+      ...formulaNames.map((t) => [t, 'formula'] as [string, string]),
+    ]);
+
+    const exTerms: string[] = [];
+    const exBad: string[] = [];
+    for (const [term, list] of Object.entries(KO_EXCLUDE_BY_TERM)) {
+      for (const bad of list) {
+        exTerms.push(term);
+        exBad.push(bad);
+      }
+    }
+
+    const rows = await this.references.query(
+      `with v(term) as (select unnest($1::text[])),
+            x(term, bad) as (select unnest($2::text[]), unnest($3::text[])),
+            sel as (
+              select coalesce(r."title", '') || ' ' ||
+                     coalesce(r."titleKo", '') as ko
+              from clinical_references r
+              where r.source in ('pubmed','kci') and r.url is not null
+            )
+       select v.term as term, count(*)::int as count
+       from v join sel on position(v.term in sel.ko) > 0
+       where not exists (
+         select 1 from x
+         where x.term = v.term and position(x.bad in sel.ko) > 0
+       )
+       group by v.term
+       having count(*) >= $4
+       order by count(*) desc`,
+      [terms, exTerms, exBad, KO_TOPIC_MIN_PAPERS],
+    );
+
+    this.koTopicCache = (rows as { term: string; count: number }[])
+      .map((r) => ({
+        ...r,
+        slug: koTopicSlug(r.term),
+        kind: kindOf.get(r.term) ?? 'disease',
+      }))
+      .filter(
+        (r): r is { term: string; count: number; slug: string; kind: string } =>
+          Boolean(r.slug),
+      );
+    return this.koTopicCache;
+  }
+
   async getReference(slug: string): Promise<ReferenceTeaser> {
     const parsed = parseReferenceSlug(slug);
     if (!parsed) throw new NotFoundException('공개된 문헌이 아닙니다.');
@@ -602,8 +773,110 @@ export class PublicContentService {
    * 사이트맵용 주소 목록. 본문은 싣지 않는다 — 주소와 갱신 시점만 필요하다.
    * 한 번에 전부 준다. 3,479 + 404 건이라 쪽 나누기가 오히려 번거롭다.
    */
+  /**
+   * 한의과 상병 목록.
+   *
+   * 분류(세 글자)만 준다. 세부 상병 13,720건을 한 목록에 쏟으면 읽을 것이
+   * 없고, 어차피 세부는 제 분류 쪽에서 본다.
+   */
+  async sickCodeCategories() {
+    const rows = await this.sickCodes.find({
+      select: ['code', 'nameKo', 'nameEn'],
+      where: { depth: 3 },
+      order: { code: 'ASC' },
+    });
+    return rows;
+  }
+
+  /**
+   * 상병 한 건.
+   *
+   * 코드와 이름만 있는 쪽은 만들지 않는다 — 15,923쪽이 서로 닮은 껍데기가
+   * 되면 함께 색인에서 내려간다. 그래서 세 가지를 같이 싣는다.
+   *
+   *   1. 분류 안의 자리 — 상위 분류와 형제 상병. KCD 는 앞 세 글자가 곧
+   *      상위라 코드에서 그대로 구해진다.
+   *   2. 세부 상병 — 분류 쪽이면 그 아래 목록.
+   *   3. 우리 문헌 — 상병명이 제목에 나오는 논문. 한국어 주제 허브와
+   *      같은 방식으로 찾으므로 두 쪽이 말하는 수가 어긋나지 않는다.
+   */
+  async getSickCode(code: string) {
+    if (!/^[A-Z][0-9A-Z]{2,6}$/.test(code))
+      throw new NotFoundException('공개된 상병이 아닙니다.');
+
+    const self = await this.sickCodes.findOne({ where: { code } });
+    if (!self) throw new NotFoundException('공개된 상병이 아닙니다.');
+
+    const parentCode = code.length > 3 ? code.slice(0, 3) : null;
+    const [parent, children, siblings] = await Promise.all([
+      parentCode
+        ? this.sickCodes.findOne({ where: { code: parentCode } })
+        : Promise.resolve(null),
+      // 분류 쪽이면 그 아래 세부 상병.
+      self.depth === 3
+        ? this.sickCodes
+            .createQueryBuilder('s')
+            .select(['s.code', 's.nameKo'])
+            .where('left(s.code, 3) = :p AND s.depth > 3', { p: code })
+            .orderBy('s.code', 'ASC')
+            .getMany()
+        : Promise.resolve([]),
+      // 세부 상병이면 같은 분류의 다른 상병.
+      self.depth > 3 && parentCode
+        ? this.sickCodes
+            .createQueryBuilder('s')
+            .select(['s.code', 's.nameKo'])
+            .where('left(s.code, 3) = :p AND s.depth > 3 AND s.code <> :c', {
+              p: parentCode,
+              c: code,
+            })
+            .orderBy('s.code', 'ASC')
+            .limit(40)
+            .getMany()
+        : Promise.resolve([]),
+    ]);
+
+    /**
+     * 이 상병을 다룬 우리 문헌.
+     *
+     * 이름이 긴 상병은 제목에 그대로 나올 리 없다("비브리오 콜레라 01
+     * 콜레라형균에 의한 콜레라"). 그런 쪽은 문헌 칸이 비고, 그건 사실이니
+     * 비워 둔다 — 억지로 채우려고 이름을 쪼개면 엉뚱한 논문이 붙는다.
+     */
+    const papers = await this.references
+      .createQueryBuilder('r')
+      .select(['r.source', 'r.externalId', 'r.title', 'r.titleKo'])
+      // PUBLIC_REFERENCE_WHERE 와 같은 조건을 질의 빌더 말로 적은 것이다.
+      .where('r.source IN (:...sources)', {
+        sources: [ReferenceSource.PUBMED, ReferenceSource.KCI],
+      })
+      .andWhere('r.url IS NOT NULL')
+      .andWhere(
+        `position(:name in coalesce(r.title, '') || ' ' ||` +
+          ` coalesce(r."titleKo", '')) > 0`,
+        { name: self.nameKo },
+      )
+      .orderBy('r."publishedYear"', 'DESC')
+      .limit(20)
+      .getMany();
+
+    return {
+      code: self.code,
+      nameKo: self.nameKo,
+      nameEn: self.nameEn,
+      depth: self.depth,
+      parent: parent ? { code: parent.code, nameKo: parent.nameKo } : null,
+      children: children.map((c) => ({ code: c.code, nameKo: c.nameKo })),
+      siblings: siblings.map((c) => ({ code: c.code, nameKo: c.nameKo })),
+      papers: papers.map((r) => ({
+        slug: referenceSlug(r.source, r.externalId),
+        title: r.titleKo || r.title,
+      })),
+    };
+  }
+
   async sitemapEntries() {
-    const [cases, formulas, herbs, references] = await Promise.all([
+    const [cases, formulas, herbs, references, sick] = await Promise.all([
       this.cases.find({
         select: ['sourceId', 'updatedAt'],
         where: publicCaseWhere(),
@@ -639,6 +912,15 @@ export class PublicContentService {
         .addOrderBy('r.createdAt', 'ASC')
         .addOrderBy('r.externalId', 'ASC')
         .getMany(),
+      /**
+       * 상병은 전부 싣는다. 15,923쪽을 다 굽지는 않지만(용량), 사이트맵에
+       * 주소가 있어야 크롤러가 찾아오고 그때 요청 때 만드는 경로가 받는다.
+       * 굽지 않은 문헌 22,000쪽이 이미 그렇게 돌고 있다.
+       */
+      this.sickCodes.find({
+        select: ['code', 'updatedAt'],
+        order: { code: 'ASC' },
+      }),
     ]);
     const day = (d: Date) => new Date(d).toISOString().slice(0, 10);
     const kept = (rows: { slug: string | null; lastmod: string }[]) =>
@@ -668,6 +950,10 @@ export class PublicContentService {
           lastmod: day(r.updatedAt),
         })),
       ),
+      sickCodes: sick.map((c) => ({
+        slug: c.code,
+        lastmod: day(c.updatedAt),
+      })),
     };
   }
 

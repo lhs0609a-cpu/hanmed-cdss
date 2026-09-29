@@ -527,3 +527,320 @@ export function keywordPage(topic, sample) {
       </article>`,
   }
 }
+
+
+/**
+ * ── 한방 비급여 진료비 ───────────────────────────────────────────────
+ *
+ * 슬러그와 금액 표기는 `src/lib/nonpay.ts` 한 곳에만 둔다. 여기서 다시
+ * 만들면 화면이 쓰는 주소와 구운 주소가 언젠가 갈라지고, 갈라지면 구운
+ * 쪽은 클릭했을 때 없는 쪽이 된다. 그래서 그 모듈을 통째로 받아 쓴다.
+ */
+
+const statCells = (np, stat) =>
+  `<td>${escape(np.won(stat.min))}</td><td>${escape(np.won(stat.median))}</td>` +
+  `<td>${escape(np.won(stat.average))}</td><td>${escape(np.won(stat.max))}</td>`
+
+const NONPAY_HEAD =
+  '<tr><th scope="col">구분</th><th scope="col">최저</th>' +
+  '<th scope="col">중간</th><th scope="col">평균</th><th scope="col">최고</th></tr>'
+
+/** 자료 출처 줄. 금액을 보이는 쪽마다 붙는다 — 화면과 같은 문장이다. */
+const nonpaySourceNote = (np, appliedOn) => {
+  const label = np.appliedOnLabel(appliedOn)
+  return `<p class="public-note prerender-note">건강보험심사평가원 비급여진료비용 지역별 통계입니다${
+    label ? ` (적용 ${escape(label)} 기준)` : ''
+  }. 지역 안 의료기관들이 신고한 금액의 분포이고 개별 한의원의 가격이 아닙니다. 실제 비용은 진료 범위와 횟수에 따라 달라지므로 방문할 곳에 직접 확인해야 합니다. <a href="${
+    np.HIRA_NONPAY_URL
+  }" target="_blank" rel="noopener noreferrer">심평원 비급여 진료비 정보</a></p>`
+}
+
+const regionChips = (np, results, exceptCode) =>
+  `<ul class="public-list public-chips">${results
+    .filter((r) => r.region !== exceptCode)
+    .map((r) => {
+      const slug = np.nonpayRegionSlug(r.regionName)
+      return slug
+        ? `<li><a href="${np.nonpayRegionHref(slug)}">${escape(r.regionName)}</a></li>`
+        : ''
+    })
+    .join('')}</ul>`
+
+export function nonPayIndexPage(np, results) {
+  const national = results.find((r) => r.region === 'All') ?? results[0]
+  const items = np.byItem(results)
+  const url = `${ORIGIN}/nonpay`
+  const title = '한방 비급여 진료비 — 추나·약침 지역별 가격 | 온고지신 AI'
+  const description =
+    '추나요법·약침술·한방물리요법의 지역별 최저·중간·평균·최고 가격. 건강보험심사평가원 비급여 진료비용 공개 자료입니다.'
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: '한방 비급여 진료비 지역별 통계',
+      url,
+      inLanguage: 'ko',
+      description,
+      creator: { '@type': 'Organization', name: '건강보험심사평가원' },
+      isAccessibleForFree: true,
+    },
+    bodyHtml: `
+      <div class="public-index">
+        <h1>한방 비급여 진료비</h1>
+        <p class="public-index-lead">추나요법·약침술처럼 건강보험이 되지 않는 한방 진료의 가격을 지역별로 봅니다. 심평원이 공개한 통계를 항목 ${escape(
+          items.length,
+        )}개, 지역 ${escape(results.length)}곳으로 정리했습니다.</p>
+        <h2>항목별</h2>
+        <div class="public-table-scroll"><table class="public-table">
+          <caption>${escape(national.regionName)} 기준 가격</caption>
+          <thead>${NONPAY_HEAD}</thead>
+          <tbody>${national.items
+            .map((item) => {
+              const slug = np.nonpayItemSlug(item.name)
+              const label = slug
+                ? `<a href="${np.nonpayItemHref(slug)}">${escape(item.name)}</a>`
+                : escape(item.name)
+              return `<tr><th scope="row">${label}</th>${statCells(np, item)}</tr>`
+            })
+            .join('')}</tbody>
+        </table></div>
+        <h2>지역별</h2>
+        ${regionChips(np, results, null)}
+        ${nonpaySourceNote(np, national.appliedOn)}
+      </div>`,
+  }
+}
+
+export function nonPayItemPage(np, view, results) {
+  const national = view.rows.find((r) => r.regionCode === 'All')
+  const appliedOn = results.find((r) => r.appliedOn)?.appliedOn ?? null
+  const url = `${ORIGIN}/nonpay/${encodeURIComponent(view.slug)}`
+  const title = `${view.name} 비급여 가격 — 지역별 | 온고지신 AI`
+  const description = `${view.name}의 지역별 최저·중간·평균·최고 가격. 심평원 비급여 진료비용 공개 자료.`
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: `${view.name} 지역별 비급여 가격`,
+      url,
+      inLanguage: 'ko',
+      description,
+      creator: { '@type': 'Organization', name: '건강보험심사평가원' },
+      isAccessibleForFree: true,
+    },
+    bodyHtml: `
+      <article class="public-teaser prerender-teaser">
+        <p class="public-kicker prerender-kicker">${escape(view.category)}</p>
+        <h1>${escape(view.name)}</h1>
+        <p>${escape(view.name)}은(는) 건강보험이 적용되지 않는 한방 항목입니다.${
+          national && national.stat.median !== null
+            ? ` 전국 중간 가격은 ${escape(np.won(national.stat.median))}입니다.`
+            : ''
+        } 아래는 지역별 분포입니다.</p>
+        <div class="public-table-scroll"><table class="public-table">
+          <caption>${escape(view.name)} 지역별 가격</caption>
+          <thead>${NONPAY_HEAD}</thead>
+          <tbody>${view.rows
+            .map((row) => {
+              const slug = np.nonpayRegionSlug(row.regionName)
+              const label = slug
+                ? `<a href="${np.nonpayRegionHref(slug)}">${escape(row.regionName)}</a>`
+                : escape(row.regionName)
+              return `<tr><th scope="row">${label}</th>${statCells(np, row.stat)}</tr>`
+            })
+            .join('')}</tbody>
+        </table></div>
+        <p><a href="/nonpay">다른 항목 보기</a></p>
+        ${nonpaySourceNote(np, appliedOn)}
+      </article>`,
+  }
+}
+
+export function nonPayRegionPage(np, result, results) {
+  const url = `${ORIGIN}/nonpay/${encodeURIComponent('지역')}/${encodeURIComponent(
+    np.nonpayRegionSlug(result.regionName),
+  )}`
+  const title = `${result.regionName} 한방 비급여 진료비 | 온고지신 AI`
+  const description = `${result.regionName}의 추나요법·약침술 등 한방 비급여 항목 ${result.items.length}개 가격. 심평원 공개 자료.`
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: `${result.regionName} 한방 비급여 가격`,
+      url,
+      inLanguage: 'ko',
+      description,
+      creator: { '@type': 'Organization', name: '건강보험심사평가원' },
+      isAccessibleForFree: true,
+    },
+    bodyHtml: `
+      <article class="public-teaser prerender-teaser">
+        <p class="public-kicker prerender-kicker">한방 비급여 진료비</p>
+        <h1>${escape(result.regionName)} 한방 비급여 가격</h1>
+        <p>${escape(result.regionName)} 지역 의료기관이 신고한 한방 비급여 항목 ${escape(
+          result.items.length,
+        )}개의 가격 분포입니다.</p>
+        <div class="public-table-scroll"><table class="public-table">
+          <caption>${escape(result.regionName)} 항목별 가격</caption>
+          <thead>${NONPAY_HEAD}</thead>
+          <tbody>${result.items
+            .map((item) => {
+              const slug = np.nonpayItemSlug(item.name)
+              const label = slug
+                ? `<a href="${np.nonpayItemHref(slug)}">${escape(item.name)}</a>`
+                : escape(item.name)
+              return `<tr><th scope="row">${label}</th>${statCells(np, item)}</tr>`
+            })
+            .join('')}</tbody>
+        </table></div>
+        ${regionChips(np, results, result.region)}
+        ${nonpaySourceNote(np, result.appliedOn)}
+      </article>`,
+  }
+}
+
+
+/**
+ * -- 한의과 상병코드 -------------------------------------------------
+ *
+ * 15,923쪽이 서로 닮은 껍데기가 되면 함께 색인에서 내려간다. 그래서 한 쪽이
+ * 코드와 이름만 들고 있지 않게 한다 - 분류 안의 자리(상위·형제·하위)와,
+ * 그 상병명이 제목에 나오는 우리 문헌을 같이 싣는다.
+ *
+ * 이름이 긴 상병은 제목에 나올 리 없어 문헌 칸이 빈다. 그건 사실이니
+ * 비워 둔다 - 억지로 채우려고 이름을 쪼개면 엉뚱한 논문이 붙는다.
+ */
+
+const sickChips = (items, label) =>
+  items.length === 0
+    ? ''
+    : `<h2>${escape(label)}</h2><ul class="public-list public-chips">${items
+        .map(
+          (c) =>
+            `<li><a href="/sick-codes/${escape(c.code)}"><strong>${escape(
+              c.code,
+            )}</strong> ${escape(c.nameKo)}</a></li>`,
+        )
+        .join('')}</ul>`
+
+const SICK_NOTE =
+  '<p class="public-note prerender-note">건강보험심사평가원 질병정보서비스의 ' +
+  '한의과 상병입니다. 청구에 쓰기 전에 심사기준과 고시 원문을 반드시 확인해야 ' +
+  '합니다. 이 쪽은 코드와 이름을 알려줄 뿐 급여 여부를 말하지 않습니다.</p>'
+
+export function sickCodePage(detail) {
+  const url = `${ORIGIN}/sick-codes/${encodeURIComponent(detail.code)}`
+  const title = `${detail.code} ${detail.nameKo} — 한의과 상병코드 | 온고지신 AI`
+  const description =
+    `${detail.code} ${detail.nameKo}` +
+    (detail.nameEn ? ` (${detail.nameEn})` : '') +
+    '. 한의과 상병코드와 같은 분류의 상병, 관련 한의학 문헌.'
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'MedicalCode',
+      code: detail.code,
+      codingSystem: 'KCD',
+      name: detail.nameKo,
+      alternateName: detail.nameEn || undefined,
+      url,
+      inLanguage: 'ko',
+    },
+    bodyHtml: `
+      <article class="public-teaser prerender-teaser">
+        <p class="public-kicker prerender-kicker">한의과 상병코드${
+          detail.parent
+            ? ` · <a href="/sick-codes/${escape(detail.parent.code)}">${escape(
+                detail.parent.code,
+              )} ${escape(detail.parent.nameKo)}</a>`
+            : ''
+        }</p>
+        <h1>${escape(detail.code)} ${escape(detail.nameKo)}</h1>
+        <dl>
+          <dt>코드</dt><dd>${escape(detail.code)}</dd>
+          <dt>한글명</dt><dd>${escape(detail.nameKo)}</dd>
+          ${detail.nameEn ? `<dt>영문명</dt><dd>${escape(detail.nameEn)}</dd>` : ''}
+          <dt>구분</dt><dd>${detail.depth === 3 ? '분류' : '세부 상병'}</dd>
+        </dl>
+        ${sickChips(detail.children ?? [], '이 분류의 세부 상병')}
+        ${sickChips(detail.siblings ?? [], '같은 분류의 다른 상병')}
+        ${
+          (detail.papers ?? []).length > 0
+            ? `<h2>이 상병을 다룬 문헌</h2><ul class="public-list">${detail.papers
+                .map(
+                  (r) =>
+                    `<li><a href="/references/${encodeURIComponent(
+                      r.slug,
+                    )}"><strong>${escape(r.title)}</strong></a></li>`,
+                )
+                .join('')}</ul>`
+            : ''
+        }
+        <p><a href="/sick-codes">다른 상병 보기</a></p>
+        ${SICK_NOTE}
+      </article>`,
+  }
+}
+
+/** 상병 분류 색인. 첫 글자가 KCD 의 장(章)이라 그것으로 묶는다. */
+export function sickCodesIndexPage(categories) {
+  const url = `${ORIGIN}/sick-codes`
+  const title = '한의과 상병코드 — KCD 분류 | 온고지신 AI'
+  const description =
+    '한의과에서 쓰는 한국표준질병사인분류(KCD) 상병코드를 분류별로 찾아봅니다. 코드와 한글·영문 상병명, 관련 한의학 문헌을 함께 봅니다.'
+  const chapters = new Map()
+  for (const c of categories) {
+    const key = c.code[0]
+    if (!chapters.has(key)) chapters.set(key, [])
+    chapters.get(key).push(c)
+  }
+  return {
+    url,
+    title,
+    description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: '한의과 상병코드',
+      url,
+      inLanguage: 'ko',
+      description,
+    },
+    bodyHtml: `
+      <div class="public-index">
+        <h1>한의과 상병코드</h1>
+        <p class="public-index-lead">한의과에서 쓰는 한국표준질병사인분류(KCD) 상병입니다. 분류 ${escape(
+          categories.length.toLocaleString('ko-KR'),
+        )}개를 싣고, 각 분류 쪽에서 그 아래 세부 상병을 봅니다.</p>
+        ${[...chapters.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(
+            ([chapter, rows]) =>
+              `<section><h2>${escape(chapter)} 코드</h2><ul class="public-list">${rows
+                .map(
+                  (r) =>
+                    `<li><a href="/sick-codes/${escape(
+                      r.code,
+                    )}"><strong>${escape(r.code)} ${escape(
+                      r.nameKo,
+                    )}</strong><span>${escape(r.nameEn ?? '')}</span></a></li>`,
+                )
+                .join('')}</ul></section>`,
+          )
+          .join('')}
+        ${SICK_NOTE}
+      </div>`,
+  }
+}

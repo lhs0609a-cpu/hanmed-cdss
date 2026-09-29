@@ -26,6 +26,7 @@ import {
   journalPage,
   referencePage,
   renderPage,
+  sickCodePage,
 } from '../apps/web/scripts/page-builders.mjs';
 
 const API =
@@ -42,6 +43,11 @@ const ROUTES = {
   cases: { path: 'cases', build: casePage },
   formulas: { path: 'formulas', build: formulaPage },
   herbs: { path: 'herbs', build: herbPage },
+  /**
+   * 상병은 15,923쪽인데 색인 한 쪽만 굽는다. 나머지는 전부 여기로 온다 —
+   * 이 서비스에서 요청 때 만드는 비중이 가장 큰 경로다.
+   */
+  'sick-codes': { path: 'sick-codes', build: sickCodePage },
 };
 
 /**

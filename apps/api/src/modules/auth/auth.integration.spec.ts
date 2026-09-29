@@ -27,7 +27,9 @@ async function makeDataSource(): Promise<DataSource> {
   db.public.registerFunction({ name: 'current_database', returns: DataType.text, implementation: () => 'test' });
   const ds: DataSource = db.adapters.createTypeormDataSource({
     type: 'postgres',
-    entities: [User, PasswordResetToken],
+    // PasswordHistory 가 빠져 있었다. 아래에서 ds.getRepository(PasswordHistory)
+    // 를 AuthService 에 넘기는데, 등록되지 않은 엔티티라 그 자리에서 터진다.
+    entities: [User, PasswordResetToken, PasswordHistory],
     synchronize: true,
   });
   await ds.initialize(); // synchronize:true 이므로 init 시 스키마 생성됨 (중복 synchronize 금지 — pg-mem introspection 한계)

@@ -983,21 +983,64 @@ export function PublicJournalDetailPage() {
  */
 const KEYWORD_INDEX_LIMIT = 400
 
+/**
+ * 주제 목록은 한국어를 먼저 보인다.
+ *
+ * 논문에 붙은 주제어는 42,821개 중 한글이 213개뿐이고 그나마 KCI 연구분야
+ * 라벨이다. 한국어로 검색해 들어온 사람에게 영문 MeSH 를 먼저 보이면
+ * 읽을 것이 없다. 우리가 통제 어휘로 센 한국어 주제를 위에 둔다.
+ */
+const KO_TOPIC_KIND_LABEL: Record<string, string> = {
+  modality: '시술·진단',
+  disease: '질환',
+  formula: '처방',
+}
+
 export function PublicKeywordsPage() {
   const { data, error } = useJson<
     { keyword: string; slug: string; count: number }[]
   >('/public/reference-keywords')
+  const { data: koTopics } = useJson<
+    { term: string; slug: string; count: number; kind: string }[]
+  >('/public/korean-topics')
   useSEO({
     title: '주제별 한의학 문헌',
     description:
-      '침 치료·요통·불면처럼 주제로 묶은 침구·한약 임상 문헌. 많이 다룬 주제부터 찾아봅니다.',
+      '요통·구안와사·보중익기탕처럼 주제로 묶은 침구·한약 임상 문헌. 많이 다룬 주제부터 찾아봅니다.',
   })
   return (
     <div className="public-index">
       <h1>주제별 문헌</h1>
       <p className="public-index-lead">
-        논문에 붙은 주제어로 문헌을 모아 봅니다. 세 편 이상 다룬 주제만 싣습니다.{' '}
+        주제로 문헌을 모아 봅니다. 세 편 이상 다룬 주제만 싣습니다.{' '}
         <Link to="/journals">학술지별로 보기</Link>
+      </p>
+
+      {koTopics && koTopics.length > 0 ? (
+        <>
+          <h2>질환·시술·처방</h2>
+          <p className="public-index-lead">
+            질환명·시술명·처방명이 제목에 나오는 문헌을 모은 것입니다.
+          </p>
+          <ul className="public-list">
+            {koTopics.map((t) => (
+              <li key={`ko-${t.slug}`}>
+                <Link to={`/topics/${encodeURIComponent(t.slug)}`}>
+                  <strong>{t.term}</strong>
+                  <span>
+                    {KO_TOPIC_KIND_LABEL[t.kind] ?? '주제'} ·{' '}
+                    {t.count.toLocaleString('ko-KR')}편
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      <h2>논문 주제어</h2>
+      <p className="public-index-lead">
+        논문에 붙어 온 주제어(MeSH·저자 키워드)입니다. 대부분 영문입니다.
       </p>
       {!data ? (
         <Status error={error} />

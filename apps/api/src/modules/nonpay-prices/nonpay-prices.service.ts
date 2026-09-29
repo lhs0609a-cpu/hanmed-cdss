@@ -77,7 +77,26 @@ export class NonPayPricesService {
   async getKoreanMedicinePrices(region = 'All'): Promise<NonPayRegionResult> {
     const chosen = NONPAY_REGIONS.find((r) => r.code === region) ?? NONPAY_REGIONS[0];
     const rows = await this.prices.find({ order: { name: 'ASC' } });
+    return this.build(rows, chosen);
+  }
 
+  /**
+   * 지역 열여덟 곳을 한 번에.
+   *
+   * 항목 쪽은 "추나요법이 지역마다 얼마" 를 보여주므로 열여덟 지역이 한꺼번에
+   * 필요하다. 지역별 오퍼레이션을 열여덟 번 부르면 같은 표를 열여덟 번 읽는다 —
+   * 원자료는 이미 한 행에 지역 전부를 들고 있으니 한 번 읽고 나누면 된다.
+   * 프리렌더도 이걸 쓴다.
+   */
+  async getAllKoreanMedicinePrices(): Promise<NonPayRegionResult[]> {
+    const rows = await this.prices.find({ order: { name: 'ASC' } });
+    return NONPAY_REGIONS.map((region) => this.build(rows, region));
+  }
+
+  private build(
+    rows: NonPayPrice[],
+    chosen: { code: string; name: string },
+  ): NonPayRegionResult {
     const items: NonPayItemPrice[] = [];
     let appliedOn: string | null = null;
 
