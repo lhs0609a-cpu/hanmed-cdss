@@ -512,10 +512,9 @@ async function main() {
   let references = []
   let journals = []
   let topics = []
-  let koTopics = []
   let stamps = { cases: [], formulas: [], herbs: [], references: [] }
   try {
-    ;[cases, formulas, herbs, references, journals, topics, koTopics, stamps] =
+    ;[cases, formulas, herbs, references, journals, topics, stamps] =
       await Promise.all([
       collect('/public/cases', 100),
       collect('/public/formulas', 20),
@@ -530,7 +529,6 @@ async function main() {
         : collect('/public/references', 500),
       getJson('/public/reference-journals'),
       getJson('/public/reference-keywords'),
-      getJson('/public/korean-topics'),
       getJson('/public/sitemap-entries'),
     ])
   } catch (error) {
@@ -711,8 +709,24 @@ async function main() {
   }
 
   /**
-   * 한국어 주제 허브.
+   * 한국어 주제 허브는 따로 받는다.
    *
+   * 필수 묶음에 넣었더니 배포가 섰다 — 웹과 API 는 같이 뜨는데, API 가
+   * 아직 이 오퍼레이션을 모르는 동안 웹이 먼저 빌드되면 404 를 받는다.
+   * 새 오퍼레이션을 낼 때마다 배포가 한 번씩 깨지는 셈이다.
+   *
+   * 그래서 비급여·상병과 같이 둔다. 없으면 영문 주제만 굽고 넘어간다 —
+   * 곁가지 하나로 문헌 수만 쪽의 배포를 막을 이유가 없다. 다만 조용히
+   * 넘어가지는 않는다.
+   */
+  let koTopics = []
+  try {
+    koTopics = (await getJson('/public/korean-topics')) ?? []
+  } catch (error) {
+    console.warn(`prerender: 한국어 주제를 못 받았다 — ${error.message}`)
+  }
+
+  /**
    * 영문 주제와 달리 논문에 붙은 주제어가 아니라 우리가 든 통제 어휘다.
    * 그래서 본문에 실을 스무 편을 고르는 방법도 다르다 — 배열을 보는 것이
    * 아니라 제목에 그 말이 있는지 본다. 세는 법과 고르는 법이 어긋나면
