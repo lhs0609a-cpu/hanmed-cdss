@@ -509,9 +509,11 @@ async function main() {
   let references = []
   let journals = []
   let topics = []
+  let koTopics = []
   let stamps = { cases: [], formulas: [], herbs: [], references: [] }
   try {
-    ;[cases, formulas, herbs, references, journals, topics, stamps] = await Promise.all([
+    ;[cases, formulas, herbs, references, journals, topics, koTopics, stamps] =
+      await Promise.all([
       collect('/public/cases', 100),
       collect('/public/formulas', 20),
       collect('/public/herbs', 20),
@@ -525,6 +527,7 @@ async function main() {
         : collect('/public/references', 500),
       getJson('/public/reference-journals'),
       getJson('/public/reference-keywords'),
+      getJson('/public/korean-topics'),
       getJson('/public/sitemap-entries'),
     ])
   } catch (error) {
@@ -705,6 +708,40 @@ async function main() {
   }
 
   /**
+   * 한국어 주제 허브.
+   *
+   * 영문 주제와 달리 논문에 붙은 주제어가 아니라 우리가 든 통제 어휘다.
+   * 그래서 본문에 실을 스무 편을 고르는 방법도 다르다 — 배열을 보는 것이
+   * 아니라 제목에 그 말이 있는지 본다. 세는 법과 고르는 법이 어긋나면
+   * "32편" 이라고 적힌 쪽에 다른 수가 나온다.
+   *
+   * 슬러그가 영문 주제와 겹치면 굽지 않는다. 같은 주소를 두 번 쓰면
+   * 나중에 쓴 것이 앞의 것을 덮어 쓰고, 사이트맵에는 두 줄이 남는다.
+   */
+  const bakedTopicPaths = new Set(groups.topics.map((t) => t.path))
+  let koTopicPages = 0
+  for (const topic of koTopics) {
+    const path = `/topics/${topic.slug}`
+    if (bakedTopicPaths.has(path)) continue
+    const sample = []
+    for (const r of references) {
+      const ko = `${r.titleKo ?? ''} ${r.title ?? ''}`
+      if (ko.includes(topic.term)) sample.push(r)
+      if (sample.length >= 20) break
+    }
+    write(
+      path,
+      renderPage(
+        shell,
+        keywordPage({ ...topic, keyword: topic.term }, sample),
+      ),
+    )
+    groups.topics.push({ path, lastmod: today })
+    bakedTopicPaths.add(path)
+    koTopicPages += 1
+  }
+
+  /**
    * 한방 비급여 진료비.
    *
    * 항목 열일곱에 지역 열여덟이면 조합은 306이지만 조합 쪽은 굽지 않는다.
@@ -752,7 +789,8 @@ async function main() {
     `prerender: 고정 ${STATIC_ROUTES.length}쪽, 증상체크 ${app.checks}쪽, ` +
       `체질 TMI ${app.tmi}쪽, 치험례 ${cases.length}쪽, 처방 ${formulas.length}쪽, ` +
       `본초 ${herbs.length}쪽, 문헌 ${references.length}쪽(구움 ${bakedReferences}), ` +
-      `학술지 ${journals.length}쪽, 주제 ${topics.length}쪽, ` +
+      `학술지 ${journals.length}쪽, 주제 ${topics.length}쪽` +
+      `(한국어 ${koTopicPages}쪽 더함), ` +
       `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽 ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
       `관련 연구 ${relatedPairs}쪽`,

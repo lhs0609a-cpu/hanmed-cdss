@@ -108,6 +108,20 @@ export class PublicContentController {
     return this.content.referenceKeywords();
   }
 
+  /**
+   * 한국어 주제 허브. 영문 주제(reference-keywords)와 나란히 산다.
+   *
+   * 나눠 두는 이유 — 세는 법이 다르다. 영문은 논문에 붙은 keywords 배열을
+   * 보고, 한국어는 통제 어휘가 제목에 있는지 본다. 한 오퍼레이션에 섞으면
+   * 어느 쪽 규칙으로 세어진 수인지 부르는 쪽이 알 수 없다.
+   */
+  @Get('korean-topics')
+  @Public()
+  @ApiOperation({ summary: '한국어 주제별 문헌 수 — 통제 어휘 허브의 목록' })
+  koreanTopics() {
+    return this.content.koreanTopics();
+  }
+
   @Get('reference-journals')
   @Public()
   @ApiOperation({ summary: '학술지별 문헌 수 — 검색어 허브의 목록' })
