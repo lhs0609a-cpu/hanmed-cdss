@@ -309,6 +309,7 @@ import {
   KO_TOPIC_MIN_PAPERS,
   koTopicSlug,
 } from './ko-topics';
+import { SickCode } from '../../database/entities/sick-code.entity';
 
 @Injectable()
 export class PublicContentService {
@@ -321,6 +322,8 @@ export class PublicContentService {
     private readonly herbs: Repository<Herb>,
     @InjectRepository(Reference)
     private readonly references: Repository<Reference>,
+    @InjectRepository(SickCode)
+    private readonly sickCodes: Repository<SickCode>,
   ) {}
 
   /** 책 목록 — 공개 색인 화면의 길잡이. */
@@ -770,8 +773,110 @@ export class PublicContentService {
    * 사이트맵용 주소 목록. 본문은 싣지 않는다 — 주소와 갱신 시점만 필요하다.
    * 한 번에 전부 준다. 3,479 + 404 건이라 쪽 나누기가 오히려 번거롭다.
    */
+  /**
+   * 한의과 상병 목록.
+   *
+   * 분류(세 글자)만 준다. 세부 상병 13,720건을 한 목록에 쏟으면 읽을 것이
+   * 없고, 어차피 세부는 제 분류 쪽에서 본다.
+   */
+  async sickCodeCategories() {
+    const rows = await this.sickCodes.find({
+      select: ['code', 'nameKo', 'nameEn'],
+      where: { depth: 3 },
+      order: { code: 'ASC' },
+    });
+    return rows;
+  }
+
+  /**
+   * 상병 한 건.
+   *
+   * 코드와 이름만 있는 쪽은 만들지 않는다 — 15,923쪽이 서로 닮은 껍데기가
+   * 되면 함께 색인에서 내려간다. 그래서 세 가지를 같이 싣는다.
+   *
+   *   1. 분류 안의 자리 — 상위 분류와 형제 상병. KCD 는 앞 세 글자가 곧
+   *      상위라 코드에서 그대로 구해진다.
+   *   2. 세부 상병 — 분류 쪽이면 그 아래 목록.
+   *   3. 우리 문헌 — 상병명이 제목에 나오는 논문. 한국어 주제 허브와
+   *      같은 방식으로 찾으므로 두 쪽이 말하는 수가 어긋나지 않는다.
+   */
+  async getSickCode(code: string) {
+    if (!/^[A-Z][0-9A-Z]{2,6}$/.test(code))
+      throw new NotFoundException('공개된 상병이 아닙니다.');
+
+    const self = await this.sickCodes.findOne({ where: { code } });
+    if (!self) throw new NotFoundException('공개된 상병이 아닙니다.');
+
+    const parentCode = code.length > 3 ? code.slice(0, 3) : null;
+    const [parent, children, siblings] = await Promise.all([
+      parentCode
+        ? this.sickCodes.findOne({ where: { code: parentCode } })
+        : Promise.resolve(null),
+      // 분류 쪽이면 그 아래 세부 상병.
+      self.depth === 3
+        ? this.sickCodes
+            .createQueryBuilder('s')
+            .select(['s.code', 's.nameKo'])
+            .where('left(s.code, 3) = :p AND s.depth > 3', { p: code })
+            .orderBy('s.code', 'ASC')
+            .getMany()
+        : Promise.resolve([]),
+      // 세부 상병이면 같은 분류의 다른 상병.
+      self.depth > 3 && parentCode
+        ? this.sickCodes
+            .createQueryBuilder('s')
+            .select(['s.code', 's.nameKo'])
+            .where('left(s.code, 3) = :p AND s.depth > 3 AND s.code <> :c', {
+              p: parentCode,
+              c: code,
+            })
+            .orderBy('s.code', 'ASC')
+            .limit(40)
+            .getMany()
+        : Promise.resolve([]),
+    ]);
+
+    /**
+     * 이 상병을 다룬 우리 문헌.
+     *
+     * 이름이 긴 상병은 제목에 그대로 나올 리 없다("비브리오 콜레라 01
+     * 콜레라형균에 의한 콜레라"). 그런 쪽은 문헌 칸이 비고, 그건 사실이니
+     * 비워 둔다 — 억지로 채우려고 이름을 쪼개면 엉뚱한 논문이 붙는다.
+     */
+    const papers = await this.references
+      .createQueryBuilder('r')
+      .select(['r.source', 'r.externalId', 'r.title', 'r.titleKo'])
+      // PUBLIC_REFERENCE_WHERE 와 같은 조건을 질의 빌더 말로 적은 것이다.
+      .where('r.source IN (:...sources)', {
+        sources: [ReferenceSource.PUBMED, ReferenceSource.KCI],
+      })
+      .andWhere('r.url IS NOT NULL')
+      .andWhere(
+        `position(:name in coalesce(r.title, '') || ' ' ||` +
+          ` coalesce(r."titleKo", '')) > 0`,
+        { name: self.nameKo },
+      )
+      .orderBy('r."publishedYear"', 'DESC')
+      .limit(20)
+      .getMany();
+
+    return {
+      code: self.code,
+      nameKo: self.nameKo,
+      nameEn: self.nameEn,
+      depth: self.depth,
+      parent: parent ? { code: parent.code, nameKo: parent.nameKo } : null,
+      children: children.map((c) => ({ code: c.code, nameKo: c.nameKo })),
+      siblings: siblings.map((c) => ({ code: c.code, nameKo: c.nameKo })),
+      papers: papers.map((r) => ({
+        slug: referenceSlug(r.source, r.externalId),
+        title: r.titleKo || r.title,
+      })),
+    };
+  }
+
   async sitemapEntries() {
-    const [cases, formulas, herbs, references] = await Promise.all([
+    const [cases, formulas, herbs, references, sick] = await Promise.all([
       this.cases.find({
         select: ['sourceId', 'updatedAt'],
         where: publicCaseWhere(),
@@ -807,6 +912,15 @@ export class PublicContentService {
         .addOrderBy('r.createdAt', 'ASC')
         .addOrderBy('r.externalId', 'ASC')
         .getMany(),
+      /**
+       * 상병은 전부 싣는다. 15,923쪽을 다 굽지는 않지만(용량), 사이트맵에
+       * 주소가 있어야 크롤러가 찾아오고 그때 요청 때 만드는 경로가 받는다.
+       * 굽지 않은 문헌 22,000쪽이 이미 그렇게 돌고 있다.
+       */
+      this.sickCodes.find({
+        select: ['code', 'updatedAt'],
+        order: { code: 'ASC' },
+      }),
     ]);
     const day = (d: Date) => new Date(d).toISOString().slice(0, 10);
     const kept = (rows: { slug: string | null; lastmod: string }[]) =>
@@ -836,6 +950,10 @@ export class PublicContentService {
           lastmod: day(r.updatedAt),
         })),
       ),
+      sickCodes: sick.map((c) => ({
+        slug: c.code,
+        lastmod: day(c.updatedAt),
+      })),
     };
   }
 

@@ -66,15 +66,17 @@ function rawSql(operator: any, alias = 'name'): string {
 }
 
 /**
- * 저장소를 네 개 다 적지 않아도 되게 하는 도우미. 본초·문헌이 붙으면서
- * 생성자가 길어졌는데, 의안만 보는 시험이 나머지 셋을 적어야 할 이유는 없다.
+ * 저장소를 다 적지 않아도 되게 하는 도우미. 본초·문헌·상병이 붙으면서
+ * 생성자가 길어졌는데, 의안만 보는 시험이 나머지를 적어야 할 이유는 없다.
  */
 const svc = (
   cases: any = repo([]),
   formulas: any = repo([]),
   herbs: any = repo([]),
   references: any = repo([]),
-) => new PublicContentService(cases, formulas, herbs, references);
+  sickCodes: any = repo([]),
+) =>
+  new PublicContentService(cases, formulas, herbs, references, sickCodes);
 
 const caseRow = {
   sourceId: 'jicheng-臨證指南醫案-1252',

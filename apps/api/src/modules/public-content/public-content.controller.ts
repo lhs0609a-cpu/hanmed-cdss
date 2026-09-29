@@ -136,6 +136,24 @@ export class PublicContentController {
     return this.content.getReference(slug);
   }
 
+  /**
+   * 한의과 상병 분류 목록(세 글자). 세부 13,720건은 여기 싣지 않는다 —
+   * 한 목록에 쏟으면 읽을 것이 없고, 세부는 제 분류 쪽에서 본다.
+   */
+  @Get('sick-codes')
+  @Public()
+  @ApiOperation({ summary: '한의과 상병 분류 목록' })
+  sickCodes() {
+    return this.content.sickCodeCategories();
+  }
+
+  @Get('sick-codes/:code')
+  @Public()
+  @ApiOperation({ summary: '상병 한 건 — 분류 안의 자리와 관련 문헌' })
+  getSickCode(@Param('code') code: string) {
+    return this.content.getSickCode(code);
+  }
+
   @Get('sitemap-entries')
   @Public()
   @ApiOperation({ summary: '사이트맵이 쓰는 주소와 갱신 시점' })
