@@ -876,6 +876,20 @@ const PUBLIC_NAV = [
   ['/sick-codes', '한의과 상병코드'],
 ]
 
+/**
+ * 껍데기의 #root 에 본문만 심는다. 머리말은 손대지 않는다.
+ *
+ * 홈에 필요한 것이 이것이다. 홈은 index.html 이 이미 제 제목·설명·canonical
+ * 을 들고 있어서 renderPage 로 덮어쓸 이유가 없다 - 오히려 덮어쓰면 빌드가
+ * 들고 있는 값과 갈라진다. 비어 있는 것은 본문뿐이다.
+ */
+export function injectBody(shell, bodyHtml) {
+  const pattern = /<div id="root"><\/div>/
+  if (!pattern.test(shell))
+    throw new Error('껍데기에서 #root 를 못 찾았다 — index.html 이 바뀌었다')
+  return shell.replace(pattern, `<div id="root">${bodyHtml}</div>`)
+}
+
 export function homeBodyHtml() {
   return `
       <div class="prerender-home">

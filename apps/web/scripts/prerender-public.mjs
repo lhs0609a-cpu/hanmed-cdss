@@ -36,6 +36,7 @@ import {
   renderPage,
   guidePage,
   homeBodyHtml,
+  injectBody,
   keywordPage,
   nonPayIndexPage,
   sickCodePage,
@@ -424,17 +425,6 @@ function writeStaticRoutes(shell, routes) {
         url: ORIGIN + route.path,
         title: route.title,
         description: route.description,
-        /**
-         * 홈만 본문을 굽는다.
-         *
-         * 홈의 #root 가 비어 있어서 크롤러가 홈에서 글자 하나, 링크 하나
-         * 보지 못했다. 공개 자료로 가는 입구가 전부 푸터에 있는데 그 푸터를
-         * React 가 그리기 때문이다.
-         *
-         * 다른 고정 쪽(약관·환불정책)에는 넣지 않는다. 그 쪽들의 React
-         * 화면에는 이 목록이 없어서, 구운 것과 그린 것이 달라진다.
-         */
-        bodyHtml: route.path === '/' ? homeBodyHtml() : undefined,
       }),
     )
   }
@@ -501,6 +491,25 @@ async function main() {
   const today = new Date().toISOString().slice(0, 10)
 
   writeStaticRoutes(shell, groups.core)
+
+  /**
+   * 홈은 본문만 심는다.
+   *
+   * STATIC_ROUTES 에서 홈은 skipPrerender 다 — index.html 이 이미 제 머리말을
+   * 들고 있어서 덮어쓰지 않기로 했다. 그런데 그 탓에 본문도 비어 있었다.
+   * 구운 홈이 5,517바이트인데 그 안에 글자가 한 자도, 내부 링크가 하나도
+   * 없었고, 크롤러는 홈에서 다른 쪽으로 가는 길을 못 찾았다.
+   *
+   * 공개 자료로 가는 입구 아홉 개가 전부 푸터에 있는데 그 푸터를 React 가
+   * 그린다. 사람은 보고 크롤러는 못 본다. 사이트맵에 주소가 있어도 어디서도
+   * 링크되지 않는 쪽은 가중치를 거의 못 받는다.
+   *
+   * 그래서 머리말은 그대로 두고 #root 에 본문만 넣는다.
+   */
+  writeFileSync(
+    resolve(DIST, 'index.html'),
+    injectBody(shell, homeBodyHtml()),
+  )
   const app = await writeAppDataRoutes(shell, groups, today)
 
   /**
