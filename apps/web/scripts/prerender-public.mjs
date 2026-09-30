@@ -35,6 +35,7 @@ import {
   relatedHtml,
   renderPage,
   guidePage,
+  homeBodyHtml,
   keywordPage,
   nonPayIndexPage,
   sickCodePage,
@@ -423,6 +424,17 @@ function writeStaticRoutes(shell, routes) {
         url: ORIGIN + route.path,
         title: route.title,
         description: route.description,
+        /**
+         * 홈만 본문을 굽는다.
+         *
+         * 홈의 #root 가 비어 있어서 크롤러가 홈에서 글자 하나, 링크 하나
+         * 보지 못했다. 공개 자료로 가는 입구가 전부 푸터에 있는데 그 푸터를
+         * React 가 그리기 때문이다.
+         *
+         * 다른 고정 쪽(약관·환불정책)에는 넣지 않는다. 그 쪽들의 React
+         * 화면에는 이 목록이 없어서, 구운 것과 그린 것이 달라진다.
+         */
+        bodyHtml: route.path === '/' ? homeBodyHtml() : undefined,
       }),
     )
   }
