@@ -1,5 +1,6 @@
 import type { Guide } from './types'
 import { CHEOPYAK_GUIDES } from './cheopyak'
+import { CHEOPYAK_PROGRAM_GUIDES } from './cheopyak-program'
 import { OPENING_GUIDES } from './opening'
 import { OPERATION_GUIDES } from './operation'
 
@@ -12,7 +13,12 @@ export type { Guide, GuideSection, GuideSource, GuideLink, GuideAudience } from 
  * 있다 — 여섯 묶음 약 830편이고, 어느 1차 출처를 보고 우리 어느 쪽으로
  * 연결할 것인지까지 적어 두었다.
  */
-export const GUIDES: Guide[] = [...CHEOPYAK_GUIDES, ...OPENING_GUIDES, ...OPERATION_GUIDES]
+export const GUIDES: Guide[] = [
+  ...CHEOPYAK_GUIDES,
+  ...CHEOPYAK_PROGRAM_GUIDES,
+  ...OPENING_GUIDES,
+  ...OPERATION_GUIDES,
+]
 
 const BY_SLUG = new Map(GUIDES.map((g) => [g.slug, g]))
 
