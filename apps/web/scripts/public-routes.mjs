@@ -143,3 +143,16 @@ export const STATIC_ROUTES = [
     description: '온고지신 AI 정기결제의 청구 주기와 해지 방법.',
   },
 ]
+
+/**
+ * 고정 경로의 머리말을 경로로 찾는다.
+ *
+ * 목록 쪽(/cases·/formulas·…)은 본문을 나중에 — 공개 API 에서 자료를 받은
+ * 뒤에 — 다시 굽는다. 그때도 제목과 설명은 여기 것을 그대로 쓴다. 두 벌을
+ * 두면 한쪽만 고치는 일이 반드시 생긴다.
+ */
+export function staticRouteMeta(path) {
+  const route = STATIC_ROUTES.find((r) => r.path === path)
+  if (!route) throw new Error(`STATIC_ROUTES 에 ${path} 가 없다`)
+  return route
+}
