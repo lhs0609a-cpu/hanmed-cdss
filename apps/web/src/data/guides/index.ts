@@ -1,6 +1,7 @@
 import type { Guide } from './types'
 import { CHEOPYAK_GUIDES } from './cheopyak'
 import { CHEOPYAK_PROGRAM_GUIDES } from './cheopyak-program'
+import { CLAIM_GUIDES } from './claim'
 import { OPENING_GUIDES } from './opening'
 import { OPERATION_GUIDES } from './operation'
 
@@ -18,6 +19,7 @@ export const GUIDES: Guide[] = [
   ...CHEOPYAK_PROGRAM_GUIDES,
   ...OPENING_GUIDES,
   ...OPERATION_GUIDES,
+  ...CLAIM_GUIDES,
 ]
 
 const BY_SLUG = new Map(GUIDES.map((g) => [g.slug, g]))
