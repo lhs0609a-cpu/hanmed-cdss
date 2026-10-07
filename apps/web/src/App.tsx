@@ -1,3 +1,4 @@
+import { PublicFooter } from '@/components/layouts/PublicFooter'
 import { lazyWithReload as lazy } from '@/lib/lazyWithReload'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
@@ -159,6 +160,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 const route = (element: React.ReactNode) => <RouteBoundary>{element}</RouteBoundary>
 
+/**
+ * 공개 콘텐츠 쪽. route() 와 달리 푸터를 함께 세운다.
+ *
+ * 이 쪽들은 오랫동안 RouteBoundary 하나로만 감싸여 있어 푸터가 없었다.
+ * 검색으로 상세 쪽에 들어오면 내부 링크가 /register 와 /login 둘뿐이었고,
+ * 7만 쪽이 전부 막다른 길이었다. 건강 쪽은 HealthLayout 이 제 푸터를 따로
+ * 들고 있으므로 여기 들어오지 않는다.
+ */
+const publicRoute = (element: React.ReactNode) => (
+  <RouteBoundary>
+    {element}
+    <PublicFooter />
+  </RouteBoundary>
+)
+
 function App() {
   return (
     <HanjaSettingsProvider>
@@ -171,26 +187,26 @@ function App() {
         <Route path="/trial" element={<AdLandingPage />} />
         <Route path="/download" element={route(<DownloadPage />)} />
         {/* 검색으로 들어오는 공개 티저. 본문 일부만 보여주고 나머지는 로그인. */}
-        <Route path="/cases" element={route(<PublicCasesPage />)} />
-        <Route path="/cases/:slug" element={route(<PublicCaseDetailPage />)} />
-        <Route path="/formulas" element={route(<PublicFormulasPage />)} />
-        <Route path="/formulas/:slug" element={route(<PublicFormulaDetailPage />)} />
-        <Route path="/herbs" element={route(<PublicHerbsPage />)} />
-        <Route path="/herbs/:slug" element={route(<PublicHerbDetailPage />)} />
-        <Route path="/references" element={route(<PublicReferencesPage />)} />
-        <Route path="/references/:slug" element={route(<PublicReferenceDetailPage />)} />
-        <Route path="/journals" element={route(<PublicJournalsPage />)} />
-        <Route path="/journals/:slug" element={route(<PublicJournalDetailPage />)} />
-        <Route path="/topics" element={route(<PublicKeywordsPage />)} />
-        <Route path="/topics/:slug" element={route(<PublicKeywordDetailPage />)} />
+        <Route path="/cases" element={publicRoute(<PublicCasesPage />)} />
+        <Route path="/cases/:slug" element={publicRoute(<PublicCaseDetailPage />)} />
+        <Route path="/formulas" element={publicRoute(<PublicFormulasPage />)} />
+        <Route path="/formulas/:slug" element={publicRoute(<PublicFormulaDetailPage />)} />
+        <Route path="/herbs" element={publicRoute(<PublicHerbsPage />)} />
+        <Route path="/herbs/:slug" element={publicRoute(<PublicHerbDetailPage />)} />
+        <Route path="/references" element={publicRoute(<PublicReferencesPage />)} />
+        <Route path="/references/:slug" element={publicRoute(<PublicReferenceDetailPage />)} />
+        <Route path="/journals" element={publicRoute(<PublicJournalsPage />)} />
+        <Route path="/journals/:slug" element={publicRoute(<PublicJournalDetailPage />)} />
+        <Route path="/topics" element={publicRoute(<PublicKeywordsPage />)} />
+        <Route path="/topics/:slug" element={publicRoute(<PublicKeywordDetailPage />)} />
         {/* 지역 쪽이 먼저다. 뒤에 두면 "지역" 이 항목 슬러그로 먹힌다. */}
-        <Route path="/sick-codes" element={route(<SickCodesIndexPage />)} />
-        <Route path="/sick-codes/:code" element={route(<SickCodeDetailPage />)} />
-        <Route path="/nonpay" element={route(<NonPayIndexPage />)} />
-        <Route path="/nonpay/지역/:region" element={route(<NonPayRegionPage />)} />
-        <Route path="/nonpay/:slug" element={route(<NonPayItemPage />)} />
-        <Route path="/guides" element={route(<GuidesIndexPage />)} />
-        <Route path="/guides/:slug" element={route(<GuideDetailPage />)} />
+        <Route path="/sick-codes" element={publicRoute(<SickCodesIndexPage />)} />
+        <Route path="/sick-codes/:code" element={publicRoute(<SickCodeDetailPage />)} />
+        <Route path="/nonpay" element={publicRoute(<NonPayIndexPage />)} />
+        <Route path="/nonpay/지역/:region" element={publicRoute(<NonPayRegionPage />)} />
+        <Route path="/nonpay/:slug" element={publicRoute(<NonPayItemPage />)} />
+        <Route path="/guides" element={publicRoute(<GuidesIndexPage />)} />
+        <Route path="/guides/:slug" element={publicRoute(<GuideDetailPage />)} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

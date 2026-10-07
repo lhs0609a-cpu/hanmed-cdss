@@ -9,7 +9,7 @@
  * 크롤러에게는 그것이 클로킹으로 읽힌다. 그래서 만드는 일은 여기 한 곳에만
  * 둔다 — 고칠 일이 생기면 여기만 고치면 양쪽이 같이 바뀐다.
  */
-import { ORIGIN } from './public-routes.mjs'
+import { ORIGIN, staticRouteMeta } from './public-routes.mjs'
 
 export const escape = (value) =>
   String(value ?? '')
@@ -19,13 +19,31 @@ export const escape = (value) =>
     .replace(/"/g, '&quot;')
 
 /**
+ * 공개 자료로 들어가는 입구. src/data/publicNav.ts 의 PUBLIC_NAV 와 짝이다.
+ *
+ * 빌드 스크립트는 TS 를 바로 읽지 못해 한 벌이 더 있다. 홈 푸터·공개 쪽
+ * 푸터·구운 HTML 셋이 같은 목록을 보여야 하므로, 고칠 때는 같이 고친다.
+ */
+const PUBLIC_NAV = [
+  ['/cases', '고전 의안'],
+  ['/formulas', '처방 사전'],
+  ['/herbs', '본초 사전'],
+  ['/references', '한의학 문헌'],
+  ['/journals', '학술지별 문헌'],
+  ['/topics', '주제별 문헌'],
+  ['/guides', '한의사 가이드'],
+  ['/nonpay', '한방 비급여 가격'],
+  ['/sick-codes', '한의과 상병코드'],
+]
+
+/**
  * 껍데기의 머리말을 이 쪽 내용으로 바꾸고, #root 안에 본문을 심는다.
  * React 가 붙으면 같은 내용으로 다시 그리므로 화면이 튀지 않는다.
  * bodyHtml 이 없으면 머리말만 고친다 — 본문은 React 에 맡긴다.
  */
 export function renderPage(
   shell,
-  { url, title, description, bodyHtml, jsonLd, canonical },
+  { url, title, description, bodyHtml, jsonLd, canonical, footer = true },
 ) {
   // 치환이 안 되면 모든 쪽이 홈의 제목·canonical 을 달고 나간다. 조용히
   // 넘어가면 수천 쪽이 중복으로 잡히므로, 못 찾으면 빌드를 세운다.
@@ -80,10 +98,21 @@ export function renderPage(
     )
   }
   if (!bodyHtml) return html
+  /**
+   * 본문을 굽는 쪽에는 푸터도 함께 굽는다.
+   *
+   * 공개 쪽은 레이아웃 없이 RouteBoundary 하나로만 감싸여 있어 푸터가
+   * 없었다. 구운 상세 쪽의 내부 링크가 /register 와 /login 둘뿐이었고,
+   * 크롤러는 거기서 더 갈 데가 없었다 - 7만 쪽이 전부 막다른 길이었다.
+   *
+   * 건강 쪽(증상 체크·체질 TMI)은 HealthLayout 이 제 푸터를 따로 들고
+   * 있으므로 footer: false 로 빠진다. 거기에 이 푸터를 넣으면 사람이 보는
+   * 것과 달라진다.
+   */
   return swap(
     html,
     /<div id="root"><\/div>/,
-    `<div id="root">${bodyHtml}</div>`,
+    `<div id="root">${bodyHtml}${footer ? publicFooterHtml() : ''}</div>`,
     '#root',
   )
 }
@@ -847,6 +876,253 @@ export function sickCodesIndexPage(categories) {
 
 
 /**
+ * -- 공개 목록 쪽의 본문 ---------------------------------------------
+ *
+ * /cases·/formulas·/herbs·/references·/journals·/topics·/guides 는 머리말만
+ * 굽고 본문은 React 에 맡겨 왔다. 그래서 크롤러가 받는 것이 이것뿐이었다.
+ *
+ *     <body>
+ *       <div id="root"></div>
+ *     </body>
+ *
+ * 네이버에 수집 요청한 다섯 주소(/journals·/references·/herbs·/formulas·
+ * /cases)가 전부 이 상태였다. Yeti 가 가져가긴 했는데 색인할 글자가 한 자도
+ * 없었고, 수집 리포트에는 "수집 정보가 없습니다" 만 남았다.
+ *
+ * 홈에 본문을 심어 입구는 뚫었지만, 그 입구가 가리키는 아홉 쪽 중 일곱이
+ * 다시 빈 쪽이라 크롤러는 한 칸 더 가서 멈췄다. 상세 쪽은 여전히 어디서도
+ * 링크되지 않는다.
+ *
+ * 여기 적는 문구와 항목은 PublicContentPages.tsx·GuidePages.tsx 가 실제로
+ * 그리는 것과 같아야 한다. 다르면 크롤러가 받는 쪽과 사람이 보는 쪽이
+ * 갈라지고 그것이 클로킹이다. 그래서 목록의 길이도 화면과 맞춘다 - 화면이
+ * 첫 쪽에 스무 건을 보이면 여기도 스무 건이다.
+ */
+
+/**
+ * 주제 목록의 길이와 분류 이름. PublicContentPages.tsx 의 같은 이름 상수와
+ * 짝이다 - 한쪽만 고치면 크롤러와 사람이 다른 목록을 본다.
+ */
+const KEYWORD_INDEX_LIMIT = 400
+const KO_TOPIC_KIND_LABEL = {
+  modality: '시술·진단',
+  disease: '질환',
+  formula: '처방',
+}
+
+/** 화면이 첫 쪽에 보이는 수. PublicContentPages.tsx 의 limit=20 과 짝이다. */
+const INDEX_PAGE_SIZE = 20
+
+const pieces = (n) => `${Number(n).toLocaleString('ko-KR')}편`
+
+/**
+ * 목록 쪽의 본문. 마크업은 PublicContentPages.tsx 의 `div.public-index` 와
+ * 같은 모양이다 - h1, 이끄는 글, 그리고 `ul.public-list` 안의 항목들.
+ * React 가 붙으면 같은 자리에 같은 것을 다시 그린다.
+ *
+ * items 의 href 는 부르는 쪽이 encodeURIComponent 로 만들어 넘긴다.
+ * strong·span 은 날것으로 받아 여기서 escape 한다.
+ */
+function indexBodyHtml({ heading, leadHtml, sections }) {
+  const list = (items) =>
+    `<ul class="public-list">${items
+      .map(
+        (it) =>
+          `<li><a href="${it.href}"><strong>${escape(it.strong)}</strong>` +
+          `<span>${escape(it.span)}</span></a></li>`,
+      )
+      .join('')}</ul>`
+  return `
+      <div class="public-index">
+        <h1>${escape(heading)}</h1>
+        <p class="public-index-lead">${leadHtml}</p>
+        ${sections
+          .filter((s) => s.items.length)
+          .map((s) =>
+            [
+              s.heading ? `<h2>${escape(s.heading)}</h2>` : '',
+              s.leadHtml ? `<p class="public-index-lead">${s.leadHtml}</p>` : '',
+              list(s.items),
+            ]
+              .filter(Boolean)
+              .join(''),
+          )
+          .join('')}
+      </div>`
+}
+
+/**
+ * 제목·설명은 STATIC_ROUTES 가 들고 있는 것을 그대로 쓴다. 이 쪽들은 이미
+ * 머리말만으로 한 번 구워졌고, 여기서 하는 일은 본문을 더하는 것뿐이다 -
+ * 머리말까지 새로 지으면 같은 주소가 배포마다 다른 제목을 달게 된다.
+ */
+function listIndexPage(path, { heading, leadHtml, sections, name }) {
+  const meta = staticRouteMeta(path)
+  const url = ORIGIN + path
+  return {
+    url,
+    title: meta.title,
+    description: meta.description,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name,
+      url,
+      inLanguage: 'ko',
+      description: meta.description,
+    },
+    bodyHtml: indexBodyHtml({ heading, leadHtml, sections }),
+  }
+}
+
+export function casesIndexPage(cases) {
+  return listIndexPage('/cases', {
+    name: '고전 의안',
+    heading: '공개 치험례',
+    leadHtml:
+      '청대 이전 의안(中醫笈成, CC0)에서 주소증과 출처를 공개합니다. 처방·경과· 원문 국역은 무료 계정으로 열람할 수 있습니다.',
+    sections: [
+      {
+        items: cases.slice(0, INDEX_PAGE_SIZE).map((c) => ({
+          href: `/cases/${encodeURIComponent(c.slug)}`,
+          strong: c.title,
+          span: `${c.book} · ${c.recordedYear}년 · 주소증 ${c.chiefComplaint}`,
+        })),
+      },
+    ],
+  })
+}
+
+export function formulasIndexPage(formulas) {
+  return listIndexPage('/formulas', {
+    name: '처방 사전',
+    heading: '처방 사전',
+    leadHtml:
+      '처방의 출전과 주치를 공개합니다. 구성 약재·병기 해설·가감 운용·금기는 무료 계정으로 열람할 수 있습니다.',
+    sections: [
+      {
+        items: formulas.slice(0, INDEX_PAGE_SIZE).map((f) => ({
+          href: `/formulas/${encodeURIComponent(f.slug)}`,
+          strong: `${f.name}${f.hanja ? `(${f.hanja})` : ''}`,
+          span: `${f.category ?? ''}${f.source ? ` · ${f.source}` : ''}`,
+        })),
+      },
+    ],
+  })
+}
+
+export function herbsIndexPage(herbs) {
+  return listIndexPage('/herbs', {
+    name: '본초 사전',
+    heading: '본초 사전',
+    leadHtml:
+      '공정서에 수재된 한약재의 기원 학명·라틴생약명·약용부위와 성미·귀경을 공개합니다. 임상 용량과 배합 금기는 무료 계정으로 열람할 수 있습니다.',
+    sections: [
+      {
+        items: herbs.slice(0, INDEX_PAGE_SIZE).map((h) => ({
+          href: `/herbs/${encodeURIComponent(h.slug)}`,
+          strong: `${h.name}${h.hanja ? `(${h.hanja})` : ''}`,
+          span:
+            `${herbKicker(h)}${h.latinName ? ` · ${h.latinName}` : ''}` +
+            `${h.medicinalPart ? ` · ${h.medicinalPart}` : ''}`,
+        })),
+      },
+    ],
+  })
+}
+
+export function referencesIndexPage(references) {
+  return listIndexPage('/references', {
+    name: '한의학 문헌',
+    heading: '한의학 문헌',
+    leadHtml:
+      '침구·한약 임상 문헌의 서지와 한국어 요약을 공개합니다. 초록 원문과 구조 요약은 무료 계정으로 열람할 수 있습니다. <a href="/journals">학술지별로 보기</a>',
+    sections: [
+      {
+        items: references.slice(0, INDEX_PAGE_SIZE).map((r) => ({
+          href: `/references/${encodeURIComponent(r.slug)}`,
+          strong: r.titleKo ?? r.title,
+          span:
+            `${EVIDENCE_LABEL[r.evidenceType] ?? ''}` +
+            `${r.journal ? ` · ${r.journal}` : ''}` +
+            `${r.publishedYear ? ` · ${r.publishedYear}` : ''}`,
+        })),
+      },
+    ],
+  })
+}
+
+export function journalsIndexPage(journals) {
+  return listIndexPage('/journals', {
+    name: '학술지별 문헌',
+    heading: '학술지별 문헌',
+    leadHtml:
+      '학술지 이름으로 침구·한약 문헌을 모아 봅니다. 다섯 편 이상 수록된 학술지만 싣습니다.',
+    sections: [
+      {
+        items: journals.map((j) => ({
+          href: `/journals/${encodeURIComponent(j.slug)}`,
+          strong: j.journal,
+          span: pieces(j.count),
+        })),
+      },
+    ],
+  })
+}
+
+/**
+ * 주제는 두 묶음이다. 한국어 주제(우리가 든 통제 어휘)를 위에 두고, 논문에
+ * 붙어 온 영문 주제어를 아래에 둔다 - 화면과 같은 차례다.
+ */
+export function topicsIndexPage(koTopics, keywords) {
+  return listIndexPage('/topics', {
+    name: '주제별 문헌',
+    heading: '주제별 문헌',
+    leadHtml:
+      '주제로 문헌을 모아 봅니다. 세 편 이상 다룬 주제만 싣습니다. <a href="/journals">학술지별로 보기</a>',
+    sections: [
+      {
+        heading: '질환·시술·처방',
+        leadHtml: '질환명·시술명·처방명이 제목에 나오는 문헌을 모은 것입니다.',
+        items: koTopics.map((t) => ({
+          href: `/topics/${encodeURIComponent(t.slug)}`,
+          strong: t.term,
+          span: `${KO_TOPIC_KIND_LABEL[t.kind] ?? '주제'} · ${pieces(t.count)}`,
+        })),
+      },
+      {
+        heading: '논문 주제어',
+        leadHtml:
+          '논문에 붙어 온 주제어(MeSH·저자 키워드)입니다. 대부분 영문입니다.',
+        items: keywords.slice(0, KEYWORD_INDEX_LIMIT).map((k) => ({
+          href: `/topics/${encodeURIComponent(k.slug)}`,
+          strong: k.keyword,
+          span: pieces(k.count),
+        })),
+      },
+    ],
+  })
+}
+
+/** 가이드는 묶음(cluster)마다 h2 를 세운다. GuidePages.tsx 와 같은 모양이다. */
+export function guidesIndexPage(clusters, total) {
+  return listIndexPage('/guides', {
+    name: '한의사를 위한 가이드',
+    heading: '한의사를 위한 가이드',
+    leadHtml: `제도와 절차는 1차 출처 링크와 확인한 날짜를 함께 싣습니다. 임상 판단은 글이 대신하지 않고, 처방·본초·의안·문헌 쪽으로 보냅니다. 현재 ${escape(total)}편.`,
+    sections: clusters.map(({ cluster, guides }) => ({
+      heading: cluster,
+      items: guides.map((g) => ({
+        href: `/guides/${encodeURIComponent(g.slug)}`,
+        strong: g.title,
+        span: g.description,
+      })),
+    })),
+  })
+}
+
+
+/**
  * -- 홈 본문 --------------------------------------------------------
  *
  * 홈의 #root 가 비어 있었다. 구운 HTML 이 5,517바이트인데 그 안에 본문이
@@ -863,18 +1139,26 @@ export function sickCodesIndexPage(categories) {
  * 그대로 옮긴다 - 한 글자라도 고치려면 양쪽을 같이 고쳐야 한다.
  */
 
-/** 푸터의 "공개 자료" 목록. LandingPage.tsx 의 같은 이름 nav 와 짝이다. */
-const PUBLIC_NAV = [
-  ['/cases', '고전 의안'],
-  ['/formulas', '처방 사전'],
-  ['/herbs', '본초 사전'],
-  ['/references', '한의학 문헌'],
-  ['/journals', '학술지별 문헌'],
-  ['/topics', '주제별 문헌'],
-  ['/guides', '한의사 가이드'],
-  ['/nonpay', '한방 비급여 가격'],
-  ['/sick-codes', '한의과 상병코드'],
-]
+
+/**
+ * 공개 쪽의 푸터. PublicFooter.tsx 가 그리는 것과 같은 것을 담는다.
+ *
+ * 크롤러가 어느 쪽에 떨어지든 공개 자료 아홉 입구로 갈 수 있어야 한다.
+ * 문구나 링크를 고치려면 PublicFooter.tsx 와 같이 고친다 - 다르면 크롤러가
+ * 받는 쪽과 사람이 보는 쪽이 갈라지고 그것이 클로킹이다.
+ */
+export function publicFooterHtml() {
+  return `
+      <footer class="public-footer">
+        <nav aria-label="공개 자료">
+          <strong>공개 자료</strong>
+          ${PUBLIC_NAV.map(
+            ([href, label]) => `<a href="${href}">${escape(label)}</a>`,
+          ).join('')}
+        </nav>
+        <p><a href="/">온고지신 AI</a> — 한의사를 위한 임상 워크스페이스.</p>
+      </footer>`
+}
 
 /**
  * 껍데기의 #root 에 본문만 심는다. 머리말은 손대지 않는다.

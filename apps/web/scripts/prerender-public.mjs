@@ -27,17 +27,24 @@ import { ORIGIN, STATIC_ROUTES } from './public-routes.mjs'
  */
 import {
   casePage,
+  casesIndexPage,
   escape,
   formulaPage,
+  formulasIndexPage,
   herbPage,
+  herbsIndexPage,
   journalPage,
+  journalsIndexPage,
   referencePage,
+  referencesIndexPage,
   relatedHtml,
   renderPage,
   guidePage,
+  guidesIndexPage,
   homeBodyHtml,
   injectBody,
   keywordPage,
+  topicsIndexPage,
   nonPayIndexPage,
   sickCodePage,
   sickCodesIndexPage,
@@ -198,7 +205,10 @@ function loadShell() {
 function healthCheckPage(check) {
   const url = `${ORIGIN}/health/check/${encodeURIComponent(check.slug)}`
   const km = check.result.koreanMedicine
+  // 증상 체크 는 HealthLayout 이 제 푸터를 들고 있다. 공개 쪽 푸터를
+  // 끼우면 사람이 보는 것과 달라진다.
   return {
+    footer: false,
     url,
     title: `${check.title} | 온고지신 AI`,
     description: `${check.subtitle} — ${check.description}`,
@@ -239,7 +249,10 @@ function celebPage(celeb, analysis, info) {
     (a, b) => b[1] - a[1],
   )[0][0]
   const description = `${celeb.name}의 생년월일로 본 사주 오행과 추론 체질(${info.name}). ${aside}`
+  // 체질 TMI 는 HealthLayout 이 제 푸터를 들고 있다. 공개 쪽 푸터를
+  // 끼우면 사람이 보는 것과 달라진다.
   return {
+    footer: false,
     url,
     title: `${celeb.name} 체질 — 사주로 본 ${info.name} | 온고지신 AI`,
     description,
@@ -780,6 +793,55 @@ async function main() {
   }
 
   /**
+   * 공개 목록 쪽에 본문을 심는다.
+   *
+   * 이 아홉 쪽은 홈이 가리키는 입구인데, 그중 일곱이 크롤러에게 빈 쪽이었다.
+   * writeStaticRoutes 가 머리말만 굽고 본문은 React 에 맡겼기 때문이다.
+   * 네이버에 수집 요청한 다섯 주소가 전부 여기 있었고, 수집 리포트에는
+   * "수집 정보가 없습니다" 만 남았다.
+   *
+   * 자료를 받은 뒤라야 목록을 만들 수 있어 굽는 일이 두 번으로 나뉜다.
+   * 여기서 같은 주소에 머리말 + 본문으로 다시 쓴다 — 사이트맵 항목은
+   * STATIC_ROUTES 가 이미 넣었으므로 groups 에 다시 넣지 않는다.
+   *
+   * 쓴 뒤에 파일을 도로 읽어 확인한다. 지난번에 홈 본문을 "구웠다" 고 해
+   * 놓고 skipPrerender 탓에 한 줄도 닿지 않은 채 배포된 적이 있다. 실을
+   * 것이 있는데 링크가 하나도 없으면 빌드를 세운다 — 조용히 빈 쪽으로
+   * 나가는 것이 이 스크립트가 겪은 바로 그 사고다.
+   */
+  const indexPages = [
+    ['/cases', casesIndexPage(cases), cases.length],
+    ['/formulas', formulasIndexPage(formulas), formulas.length],
+    ['/herbs', herbsIndexPage(herbs), herbs.length],
+    ['/references', referencesIndexPage(references), references.length],
+    ['/journals', journalsIndexPage(journals), journals.length],
+    [
+      '/topics',
+      topicsIndexPage(koTopics, topics),
+      koTopics.length + topics.length,
+    ],
+    [
+      '/guides',
+      guidesIndexPage(guideModule.guideClusters(), guideModule.GUIDES.length),
+      guideModule.GUIDES.length,
+    ],
+  ]
+  let indexLinks = 0
+  for (const [path, page, available] of indexPages) {
+    write(path, renderPage(shell, page))
+    const baked = readFileSync(
+      resolve(DIST, `.${path}`, 'index.html'),
+      'utf8',
+    )
+    const links = (baked.match(/<li><a href="/g) ?? []).length
+    if (available > 0 && links === 0)
+      throw new Error(
+        `${path}: 실을 것이 ${available}개인데 구운 쪽에 링크가 하나도 없다`,
+      )
+    indexLinks += links
+  }
+
+  /**
    * 한방 비급여 진료비.
    *
    * 항목 열일곱에 지역 열여덟이면 조합은 306이지만 조합 쪽은 굽지 않는다.
@@ -879,7 +941,7 @@ async function main() {
       `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽, ` +
       `상병 ${groups.sick.length}쪽(구움 ${sickPages}) ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
-      `관련 연구 ${relatedPairs}쪽`,
+      `관련 연구 ${relatedPairs}쪽, 목록 쪽 링크 ${indexLinks}개`,
   )
 }
 
