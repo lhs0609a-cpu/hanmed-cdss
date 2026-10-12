@@ -1,0 +1,58 @@
+.download-page {
+  min-height: 100vh;
+}
+.download-hero {
+  padding-block: 76px 48px;
+}
+.download-page .download-title {
+  font-size: clamp(32px, 4.2vw, 56px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.045em;
+  word-break: keep-all;
+}
+.download-panel {
+  border: 1px solid var(--cl-line);
+  border-radius: 18px;
+  background: #fff;
+  height: 100%;
+}
+.download-panel-recommended {
+  border-color: var(--cl-green);
+  box-shadow: inset 0 0 0 1px var(--cl-green);
+}
+.download-file {
+  border-radius: 18px;
+}
+.download-file:hover .download-panel {
+  border-color: var(--cl-green);
+}
+.download-benefits {
+  padding-block: 16px 72px;
+}
+.download-install {
+  padding-block: 56px 24px;
+  border-top: 1px solid var(--cl-line);
+}
+.download-requirements {
+  padding-block: 24px 72px;
+}
+.download-page .landing-desktop-nav a[aria-current="page"] {
+  color: var(--cl-green);
+  text-decoration: underline;
+  text-underline-offset: 7px;
+}
+@media (max-width: 640px) {
+  .download-hero {
+    padding-block: 44px 32px;
+  }
+  .download-benefits {
+    padding-block: 0 40px;
+  }
+  .download-install {
+    padding-top: 36px;
+  }
+  .download-requirements {
+    padding-bottom: 44px;
+  }
+}
