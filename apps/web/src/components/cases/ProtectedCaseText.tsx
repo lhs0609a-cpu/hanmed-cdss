@@ -188,7 +188,7 @@ export function ProtectedRegion({
   const containerRef = useCopyGuard(caseId, watermark.label)
 
   return (
-    <div ref={containerRef} className={`ongo-protected relative overflow-hidden ${className}`}>
+    <div ref={containerRef} data-case-id={caseId} data-watermark={JSON.stringify(watermark)} className={`ongo-protected relative overflow-hidden ${className}`}>
       <WatermarkOverlay stamp={stampOf(watermark)} />
       <div className="ongo-protected__body relative">{children}</div>
     </div>

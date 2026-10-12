@@ -15,7 +15,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
  *   - focusVisible: boolean (포커스 링 항상 표시)
  */
 
-export type FontScale = 'normal' | 'large' | 'xlarge'
+export type FontScale = 'small' | 'normal' | 'large' | 'xlarge'
 
 interface AccessibilityState {
   fontScale: FontScale
@@ -48,7 +48,10 @@ function loadState(): AccessibilityState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_STATE
     const parsed = JSON.parse(raw)
-    return { ...DEFAULT_STATE, ...parsed }
+    return {
+      ...DEFAULT_STATE, ...parsed,
+      fontScale: ['small', 'normal', 'large', 'xlarge'].includes(parsed?.fontScale) ? parsed.fontScale : 'normal',
+    }
   } catch {
     return DEFAULT_STATE
   }
@@ -61,13 +64,16 @@ function applyToDocument(state: AccessibilityState) {
   // CSS 변수로 글자 크기 스케일 노출 → tailwind 의 text-* 도 함께 커지도록 한다.
   // (선택: tailwind.config 의 fontSize 토큰을 var(--ongojisin-text-scale) * x 로 전환)
   const scaleMap: Record<FontScale, string> = {
+    small: '0.9',
     normal: '1',
-    large: '1.15',
+    large: '1.2',
     xlarge: '1.3',
   }
   root.style.setProperty('--ongojisin-text-scale', scaleMap[state.fontScale])
-  // body 자체의 base font-size 도 함께 키워 하드코딩된 px 도 영향받게 한다.
-  root.style.fontSize = `${100 * Number(scaleMap[state.fontScale])}%`
+  // rem 확대만으로는 text-[12px] 등의 고정 크기가 바뀌지 않는다.
+  // 문서 전체 zoom으로 글씨·클릭 영역·포털의 상세 창까지 함께 확대한다.
+  root.style.fontSize = '100%'
+  root.style.setProperty('zoom', scaleMap[state.fontScale])
 
   root.dataset.fontScale = state.fontScale
   root.dataset.reduceMotion = state.reduceMotion ? 'true' : 'false'

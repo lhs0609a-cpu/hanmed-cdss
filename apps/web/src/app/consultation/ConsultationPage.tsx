@@ -59,6 +59,7 @@ import { printPrescription } from '@/lib/prescriptionPrint'
 import { useAuthStore } from '@/stores/authStore'
 import { Printer } from 'lucide-react'
 import { Toss3DIcon } from '@/components/common/Toss3DIcon'
+import { GroundingCaseDialog } from '@/components/cases/GroundingCaseDialog'
 
 const consultationTourSteps = [
   {
@@ -296,6 +297,7 @@ export default function ConsultationPage() {
   const [isSavingVisit, setIsSavingVisit] = useState(false)
   // 이번 추천에 실제로 근거로 들어간 치험례 — "왜 이 처방인지" 를 화면에서 대는 데 쓴다.
   const [groundingCases, setGroundingCases] = useState<GroundingCase[]>([])
+  const [selectedGroundingCase, setSelectedGroundingCase] = useState<GroundingCase | null>(null)
   // 치험례 공유 — 내 처방을 동료에게 올린다. 이게 쌓여야 추천 근거도 좋아진다.
   const [showShareModal, setShowShareModal] = useState(false)
   const [shareNote, setShareNote] = useState('')
@@ -691,6 +693,13 @@ export default function ConsultationPage() {
 
   return (
     <div className="space-y-6">
+      {selectedGroundingCase && (
+        <GroundingCaseDialog
+          evidence={selectedGroundingCase}
+          cited={recommendations[0]?.caseRefs?.includes(selectedGroundingCase.caseId) ?? false}
+          onClose={() => setSelectedGroundingCase(null)}
+        />
+      )}
       {/* Demo Data Warning 제거 — 실제 백엔드 호출 흐름이라 항상 떠 있으면 안 됨.
           진짜 데모 모드(API 실패 fallback)일 때만 별도로 노출되어야 함. */}
 
@@ -1347,47 +1356,56 @@ export default function ConsultationPage() {
                         {groundingCases.slice(0, 4).map((c) => {
                           const cited = recommendations[0]?.caseRefs?.includes(c.caseId)
                           return (
-                            <li
-                              key={c.caseId}
-                              className={cn(
-                                'rounded-xl border p-3.5',
-                                cited
-                                  ? 'border-blue-200 bg-blue-50/50'
-                                  : 'border-neutral-200 bg-white',
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="min-w-0 flex-1 text-[13.5px] font-medium leading-snug text-neutral-900">
-                                  {c.title || '(제목 없음)'}
-                                </p>
-                                <span className="flex shrink-0 items-center gap-1.5">
-                                  {cited && (
-                                    <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                      직접 인용
-                                    </span>
-                                  )}
-                                  {typeof c.matchPercent === 'number' && (
-                                    <span className="text-[12px] font-bold text-neutral-500">
-                                      {c.matchPercent}%
-                                    </span>
-                                  )}
+                            <li key={c.caseId}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedGroundingCase(c)}
+                                aria-label={`${cited ? '직접 인용' : '참고'} 치험례 상세 보기: ${c.title || '(제목 없음)'}`}
+                                aria-haspopup="dialog"
+                                className={cn(
+                                  'w-full rounded-xl border p-3.5 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                                  cited
+                                    ? 'border-blue-200 bg-blue-50/50'
+                                    : 'border-neutral-200 bg-white',
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <p className="min-w-0 flex-1 text-[13.5px] font-medium leading-snug text-neutral-900">
+                                    {c.title || '(제목 없음)'}
+                                  </p>
+                                  <span className="flex shrink-0 items-center gap-1.5">
+                                    {cited && (
+                                      <span className="rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                        직접 인용
+                                      </span>
+                                    )}
+                                    {typeof c.matchPercent === 'number' && (
+                                      <span className="text-[12px] font-bold text-neutral-500">
+                                        {c.matchPercent}%
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                {/* 요약이 제목을 그대로 되풀이하는 경우가 많다
+                                    (제목이 주소증으로 채워지고 요약도 주소증으로 시작).
+                                    같은 문장을 두 번 보여주면 근거가 빈약해 보인다. */}
+                                {c.summary && !c.summary.startsWith(c.title.slice(0, 20)) && (
+                                  <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-neutral-600">
+                                    {c.summary}
+                                  </p>
+                                )}
+                                {(c.formulaName || c.outcome) && (
+                                  <p className="mt-1.5 text-[12px] text-neutral-500">
+                                    {c.formulaName && <span>처방 {c.formulaName}</span>}
+                                    {c.formulaName && c.outcome && <span> · </span>}
+                                    {c.outcome && <span>경과 {c.outcome}</span>}
+                                  </p>
+                                )}
+                                <span className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-blue-600">
+                                  원문·치료 경과 자세히 보기
+                                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                                 </span>
-                              </div>
-                              {/* 요약이 제목을 그대로 되풀이하는 경우가 많다
-                                  (제목이 주소증으로 채워지고 요약도 주소증으로 시작).
-                                  같은 문장을 두 번 보여주면 근거가 빈약해 보인다. */}
-                              {c.summary && !c.summary.startsWith(c.title.slice(0, 20)) && (
-                                <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-neutral-600">
-                                  {c.summary}
-                                </p>
-                              )}
-                              {(c.formulaName || c.outcome) && (
-                                <p className="mt-1.5 text-[12px] text-neutral-500">
-                                  {c.formulaName && <span>처방 {c.formulaName}</span>}
-                                  {c.formulaName && c.outcome && <span> · </span>}
-                                  {c.outcome && <span>경과 {c.outcome}</span>}
-                                </p>
-                              )}
+                              </button>
                             </li>
                           )
                         })}

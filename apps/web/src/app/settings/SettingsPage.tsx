@@ -1368,14 +1368,15 @@ function FontScaleSelector() {
       <p className="text-xs text-gray-500 mt-1">화면 전체 글자 크기에 즉시 반영됩니다.</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {[
-          { value: 'normal', label: '보통' },
+          { value: 'small', label: '작게' },
+          { value: 'normal', label: '중간' },
           { value: 'large', label: '크게' },
           { value: 'xlarge', label: '매우 크게' },
         ].map((option) => (
           <button
             key={option.value}
             type="button"
-            onClick={() => setFontScale(option.value as 'normal' | 'large' | 'xlarge')}
+            onClick={() => setFontScale(option.value as 'small' | 'normal' | 'large' | 'xlarge')}
             className={`px-4 py-2 rounded-lg border transition-colors min-h-[44px] ${
               fontScale === option.value
                 ? 'bg-blue-50 border-blue-500 text-blue-700'

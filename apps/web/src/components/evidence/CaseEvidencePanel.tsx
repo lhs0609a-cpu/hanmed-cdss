@@ -4,6 +4,7 @@ import { BookOpen, ChevronRight, Loader2 } from 'lucide-react'
 import { api } from '@/services/api'
 import { logError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
+import { GroundingCaseDialog } from '@/components/cases/GroundingCaseDialog'
 
 /**
  * 치험례 근거 패널 — 처방·변증 어디에나 같은 모양으로 붙인다.
@@ -62,9 +63,11 @@ export function CaseEvidencePanel({
 }) {
   const [data, setData] = useState<EvidenceResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedCase, setSelectedCase] = useState<EvidenceCase | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    setSelectedCase(null)
     if (!name?.trim()) {
       setLoading(false)
       return
@@ -133,6 +136,19 @@ export function CaseEvidencePanel({
 
   return (
     <div className={cn('rounded-2xl border border-neutral-200 bg-white p-5', className)}>
+      {selectedCase && (
+        <GroundingCaseDialog
+          evidence={{
+            caseId: selectedCase.id,
+            title: selectedCase.summaryOneLine || selectedCase.chiefComplaint,
+            summary: selectedCase.chiefComplaint,
+            formulaName: selectedCase.formulaName,
+            outcome: selectedCase.outcome || '',
+          }}
+          cited={false}
+          onClose={() => setSelectedCase(null)}
+        />
+      )}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-neutral-400" aria-hidden="true" />
@@ -183,7 +199,14 @@ export function CaseEvidencePanel({
 
       <ul className="space-y-2">
         {data.cases.map((c) => (
-          <li key={c.id} className="rounded-xl border border-neutral-200 p-3.5">
+          <li key={c.id}>
+            <button
+              type="button"
+              onClick={() => setSelectedCase(c)}
+              aria-haspopup="dialog"
+              aria-label={`치험례 상세 보기: ${c.summaryOneLine || c.chiefComplaint || '(주소증 기록 없음)'}`}
+              className="w-full rounded-xl border border-neutral-200 p-3.5 text-left transition-colors hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
             <div className="flex items-start justify-between gap-3">
               <p className="min-w-0 flex-1 line-clamp-2 text-[13.5px] font-medium leading-snug text-neutral-900">
                 {c.summaryOneLine || c.chiefComplaint || '(주소증 기록 없음)'}
@@ -202,7 +225,7 @@ export function CaseEvidencePanel({
             <p className="mt-1.5 text-[12px] text-neutral-500">
               {[
                 c.ageRange,
-                c.gender,
+                c.gender === 'male' ? '남성' : c.gender === 'female' ? '여성' : c.gender === 'unknown' ? null : c.gender,
                 c.constitution,
                 c.patternDiagnosis && `변증 ${c.patternDiagnosis}`,
                 kind === 'pattern' && c.formulaName && `처방 ${c.formulaName}`,
@@ -210,6 +233,11 @@ export function CaseEvidencePanel({
                 .filter(Boolean)
                 .join(' · ')}
             </p>
+            <span className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-blue-600">
+              원문·치료 경과 자세히 보기
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+            </button>
           </li>
         ))}
       </ul>
