@@ -11,12 +11,10 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react'
-import { LogoMark } from '@/components/common'
 import { useSEO } from '@/hooks/useSEO'
-import { MeshBackdrop, GrainOverlay, Orb } from '@/app/landing/components/AbstractBackdrop'
+import { MarketingHeader, MarketingFooter } from '@/app/landing/components/MarketingChrome'
+import './download.css'
 import {
-  APP_VERSION,
-  BUILD_DATE,
   RELEASES_URL,
   detectPlatform,
   isDesktopApp,
@@ -25,12 +23,8 @@ import {
 } from '@/config/version'
 import { formatSize, useLatestRelease, type ReleaseAsset } from '@/hooks/useLatestRelease'
 
-/* ────────────────────────────────────────────────────────────
-   프리미티브 — 랜딩과 같은 유리 카드 톤을 쓴다.
-   다운로드 페이지만 다른 옷을 입으면 다른 사이트로 보인다.
-   ──────────────────────────────────────────────────────────── */
-
-function GlassCard({
+/** Cards share the homepage palette and avoid a separate theme. */
+function DownloadPanel({
   children,
   className = '',
   glow = false,
@@ -40,24 +34,11 @@ function GlassCard({
   glow?: boolean
 }) {
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 backdrop-blur-xl ${className}`}
-      style={{
-        background:
-          'linear-gradient(160deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.025) 100%)',
-        boxShadow: glow
-          ? '0 30px 90px -30px rgba(49,130,246,0.45), inset 0 1px 0 rgba(255,255,255,0.12)'
-          : '0 20px 60px -30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.10)',
-      }}
-    >
+    <div className={`download-panel ${glow ? 'download-panel-recommended' : ''} ${className}`}>
       {children}
     </div>
   )
 }
-
-/* ────────────────────────────────────────────────────────────
-   콘텐츠
-   ──────────────────────────────────────────────────────────── */
 
 const PLATFORM_LABEL: Record<DetectedPlatform, string> = {
   windows: 'Windows',
@@ -91,10 +72,16 @@ const INSTALL_STEPS: Record<'windows' | 'mac', { step: string; detail: string }[
       step: 'Windows의 PC 보호 창이 뜨면 [추가 정보] → [실행]',
       detail: '아직 코드 서명 인증서를 붙이지 않아 처음 한 번은 이 경고가 나옵니다.',
     },
-    { step: '설치 경로를 고르고 [설치]', detail: '바탕화면과 시작 메뉴에 아이콘이 생깁니다.' },
+    {
+      step: '설치 경로를 고르고 [설치]',
+      detail: '바탕화면과 시작 메뉴에 아이콘이 생깁니다.',
+    },
   ],
   mac: [
-    { step: '받은 dmg 를 열고 앱을 [응용 프로그램]으로 끕니다', detail: 'OngojisinAI-….dmg' },
+    {
+      step: '받은 dmg 를 열고 앱을 [응용 프로그램]으로 끕니다',
+      detail: 'OngojisinAI-….dmg',
+    },
     {
       step: '처음 열 때는 아이콘을 우클릭 → [열기]',
       detail: '공증(notarization) 전이라 그냥 더블클릭하면 확인되지 않은 개발자 경고가 납니다.',
@@ -139,221 +126,184 @@ export default function DownloadPage() {
     : null
 
   return (
-    <div className="ojs-immersive relative min-h-screen overflow-x-hidden bg-[#05070D] text-white antialiased">
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
-        <MeshBackdrop />
-        <GrainOverlay opacity={0.14} />
-      </div>
+    <div className="clinical-landing download-page">
+      <a className="landing-skip" href="#main">
+        본문으로 바로가기
+      </a>
+      <MarketingHeader />
+      <main id="main">
+        <section className="download-hero landing-container">
+          <div className="relative mx-auto max-w-5xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--cl-line)] bg-[var(--cl-sage)] px-3 py-1 text-[12px] font-medium tracking-wide text-[var(--cl-muted)] backdrop-blur">
+              데스크톱 앱
+            </span>
 
-      {/* ═══ 내비게이션 ═══ */}
-      <header className="sticky top-0 z-50">
-        <div
-          className="border-b border-white/8 backdrop-blur-xl"
-          style={{ background: 'rgba(5,7,13,0.62)' }}
-        >
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-            <Link to="/" className="flex items-center gap-2.5">
-              <LogoMark size={32} />
-              <span className="text-[16px] font-bold tracking-tight">온고지신 AI</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="hidden text-[14px] text-white/55 transition-colors hover:text-white sm:block"
+            <h1 className="mt-6 download-title">
+              진료실 PC 에 설치해서
+              <br />창 하나로 쓰세요
+            </h1>
+
+            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--cl-muted)] sm:text-[17px]">
+              웹에서 쓰던 계정 그대로입니다. 설치 파일을 받아 실행하면 브라우저 없이 바로 열리고, 새
+              버전은 앱이 알아서 받아둡니다.
+            </p>
+
+            {/* 버전 표기 — 무엇을 받게 되는지 버튼보다 먼저 밝힌다 */}
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[13px] text-[var(--cl-muted)]">
+              <span className="rounded-md border border-[var(--cl-line)] bg-[var(--cl-sage)] px-2.5 py-1 font-mono text-[var(--cl-ink)]">
+                v{release.version}
+              </span>
+              {publishedLabel && <span>{publishedLabel} 배포</span>}
+              <span aria-hidden className="text-[var(--cl-muted)]">
+                ·
+              </span>
+              <a
+                href={releaseNotesUrl(release.version)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-[var(--cl-ink)]"
               >
-                제품 소개
-              </Link>
-              <Link
-                to="/login"
-                className="text-[14px] font-medium text-white/70 transition-colors hover:text-white"
-              >
-                로그인
-              </Link>
+                릴리스 노트
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
+
+            {alreadyDesktop && (
+              <p className="mx-auto mt-6 max-w-md rounded-xl border border-[var(--cl-line)] bg-[var(--cl-sage)] px-4 py-3 text-[13px] leading-relaxed text-[var(--cl-muted)]">
+                지금 데스크톱 앱으로 보고 계십니다. 업데이트는 메뉴의 [업데이트 확인]에서 받을 수
+                있습니다.
+              </p>
+            )}
           </div>
-        </div>
-      </header>
 
-      {/* ═══ 히어로 + 다운로드 ═══ */}
-      <section className="relative z-10 overflow-hidden px-6 pb-20 pt-16 sm:pt-24">
-        <Orb size="34rem" color="rgba(49,130,246,0.55)" className="-left-40 -top-32" />
-        <Orb size="28rem" color="rgba(120,86,255,0.45)" className="-right-32 top-10" delay="-4s" />
+          {/* 설치 파일 목록 */}
+          <div className="mx-auto mt-12 grid max-w-5xl gap-3 sm:grid-cols-2">
+            {ordered.map((asset, i) => (
+              <DownloadCard
+                key={asset.target.id}
+                asset={asset}
+                recommended={i === 0 && primary.length > 0}
+              />
+            ))}
+          </div>
 
-        <div className="relative mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[12px] font-medium tracking-wide text-white/60 backdrop-blur">
-            데스크톱 앱
-          </span>
-
-          <h1 className="mt-6 text-[34px] font-bold leading-[1.2] tracking-[-0.025em] sm:text-[48px]">
-            진료실 PC 에 설치해서
-            <br />
-            창 하나로 쓰세요
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-white/55 sm:text-[17px]">
-            웹에서 쓰던 계정 그대로입니다. 설치 파일을 받아 실행하면 브라우저 없이 바로 열리고, 새
-            버전은 앱이 알아서 받아둡니다.
-          </p>
-
-          {/* 버전 표기 — 무엇을 받게 되는지 버튼보다 먼저 밝힌다 */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[13px] text-white/45">
-            <span className="rounded-md border border-white/12 bg-white/5 px-2.5 py-1 font-mono text-white/75">
-              v{release.version}
-            </span>
-            {publishedLabel && <span>{publishedLabel} 배포</span>}
-            <span aria-hidden className="text-white/20">
-              ·
-            </span>
+          <div className="mx-auto mt-6 flex max-w-5xl flex-col items-center gap-3 text-center">
+            {!release.confirmed && (
+              <p className="inline-flex items-center gap-2 text-[12.5px] text-[var(--cl-muted)]">
+                <Info className="h-3.5 w-3.5 shrink-0" />
+                최신 릴리스 정보를 확인하지 못해 마지막으로 알려진 버전을 보여주고 있습니다.
+              </p>
+            )}
             <a
-              href={releaseNotesUrl(release.version)}
+              href={RELEASES_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-white/75"
+              className="inline-flex items-center gap-1.5 text-[13px] text-[var(--cl-muted)] hover:text-[var(--cl-ink)]"
             >
-              릴리스 노트
-              <ExternalLink className="h-3 w-3" />
+              지난 버전 전체 보기
+              <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
 
-          {alreadyDesktop && (
-            <p className="mx-auto mt-6 max-w-md rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[13px] leading-relaxed text-white/60">
-              지금 데스크톱 앱으로 보고 계십니다. 업데이트는 메뉴의 [업데이트 확인]에서 받을 수
-              있습니다.
-            </p>
-          )}
-        </div>
-
-        {/* 설치 파일 목록 */}
-        <div className="mx-auto mt-12 grid max-w-4xl gap-3 sm:grid-cols-2">
-          {ordered.map((asset, i) => (
-            <DownloadCard
-              key={asset.target.id}
-              asset={asset}
-              recommended={i === 0 && primary.length > 0}
-            />
-          ))}
-        </div>
-
-        <div className="mx-auto mt-6 flex max-w-4xl flex-col items-center gap-3 text-center">
-          {!release.confirmed && (
-            <p className="inline-flex items-center gap-2 text-[12.5px] text-white/40">
-              <Info className="h-3.5 w-3.5 shrink-0" />
-              최신 릴리스 정보를 확인하지 못해 마지막으로 알려진 버전을 보여주고 있습니다.
-            </p>
-          )}
-          <a
-            href={RELEASES_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-[13px] text-white/45 hover:text-white/75"
-          >
-            지난 버전 전체 보기
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        </div>
-
-        {/* 설치 없이 쓰기 */}
-        <div className="mx-auto mt-10 max-w-4xl">
-          <GlassCard className="p-5 sm:p-6">
-            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <Globe className="mt-0.5 h-5 w-5 shrink-0 text-white/45" />
-                <div>
-                  <p className="text-[14.5px] font-semibold text-white/85">
-                    설치가 어려운 원내 PC 라면 브라우저로 바로
-                  </p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-white/50">
-                    설치 권한이 없어도 됩니다. 크롬 주소창 오른쪽의 설치 아이콘을 누르면 앱처럼
-                    창으로 띄울 수도 있습니다.
-                  </p>
+          {/* 설치 없이 쓰기 */}
+          <div className="mx-auto mt-10 max-w-5xl">
+            <DownloadPanel className="p-5 sm:p-6">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <Globe className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cl-muted)]" />
+                  <div>
+                    <p className="text-[14.5px] font-semibold text-[var(--cl-ink)]">
+                      설치가 어려운 원내 PC 라면 브라우저로 바로
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-[var(--cl-muted)]">
+                      설치 권한이 없어도 됩니다. 크롬 주소창 오른쪽의 설치 아이콘을 누르면 앱처럼
+                      창으로 띄울 수도 있습니다.
+                    </p>
+                  </div>
                 </div>
+                <Link to="/login" className="landing-button landing-button-small">
+                  웹에서 열기
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-              <Link
-                to="/login"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 px-4 py-2 text-[13.5px] font-medium text-white/80 transition-colors hover:bg-white/8"
-              >
-                웹에서 열기
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </GlassCard>
-        </div>
-      </section>
+            </DownloadPanel>
+          </div>
+        </section>
 
-      {/* ═══ 왜 설치하나 ═══ */}
-      <section className="relative z-10 px-6 py-20">
-        <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
-          {BENEFITS.map((b) => (
-            <GlassCard key={b.title} className="p-6">
-              <b.icon className="h-5 w-5 text-[#5B7CFA]" />
-              <h3 className="mt-4 text-[15.5px] font-semibold text-white/90">{b.title}</h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-white/50">{b.desc}</p>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ 설치 방법 ═══ */}
-      <section className="relative z-10 px-6 pb-8">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
-            설치는 1분이면 끝납니다
-          </h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
-            {(['windows', 'mac'] as const).map((os) => (
-              <GlassCard key={os} className="p-6">
-                <h3 className="text-[15px] font-semibold text-white/85">{PLATFORM_LABEL[os]}</h3>
-                <ol className="mt-5 space-y-4">
-                  {INSTALL_STEPS[os].map((s, i) => (
-                    <li key={s.step} className="flex gap-3">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/15 text-[11px] font-semibold text-white/60">
-                        {i + 1}
-                      </span>
-                      <div>
-                        <p className="text-[13.5px] leading-relaxed text-white/75">{s.step}</p>
-                        {s.detail && (
-                          <p className="mt-1 text-[12.5px] leading-relaxed text-white/40">
-                            {s.detail}
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </GlassCard>
+        {/* ═══ 왜 설치하나 ═══ */}
+        <section className="download-benefits landing-container">
+          <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
+            {BENEFITS.map((b) => (
+              <DownloadPanel key={b.title} className="p-6">
+                <b.icon className="h-5 w-5 text-[var(--cl-green)]" />
+                <h3 className="mt-4 text-[15.5px] font-semibold text-[var(--cl-ink)]">{b.title}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--cl-muted)]">
+                  {b.desc}
+                </p>
+              </DownloadPanel>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══ 설치 조건 ═══ */}
-      <section className="relative z-10 px-6 py-16">
-        <div className="mx-auto max-w-3xl">
-          <GlassCard className="p-6 sm:p-8">
-            <h3 className="text-[15px] font-semibold text-white/85">설치 조건</h3>
-            <dl className="mt-5 space-y-3.5">
-              {REQUIREMENTS.map(([k, v]) => (
-                <div key={k} className="flex flex-col gap-1 sm:flex-row sm:gap-6">
-                  <dt className="w-24 shrink-0 text-[13px] font-medium text-white/55">{k}</dt>
-                  <dd className="text-[13px] leading-relaxed text-white/45">{v}</dd>
-                </div>
+        {/* ═══ 설치 방법 ═══ */}
+        <section className="download-install landing-container">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-center text-[26px] font-bold tracking-[-0.02em] sm:text-[32px]">
+              설치는 1분이면 끝납니다
+            </h2>
+            <div className="mt-10 grid gap-4 md:grid-cols-2">
+              {(['windows', 'mac'] as const).map((os) => (
+                <DownloadPanel key={os} className="p-6">
+                  <h3 className="text-[15px] font-semibold text-[var(--cl-ink)]">
+                    {PLATFORM_LABEL[os]}
+                  </h3>
+                  <ol className="mt-5 space-y-4">
+                    {INSTALL_STEPS[os].map((s, i) => (
+                      <li key={s.step} className="flex gap-3">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--cl-line)] text-[11px] font-semibold text-[var(--cl-muted)]">
+                          {i + 1}
+                        </span>
+                        <div>
+                          <p className="text-[13.5px] leading-relaxed text-[var(--cl-ink)]">
+                            {s.step}
+                          </p>
+                          {s.detail && (
+                            <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--cl-muted)]">
+                              {s.detail}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </DownloadPanel>
               ))}
-            </dl>
-          </GlassCard>
-        </div>
-      </section>
+            </div>
+          </div>
+        </section>
 
-      {/* ═══ 푸터 ═══ */}
-      <footer className="relative z-10 border-t border-white/8 px-6 py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 text-center">
-          <p className="text-[12px] text-white/30">
-            © {new Date().getFullYear()} 온고지신 AI. All rights reserved.
-          </p>
-          <p className="font-mono text-[11.5px] text-white/25">
-            데스크톱 v{release.version} · 웹 v{APP_VERSION} ({BUILD_DATE})
-          </p>
-        </div>
-      </footer>
+        {/* ═══ 설치 조건 ═══ */}
+        <section className="download-requirements landing-container">
+          <div className="mx-auto max-w-5xl">
+            <DownloadPanel className="p-6 sm:p-8">
+              <h3 className="text-[15px] font-semibold text-[var(--cl-ink)]">설치 조건</h3>
+              <dl className="mt-5 space-y-3.5">
+                {REQUIREMENTS.map(([k, v]) => (
+                  <div key={k} className="flex flex-col gap-1 sm:flex-row sm:gap-6">
+                    <dt className="w-24 shrink-0 text-[13px] font-medium text-[var(--cl-muted)]">
+                      {k}
+                    </dt>
+                    <dd className="text-[13px] leading-relaxed text-[var(--cl-muted)]">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </DownloadPanel>
+          </div>
+        </section>
+
+        {/* ═══ 푸터 ═══ */}
+      </main>
+      <MarketingFooter desktopVersion={release.version} />
     </div>
   )
 }
@@ -365,38 +315,43 @@ function DownloadCard({ asset, recommended }: { asset: ReleaseAsset; recommended
   return (
     <a
       href={asset.url}
-      className="group block"
+      className="download-file group block"
       // 릴리스 자산은 브라우저가 그대로 내려받는다. 다만 자산이 없는
       // 릴리스라면 GitHub 404 페이지가 뜨는데, 같은 탭이면 보고 있던
       // 다운로드 페이지가 그 404 로 덮인다. 새 탭으로 연다.
       target="_blank"
       rel="noreferrer"
     >
-      <GlassCard
+      <DownloadPanel
         glow={recommended}
         className="h-full p-5 transition-transform group-hover:-translate-y-0.5"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-semibold text-white/90">{asset.target.label}</span>
+              <span className="text-[15px] font-semibold text-[var(--cl-ink)]">
+                {asset.target.label}
+              </span>
               {recommended && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#3182F6]/15 px-2 py-0.5 text-[11px] font-medium text-[#7FA9FF]">
-                  <Check className="h-3 w-3" />이 PC 에 맞는 파일
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--cl-sage)] px-2 py-0.5 text-[11px] font-medium text-[var(--cl-green)]">
+                  <Check className="h-3 w-3" />
+                  현재 운영체제용
                 </span>
               )}
             </div>
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-white/45">{asset.target.hint}</p>
-            {size && <p className="mt-2 font-mono text-[11.5px] text-white/30">{size}</p>}
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--cl-muted)]">
+              {asset.target.hint}
+            </p>
+            {size && <p className="mt-2 font-mono text-[11.5px] text-[var(--cl-muted)]">{size}</p>}
           </div>
           <span
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #3182F6, #5B7CFA)' }}
+            style={{ background: 'var(--cl-green)', color: '#fff' }}
           >
             <Download className="h-4 w-4" />
           </span>
         </div>
-      </GlassCard>
+      </DownloadPanel>
     </a>
   )
 }
