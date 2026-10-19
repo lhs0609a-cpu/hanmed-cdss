@@ -1,0 +1,8 @@
+{
+  "genre": "medical",
+  "guidePath": "guides",
+  "mode": "dev",
+  "distDir": "dist",
+  "port": 3000,
+  "imageMin": 2
+}
