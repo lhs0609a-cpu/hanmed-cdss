@@ -519,6 +519,21 @@ async function main() {
    *
    * 그래서 머리말은 그대로 두고 #root 에 본문만 넣는다.
    */
+  /**
+   * 요청 때 쪽을 만드는 함수(api/render.mjs)가 쓸 껍데기를 따로 남긴다.
+   *
+   * 그 함수는 배포된 /index.html 을 받아 거기의 빈 #root 를 본문으로 바꾼다.
+   * 그런데 홈 본문을 index.html 에 구워 넣으면서 그 자리가 더 이상 비어
+   * 있지 않게 됐고, 패턴이 안 맞아 예외가 났다. 함수는 "만들지 못했으면
+   * 껍데기라도 돌려준다"는 폴백으로 **홈 HTML 을 그대로 내보냈다** —
+   * 상병 15,923쪽과 굽지 않은 문헌 약 22,000쪽, 합쳐 약 38,000개 주소가
+   * 서로 똑같은 홈 쪽이 됐다. 색인에는 중복 문서 덩어리로 읽힌다.
+   *
+   * 빌드는 이것을 잡지 못한다. 깨진 곳이 런타임이라서다. 그래서 두 파일로
+   * 나눈다 — 사람이 받는 index.html 은 홈 본문을 들고, 함수가 받는
+   * __shell.html 은 #root 가 비어 있다.
+   */
+  writeFileSync(resolve(DIST, '__shell.html'), shell)
   writeFileSync(
     resolve(DIST, 'index.html'),
     injectBody(shell, homeBodyHtml()),

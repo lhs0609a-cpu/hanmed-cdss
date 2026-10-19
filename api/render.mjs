@@ -51,7 +51,7 @@ const ROUTES = {
 };
 
 /**
- * 껍데기는 우리 배포본의 index.html 이다.
+ * 껍데기는 우리 배포본의 __shell.html 이다.
  *
  * 파일로 읽지 않고 HTTP 로 받는다 — 서버리스 함수는 정적 산출물과 다른
  * 자리에 올라가서 dist 를 직접 못 본다. 한 번 받으면 이 인스턴스가 살아
@@ -60,11 +60,38 @@ const ROUTES = {
 let shellCache = null;
 async function loadShell(origin) {
   if (shellCache) return shellCache;
-  const res = await fetch(`${origin}/index.html`, {
+  /**
+   * index.html 이 아니라 __shell.html 을 받는다.
+   *
+   * index.html 은 홈 본문을 들고 있어서 #root 가 비어 있지 않다. 그것을
+   * 껍데기로 쓰면 renderPage 의 치환이 실패하고, 아래 폴백이 홈 HTML 을
+   * 그대로 내보낸다 — 이 함수가 맡는 약 38,000개 주소가 전부 같은 쪽이
+   * 된다. 실제로 그렇게 나갔다(2026-09-30 ~ 10-19).
+   *
+   * __shell.html 은 프리렌더가 같은 빌드에서 남기는, #root 가 빈 복사본이다.
+   * 옛 배포본에는 없을 수 있으므로 없으면 index.html 로 물러서되, 그때는
+   * #root 안을 비워서 쓴다. 비우지 못하면 차라리 실패하는 편이 낫다 —
+   * 홈 쪽을 38,000번 내보내는 것보다 404 가 덜 해롭다.
+   */
+  const res = await fetch(`${origin}/__shell.html`, {
     headers: { accept: 'text/html' },
   });
-  if (!res.ok) throw new Error(`껍데기를 못 받았다 (${res.status})`);
-  shellCache = await res.text();
+  if (res.ok) {
+    shellCache = await res.text();
+    return shellCache;
+  }
+  const fallback = await fetch(`${origin}/index.html`, {
+    headers: { accept: 'text/html' },
+  });
+  if (!fallback.ok) throw new Error(`껍데기를 못 받았다 (${fallback.status})`);
+  const html = await fallback.text();
+  const emptied = html.replace(
+    /<div id="root">[\s\S]*<\/div>\s*(?=<script|<\/body)/,
+    '<div id="root"></div>',
+  );
+  if (!/<div id="root"><\/div>/.test(emptied))
+    throw new Error('껍데기의 #root 를 비우지 못했다');
+  shellCache = emptied;
   return shellCache;
 }
 
