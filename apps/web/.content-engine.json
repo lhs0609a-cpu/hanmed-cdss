@@ -4,5 +4,7 @@
   "mode": "dev",
   "distDir": "dist",
   "port": 3000,
-  "imageMin": 2
+  "imageMin": 2,
+  "country": "KR",
+  "lang": "ko"
 }
