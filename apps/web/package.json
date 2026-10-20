@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gate": "node scripts/gate-one.mjs",
+    "fig": "node D:/dev-ad/_tools/figure.mjs",
+    "figsvg": "node scripts/make-figure.mjs",
     "dev": "vite",
     "build": "node scripts/generate-seo-files.mjs && tsc -b && vite build && node scripts/prerender-public.mjs",
     "lint": "eslint .",

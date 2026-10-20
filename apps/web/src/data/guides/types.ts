@@ -55,6 +55,21 @@ export interface GuideSection {
    * 예: 시범사업 대상이 아닌 질환을 대상인 줄 알고 청구하는 것.
    */
   caution?: string
+  /**
+   * 이 절 뒤에 붙는 데이터 그래픽.
+   *
+   * 실제 수치만 넣는다. 숫자를 채우려고 장식 그림을 붙이지 않는다.
+   * alt 에는 "그래프" 가 아니라 수치를 적고, caption 에는 그림 설명이
+   * 아니라 읽는 방법을 적는다 — 어느 줄이 중간값이고 어느 줄이 최종값인지.
+   */
+  figures?: GuideFigure[]
+}
+
+/** 절에 붙는 그림 한 장. src 는 /figures/ 아래의 SVG 를 가리킨다. */
+export interface GuideFigure {
+  src: string
+  alt: string
+  caption: string
 }
 
 export type GuideAudience =

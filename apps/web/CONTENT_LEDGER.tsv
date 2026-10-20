@@ -1,0 +1,4 @@
+# CONTENT_LEDGER — 작성·발행·갱신한 글과 검색 의도. 중복 방지용. 지침 V19 §K, §S
+# 배포상태 = ready_to_deploy(게이트 통과, 아직 발행 아님) / published / deploy_failed (§S-2)
+# published 는 실제 HTTPS 운영 URL 200 과 본문·이미지·메타·canonical·sitemap 을 확인한 뒤에만 적는다
+작성일	slug	제목	검색 의도 한 줄	사용한 캐시키	게이트	배포상태	운영 URL	배포시각	배포 ID·커밋

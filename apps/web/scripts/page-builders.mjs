@@ -428,6 +428,15 @@ export function guidePage(guide, linkHref) {
           <h2>${escape(section.heading)}</h2>
           ${section.body.map((p) => `<p>${escape(p)}</p>`).join('')}
           ${section.caution ? `<p class="guide-caution">${escape(section.caution)}</p>` : ''}
+          ${(section.figures ?? [])
+            .map(
+              (f) =>
+                `<figure class="article-figure"><img src="${escape(
+                  f.src,
+                )}" alt="${escape(f.alt)}" loading="lazy" decoding="async" />` +
+                `<figcaption>${escape(f.caption)}</figcaption></figure>`,
+            )
+            .join('')}
           ${
             section.links?.length
               ? `<ul class="public-list guide-links">${section.links
