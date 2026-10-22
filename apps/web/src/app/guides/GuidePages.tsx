@@ -73,6 +73,16 @@ export function GuideDetailPage() {
           {section.caution ? (
             <p className="guide-caution">{section.caution}</p>
           ) : null}
+          {/*
+            데이터 그래픽. 구운 HTML(page-builders.mjs)과 같은 모양이어야 한다 —
+            크롤러는 구운 쪽을, 사람은 이 화면을 보는데 둘이 다르면 클로킹이다.
+          */}
+          {section.figures?.map((fig) => (
+            <figure key={fig.src} className="article-figure">
+              <img src={fig.src} alt={fig.alt} loading="lazy" decoding="async" />
+              <figcaption>{fig.caption}</figcaption>
+            </figure>
+          ))}
           {section.links?.length ? (
             <ul className="public-list guide-links">
               {section.links.map((link) => (

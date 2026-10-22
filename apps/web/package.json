@@ -14,7 +14,10 @@
     "icons": "node scripts/render-icons.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "gate": "node scripts/gate-one.mjs",
+    "fig": "node D:/dev-ad/_tools/figure.mjs",
+    "figsvg": "node scripts/make-figure.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

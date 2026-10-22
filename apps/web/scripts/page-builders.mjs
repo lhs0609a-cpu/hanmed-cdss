@@ -37,6 +37,23 @@ const PUBLIC_NAV = [
 ]
 
 /**
+ * 같은 입구에 설명을 붙인 것. src/data/publicNav.ts 의 PUBLIC_DATA 와 짝이다.
+ * 홈의 구운 본문과 React 가 그리는 홈이 같은 문장을 보여야 하므로, 고칠 때는
+ * 같이 고친다 — 갈라지면 크롤러가 본 것을 사람이 못 보게 된다(클로킹).
+ */
+const PUBLIC_DATA = [
+  { key: 'cases', href: '/cases', label: '고전 의안', desc: '조선·청대 의안의 주소증·변증·처방·경과를 원문과 함께 봅니다' },
+  { key: 'formulas', href: '/formulas', label: '처방 사전', desc: '출전과 주치, 구성 본초, 그 처방을 다룬 문헌으로 이어집니다' },
+  { key: 'herbs', href: '/herbs', label: '본초 사전', desc: '대한민국약전 기준 기원·성미·귀경과 배합례입니다' },
+  { key: 'references', href: '/references', label: '한의학 문헌', desc: 'KCI·PubMed 에서 모은 한의학 논문입니다' },
+  { key: 'journals', href: '/journals', label: '학술지별 문헌', desc: '학술지 단위로 모아 봅니다' },
+  { key: 'topics', href: '/topics', label: '주제별 문헌', desc: '상병·처방·시술 주제로 묶어 봅니다' },
+  { key: 'guides', href: '/guides', label: '한의사 가이드', desc: '첩약 급여·개원 절차·청구·비급여를 1차 출처와 확인일을 달아 정리했습니다' },
+  { key: 'nonpay', href: '/nonpay', label: '한방 비급여 가격', desc: '심평원 공개 신고값을 항목·지역별로 봅니다' },
+  { key: 'sick', href: '/sick-codes', label: '한의과 상병코드', desc: '청구에 쓸 코드를 분류와 세부로 갈라 찾습니다' },
+]
+
+/**
  * 껍데기의 머리말을 이 쪽 내용으로 바꾸고, #root 안에 본문을 심는다.
  * React 가 붙으면 같은 내용으로 다시 그리므로 화면이 튀지 않는다.
  * bodyHtml 이 없으면 머리말만 고친다 — 본문은 React 에 맡긴다.
@@ -457,6 +474,15 @@ export function guidePage(guide, linkHref) {
           <h2>${escape(section.heading)}</h2>
           ${section.body.map((p) => `<p>${escape(p)}</p>`).join('')}
           ${section.caution ? `<p class="guide-caution">${escape(section.caution)}</p>` : ''}
+          ${(section.figures ?? [])
+            .map(
+              (f) =>
+                `<figure class="article-figure"><img src="${escape(
+                  f.src,
+                )}" alt="${escape(f.alt)}" loading="lazy" decoding="async" />` +
+                `<figcaption>${escape(f.caption)}</figcaption></figure>`,
+            )
+            .join('')}
           ${
             section.links?.length
               ? `<ul class="public-list guide-links">${section.links
@@ -1174,11 +1200,54 @@ export function injectBody(shell, bodyHtml) {
   return shell.replace(pattern, `<div id="root">${bodyHtml}</div>`)
 }
 
-export function homeBodyHtml() {
+/**
+ * 홈의 구운 본문.
+ *
+ * counts 는 **이번 빌드에서 실제로 센 수**다. 하드코딩하지 않는다 — 홈이
+ * "의안 3,159건" 이라고 말하는데 실제로 굽힌 것이 2,000건이면 그 숫자가
+ * 틀린 것이고, 숫자가 틀린 홈은 안 적느니만 못하다. 0 인 항목은 줄 자체를
+ * 쓰지 않는다(공개 API 가 죽어 빈 채로 넘어가는 경로가 있다).
+ *
+ * 왜 늘렸나 — 2026-10-22 에 Yeti 로 홈을 받아 보니 본문이 **178자**였다.
+ * 네이버 서치어드바이저의 콘텐츠 노출/클릭이 0 이었고, site:ongojisin.co.kr
+ * 로 잡히는 주소도 홈 하나뿐이었다. 깊은 쪽은 1,800자대로 멀쩡히 구워져
+ * 있는데 홈이 거의 비어 있으면 색인은 되어도 노출될 내용이 없다.
+ *
+ * 입구 이름만 늘어놓는 것과 "거기에 무엇이 얼마나 있는가" 를 적는 것은
+ * 다르다. 뒤쪽이 사람에게도 쓸모가 있다. React 가 붙으면 같은 내용을 다시
+ * 그리므로 크롤러와 사람이 다른 것을 보지 않는다(클로킹 금지).
+ */
+export function homeBodyHtml(counts = {}) {
+  const n = (v) => (typeof v === 'number' && v > 0 ? v.toLocaleString('ko-KR') : null)
+  const rows = PUBLIC_DATA.map(({ key, href, label, desc }) => {
+    const c = n(counts[key])
+    return `<li><a href="${href}">${escape(label)}</a>${
+      c ? ` <b>${c}건</b>` : ''
+    } — ${escape(desc)}</li>`
+  }).join('')
+
+  const total = n(
+    PUBLIC_DATA.reduce((s, { key }) => s + (Number(counts[key]) || 0), 0),
+  )
+
   return `
       <div class="prerender-home">
         <h1>처방이 고민될 때,<br /><em>비슷한 치험례부터</em><br />찾아보세요.</h1>
         <p>환자 소견과 관련된 치험례를 찾고,<br />처방 구성·진료 경과·출처를 함께 검토하세요.</p>
+        <p>온고지신 AI 는 한의사·한의대생이 진료와 공부에서 근거를 확인하는 자리입니다.
+        고전 의안과 현대 문헌을 같은 화면에서 잇고, 어느 문헌에서 온 말인지와 우리가 그것을
+        마지막으로 확인한 날짜를 함께 보여 줍니다. 임상 판단을 대신하지 않습니다 —
+        판단에 쓸 근거를 찾아 주는 쪽입니다.</p>
+        <h2>공개 자료${total ? ` ${total}건` : ''}</h2>
+        <ul>${rows}</ul>
+        <h2>무엇이 다른가</h2>
+        <p><strong>출처와 확인일을 답니다.</strong> 수가·급여기준·개설 요건은 해마다 바뀝니다.
+        날짜 없는 숫자는 그대로 청구했다가 삭감되는 경로가 됩니다. 그래서 제도에 관한 문장에는
+        1차 출처 링크와 우리가 확인한 날을 함께 적습니다.</p>
+        <p><strong>글이 임상 주장을 만들지 않습니다.</strong> "이 질환에는 OO탕을 쓴다" 라고
+        쓰는 대신, 그 처방을 다룬 문헌이 몇 편 있는지 보여 주고 그리로 보냅니다.</p>
+        <p><strong>로그인 없이 볼 수 있습니다.</strong> 위 공개 자료는 가입하지 않아도 전부
+        열립니다.</p>
         <nav aria-label="공개 자료">
           <strong>공개 자료</strong>
           ${PUBLIC_NAV.map(

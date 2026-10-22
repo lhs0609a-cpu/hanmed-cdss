@@ -1,0 +1,10 @@
+{
+  "genre": "medical",
+  "guidePath": "guides",
+  "mode": "bake",
+  "distDir": "dist",
+  "port": 3000,
+  "imageMin": 2,
+  "country": "KR",
+  "lang": "ko"
+}

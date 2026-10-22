@@ -3,6 +3,8 @@ import { CHEOPYAK_GUIDES } from './cheopyak'
 import { CHEOPYAK_PROGRAM_GUIDES } from './cheopyak-program'
 import { CLAIM_GUIDES } from './claim'
 import { OPENING_GUIDES } from './opening'
+import { NONPAY_YAKCHIM_GUIDES } from './nonpay-yakchim'
+import { NONPAY_CHUNA_GUIDES } from './nonpay-chuna'
 import { OPERATION_GUIDES } from './operation'
 
 export type { Guide, GuideSection, GuideSource, GuideLink, GuideAudience } from './types'
@@ -20,6 +22,8 @@ export const GUIDES: Guide[] = [
   ...OPENING_GUIDES,
   ...OPERATION_GUIDES,
   ...CLAIM_GUIDES,
+  ...NONPAY_YAKCHIM_GUIDES,
+  ...NONPAY_CHUNA_GUIDES,
 ]
 
 const BY_SLUG = new Map(GUIDES.map((g) => [g.slug, g]))
