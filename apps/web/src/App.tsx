@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { HanjaSettingsProvider } from '@/components/hanja'
 import { KeyboardShortcutsProvider } from '@/components/common/KeyboardShortcuts'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
+import { ReadabilityTools } from '@/components/common/ReadabilityTools'
 import { RouteBoundary } from '@/components/common/RouteErrorBoundary'
 
 // Layouts (eager — used on every authenticated request)
@@ -379,6 +380,7 @@ function App() {
       <UsageTracker />
       <Toaster />
       <OfflineBanner />
+      <ReadabilityTools />
     </HanjaSettingsProvider>
   )
 }

@@ -31,6 +31,7 @@ import { PalGangAnalyzer, PalGangSummary, PalGangDiagram } from '@/components/di
 import { BodyConstitutionAssessment } from '@/components/diagnosis/BodyConstitutionAssessment'
 import { SimilarCaseSuccessCard } from '@/components/diagnosis/SimilarCaseSuccessCard'
 import { CaseEvidencePanel } from '@/components/evidence/CaseEvidencePanel'
+import { GroundingCaseDialog, type CaseEvidence } from '@/components/cases/GroundingCaseDialog'
 import { AIResultDisclaimer, PrescriptionDisclaimer } from '@/components/common/MedicalDisclaimer'
 import { TermTooltip } from '@/components/common'
 import { lookupPatternCode, lookupConstitutionCode, type KcdOmEntry } from '@/lib/kcdOm'
@@ -757,6 +758,8 @@ export default function PatternDiagnosisPage() {
   const [similarCases, setSimilarCases] = useState<any[]>([])
   const [similarLoading, setSimilarLoading] = useState(false)
   const [similarError, setSimilarError] = useState<string | null>(null)
+  const [similarAttempt, setSimilarAttempt] = useState(0)
+  const [selectedCase, setSelectedCase] = useState<CaseEvidence | null>(null)
 
   // 선택 증상 ID → 한글 이름 변환
   const selectedSymptomNames = useMemo(() => {
@@ -766,6 +769,7 @@ export default function PatternDiagnosisPage() {
   }, [selectedSymptoms])
 
   useEffect(() => {
+    setSelectedCase(null)
     if (!results[0]) {
       setSimilarCases([])
       setSimilarError(null)
@@ -779,6 +783,7 @@ export default function PatternDiagnosisPage() {
     let cancelled = false
     setSimilarLoading(true)
     setSimilarError(null)
+    setSimilarCases([])
 
     // Fly auto-stop cold-start + 6,454건 임베딩 스코어링 + OpenAI 임베딩 합치면 20s 로 부족 → 45s.
     const controller = new AbortController()
@@ -812,7 +817,7 @@ export default function PatternDiagnosisPage() {
         const status = err?.response?.status
         const msg =
           err?.response?.data?.message ||
-          (status ? `서버 응답 ${status}` : err?.message) ||
+          (status ? `서버 응답 ${status}` : '서버에 연결하지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.') ||
           '유사 치험례 검색 실패'
         setSimilarError(msg)
         setSimilarCases([])
@@ -827,7 +832,7 @@ export default function PatternDiagnosisPage() {
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [results, selectedSymptomNames])
+  }, [results, selectedSymptomNames, similarAttempt])
 
   const toggleSymptom = (symptomId: string) => {
     setSelectedSymptoms((prev) =>
@@ -1001,6 +1006,9 @@ export default function PatternDiagnosisPage() {
 
   return (
     <div className="space-y-6">
+      {selectedCase && (
+        <GroundingCaseDialog evidence={selectedCase} cited={false} onClose={() => setSelectedCase(null)} />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1516,11 +1524,9 @@ export default function PatternDiagnosisPage() {
               <div className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 leading-relaxed">
                 <p className="font-semibold mb-1">AI 매칭 불가</p>
                 <p>{similarError}</p>
-                <p className="text-[11px] text-amber-700 mt-2">
-                  관리자: GitHub Actions 의 "Ops · Deploy + Migrate + Embed" 워크플로에서
-                  <code className="bg-amber-100 px-1 rounded mx-0.5">embedding = full</code>
-                  으로 실행하면 6,454건 임베딩이 생성됩니다.
-                </p>
+                <button type="button" onClick={() => setSimilarAttempt((value) => value + 1)} className="mt-2 font-semibold text-blue-700">
+                  다시 시도
+                </button>
               </div>
             )}
 
@@ -1532,10 +1538,20 @@ export default function PatternDiagnosisPage() {
 
             <div className="space-y-2">
               {similarCases.map((c: any, i: number) => (
-                <Link
+                <button
                   key={c.id || i}
-                  to={`/dashboard/cases?q=${encodeURIComponent(c.formulaName || c.chiefComplaint?.slice(0, 30) || '')}`}
-                  className="block p-3 border border-neutral-200 rounded-lg hover:border-neutral-300 hover:shadow-soft transition-all group"
+                  type="button"
+                  disabled={!c.id}
+                  aria-haspopup="dialog"
+                  aria-label={`치험례 상세 보기: ${c.summaryOneLine || c.title || c.chiefComplaint || c.formulaName}`}
+                  onClick={() => setSelectedCase({
+                    caseId: c.id,
+                    title: c.summaryOneLine || c.title || c.chiefComplaint || '치험례',
+                    summary: c.chiefComplaint || '',
+                    formulaName: c.formulaName || '',
+                    outcome: c.treatmentOutcome || c.outcome || '',
+                  })}
+                  className="block w-full p-3 text-left border border-neutral-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all group disabled:opacity-50"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -1566,7 +1582,11 @@ export default function PatternDiagnosisPage() {
                       </span>
                     )}
                   </div>
-                </Link>
+                  <span className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-blue-600">
+                    원문·치료 경과 자세히 보기
+                    <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </button>
               ))}
             </div>
           </div>
