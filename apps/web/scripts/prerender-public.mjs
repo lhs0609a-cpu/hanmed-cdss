@@ -27,17 +27,24 @@ import { ORIGIN, STATIC_ROUTES } from './public-routes.mjs'
  */
 import {
   casePage,
+  casesIndexPage,
   escape,
   formulaPage,
+  formulasIndexPage,
   herbPage,
+  herbsIndexPage,
   journalPage,
+  journalsIndexPage,
   referencePage,
+  referencesIndexPage,
   relatedHtml,
   renderPage,
   guidePage,
+  guidesIndexPage,
   homeBodyHtml,
   injectBody,
   keywordPage,
+  topicsIndexPage,
   nonPayIndexPage,
   sickCodePage,
   sickCodesIndexPage,
@@ -198,7 +205,10 @@ function loadShell() {
 function healthCheckPage(check) {
   const url = `${ORIGIN}/health/check/${encodeURIComponent(check.slug)}`
   const km = check.result.koreanMedicine
+  // 증상 체크 는 HealthLayout 이 제 푸터를 들고 있다. 공개 쪽 푸터를
+  // 끼우면 사람이 보는 것과 달라진다.
   return {
+    footer: false,
     url,
     title: `${check.title} | 온고지신 AI`,
     description: `${check.subtitle} — ${check.description}`,
@@ -239,7 +249,10 @@ function celebPage(celeb, analysis, info) {
     (a, b) => b[1] - a[1],
   )[0][0]
   const description = `${celeb.name}의 생년월일로 본 사주 오행과 추론 체질(${info.name}). ${aside}`
+  // 체질 TMI 는 HealthLayout 이 제 푸터를 들고 있다. 공개 쪽 푸터를
+  // 끼우면 사람이 보는 것과 달라진다.
   return {
+    footer: false,
     url,
     title: `${celeb.name} 체질 — 사주로 본 ${info.name} | 온고지신 AI`,
     description,
@@ -313,6 +326,37 @@ const urlsetXml = (rows) =>
  */
 const RSS_ITEM_LIMIT = 100
 
+/**
+ * 가이드 한 편을 피드에 실을 HTML 로 만든다.
+ *
+ * 네이버 도움말이 "RSS 피드 내의 콘텐츠는 이미지 링크가 포함된 본문 전체를
+ * 제공하는 것을 권장" 한다. 그래서 절 제목·문단·그림을 쪽에 있는 그대로
+ * 옮긴다. 새로 쓰지 않는다 — 피드에만 있는 문장은 사람이 쪽에 들어왔을 때
+ * 없으므로 클로킹이 된다.
+ *
+ * 이미지는 절대주소로 바꾼다. 피드를 읽는 쪽에는 우리 도메인이 기준이
+ * 아니어서 /images/... 는 깨진다.
+ */
+function guideFeedBody(guide) {
+  const parts = []
+  for (const s of guide.sections ?? []) {
+    parts.push(`<h2>${escape(s.heading)}</h2>`)
+    for (const p of s.body ?? []) parts.push(`<p>${escape(p)}</p>`)
+    if (s.caution) parts.push(`<p><strong>${escape(s.caution)}</strong></p>`)
+    for (const f of s.figures ?? [])
+      parts.push(
+        `<p><img src="${escape(ORIGIN + f.src)}" alt="${escape(f.alt)}" />` +
+          `<br /><small>${escape(f.caption)}</small></p>`,
+      )
+  }
+  for (const src of guide.sources ?? [])
+    parts.push(
+      `<p><small>출처 <a href="${escape(src.url)}">${escape(src.label)}</a>` +
+        ` · 확인 ${escape(src.checkedOn)}</small></p>`,
+    )
+  return parts.join('')
+}
+
 function writeRss(items) {
   /**
    * 종류마다 최근 것을 고른 뒤 합쳐서 날짜순으로 싣는다.
@@ -335,11 +379,24 @@ function writeRss(items) {
   }
   const newestFirst = (a, b) =>
     a.lastmod === b.lastmod ? 0 : a.lastmod < b.lastmod ? 1 : -1
-  const quota = Math.max(1, Math.ceil(RSS_ITEM_LIMIT / Math.max(1, byKind.size)))
-  const rows = [...byKind.values()]
-    .flatMap((lane) => lane.sort(newestFirst).slice(0, quota))
-    .sort(newestFirst)
-    .slice(0, RSS_ITEM_LIMIT)
+  /**
+   * 가이드는 몫을 나눠 받지 않고 전부 싣는다.
+   *
+   * 우리가 직접 쓴 글이고 검색으로 사람을 데려오는 것도 그 글들이다. 종류가
+   * 아홉이면 몫이 열두 편이라, 열일곱 편짜리 가이드가 다섯 편 잘려 나간다.
+   * 자료 쪽은 사이트맵이 맡고 있으니 피드의 앞자리는 글에 준다.
+   */
+  const guideLane = (byKind.get('guides') ?? []).sort(newestFirst)
+  byKind.delete('guides')
+  const rest = Math.max(0, RSS_ITEM_LIMIT - guideLane.length)
+  const quota = Math.max(1, Math.ceil(rest / Math.max(1, byKind.size)))
+  const rows = [
+    ...guideLane,
+    ...[...byKind.values()]
+      .flatMap((lane) => lane.sort(newestFirst).slice(0, quota))
+      .sort(newestFirst)
+      .slice(0, rest),
+  ].slice(0, RSS_ITEM_LIMIT)
   if (!rows.length) return 0
   const rfc822 = (day) => new Date(`${day}T00:00:00Z`).toUTCString()
   // 쪽 제목은 끝에 사이트 이름을 달고 있다. 피드는 이미 채널 이름으로
@@ -351,21 +408,31 @@ function writeRss(items) {
       <title>${escape(trim(item.title))}</title>
       <link>${escape(ORIGIN + encodePath(item.path))}</link>
       <guid isPermaLink="true">${escape(ORIGIN + encodePath(item.path))}</guid>
-      <description>${escape(item.description ?? item.title)}</description>
+      <description>${escape(item.description ?? item.title)}</description>${
+        item.body
+          ? `
+      <content:encoded><![CDATA[${item.body.replace(/]]>/g, ']]&gt;')}]]></content:encoded>`
+          : ''
+      }
       <pubDate>${rfc822(item.lastmod)}</pubDate>
     </item>`,
     )
     .join(String.fromCharCode(10))
+  // lastBuildDate 는 오늘로 적는다. 가장 최근 항목의 날짜를 적으면 새 글을
+  // 안 쓴 주에는 피드가 "그날 이후로 아무 일도 없었다" 고 말하게 되고,
+  // 수집기는 그 신호로 방문 간격을 늘린다. 피드 자체는 매 배포에 다시 만든다.
+  const builtAt = new Date().toUTCString()
   writeFileSync(
     resolve(DIST, 'rss.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>온고지신 AI — 한의학 임상 자료</title>
     <link>${ORIGIN}</link>
-    <description>고전 의안, 처방, 본초, 침구·한약 임상 문헌에 새로 열린 자료.</description>
+    <atom:link href="${ORIGIN}/rss.xml" rel="self" type="application/rss+xml" />
+    <description>한의사·한의대생이 쓰는 제도·청구·비급여 가이드와, 고전 의안·처방·본초·임상 문헌에 새로 열린 자료.</description>
     <language>ko</language>
-    <lastBuildDate>${rfc822(rows[0].lastmod)}</lastBuildDate>
+    <lastBuildDate>${builtAt}</lastBuildDate>
 ${body}
   </channel>
 </rss>
@@ -535,11 +602,33 @@ async function main() {
    * (PRERENDER_ALLOW_EMPTY 로 넘어가는 경로) 가이드까지 통째로 빠졌다 —
    * API 와 아무 상관도 없는 글인데 같이 사라지는 것은 말이 안 된다.
    */
+  /**
+   * RSS 에 실을 후보. 쪽을 구우면서 같이 모은다 — 제목과 설명은 이미
+   * 만들어 둔 것이고, 나중에 다시 만들면 화면과 피드가 갈라진다.
+   *
+   * 가이드보다 앞에 선언한다. 예전에는 이 배열이 가이드를 구운 **뒤에**
+   * 생겨서, 우리가 직접 쓴 글이 피드에 한 편도 들어가지 못했다
+   * (2026-10-22 확인: 운영 rss.xml 100건이 의안·처방·본초·문헌 25건씩이고
+   * 가이드는 0건). 네이버가 피드로 가장 먼저 집어 가야 하는 것이 그 글들이다.
+   */
+  const feed = []
+
   const guideModule = await loadAppModule('data/guides/index.ts')
   for (const guide of guideModule.GUIDES) {
     const path = `/guides/${guide.slug}`
-    write(path, renderPage(shell, guidePage(guide, guideModule.guideLinkHref)))
+    const page = guidePage(guide, guideModule.guideLinkHref)
+    write(path, renderPage(shell, page))
     groups.guides.push({ path, lastmod: guide.updatedOn })
+    feed.push({
+      path,
+      lastmod: guide.updatedOn,
+      title: page.title,
+      description: page.description,
+      // 네이버는 피드에 "이미지 링크가 포함된 본문 전체" 를 권장한다.
+      // 쪽에 있는 것과 같은 문단·같은 그림만 싣는다 — 피드에만 더 주면
+      // 크롤러와 사람이 다른 것을 보게 되고 그것이 클로킹이다.
+      body: guideFeedBody(guide),
+    })
   }
 
   let cases = []
@@ -597,12 +686,8 @@ async function main() {
     ...(stamps.references ?? []).map((e) => [`/references/${e.slug}`, e.lastmod]),
   ])
 
-  /**
-   * RSS 에 실을 후보. 쪽을 구우면서 같이 모은다 — 제목과 설명은 이미
-   * 만들어 둔 것이고, 나중에 다시 만들면 화면과 피드가 갈라진다.
-   */
-  const feed = []
-
+  // feed 는 가이드를 굽기 전에 이미 선언했다(위쪽). 여기서 다시 만들면
+  // 가이드가 또 빠진다.
   const bake = (list, group, prefix, build) => {
     for (const teaser of list) {
       const path = `${prefix}/${teaser.slug}`
@@ -795,6 +880,55 @@ async function main() {
   }
 
   /**
+   * 공개 목록 쪽에 본문을 심는다.
+   *
+   * 이 아홉 쪽은 홈이 가리키는 입구인데, 그중 일곱이 크롤러에게 빈 쪽이었다.
+   * writeStaticRoutes 가 머리말만 굽고 본문은 React 에 맡겼기 때문이다.
+   * 네이버에 수집 요청한 다섯 주소가 전부 여기 있었고, 수집 리포트에는
+   * "수집 정보가 없습니다" 만 남았다.
+   *
+   * 자료를 받은 뒤라야 목록을 만들 수 있어 굽는 일이 두 번으로 나뉜다.
+   * 여기서 같은 주소에 머리말 + 본문으로 다시 쓴다 — 사이트맵 항목은
+   * STATIC_ROUTES 가 이미 넣었으므로 groups 에 다시 넣지 않는다.
+   *
+   * 쓴 뒤에 파일을 도로 읽어 확인한다. 지난번에 홈 본문을 "구웠다" 고 해
+   * 놓고 skipPrerender 탓에 한 줄도 닿지 않은 채 배포된 적이 있다. 실을
+   * 것이 있는데 링크가 하나도 없으면 빌드를 세운다 — 조용히 빈 쪽으로
+   * 나가는 것이 이 스크립트가 겪은 바로 그 사고다.
+   */
+  const indexPages = [
+    ['/cases', casesIndexPage(cases), cases.length],
+    ['/formulas', formulasIndexPage(formulas), formulas.length],
+    ['/herbs', herbsIndexPage(herbs), herbs.length],
+    ['/references', referencesIndexPage(references), references.length],
+    ['/journals', journalsIndexPage(journals), journals.length],
+    [
+      '/topics',
+      topicsIndexPage(koTopics, topics),
+      koTopics.length + topics.length,
+    ],
+    [
+      '/guides',
+      guidesIndexPage(guideModule.guideClusters(), guideModule.GUIDES.length),
+      guideModule.GUIDES.length,
+    ],
+  ]
+  let indexLinks = 0
+  for (const [path, page, available] of indexPages) {
+    write(path, renderPage(shell, page))
+    const baked = readFileSync(
+      resolve(DIST, `.${path}`, 'index.html'),
+      'utf8',
+    )
+    const links = (baked.match(/<li><a href="/g) ?? []).length
+    if (available > 0 && links === 0)
+      throw new Error(
+        `${path}: 실을 것이 ${available}개인데 구운 쪽에 링크가 하나도 없다`,
+      )
+    indexLinks += links
+  }
+
+  /**
    * 한방 비급여 진료비.
    *
    * 항목 열일곱에 지역 열여덟이면 조합은 306이지만 조합 쪽은 굽지 않는다.
@@ -883,6 +1017,46 @@ async function main() {
     console.warn(`prerender: 상병코드를 굽지 못했다 — ${error.message}`)
   }
 
+  /**
+   * 홈을 다시 굽는다 — 이번에는 실제로 센 수를 넣어서.
+   *
+   * 위(§ index.html 첫 쓰기)에서 한 번 구운 것은 수를 모르는 상태다. 공개
+   * API 를 묻기 전이라 셀 것이 없다. 그 판을 남겨 두는 이유는 뒤에서 빌드가
+   * 엎어져도 홈이 빈 껍데기로 나가지 않게 하려는 것이고, 끝까지 왔으면
+   * 여기서 수가 붙은 판으로 덮는다.
+   *
+   * 수는 사이트맵 그룹에서 센다. "굽기로 한 수" 가 아니라 "실제로 주소가
+   * 생긴 수" 라야 홈이 말하는 숫자와 사이트맵이 어긋나지 않는다.
+   */
+  const publicCounts = {
+    cases: groups.cases.length,
+    formulas: groups.formulas.length,
+    herbs: groups.herbs.length,
+    references: groups.references.length,
+    journals: groups.journals.length,
+    topics: groups.topics.length,
+    guides: groups.guides.length,
+    nonpay: groups.nonpay.length,
+    sick: groups.sick.length,
+  }
+  writeFileSync(
+    resolve(DIST, 'index.html'),
+    injectBody(shell, homeBodyHtml(publicCounts)),
+  )
+  /**
+   * 화면도 같은 수를 읽는다. 여기만 굽고 React 가 모르면 붙는 순간 이 칸이
+   * 사라져서, 크롤러가 본 것을 사람이 못 보게 된다 — 관련 연구 목록을
+   * 정적 JSON 으로 떨구는 것과 같은 이유다.
+   *
+   * `/stats/public` 을 쓰지 않는 이유는 그쪽이 DB 행 수이고 여기는 실제로
+   * 주소가 생긴 수여서다. 둘을 섞으면 홈이 말하는 숫자와 사이트맵이 어긋난다.
+   */
+  mkdirSync(resolve(DIST, 'data'), { recursive: true })
+  writeFileSync(
+    resolve(DIST, 'data/public-counts.json'),
+    JSON.stringify(publicCounts),
+  )
+
   const files = writeSitemap(groups)
   const total = Object.values(groups).reduce((a, g) => a + g.length, 0)
   console.log(
@@ -894,7 +1068,7 @@ async function main() {
       `가이드 ${guideModule.GUIDES.length}쪽, 비급여 ${nonpayPages}쪽, ` +
       `상병 ${groups.sick.length}쪽(구움 ${sickPages}) ` +
       `— 사이트맵 ${total}개 주소, ${files.length}개 파일, RSS ${rssItems}건, ` +
-      `관련 연구 ${relatedPairs}쪽`,
+      `관련 연구 ${relatedPairs}쪽, 목록 쪽 링크 ${indexLinks}개`,
   )
 }
 

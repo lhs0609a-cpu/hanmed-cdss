@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, Menu, X } from 'lucide-react'
+import { PUBLIC_NAV } from '@/data/publicNav'
 import { APP_VERSION, BUILD_DATE, DESKTOP_VERSION } from '@/config/version'
 import '../landing.css'
 import '../conversion.css'
@@ -191,15 +192,11 @@ export function MarketingFooter({
           */}
         <nav aria-label="공개 자료">
           <strong>공개 자료</strong>
-            <Link to="/cases">고전 의안</Link>
-            <Link to="/formulas">처방 사전</Link>
-            <Link to="/herbs">본초 사전</Link>
-            <Link to="/references">한의학 문헌</Link>
-            <Link to="/journals">학술지별 문헌</Link>
-            <Link to="/topics">주제별 문헌</Link>
-            <Link to="/guides">한의사 가이드</Link>
-            <Link to="/nonpay">한방 비급여 가격</Link>
-            <Link to="/sick-codes">한의과 상병코드</Link>
+          {PUBLIC_NAV.map(([href, label]) => (
+            <Link key={href} to={href}>
+              {label}
+            </Link>
+          ))}
         </nav>
         <nav aria-label="서비스 정책">
           <strong>서비스 안내</strong>

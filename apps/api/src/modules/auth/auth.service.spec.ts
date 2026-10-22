@@ -189,7 +189,7 @@ describe('AuthService', () => {
 
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
       await expect(service.login(loginDto)).rejects.toThrow(
-        '이메일 또는 비밀번호가 올바르지 않습니다.',
+        '등록되지 않은 이메일입니다. 오타가 없는지 확인해 주세요.',
       );
     });
 
@@ -200,23 +200,35 @@ describe('AuthService', () => {
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('동일한 에러 메시지로 이메일/비밀번호 오류를 숨겨야 함 (보안)', async () => {
-      // 존재하지 않는 이메일
+    /**
+     * 예전에는 이 자리에 "두 경우를 같은 문장으로 숨겨야 한다 (보안)" 는
+     * 시험이 있었다. 가입 여부를 알려 주지 않으려는 것이었다.
+     *
+     * 그 방침은 바뀌었다. 로그인이 왜 안 됐는지 갈라 알려 주기로 하면서,
+     * 이메일 목록을 훑는 쪽은 메시지를 흐리는 대신 auth.controller 의
+     * IP 기준 분당 10회 제한(@Throttle short)으로 막는다. 계정별 잠금은
+     * 서비스가 따로 센다. 가입 여부가 드러나는 것은 알고 받아들인 값이다.
+     *
+     * 코드는 그때 바뀌었는데 시험만 남아 CI 가 붉었다. 숨기는 것이 아니라
+     * 갈라 준다는 지금 계약을 시험한다 — 화면이 분기하는 값은 사람이 읽는
+     * message 가 아니라 error 코드다.
+     *
+     * 횟수가 문장에 박히는 WRONG_PASSWORD 는 message 로 재지 않는다.
+     * MAX_ATTEMPTS 를 손대면 같이 깨져, 고칠 것이 없는데 붉어진다.
+     */
+    it('실패 이유마다 다른 error 코드를 실어야 함', async () => {
       usersService.findByEmail.mockResolvedValue(null);
-      try {
-        await service.login(loginDto);
-      } catch (e) {
-        expect(e.message).toBe('이메일 또는 비밀번호가 올바르지 않습니다.');
-      }
+      const notFound = await service.login(loginDto).catch((e) => e);
+      expect(notFound).toBeInstanceOf(UnauthorizedException);
+      expect(notFound.getResponse()).toMatchObject({ error: 'EMAIL_NOT_FOUND' });
 
-      // 잘못된 비밀번호
       usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-      try {
-        await service.login(loginDto);
-      } catch (e) {
-        expect(e.message).toBe('이메일 또는 비밀번호가 올바르지 않습니다.');
-      }
+      const wrongPassword = await service.login(loginDto).catch((e) => e);
+      expect(wrongPassword).toBeInstanceOf(UnauthorizedException);
+      expect(wrongPassword.getResponse()).toMatchObject({
+        error: 'WRONG_PASSWORD',
+      });
     });
   });
 

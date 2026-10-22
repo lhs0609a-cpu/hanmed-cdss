@@ -48,7 +48,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
 
       # 레포 전체를 설치하면 puppeteer·bcrypt 까지 받느라 5분이 넘게 걸린다.

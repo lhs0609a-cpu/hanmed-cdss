@@ -20,6 +20,7 @@ import { useSEO } from '@/hooks/useSEO'
 import { usePublicStats } from '@/hooks/usePublicStats'
 import { useLandingTracking } from './components/useLandingTracking'
 import { ClinicalDemo, type DemoEvent } from './components/PublicCaseDemo'
+import PublicDataSection from './components/PublicDataSection'
 import { DESKTOP_VERSION } from '@/config/version'
 import {
   ANNUAL_DISCOUNT_LABEL,
@@ -235,6 +236,8 @@ export default function LandingPage() {
           </div>
           <ClinicalDemo onEvent={handleDemoEvent} onTry={handleTry} />
         </section>
+
+        <PublicDataSection />
 
         <section
           id="evidence"
